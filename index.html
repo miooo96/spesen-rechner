@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Spesen-Rechner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --border: #333;
+    --bg-light: #f5f5f5;
+    --accent: #0a6cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    margin: 0; padding: 1.5rem;
+    background: #e9edf1; color: #1a1a1a;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+  h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;
+  }
+  button, .btn {
+    padding: 8px 14px; border: 1px solid #888; background: #fff;
+    border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+  }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:hover { filter: brightness(0.95); }
+
+  .panel {
+    background: #fff; border: 1px solid #ccc; border-radius: 8px;
+    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem 1.5rem;
+  }
+  label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 2px; }
+  input, select {
+    width: 100%; padding: 6px 8px; border: 1px solid #bbb; border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  .weekday-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 4px; }
+  .weekday-row span { width: 28px; font-weight: bold; font-size: 0.85rem; }
+  .weekday-row input { width: 80px; }
+
+  /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
+  #formular {
+    background: #fff; border: 2px solid var(--border);
+    max-width: 1000px; margin: 0 auto; font-size: 0.85rem;
+  }
+  #formular table { border-collapse: collapse; width: 100%; }
+  #formular td, #formular th {
+    border: 1px solid var(--border); padding: 4px 8px; vertical-align: top;
+  }
+  #formular .head-title { font-size: 1.2rem; font-weight: bold; padding: 8px; }
+  #formular .center { text-align: center; }
+  #formular .bold { font-weight: bold; }
+  #formular .small { font-size: 0.75rem; }
+  #formular th { background: var(--bg-light); }
+  #formular input.cell-input {
+    border: none; width: 100%; font-size: 0.85rem; padding: 2px; background: transparent;
+  }
+  #formular input.cell-input:focus { background: #fffbdd; }
+  select.status-select { font-size: 0.75rem; padding: 2px; width: 100%; min-width: 90px; }
+  #formular th:last-child, #formular td:last-child { min-width: 100px; }
+  tr.status-urlaub, tr.status-krank, tr.status-frei, tr.status-feiertag { color: #888; background: #fafafa; }
+  td.pauschale-cell { text-align: right; }
+  .gesamt-row td { font-weight: bold; background: var(--bg-light); }
+  .bezahlt-cell { color: #c0392b; white-space: nowrap; }
+  .bezahlt-cell input { width: 70px; display: inline-block; color: #c0392b; font-weight: bold; }
+
+  footer { text-align: center; font-size: 0.75rem; color: #888; margin-top: 2rem; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 8mm; }
+    body { background: #fff; padding: 0; margin: 0; font-size: 0.7rem; }
+    .no-print { display: none !important; }
+    .panel { display: none !important; }
+    h1 { display: none; }
+    #formular { border: 2px solid #000; max-width: 100%; font-size: 0.7rem; }
+    #formular td, #formular th { padding: 2px 5px; }
+    #formular .head-title { font-size: 1rem; padding: 4px; }
+    input.cell-input, select.status-select { border: none !important; }
+    select.status-select { -webkit-appearance: none; appearance: none; }
+    footer { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1 class="no-print">🧮 Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</h1>
+
+<div class="toolbar no-print">
+  <button class="primary" onclick="window.print()">📄 Als PDF drucken/speichern</button>
+  <button onclick="exportCSV()">⬇️ Als CSV exportieren</button>
+  <button onclick="toggleSettings()">⚙️ Einstellungen</button>
+  <button onclick="if(confirm('Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?')) resetAll()">🗑️ Zurücksetzen</button>
+  <select id="monthPicker" onchange="renderFormular()"></select>
+</div>
+
+<div class="panel no-print" id="settingsPanel" style="display:none;">
+  <h2 style="margin-top:0;">Einstellungen</h2>
+  <div class="grid">
+    <div>
+      <label>Name</label>
+      <input id="cfgName" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Straße</label>
+      <input id="cfgStrasse" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Ort</label>
+      <input id="cfgOrt" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Niederlassung</label>
+      <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Jahr</label>
+      <input id="cfgJahr" type="number" oninput="saveConfig(); rebuildMonthPicker(); renderFormular();">
+    </div>
+    <div>
+      <label>Startmonat</label>
+      <select id="cfgStartMonat" onchange="saveConfig(); rebuildMonthPicker(); renderFormular();"></select>
+    </div>
+    <div>
+      <label>Endmonat</label>
+      <select id="cfgEndMonat" onchange="saveConfig(); rebuildMonthPicker(); renderFormular();"></select>
+    </div>
+    <div>
+      <label>Bundesland (für Feiertage)</label>
+      <select id="cfgBundesland" onchange="saveConfig(); renderFormular();"></select>
+    </div>
+    <div>
+      <label>Pauschale ab &gt; 8 Std (€)</label>
+      <input id="cfgPauschale8" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Pauschale ab &gt; 24 Std (€)</label>
+      <input id="cfgPauschale24" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Abfahrt WP (Standard)</label>
+      <input id="cfgAbfahrt" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Standard "besuchte Orte"</label>
+      <input id="cfgOrte" oninput="saveConfig(); renderFormular();">
+    </div>
+  </div>
+
+  <h2>Tagesstunden je Wochentag</h2>
+  <div id="weekdayHours"></div>
+
+  <h2>Anwesenheit in der Niederlassung (NL)</h2>
+  <div class="grid">
+    <div>
+      <label><input type="checkbox" id="cfgNlAktiv" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();"> Aktiv an einem festen Wochentag</label>
+    </div>
+    <div>
+      <label>Wochentag</label>
+      <select id="cfgNlTag" onchange="saveConfig(); renderFormular();"></select>
+    </div>
+    <div>
+      <label>Von</label>
+      <input id="cfgNlVon" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Bis</label>
+      <input id="cfgNlBis" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+  </div>
+  <p style="font-size:0.8rem; color:#666;">
+    Alle Eingaben werden automatisch lokal in diesem Browser gespeichert (localStorage) &ndash;
+    nichts wird irgendwohin hochgeladen. Diese Datei einfach per Doppelklick öffnen, keine Installation nötig.
+  </p>
+</div>
+
+<div id="formular"></div>
+
+<footer class="no-print">Spesen-Rechner &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät</footer>
+
+<script>
+/* ===================== Konfiguration & Speicher ===================== */
+const WEEKDAY_NAMES = ["MO","DI","MI","DO","FR","SA","SO"];
+const MONTH_NAMES = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const BUNDESLAENDER = {
+  "BW":"Baden-Württemberg","BY":"Bayern","BE":"Berlin","BB":"Brandenburg","HB":"Bremen",
+  "HH":"Hamburg","HE":"Hessen","MV":"Mecklenburg-Vorpommern","NI":"Niedersachsen",
+  "NW":"Nordrhein-Westfalen","RP":"Rheinland-Pfalz","SL":"Saarland","SN":"Sachsen",
+  "ST":"Sachsen-Anhalt","SH":"Schleswig-Holstein","TH":"Thüringen"
+};
+
+const DEFAULT_CONFIG = {
+  name: "", strasse: "", ort: "", niederlassung: "",
+  jahr: 2026, startMonat: 7, endMonat: 12,
+  bundesland: "HE",
+  pauschale8: 14, pauschale24: 28,
+  abfahrt: "06:00",
+  orteDefault: "lt. Tourenplan",
+  wochenstunden: { 0: 9.5, 1: 9.0, 2: 9.75, 3: 9.25, 4: 8.5 }, // Mo-Fr, Sa/So = kein Arbeitstag
+  nlAktiv: true, nlTag: 0, nlVon: "06:00", nlBis: "09:00",
+};
+
+function loadConfig() {
+  const raw = localStorage.getItem("spesen_config");
+  if (!raw) return structuredClone(DEFAULT_CONFIG);
+  try {
+    const parsed = JSON.parse(raw);
+    return Object.assign(structuredClone(DEFAULT_CONFIG), parsed);
+  } catch { return structuredClone(DEFAULT_CONFIG); }
+}
+
+function loadOverrides() {
+  const raw = localStorage.getItem("spesen_overrides");
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+let config = loadConfig();
+let overrides = loadOverrides();
+
+function saveConfig() {
+  config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
+  config.niederlassung = val("cfgNiederlassung");
+  config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
+  config.startMonat = parseInt(val("cfgStartMonat"));
+  config.endMonat = parseInt(val("cfgEndMonat"));
+  config.bundesland = val("cfgBundesland");
+  config.pauschale8 = parseFloat(val("cfgPauschale8")) || 0;
+  config.pauschale24 = parseFloat(val("cfgPauschale24")) || 0;
+  config.abfahrt = val("cfgAbfahrt");
+  config.orteDefault = val("cfgOrte");
+  for (let d = 0; d <= 4; d++) {
+    const el = document.getElementById("wh_" + d);
+    if (el) config.wochenstunden[d] = parseFloat(el.value) || 0;
+  }
+  config.nlAktiv = document.getElementById("cfgNlAktiv").checked;
+  config.nlTag = parseInt(val("cfgNlTag"));
+  config.nlVon = val("cfgNlVon");
+  config.nlBis = val("cfgNlBis");
+  localStorage.setItem("spesen_config", JSON.stringify(config));
+}
+
+function saveOverrides() {
+  localStorage.setItem("spesen_overrides", JSON.stringify(overrides));
+}
+
+function val(id) { return document.getElementById(id).value; }
+
+function resetAll() {
+  localStorage.removeItem("spesen_config");
+  localStorage.removeItem("spesen_overrides");
+  config = structuredClone(DEFAULT_CONFIG);
+  overrides = {};
+  initSettingsUI();
+  rebuildMonthPicker();
+  renderFormular();
+}
+
+/* ===================== Feiertage (bewegliche + fixe) ===================== */
+function ostersonntag(jahr) {
+  // Gauß'sche Osterformel
+  const a = jahr % 19, b = Math.floor(jahr / 100), c = jahr % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const monat = Math.floor((h + l - 7 * m + 114) / 31);
+  const tag = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(jahr, monat - 1, tag);
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function fmtISO(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function feiertage(jahr, bundesland) {
+  const ostern = ostersonntag(jahr);
+  const map = {}; // iso -> Name
+  const add = (date, name) => { map[fmtISO(date)] = name; };
+
+  // bundesweit
+  add(new Date(jahr, 0, 1), "Neujahr");
+  add(addDays(ostern, -2), "Karfreitag");
+  add(addDays(ostern, 1), "Ostermontag");
+  add(new Date(jahr, 4, 1), "Tag der Arbeit");
+  add(addDays(ostern, 39), "Christi Himmelfahrt");
+  add(addDays(ostern, 50), "Pfingstmontag");
+  add(new Date(jahr, 9, 3), "Tag der Deutschen Einheit");
+  add(new Date(jahr, 11, 25), "1. Weihnachtsfeiertag");
+  add(new Date(jahr, 11, 26), "2. Weihnachtsfeiertag");
+
+  const hat = (laender) => laender.includes(bundesland);
+
+  if (hat(["BW", "BY", "ST"])) add(new Date(jahr, 0, 6), "Heilige Drei Könige");
+  if (hat(["BW", "BY", "HE", "NW", "RP", "SL"])) add(addDays(ostern, 60), "Fronleichnam");
+  if (hat(["SL"]) || (bundesland === "BY")) add(new Date(jahr, 7, 15), "Mariä Himmelfahrt");
+  if (hat(["BB", "MV", "SN", "ST", "TH", "HB", "HH", "NI", "SH", "BE"])) add(new Date(jahr, 9, 31), "Reformationstag");
+  if (hat(["BW", "BY", "NW", "RP", "SL"])) add(new Date(jahr, 10, 1), "Allerheiligen");
+  if (hat(["SN"])) {
+    // Buß- und Bettag: Mittwoch vor dem 23. November
+    let d = new Date(jahr, 10, 23);
+    while (d.getDay() !== 3) d = addDays(d, -1);
+    add(d, "Buß- und Bettag");
+  }
+  if (hat(["TH"])) add(new Date(jahr, 8, 20), "Weltkindertag");
+  if (hat(["BE"])) add(new Date(jahr, 2, 8), "Internationaler Frauentag");
+  if (hat(["MV"])) add(new Date(jahr, 2, 8), "Internationaler Frauentag");
+
+  return map;
+}
+
+/* ===================== Berechnungslogik (analog spesen_tool.py) ===================== */
+function pad(n) { return String(n).padStart(2, "0"); }
+function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function minutesToTime(m) {
+  const h = Math.floor(m / 60) % 24, mm = m % 60;
+  return pad(h) + ":" + pad(mm);
+}
+
+function computeDay(date, holidaysMap) {
+  const iso = fmtISO(date);
+  const wd = (date.getDay() + 6) % 7; // 0=Mo .. 6=So
+  const ov = overrides[iso] || {};
+
+  if (ov.status && ["urlaub", "krank", "frei"].includes(ov.status)) {
+    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: 0, pauschale: 0, nl: "", orte: ov.orte || "", notiz: ov.notiz || ov.status };
+  }
+
+  const isHoliday = holidaysMap[iso];
+  const hasOverrideHours = ov.hours !== undefined && ov.hours !== null && ov.hours !== "";
+
+  if (!hasOverrideHours) {
+    if (isHoliday) {
+      return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: 0, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
+    }
+    if (wd >= 5) return null; // Wochenende, kein Standard-Arbeitstag
+  }
+
+  const hours = hasOverrideHours ? parseFloat(ov.hours) : (config.wochenstunden[wd] || 0);
+  if (!hours) return null;
+
+  const abfahrtStr = ov.abfahrt || config.abfahrt;
+  const ankunftMin = timeToMinutes(abfahrtStr) + Math.round(hours * 60);
+  const ankunftStr = minutesToTime(ankunftMin);
+
+  let pauschale = 0;
+  if (hours > 24) pauschale = config.pauschale24;
+  else if (hours > 8) pauschale = config.pauschale8;
+
+  const nlDefault = config.nlAktiv && wd === config.nlTag && !isHoliday;
+  const nl = ov.nl !== undefined ? ov.nl : nlDefault;
+
+  return {
+    iso, wd, status: "normal",
+    abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale,
+    nl: nl ? (config.nlVon + "-" + config.nlBis) : "",
+    orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
+    notiz: ov.notiz || "",
+  };
+}
+
+function daysInMonth(jahr, monat) { return new Date(jahr, monat, 0).getDate(); }
+
+function computeMonth(jahr, monat) {
+  const holidaysMap = feiertage(jahr, config.bundesland);
+  const n = daysInMonth(jahr, monat);
+  const entries = [];
+  for (let day = 1; day <= n; day++) {
+    const date = new Date(jahr, monat - 1, day);
+    const e = computeDay(date, holidaysMap);
+    if (e) entries.push(e);
+  }
+  const total = entries.reduce((s, e) => s + (e.pauschale || 0), 0);
+  const workdays = entries.filter(e => e.status === "normal").length;
+  return { entries, total, workdays };
+}
+
+/* ===================== UI Aufbau ===================== */
+function initSettingsUI() {
+  document.getElementById("cfgName").value = config.name;
+  document.getElementById("cfgStrasse").value = config.strasse;
+  document.getElementById("cfgOrt").value = config.ort;
+  document.getElementById("cfgNiederlassung").value = config.niederlassung;
+  document.getElementById("cfgJahr").value = config.jahr;
+  document.getElementById("cfgPauschale8").value = config.pauschale8;
+  document.getElementById("cfgPauschale24").value = config.pauschale24;
+  document.getElementById("cfgAbfahrt").value = config.abfahrt;
+  document.getElementById("cfgOrte").value = config.orteDefault;
+  document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
+  document.getElementById("cfgNlVon").value = config.nlVon;
+  document.getElementById("cfgNlBis").value = config.nlBis;
+
+  const monthSel = (id, selected) => {
+    const el = document.getElementById(id);
+    el.innerHTML = MONTH_NAMES.map((m, i) => `<option value="${i + 1}" ${i + 1 === selected ? "selected" : ""}>${m}</option>`).join("");
+  };
+  monthSel("cfgStartMonat", config.startMonat);
+  monthSel("cfgEndMonat", config.endMonat);
+
+  const blSel = document.getElementById("cfgBundesland");
+  blSel.innerHTML = Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === config.bundesland ? "selected" : ""}>${v}</option>`).join("");
+
+  const nlTagSel = document.getElementById("cfgNlTag");
+  nlTagSel.innerHTML = WEEKDAY_NAMES.slice(0, 5).map((w, i) => `<option value="${i}" ${i === config.nlTag ? "selected" : ""}>${w}</option>`).join("");
+
+  const whDiv = document.getElementById("weekdayHours");
+  whDiv.innerHTML = WEEKDAY_NAMES.slice(0, 5).map((w, i) =>
+    `<div class="weekday-row"><span>${w}</span><input id="wh_${i}" type="number" step="0.25" value="${config.wochenstunden[i]}" oninput="saveConfig(); renderFormular();"> Std.</div>`
+  ).join("");
+}
+
+function toggleSettings() {
+  const p = document.getElementById("settingsPanel");
+  p.style.display = p.style.display === "none" ? "block" : "none";
+}
+
+function rebuildMonthPicker() {
+  const picker = document.getElementById("monthPicker");
+  const opts = [];
+  for (let m = config.startMonat; m <= config.endMonat; m++) {
+    opts.push(`<option value="${m}">${MONTH_NAMES[m - 1]} ${config.jahr}</option>`);
+  }
+  const prevValue = picker.value;
+  picker.innerHTML = opts.join("");
+  if (prevValue && prevValue >= config.startMonat && prevValue <= config.endMonat) picker.value = prevValue;
+}
+
+function updateOverride(iso, field, value) {
+  overrides[iso] = overrides[iso] || {};
+  if (value === "" || value === null) delete overrides[iso][field];
+  else overrides[iso][field] = value;
+  if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
+  saveOverrides();
+  renderFormular();
+}
+
+function renderFormular() {
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const { entries, total, workdays } = computeMonth(config.jahr, monat);
+  const bezahltKey = "bezahlt_" + config.jahr + "-" + pad(monat);
+  const bezahlt = parseFloat(localStorage.getItem(bezahltKey) || "0") || 0;
+  const rest = total + bezahlt;
+
+  const rows = [];
+  let lastWeek = null;
+  for (const e of entries) {
+    const dateObj = new Date(e.iso);
+    const week = Math.floor((dateObj.getDate() + new Date(config.jahr, monat - 1, 1).getDay() - 1) / 7);
+    if (lastWeek !== null && week !== lastWeek) rows.push(`<tr><td colspan="8">&nbsp;</td></tr>`);
+    lastWeek = week;
+
+    const [y, m, d] = e.iso.split("-");
+    const datumStr = `${d}.${m}.${y}`;
+    if (e.status === "normal") {
+      rows.push(`
+        <tr>
+          <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
+          <td>${datumStr}</td>
+          <td><input class="cell-input" value="${e.abfahrt}" onchange="updateOverride('${e.iso}','abfahrt',this.value)"></td>
+          <td>${e.nl}</td>
+          <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
+          <td>${e.ankunft}</td>
+          <td>${e.hours.toString().replace(".", ",")}</td>
+          <td class="pauschale-cell">${e.pauschale.toFixed(2).replace(".", ",")} €</td>
+          <td class="no-print">
+            <select class="status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
+              <option value="normal">Arbeitstag</option>
+              <option value="urlaub">Urlaub</option>
+              <option value="krank">Krank</option>
+              <option value="frei">Frei</option>
+            </select>
+          </td>
+        </tr>`);
+    } else {
+      const label = e.status === "feiertag" ? e.notiz : (e.notiz || e.status);
+      rows.push(`
+        <tr class="status-${e.status}">
+          <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
+          <td>${datumStr}</td>
+          <td colspan="4" class="small">${label}</td>
+          <td></td>
+          <td></td>
+          <td class="no-print">
+            <select class="status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
+              <option value="normal">Arbeitstag</option>
+              <option value="urlaub" ${e.status === "urlaub" ? "selected" : ""}>Urlaub</option>
+              <option value="krank" ${e.status === "krank" ? "selected" : ""}>Krank</option>
+              <option value="frei" ${e.status === "frei" ? "selected" : ""}>Frei</option>
+            </select>
+          </td>
+        </tr>`);
+    }
+  }
+
+  const html = `
+    <table>
+      <tr>
+        <td colspan="7" class="head-title">Niederlassung: &nbsp; ${config.niederlassung || "&mdash;"}</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="2" class="bold">Spesenabrechnung Monat:</td>
+        <td class="center bold">${MONTH_NAMES[monat - 1]}</td>
+        <td colspan="4">Pauschalspesen für Dienstreisen Inland</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="2" class="bold">Jahr:</td>
+        <td class="center bold">${config.jahr}</td>
+        <td colspan="2">AB 1.1.2020</td>
+        <td colspan="2" class="bold center">Hinweis</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="3" class="small">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
+        <td>Wohnung/Parkplatz</td><td>= WP</td>
+        <td colspan="2" class="small bold">Es dürfen keine Fahrtkosten Wohnung/Arbeitsstätte beim Finanzamt geltend gemacht werden</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="3"></td>
+        <td>Niederlassung</td><td>= NL</td>
+        <td colspan="2"></td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="3">Name : ${config.name || ""}</td>
+        <td>Dienstreise</td><td class="bold">Pauschale</td>
+        <td colspan="2"></td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="3">Ort : ${config.ort || ""}</td>
+        <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
+        <td colspan="2"></td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="3">Straße : ${config.strasse || ""}</td>
+        <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
+        <td colspan="2"></td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <th>Tag</th><th>Datum</th><th>Abfahrt WP</th><th>Anwesenheit in NL</th>
+        <th>besuchte Orte</th><th>Ankunft WP</th><th>Std.</th><th>Pauschale</th>
+        <th class="no-print">Status</th>
+      </tr>
+      ${rows.join("")}
+      <tr class="gesamt-row">
+        <td colspan="6"></td><td class="bold">Gesamtpauschale</td>
+        <td class="pauschale-cell bold">${total.toFixed(2).replace(".", ",")} €</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="2">Unterschrift</td>
+        <td colspan="4">über Gehaltsabrechnung bezahlt</td>
+        <td class="pauschale-cell bezahlt-cell">
+          <input class="cell-input" style="text-align:right;" type="number" step="0.5" value="${bezahlt}"
+            onchange="localStorage.setItem('${bezahltKey}', this.value); renderFormular();"> €
+        </td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="2">Mitarbeiter :</td>
+        <td colspan="4">Resterstattung LST-Jahresausgleich</td>
+        <td class="pauschale-cell bold">${rest.toFixed(2).replace(".", ",")} €</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="2">Unterschrift</td>
+        <td colspan="5" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL und ist 5 Jahre aufzubewahren.</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="2">NLL :</td>
+        <td colspan="5"></td>
+        <td class="no-print"></td>
+      </tr>
+    </table>
+  `;
+  document.getElementById("formular").innerHTML = html;
+}
+
+/* ===================== CSV-Export ===================== */
+function exportCSV() {
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const { entries, total, workdays } = computeMonth(config.jahr, monat);
+  const rows = [["Datum", "Tag", "Abfahrt", "Ankunft", "Stunden", "Anwesenheit NL", "Besuchte Orte", "Pauschale (EUR)", "Notiz"]];
+  for (const e of entries) {
+    rows.push([e.iso, WEEKDAY_NAMES[e.wd], e.abfahrt, e.ankunft, e.hours, e.nl, e.orte, e.pauschale.toFixed(2), e.notiz || ""]);
+  }
+  rows.push([]);
+  rows.push(["", "", "", "", "", "", "Summe", total.toFixed(2), workdays + " Arbeitstage"]);
+  const csv = "﻿" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `spesen_${config.jahr}-${pad(monat)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== Init ===================== */
+initSettingsUI();
+rebuildMonthPicker();
+renderFormular();
+</script>
+</body>
+</html>
