@@ -274,7 +274,8 @@ function saveConfig() {
   config.pauschale24 = parseFloat(val("cfgPauschale24")) || 0;
   config.orteDefault = val("cfgOrte");
   config.nlAktiv = document.getElementById("cfgNlAktiv").checked;
-  config.nlTag = parseInt(val("cfgNlTag"));
+  const nlTagVal = val("cfgNlTag");
+  config.nlTag = nlTagVal === "alle" ? "alle" : parseInt(nlTagVal);
   config.nlVon = val("cfgNlVon");
   config.nlBis = val("cfgNlBis");
   localStorage.setItem("spesen_config", JSON.stringify(config));
@@ -400,7 +401,8 @@ function computeDay(date, holidaysMap) {
     else if (hours > 8) pauschale = config.pauschale8;
   }
 
-  const nlDefault = config.nlAktiv && wd === config.nlTag && !isHoliday;
+  const nlMatchesTag = config.nlTag === "alle" ? wd < 5 : wd === config.nlTag;
+  const nlDefault = config.nlAktiv && nlMatchesTag && !isHoliday;
   const nl = ov.nl !== undefined ? ov.nl : nlDefault;
 
   return {
@@ -457,7 +459,9 @@ function initSettingsUI() {
   blSel.innerHTML = Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === config.bundesland ? "selected" : ""}>${v}</option>`).join("");
 
   const nlTagSel = document.getElementById("cfgNlTag");
-  nlTagSel.innerHTML = WEEKDAY_NAMES.slice(0, 5).map((w, i) => `<option value="${i}" ${i === config.nlTag ? "selected" : ""}>${w}</option>`).join("");
+  const nlTagOptions = WEEKDAY_NAMES.slice(0, 5).map((w, i) => `<option value="${i}" ${i === config.nlTag ? "selected" : ""}>${w}</option>`).join("");
+  nlTagSel.innerHTML = nlTagOptions +
+    `<option value="alle" ${config.nlTag === "alle" ? "selected" : ""}>Alle Wochentage (Mo-Fr, z.B. Monteure)</option>`;
 }
 
 function toggleSettings() {
