@@ -123,6 +123,15 @@
   <h2 style="margin-top:0;">Einstellungen</h2>
   <div class="grid">
     <div>
+      <label>Mitarbeitertyp</label>
+      <select id="cfgMitarbeitertyp" onchange="saveConfig(); updateMitarbeitertypUI(); renderFormular();">
+        <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
+        <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
+      </select>
+    </div>
+  </div>
+  <div class="grid" id="fahrerZeitenGroup">
+    <div>
       <label>Abfahrt WP (Standard, füllt automatisch alle Wochentage)</label>
       <input id="cfgAbfahrtDefault" type="time" oninput="saveConfig(); renderFormular();">
     </div>
@@ -130,6 +139,18 @@
       <label>Ankunft WP (Standard, füllt automatisch alle Wochentage)</label>
       <input id="cfgAnkunftDefault" type="time" oninput="saveConfig(); renderFormular();">
     </div>
+  </div>
+  <div class="grid" id="monteurZeitenGroup" style="display:none;">
+    <div>
+      <label>Arbeitsbeginn (Standard, füllt automatisch alle Wochentage)</label>
+      <input id="cfgArbeitsbeginnDefault" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Arbeitsende (Standard, füllt automatisch alle Wochentage)</label>
+      <input id="cfgArbeitsendeDefault" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+  </div>
+  <div class="grid">
     <div>
       <label>Name</label>
       <input id="cfgName" oninput="saveConfig(); renderFormular();">
@@ -234,7 +255,9 @@ const DEFAULT_CONFIG = {
   jahr: 2026, startMonat: 1, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
+  mitarbeitertyp: "fahrer",
   abfahrtDefault: "", ankunftDefault: "",
+  arbeitsbeginnDefault: "", arbeitsendeDefault: "",
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
   nlAktiv: true, nlTag: 0, nlVon: "06:00", nlBis: "09:00",
@@ -259,8 +282,11 @@ let config = loadConfig();
 let overrides = loadOverrides();
 
 function saveConfig() {
+  config.mitarbeitertyp = val("cfgMitarbeitertyp");
   config.abfahrtDefault = val("cfgAbfahrtDefault");
   config.ankunftDefault = val("cfgAnkunftDefault");
+  config.arbeitsbeginnDefault = val("cfgArbeitsbeginnDefault");
+  config.arbeitsendeDefault = val("cfgArbeitsendeDefault");
   config.bezahltDefault = parseFloat(val("cfgBezahltDefault"));
   if (isNaN(config.bezahltDefault)) config.bezahltDefault = 0;
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
@@ -374,11 +400,20 @@ function computeDay(date, holidaysMap) {
   }
 
   const isHoliday = holidaysMap[iso];
+  // Fahrer nutzen Abfahrt WP/Ankunft WP, Monteure eigene, komplett
+  // unabhaengige Arbeitsbeginn/Arbeitsende-Felder - eigene Override-Keys,
+  // eigene Standardwerte, damit sich beide Modi nie gegenseitig beeinflussen.
+  const isMonteur = config.mitarbeitertyp === "monteur";
+  const startKey = isMonteur ? "arbeitsbeginn" : "abfahrt";
+  const endKey = isMonteur ? "arbeitsende" : "ankunft";
+  const startDefault = isMonteur ? config.arbeitsbeginnDefault : config.abfahrtDefault;
+  const endDefault = isMonteur ? config.arbeitsendeDefault : config.ankunftDefault;
+
   // Fuer die Frage "ist das ueberhaupt ein Arbeitstag" zaehlt nur eine
   // TATSAECHLICHE Eingabe an diesem Tag - die globalen Standardzeiten aus
   // den Einstellungen duerfen Wochenenden nicht automatisch zu Arbeitstagen
   // machen (die bleiben weiterhin leer, ausser man traegt explizit was ein).
-  const hasOverride = (ov.abfahrt && ov.abfahrt !== "") || (ov.ankunft && ov.ankunft !== "");
+  const hasOverride = (ov[startKey] && ov[startKey] !== "") || (ov[endKey] && ov[endKey] !== "");
 
   if (!hasOverride) {
     if (isHoliday) {
@@ -387,15 +422,15 @@ function computeDay(date, holidaysMap) {
     if (wd >= 5) return null; // Wochenende, kein Standard-Arbeitstag
   }
 
-  // Abfahrt WP / Ankunft WP: erst individuelle Eingabe an diesem Tag,
-  // sonst die Standardzeit aus den Einstellungen (falls gesetzt), sonst leer.
-  // Std. und Pauschale berechnen sich automatisch, sobald beide Zeiten da sind.
-  const abfahrtStr = ov.abfahrt || config.abfahrtDefault || "";
-  const ankunftStr = ov.ankunft || config.ankunftDefault || "";
+  // Erst individuelle Eingabe an diesem Tag, sonst die Standardzeit aus den
+  // Einstellungen (falls gesetzt), sonst leer. Std. und Pauschale berechnen
+  // sich automatisch, sobald beide Zeiten da sind.
+  const abfahrtStr = ov[startKey] || startDefault || "";
+  const ankunftStr = ov[endKey] || endDefault || "";
   let hours = null, pauschale = 0;
   if (abfahrtStr && ankunftStr) {
     let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
-    if (diffMin < 0) diffMin += 24 * 60; // Ankunft liegt nach Mitternacht
+    if (diffMin < 0) diffMin += 24 * 60; // Ende liegt nach Mitternacht
     hours = Math.round((diffMin / 60) * 100) / 100;
     if (hours > 24) pauschale = config.pauschale24;
     else if (hours > 8) pauschale = config.pauschale8;
@@ -408,6 +443,7 @@ function computeDay(date, holidaysMap) {
   return {
     iso, wd, status: "normal",
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale,
+    startField: startKey, endField: endKey,
     nl: nl ? (config.nlVon + "-" + config.nlBis) : "",
     orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
     notiz: ov.notiz || "",
@@ -431,7 +467,17 @@ function computeMonth(jahr, monat) {
 }
 
 /* ===================== UI Aufbau ===================== */
+function updateMitarbeitertypUI() {
+  const isMonteur = config.mitarbeitertyp === "monteur";
+  document.getElementById("fahrerZeitenGroup").style.display = isMonteur ? "none" : "grid";
+  document.getElementById("monteurZeitenGroup").style.display = isMonteur ? "grid" : "none";
+}
+
 function initSettingsUI() {
+  document.getElementById("cfgMitarbeitertyp").value = config.mitarbeitertyp || "fahrer";
+  document.getElementById("cfgArbeitsbeginnDefault").value = config.arbeitsbeginnDefault || "";
+  document.getElementById("cfgArbeitsendeDefault").value = config.arbeitsendeDefault || "";
+  updateMitarbeitertypUI();
   document.getElementById("cfgAbfahrtDefault").value = config.abfahrtDefault || "";
   document.getElementById("cfgAnkunftDefault").value = config.ankunftDefault || "";
   document.getElementById("cfgBezahltDefault").value = config.bezahltDefault;
@@ -496,6 +542,8 @@ function renderFormular() {
   const bezahltRaw = localStorage.getItem(bezahltKey);
   const bezahlt = bezahltRaw !== null ? (parseFloat(bezahltRaw) || 0) : config.bezahltDefault;
   const rest = total + bezahlt;
+  const startLabel = config.mitarbeitertyp === "monteur" ? "Arbeitsbeginn" : "Abfahrt WP";
+  const endLabel = config.mitarbeitertyp === "monteur" ? "Arbeitsende" : "Ankunft WP";
 
   const rows = [];
   let lastWeek = null;
@@ -514,10 +562,10 @@ function renderFormular() {
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
           <td>${datumStr}</td>
-          <td><input class="cell-input time-input" placeholder="--:--" value="${e.abfahrt}" onchange="updateOverride('${e.iso}','abfahrt',this.value)"></td>
+          <td><input class="cell-input time-input" placeholder="--:--" value="${e.abfahrt}" onchange="updateOverride('${e.iso}','${e.startField}',this.value)"></td>
           <td>${e.nl}</td>
           <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
-          <td><input class="cell-input time-input" placeholder="--:--" value="${e.ankunft}" onchange="updateOverride('${e.iso}','ankunft',this.value)"></td>
+          <td><input class="cell-input time-input" placeholder="--:--" value="${e.ankunft}" onchange="updateOverride('${e.iso}','${e.endField}',this.value)"></td>
           <td>${stunden}</td>
           <td class="pauschale-cell">${pauschale}</td>
           <td class="no-print">
@@ -593,8 +641,8 @@ function renderFormular() {
         <td colspan="2"></td>
       </tr>
       <tr>
-        <th>Tag</th><th>Datum</th><th>Abfahrt WP</th><th>Anwesenheit in NL</th>
-        <th>besuchte Orte</th><th>Ankunft WP</th><th>Std.</th><th>Pauschale</th>
+        <th>Tag</th><th>Datum</th><th>${startLabel}</th><th>Anwesenheit in NL</th>
+        <th>besuchte Orte</th><th>${endLabel}</th><th>Std.</th><th>Pauschale</th>
         <th class="no-print">Status</th>
       </tr>
       ${rows.join("")}
