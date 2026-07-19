@@ -16,6 +16,7 @@
     font-family: -apple-system, Helvetica, Arial, sans-serif;
     margin: 0; padding: 1.5rem;
     background: #e9edf1; color: #1a1a1a;
+    overflow-x: hidden;
   }
   h1 { font-size: 1.4rem; margin: 0 0 1rem; color: var(--brand-dark); }
   h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--brand-dark); }
@@ -47,9 +48,12 @@
   .weekday-row input { width: 80px; }
 
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
+  #formular-scroll {
+    max-width: 1000px; margin: 0 auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
   #formular {
     background: #fff; border: 2px solid var(--border);
-    max-width: 1000px; margin: 0 auto; font-size: 0.85rem;
+    min-width: 900px; font-size: 0.85rem;
   }
   #formular table { border-collapse: collapse; width: 100%; }
   #formular td, #formular th {
@@ -98,8 +102,9 @@
     .no-print { display: none !important; }
     .panel { display: none !important; }
     h1 { display: none; }
-    #formular { border: 2px solid #000; max-width: 100%; font-size: 0.7rem; }
-    #formular td, #formular th { padding: 2px 5px; }
+    #formular-scroll { overflow-x: visible; max-width: 100%; margin: 0; }
+    #formular { border: 2px solid #000; max-width: 100%; min-width: 0; font-size: 0.65rem; }
+    #formular td, #formular th { padding: 1px 4px; }
     #formular .head-title { font-size: 1rem; padding: 4px; }
     input.cell-input, select.status-select { border: none !important; }
     select.status-select { -webkit-appearance: none; appearance: none; }
@@ -296,7 +301,7 @@
   <div id="jahresuebersichtContent"></div>
 </div>
 
-<div id="formular"></div>
+<div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">Spesen-Rechner &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built by Rieb</footer>
 
