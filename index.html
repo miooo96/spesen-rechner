@@ -109,7 +109,49 @@
     input.cell-input, select.status-select { border: none !important; }
     select.status-select { -webkit-appearance: none; appearance: none; }
     footer { display: none; }
+    .time-picker-field { border-bottom: none !important; cursor: default !important; }
   }
+
+  /* ===================== Zeit-Dreh-Rad (ersetzt <input type=time>) ===================== */
+  .time-picker-field {
+    display: inline-block; width: 100%; min-height: 1.2em; text-align: center;
+    cursor: pointer; border-bottom: 1px dashed #aaa;
+  }
+  .time-picker-field:hover { background: #fffbdd; }
+  .time-picker-field.empty { color: #bbb; }
+  /* Beim PDF-Export (html2canvas, siehe downloadPDF()) soll das Klick-Feld wie
+     ein normaler, fertig ausgefuellter Text aussehen - keine gestrichelte
+     Linie/Klick-Optik, die an ein noch bedienbares Formular erinnert. Wird nur
+     kurz waehrend des Erstellens des Screenshots gesetzt (siehe downloadPDF()). */
+  .pdf-export .time-picker-field { border-bottom: none !important; cursor: default !important; }
+  .time-wheel-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .time-wheel-modal {
+    background: #fff; border-radius: 14px; padding: 1.25rem 1.5rem 1rem; width: 260px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35); font-family: -apple-system, Helvetica, Arial, sans-serif;
+  }
+  .time-wheel-title { text-align: center; font-weight: bold; color: var(--brand-dark); margin-bottom: 0.5rem; }
+  .time-wheel-columns { display: flex; justify-content: center; align-items: center; position: relative; height: 180px; }
+  .time-wheel-col {
+    height: 180px; width: 70px; overflow-y: scroll; scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .time-wheel-col::-webkit-scrollbar { display: none; }
+  .time-wheel-col-inner { padding: 72px 0; }
+  .time-wheel-item {
+    height: 36px; line-height: 36px; text-align: center; font-size: 1.4rem;
+    scroll-snap-align: center; color: #aaa; user-select: none;
+  }
+  .time-wheel-colon { font-size: 1.4rem; font-weight: bold; margin: 0 2px; color: var(--brand-dark); }
+  .time-wheel-highlight {
+    position: absolute; top: 72px; left: 8px; right: 8px; height: 36px;
+    border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+    pointer-events: none; background: rgba(254,92,1,0.06); border-radius: 4px;
+  }
+  .time-wheel-buttons { display: flex; justify-content: space-between; margin-top: 1rem; gap: 0.5rem; }
+  .time-wheel-buttons button { flex: 1; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -144,21 +186,25 @@
   <div class="grid" id="fahrerZeitenGroup">
     <div>
       <label>Abfahrt WP (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgAbfahrtDefault" type="time" oninput="saveConfig(); renderFormular();">
+      <input id="cfgAbfahrtDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+      <span class="time-picker-field empty" data-target="cfgAbfahrtDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
     </div>
     <div>
       <label>Ankunft WP (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgAnkunftDefault" type="time" oninput="saveConfig(); renderFormular();">
+      <input id="cfgAnkunftDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+      <span class="time-picker-field empty" data-target="cfgAnkunftDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
     </div>
   </div>
   <div class="grid" id="monteurZeitenGroup" style="display:none;">
     <div>
       <label>Arbeitsbeginn (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgArbeitsbeginnDefault" type="time" oninput="saveConfig(); renderFormular();">
+      <input id="cfgArbeitsbeginnDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+      <span class="time-picker-field empty" data-target="cfgArbeitsbeginnDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
     </div>
     <div>
       <label>Arbeitsende (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgArbeitsendeDefault" type="time" oninput="saveConfig(); renderFormular();">
+      <input id="cfgArbeitsendeDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+      <span class="time-picker-field empty" data-target="cfgArbeitsendeDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
     </div>
   </div>
   <div class="grid">
@@ -233,11 +279,13 @@
     </div>
     <div>
       <label>Von</label>
-      <input id="cfgNlVon" type="time" oninput="saveConfig(); renderFormular();">
+      <input id="cfgNlVon" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+      <span class="time-picker-field empty" data-target="cfgNlVon" onclick="openTimeWheelForSetting(this)">--:--</span>
     </div>
     <div>
       <label>Bis</label>
-      <input id="cfgNlBis" type="time" oninput="saveConfig(); renderFormular();">
+      <input id="cfgNlBis" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+      <span class="time-picker-field empty" data-target="cfgNlBis" onclick="openTimeWheelForSetting(this)">--:--</span>
     </div>
   </div>
   <h2>Abwesenheiten am Stück eintragen</h2>
@@ -573,6 +621,14 @@ function updateMitarbeitertypUI() {
   document.getElementById("monteurZeitenGroup").style.display = isMonteur ? "grid" : "none";
 }
 
+function syncTimePickerDisplay(inputId) {
+  const input = document.getElementById(inputId);
+  const span = document.querySelector(`.time-picker-field[data-target="${inputId}"]`);
+  if (!span) return;
+  span.textContent = input.value || "--:--";
+  span.classList.toggle("empty", !input.value);
+}
+
 function initSettingsUI() {
   document.getElementById("cfgMitarbeitertyp").value = config.mitarbeitertyp || "fahrer";
   document.getElementById("cfgArbeitsbeginnDefault").value = config.arbeitsbeginnDefault || "";
@@ -593,6 +649,8 @@ function initSettingsUI() {
   document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
   document.getElementById("cfgNlVon").value = config.nlVon;
   document.getElementById("cfgNlBis").value = config.nlBis;
+  ["cfgAbfahrtDefault", "cfgAnkunftDefault", "cfgArbeitsbeginnDefault", "cfgArbeitsendeDefault", "cfgNlVon", "cfgNlBis"]
+    .forEach(syncTimePickerDisplay);
 
   const monthSel = (id, selected) => {
     const el = document.getElementById(id);
@@ -871,14 +929,12 @@ function renderFormular() {
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
           <td>${datumStr}</td>
-          <td><input class="cell-input time-input" placeholder="--:--" value="${e.abfahrt}"
-                oninput="liveUpdate('${e.iso}','${e.startField}',this.value)"
-                onchange="updateOverride('${e.iso}','${e.startField}',this.value)"></td>
+          <td><span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}"
+                data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span></td>
           <td>${e.nl}</td>
           <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
-          <td><input class="cell-input time-input" placeholder="--:--" value="${e.ankunft}"
-                oninput="liveUpdate('${e.iso}','${e.endField}',this.value)"
-                onchange="updateOverride('${e.iso}','${e.endField}',this.value)"></td>
+          <td><span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}"
+                data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span></td>
           <td id="std-cell-${e.iso}">${stunden}</td>
           <td class="pauschale-cell" id="pauschale-cell-${e.iso}">${pauschale}</td>
           <td class="status-cell">
@@ -1094,17 +1150,26 @@ async function downloadPDF() {
   const monthName = MONTH_NAMES[monat - 1];
   const el = document.getElementById("formular");
 
-  const canvas = await html2canvas(el, {
-    scale: 2,
-    backgroundColor: "#ffffff",
-    // Feste virtuelle Fensterbreite, damit die Tabelle IMMER komplett erfasst
-    // wird - unabhaengig von der tatsaechlichen Bildschirmbreite (sonst wird
-    // auf schmalen Bildschirmen/Handys die Tabelle rechts abgeschnitten).
-    windowWidth: 1050,
-    // Status-Dropdowns und andere Bedienelemente (class="no-print") sollen
-    // nie in der gespeicherten PDF landen - nur das ausgefuellte Formular.
-    ignoreElements: (node) => node.classList && node.classList.contains("no-print"),
-  });
+  // Waehrend des Screenshots die Klick-Optik der Zeit-Felder ausblenden (kein
+  // gestrichelter Rand), damit die PDF wie ein fertiges Dokument aussieht und
+  // nicht wie ein noch bedienbares Formular.
+  document.body.classList.add("pdf-export");
+  let canvas;
+  try {
+    canvas = await html2canvas(el, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      // Feste virtuelle Fensterbreite, damit die Tabelle IMMER komplett erfasst
+      // wird - unabhaengig von der tatsaechlichen Bildschirmbreite (sonst wird
+      // auf schmalen Bildschirmen/Handys die Tabelle rechts abgeschnitten).
+      windowWidth: 1050,
+      // Status-Dropdowns und andere Bedienelemente (class="no-print") sollen
+      // nie in der gespeicherten PDF landen - nur das ausgefuellte Formular.
+      ignoreElements: (node) => node.classList && node.classList.contains("no-print"),
+    });
+  } finally {
+    document.body.classList.remove("pdf-export");
+  }
   const imgData = canvas.toDataURL("image/png");
 
   const { jsPDF } = window.jspdf;
@@ -1159,6 +1224,78 @@ async function sendPerEmail() {
   const filename = await downloadPDF();
   alert(`PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen.`);
   window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/* ===================== Zeit-Dreh-Rad (ersetzt <input type=time>) =====================
+   Zwei Walzen (Stunde 00-23, Minute 00-59) zum Ziehen/Antippen ODER per
+   Mausrad/Trackpad scrollen - beides funktioniert automatisch dank CSS
+   scroll-snap, keine eigene Touch-/Drag-Physik noetig. */
+const TIME_WHEEL_ITEM_HEIGHT = 36;
+
+function buildTimeWheelColumn(count, selectedValue) {
+  const items = [];
+  for (let i = 0; i < count; i++) items.push(`<div class="time-wheel-item">${pad(i)}</div>`);
+  return `<div class="time-wheel-col"><div class="time-wheel-col-inner">${items.join("")}</div></div>`;
+}
+
+function openTimeWheel(currentValue, onConfirm) {
+  const [hStr, mStr] = (currentValue && /^\d{2}:\d{2}$/.test(currentValue)) ? currentValue.split(":") : ["06", "00"];
+  const hour = parseInt(hStr), minute = parseInt(mStr);
+
+  const overlay = document.createElement("div");
+  overlay.className = "time-wheel-overlay";
+  overlay.innerHTML = `
+    <div class="time-wheel-modal">
+      <div class="time-wheel-title">Uhrzeit einstellen</div>
+      <div class="time-wheel-columns">
+        <div class="time-wheel-highlight"></div>
+        ${buildTimeWheelColumn(24, hour)}
+        <div class="time-wheel-colon">:</div>
+        ${buildTimeWheelColumn(60, minute)}
+      </div>
+      <div class="time-wheel-buttons">
+        <button type="button" data-action="cancel">Abbrechen</button>
+        <button type="button" class="primary" data-action="ok">Übernehmen</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const cols = overlay.querySelectorAll(".time-wheel-col");
+  const hourCol = cols[0], minuteCol = cols[1];
+  hourCol.scrollTop = hour * TIME_WHEEL_ITEM_HEIGHT;
+  minuteCol.scrollTop = minute * TIME_WHEEL_ITEM_HEIGHT;
+
+  function close() { overlay.remove(); }
+
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('[data-action="cancel"]').onclick = close;
+  overlay.querySelector('[data-action="ok"]').onclick = () => {
+    const h = Math.max(0, Math.min(23, Math.round(hourCol.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    const m = Math.max(0, Math.min(59, Math.round(minuteCol.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
+    close();
+    onConfirm(pad(h) + ":" + pad(m));
+  };
+}
+
+function openTimeWheelForField(el) {
+  const iso = el.dataset.iso, field = el.dataset.field;
+  openTimeWheel(el.dataset.value || "", (newVal) => {
+    liveUpdate(iso, field, newVal);
+    updateOverride(iso, field, newVal);
+  });
+}
+
+function openTimeWheelForSetting(el) {
+  const targetId = el.dataset.target;
+  const input = document.getElementById(targetId);
+  openTimeWheel(input.value || "", (newVal) => {
+    input.value = newVal;
+    el.textContent = newVal;
+    el.classList.remove("empty");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 }
 
 /* ===================== Init ===================== */
