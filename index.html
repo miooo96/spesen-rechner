@@ -102,6 +102,18 @@
   }
   .settings-card.neutral .hinweis-text { color: #666; }
 
+  /* Liste der eingetragenen Abwesenheits-Zeitraeume (Abwesenheiten am Stueck) */
+  .absence-range-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.6); border: 1px solid rgba(254,92,1,0.25);
+    border-radius: 6px; padding: 5px 8px; margin-bottom: 5px; font-size: 0.82rem;
+    color: var(--brand-dark);
+  }
+  .absence-range-remove {
+    padding: 2px 8px; font-size: 0.75rem; border-radius: 999px; color: #c0392b;
+  }
+  .absence-range-remove:hover { background: #fdecea; }
+
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
   #formular-scroll {
     max-width: 1000px; margin: 0 auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -400,7 +412,8 @@
         <button onclick="clearAbsenceRange()">Zurücksetzen</button>
       </div>
     </div>
-    <p class="hinweis-text">💡 Trägt den gewählten Status (z.B. Urlaub) automatisch für jeden Tag im Zeitraum ein - spart das einzelne Anklicken pro Tag. Einzelne Tage lassen sich in der Tabelle danach trotzdem noch abweichend ändern. „Zurücksetzen" macht den gewählten Zeitraum wieder zu normalen Arbeitstagen.</p>
+    <p class="hinweis-text">💡 Trägt den gewählten Status (z.B. Urlaub) automatisch für jeden Tag im Zeitraum ein - spart das einzelne Anklicken pro Tag. Einzelne Tage lassen sich in der Tabelle danach trotzdem noch abweichend ändern. <b>Mehrere getrennte Zeiträume möglich</b> (auch im selben Monat, auch mit unterschiedlichem Status): nach „Eintragen" werden Von/Bis geleert - einfach den nächsten Zeitraum wählen und wieder auf „Eintragen" klicken.</p>
+    <div id="absenceRangesList" class="absence-ranges-list"></div>
   </div>
 
   <div class="settings-card">
@@ -749,7 +762,9 @@ function initSettingsUI() {
 
 function toggleSettings() {
   const p = document.getElementById("settingsPanel");
-  p.style.display = p.style.display === "none" ? "block" : "none";
+  const opening = p.style.display === "none";
+  p.style.display = opening ? "block" : "none";
+  if (opening) renderAbsenceRangesList();
 }
 
 /* ===================== Jahresuebersicht ===================== */
@@ -863,7 +878,13 @@ function applyAbsenceRange() {
   });
   saveOverrides();
   renderFormular();
-  alert(`${STATUS_LABELS[status]} wurde für den Zeitraum ${von} bis ${bis} eingetragen.`);
+  // Von/Bis leeren (Status bleibt stehen) - so laesst sich direkt danach ein
+  // weiterer, getrennter Zeitraum eintragen (z.B. eine zweite Urlaubswoche
+  // im selben Monat), ohne die Felder erst manuell zu loeschen.
+  document.getElementById("absenceVon").value = "";
+  document.getElementById("absenceBis").value = "";
+  renderAbsenceRangesList();
+  alert(`${STATUS_LABELS[status]} wurde für den Zeitraum ${von} bis ${bis} eingetragen. Weiterer Zeitraum lässt sich direkt im Anschluss eintragen.`);
 }
 
 function clearAbsenceRange() {
@@ -881,7 +902,69 @@ function clearAbsenceRange() {
   });
   saveOverrides();
   renderFormular();
+  renderAbsenceRangesList();
   alert(`Zeitraum ${von} bis ${bis} wurde wieder auf normale Arbeitstage zurückgesetzt.`);
+}
+
+/* Fasst alle eingetragenen Abwesenheits-Tage (Urlaub/Krank/Frei/Sonderurlaub/
+   Elternzeit) aus den Overrides zu zusammenhaengenden Zeitraeumen zusammen -
+   damit mehrere getrennte Zeitraeume (auch mit unterschiedlichem Status,
+   auch im selben Monat) sichtbar und einzeln entfernbar sind. */
+function computeAbsenceRanges() {
+  const isos = Object.keys(overrides)
+    .filter((iso) => overrides[iso].status && ABWESENHEITS_STATUS.includes(overrides[iso].status))
+    .sort();
+  const ranges = [];
+  let current = null;
+  for (const iso of isos) {
+    const status = overrides[iso].status;
+    if (current && current.status === status) {
+      const nextDay = new Date(current.bis + "T00:00:00");
+      nextDay.setDate(nextDay.getDate() + 1);
+      if (fmtISO(nextDay) === iso) { current.bis = iso; continue; }
+    }
+    if (current) ranges.push(current);
+    current = { status, von: iso, bis: iso };
+  }
+  if (current) ranges.push(current);
+  return ranges;
+}
+
+function formatDateDE(iso) {
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+function renderAbsenceRangesList() {
+  const el = document.getElementById("absenceRangesList");
+  if (!el) return;
+  const ranges = computeAbsenceRanges();
+  if (ranges.length === 0) {
+    el.innerHTML = `<p class="hinweis-text" style="margin-top:0.5rem;">Aktuell keine Abwesenheiten eingetragen.</p>`;
+    return;
+  }
+  el.innerHTML = `<p class="hinweis-text" style="margin:0.75rem 0 0.4rem; font-weight:600;">Eingetragene Zeiträume:</p>` +
+    ranges.map((r) => {
+      const label = r.von === r.bis
+        ? `${STATUS_LABELS[r.status]}: ${formatDateDE(r.von)}`
+        : `${STATUS_LABELS[r.status]}: ${formatDateDE(r.von)} – ${formatDateDE(r.bis)}`;
+      return `<div class="absence-range-row">
+        <span>${label}</span>
+        <button type="button" class="ghost absence-range-remove" onclick="removeAbsenceRange('${r.von}','${r.bis}')" title="Diesen Zeitraum entfernen">✕</button>
+      </div>`;
+    }).join("");
+}
+
+function removeAbsenceRange(von, bis) {
+  eachDateInRange(von, bis, (iso) => {
+    if (overrides[iso]) {
+      delete overrides[iso].status;
+      if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
+    }
+  });
+  saveOverrides();
+  renderFormular();
+  renderAbsenceRangesList();
 }
 
 /* ===================== Datensicherung (Backup Export/Import) =====================
@@ -1444,6 +1527,7 @@ function openTimeWheelForSetting(el) {
 initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
+renderAbsenceRangesList();
 </script>
 </body>
 </html>
