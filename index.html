@@ -120,6 +120,7 @@
   <button onclick="toggleSettings()">⚙️ Einstellungen</button>
   <button onclick="if(confirm('Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?')) resetAll()">🗑️ Zurücksetzen</button>
   <a class="btn" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;">❓ Anleitung</a>
+  <button onclick="sendFeedback()">💬 Feedback</button>
   <select id="monthPicker" onchange="renderFormular()"></select>
 </div>
 
@@ -282,7 +283,7 @@ const DEFAULT_CONFIG = {
   arbeitsbeginnDefault: "", arbeitsendeDefault: "",
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
-  nlAktiv: true, nlTag: 0, nlVon: "06:00", nlBis: "09:00",
+  nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
 };
 
 function loadConfig() {
@@ -896,6 +897,16 @@ async function downloadPDF() {
   const filename = `Spesennachweis_${monthName}_${config.jahr}.pdf`;
   pdf.save(filename);
   return filename;
+}
+
+/* ===================== Feedback an den Entwickler ===================== */
+function sendFeedback() {
+  const subject = "Feedback Spesen-Rechner";
+  const body =
+    "Hallo,\n\nich habe einen Verbesserungsvorschlag / eine Anmerkung zum Spesen-Rechner:\n\n" +
+    "[Hier eintragen]\n\n" +
+    "Viele Grüße";
+  window.location.href = `mailto:mirkorieb@t-online.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 /* ===================== Per E-Mail weiterleiten ===================== */
