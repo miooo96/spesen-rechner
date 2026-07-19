@@ -138,6 +138,10 @@
     height: 180px; width: 70px; overflow-y: scroll; scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;
   }
+  /* Sichtbarer Fokus-Rahmen fuer Tastatur-Bedienung (Tab, Pfeiltasten, Ziffern). */
+  .time-wheel-col:focus, .time-wheel-col:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+  }
   .time-wheel-col::-webkit-scrollbar { display: none; }
   .time-wheel-col-inner { padding: 72px 0; }
   .time-wheel-item {
@@ -1232,11 +1236,19 @@ async function sendPerEmail() {
    scroll-snap, keine eigene Touch-/Drag-Physik noetig. */
 const TIME_WHEEL_ITEM_HEIGHT = 36;
 
-function buildTimeWheelColumn(count, selectedValue) {
+function buildTimeWheelColumn(count, selectedValue, label) {
   const items = [];
   for (let i = 0; i < count; i++) items.push(`<div class="time-wheel-item">${pad(i)}</div>`);
-  return `<div class="time-wheel-col"><div class="time-wheel-col-inner">${items.join("")}</div></div>`;
+  // tabindex + role="spinbutton" machen die Walze per Tab erreichbar und fuer
+  // Screenreader als Zahlen-Eingabe erkennbar (aria-valuenow wird beim
+  // Scrollen/Tippen laufend aktualisiert, siehe openTimeWheel()).
+  return `<div class="time-wheel-col" tabindex="0" role="spinbutton" aria-label="${label}"
+    aria-valuemin="0" aria-valuemax="${count - 1}" aria-valuenow="${selectedValue}"
+    ><div class="time-wheel-col-inner">${items.join("")}</div></div>`;
 }
+
+/* Klemmt einen Walzen-Index auf den gueltigen Bereich (0-23 bzw. 0-59). */
+function clampWheelIndex(i, max) { return Math.max(0, Math.min(max, i)); }
 
 function openTimeWheel(currentValue, onConfirm) {
   const [hStr, mStr] = (currentValue && /^\d{2}:\d{2}$/.test(currentValue)) ? currentValue.split(":") : ["06", "00"];
@@ -1249,9 +1261,9 @@ function openTimeWheel(currentValue, onConfirm) {
       <div class="time-wheel-title">Uhrzeit einstellen</div>
       <div class="time-wheel-columns">
         <div class="time-wheel-highlight"></div>
-        ${buildTimeWheelColumn(24, hour)}
+        ${buildTimeWheelColumn(24, hour, "Stunde")}
         <div class="time-wheel-colon">:</div>
-        ${buildTimeWheelColumn(60, minute)}
+        ${buildTimeWheelColumn(60, minute, "Minute")}
       </div>
       <div class="time-wheel-buttons">
         <button type="button" data-action="cancel">Abbrechen</button>
@@ -1266,16 +1278,71 @@ function openTimeWheel(currentValue, onConfirm) {
   hourCol.scrollTop = hour * TIME_WHEEL_ITEM_HEIGHT;
   minuteCol.scrollTop = minute * TIME_WHEEL_ITEM_HEIGHT;
 
-  function close() { overlay.remove(); }
+  function close() {
+    document.removeEventListener("keydown", onOverlayKeydown, true);
+    overlay.remove();
+  }
+  function confirm() {
+    const h = clampWheelIndex(Math.round(hourCol.scrollTop / TIME_WHEEL_ITEM_HEIGHT), 23);
+    const m = clampWheelIndex(Math.round(minuteCol.scrollTop / TIME_WHEEL_ITEM_HEIGHT), 59);
+    close();
+    onConfirm(pad(h) + ":" + pad(m));
+  }
 
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
   overlay.querySelector('[data-action="cancel"]').onclick = close;
-  overlay.querySelector('[data-action="ok"]').onclick = () => {
-    const h = Math.max(0, Math.min(23, Math.round(hourCol.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
-    const m = Math.max(0, Math.min(59, Math.round(minuteCol.scrollTop / TIME_WHEEL_ITEM_HEIGHT)));
-    close();
-    onConfirm(pad(h) + ":" + pad(m));
-  };
+  overlay.querySelector('[data-action="ok"]').onclick = confirm;
+
+  /* ---- Tastatur-Bedienung -----------------------------------------------
+     Pfeiltasten hoch/runter bewegen die fokussierte Walze um einen Schritt,
+     Ziffern springen direkt zur eingegebenen Zahl (wie bei einer nativen
+     Zeit-Eingabe: "1" dann "5" ergibt "15"), Enter bestaetigt, Escape bricht
+     ab - damit ist die Uhrzeit auch ganz ohne Maus/Touch einstellbar. */
+  function setColValue(col, max, index) {
+    col.scrollTop = index * TIME_WHEEL_ITEM_HEIGHT;
+    col.setAttribute("aria-valuenow", String(index));
+  }
+
+  const typeState = new WeakMap(); // Walze -> { buffer, timer }
+
+  function handleDigit(col, max, digit, onComplete) {
+    let state = typeState.get(col) || { buffer: "" };
+    clearTimeout(state.timer);
+    state.buffer = (state.buffer + digit).slice(-2);
+    let value = parseInt(state.buffer, 10);
+    if (value > max) { state.buffer = digit; value = parseInt(digit, 10); }
+    setColValue(col, max, clampWheelIndex(value, max));
+    if (state.buffer.length === 2) {
+      state.buffer = "";
+      if (onComplete) onComplete();
+    }
+    state.timer = setTimeout(() => { state.buffer = ""; }, 900);
+    typeState.set(col, state);
+  }
+
+  function wireColumnKeys(col, max, onTwoDigitsEntered) {
+    col.addEventListener("keydown", (e) => {
+      const current = clampWheelIndex(Math.round(col.scrollTop / TIME_WHEEL_ITEM_HEIGHT), max);
+      if (e.key === "ArrowUp") { e.preventDefault(); setColValue(col, max, clampWheelIndex(current - 1, max)); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); setColValue(col, max, clampWheelIndex(current + 1, max)); }
+      else if (/^[0-9]$/.test(e.key)) { e.preventDefault(); handleDigit(col, max, e.key, onTwoDigitsEntered); }
+    });
+    // Aria-valuenow auch aktuell halten, wenn per Maus/Touch gescrollt wird.
+    col.addEventListener("scroll", () => {
+      const current = clampWheelIndex(Math.round(col.scrollTop / TIME_WHEEL_ITEM_HEIGHT), max);
+      col.setAttribute("aria-valuenow", String(current));
+    });
+  }
+  wireColumnKeys(hourCol, 23, () => minuteCol.focus());
+  wireColumnKeys(minuteCol, 59, null);
+
+  function onOverlayKeydown(e) {
+    if (e.key === "Escape") { e.preventDefault(); close(); }
+    else if (e.key === "Enter") { e.preventDefault(); confirm(); }
+  }
+  document.addEventListener("keydown", onOverlayKeydown, true);
+
+  hourCol.focus();
 }
 
 function openTimeWheelForField(el) {
