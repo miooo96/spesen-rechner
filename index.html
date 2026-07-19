@@ -99,7 +99,7 @@
 
 <div class="toolbar no-print">
   <button class="primary" onclick="window.print()">📄 Als PDF drucken/speichern</button>
-  <button onclick="exportCSV()">⬇️ Als CSV exportieren</button>
+  <button onclick="sendPerEmail()">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
   <button onclick="toggleSettings()">⚙️ Einstellungen</button>
   <button onclick="if(confirm('Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?')) resetAll()">🗑️ Zurücksetzen</button>
   <select id="monthPicker" onchange="renderFormular()"></select>
@@ -131,6 +131,10 @@
     <div>
       <label>Niederlassung</label>
       <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
+      <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
     </div>
     <div>
       <label>Jahr</label>
@@ -208,7 +212,7 @@ const BUNDESLAENDER = {
 };
 
 const DEFAULT_CONFIG = {
-  name: "", strasse: "", ort: "", niederlassung: "",
+  name: "", strasse: "", ort: "", niederlassung: "", arbeitgeberEmail: "",
   jahr: 2026, startMonat: 1, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
@@ -240,6 +244,7 @@ function saveConfig() {
   config.ankunftDefault = val("cfgAnkunftDefault");
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
+  config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
   config.startMonat = parseInt(val("cfgStartMonat"));
   config.endMonat = parseInt(val("cfgEndMonat"));
@@ -410,6 +415,7 @@ function initSettingsUI() {
   document.getElementById("cfgStrasse").value = config.strasse;
   document.getElementById("cfgOrt").value = config.ort;
   document.getElementById("cfgNiederlassung").value = config.niederlassung;
+  document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
   document.getElementById("cfgPauschale8").value = config.pauschale8;
   document.getElementById("cfgPauschale24").value = config.pauschale24;
@@ -600,23 +606,27 @@ function renderFormular() {
   document.getElementById("formular").innerHTML = html;
 }
 
-/* ===================== CSV-Export ===================== */
-function exportCSV() {
-  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
-  const { entries, total, workdays } = computeMonth(config.jahr, monat);
-  const rows = [["Datum", "Tag", "Abfahrt", "Ankunft", "Stunden", "Anwesenheit NL", "Besuchte Orte", "Pauschale (EUR)", "Notiz"]];
-  for (const e of entries) {
-    rows.push([e.iso, WEEKDAY_NAMES[e.wd], e.abfahrt, e.ankunft, e.hours === null ? "" : e.hours, e.nl, e.orte, e.pauschale.toFixed(2), e.notiz || ""]);
+/* ===================== Per E-Mail weiterleiten ===================== */
+function sendPerEmail() {
+  if (!config.arbeitgeberEmail) {
+    alert('Bitte zuerst in den Einstellungen die E-Mail-Adresse des Arbeitgebers/der Niederlassung eintragen.');
+    document.getElementById("settingsPanel").style.display = "block";
+    document.getElementById("cfgArbeitgeberEmail").focus();
+    return;
   }
-  rows.push([]);
-  rows.push(["", "", "", "", "", "", "Summe", total.toFixed(2), workdays + " Arbeitstage"]);
-  const csv = "﻿" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `spesen_${config.jahr}-${pad(monat)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const monthName = MONTH_NAMES[monat - 1];
+  const wer = config.name ? " - " + config.name : "";
+  const subject = `Spesennachweis ${monthName} ${config.jahr}${wer}`;
+  const body =
+    `Hallo,\n\nanbei mein Spesennachweis für ${monthName} ${config.jahr}.\n\n` +
+    `Hinweis: Bitte die soeben gespeicherte PDF-Datei noch an diese E-Mail anhängen ` +
+    `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
+    `Viele Grüße\n${config.name || ""}`;
+
+  alert('Gleich öffnet sich der Druckdialog zum Speichern der PDF. Danach öffnet sich automatisch eine vorausgefüllte E-Mail - dort bitte die gespeicherte PDF noch anhängen.');
+  window.print();
+  window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 /* ===================== Init ===================== */
