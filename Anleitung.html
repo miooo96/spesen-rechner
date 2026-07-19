@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Spesen-Rechner – Anleitung</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --accent: #FE5C01;
+    --brand-dark: #370F06;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    margin: 0; padding: 1.5rem; max-width: 760px; margin: 0 auto;
+    background: #fff; color: #1a1a1a; line-height: 1.5;
+  }
+  h1 { color: var(--brand-dark); font-size: 1.6rem; display: flex; align-items: center; gap: 10px; }
+  h1 img { height: 42px; }
+  h2 {
+    color: #fff; background: var(--accent); display: inline-block;
+    padding: 4px 14px; border-radius: 6px; font-size: 1.05rem; margin-top: 2.5rem;
+  }
+  p { font-size: 0.95rem; }
+  ul { font-size: 0.95rem; padding-left: 1.3rem; }
+  .step {
+    border: 1px solid #ddd; border-top: 3px solid var(--accent);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+  }
+  .step img {
+    display: block; max-width: 100%; border: 1px solid #ccc; border-radius: 6px;
+    margin: 0.75rem 0;
+  }
+  .hinweis {
+    background: #FDE9DC; border-left: 4px solid var(--accent);
+    padding: 0.6rem 1rem; font-size: 0.9rem; border-radius: 4px; margin: 0.75rem 0;
+  }
+  a.back { color: var(--accent); font-weight: bold; text-decoration: none; }
+  a.back:hover { text-decoration: underline; }
+  footer { text-align: center; font-size: 0.8rem; color: #888; margin: 2.5rem 0 1rem; }
+  code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<p><a class="back" href="index.html">&larr; Zurück zum Spesen-Rechner</a></p>
+
+<h1><img src="hall-logo.png" alt="Hall Tabakwaren"> Spesen-Rechner – Anleitung</h1>
+<p>Kurze Schritt-für-Schritt-Anleitung, wie der Spesennachweis ausgefüllt wird.
+Alles läuft im Browser, nichts muss installiert werden.</p>
+
+<h2>1. Werkzeugleiste</h2>
+<div class="step">
+  <p>Oben im Tool gibt es fünf Buttons und die Monatsauswahl:</p>
+  <img src="anleitung-bilder/toolbar.png" alt="Werkzeugleiste mit Buttons">
+  <ul>
+    <li><b>💾 Als PDF speichern</b> – lädt den fertigen Spesennachweis als PDF-Datei herunter</li>
+    <li><b>🖨️ Drucken</b> – öffnet den normalen Druckdialog</li>
+    <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> – speichert die PDF und öffnet direkt eine vorausgefüllte E-Mail</li>
+    <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten (siehe Schritt 2)</li>
+    <li><b>🗑️ Zurücksetzen</b> – löscht alle Eingaben (Vorsicht, nicht rückgängig zu machen)</li>
+    <li><b>Monats-Dropdown</b> – wechselt zwischen den Monaten des eingestellten Zeitraums</li>
+  </ul>
+</div>
+
+<h2>2. Einstellungen (einmalig ausfüllen)</h2>
+<div class="step">
+  <p>Auf <b>⚙️ Einstellungen</b> klicken. Ganz oben zuerst den <b>Mitarbeitertyp</b> wählen:</p>
+  <ul>
+    <li><b>Fahrer</b> – trägt „Abfahrt WP" / „Ankunft WP" ein (Fahrten von/nach Hause)</li>
+    <li><b>Monteur</b> – trägt stattdessen „Arbeitsbeginn" / „Arbeitsende" ein; die „Anwesenheit NL" wird automatisch
+        aus dieser Zeitspanne übernommen, und 30 Minuten Pause werden automatisch abgezogen (mit „*" markiert)</li>
+  </ul>
+  <p>Danach Name, Straße, Ort, Niederlassung und – falls gewünscht – die E-Mail-Adresse des Arbeitgebers eintragen
+     (nur nötig für den „Per E-Mail weiterleiten"-Button). Bundesland auswählen, damit Feiertage automatisch stimmen.</p>
+  <img src="anleitung-bilder/einstellungen.png" alt="Einstellungen ausgefüllt">
+  <div class="hinweis">
+    <b>Tipp:</b> Wer jeden Tag zur gleichen Zeit anfängt/aufhört, kann das oben bei „Abfahrt WP (Standard)" /
+    „Ankunft WP (Standard)" (bzw. „Arbeitsbeginn/Arbeitsende" bei Monteuren) einmal eintragen – das füllt dann
+    automatisch alle Wochentage aus. Einzelne Tage lassen sich unten in der Tabelle trotzdem jederzeit ändern.
+  </div>
+  <p>Alle Eingaben werden nur lokal im eigenen Browser gespeichert – nichts wird hochgeladen.</p>
+</div>
+
+<h2>3. Tageszeiten eintragen</h2>
+<div class="step">
+  <p>Zurück zur Tabelle (Einstellungen einfach nochmal anklicken zum Schließen). Für jeden Arbeitstag direkt in
+     der Zeile <b>Abfahrt WP</b> (bzw. Arbeitsbeginn) und <b>Ankunft WP</b> (bzw. Arbeitsende) eintragen.
+     <b>Std.</b> und <b>Pauschale</b> berechnen sich dann automatisch, live beim Tippen:</p>
+  <img src="anleitung-bilder/zeiten-beispiel.png" alt="Beispiel einer ausgefüllten Zeile">
+  <p>„Anwesenheit in NL" und „besuchte Orte" lassen sich ebenfalls anpassen, falls nötig.</p>
+</div>
+
+<h2>4. Status auswählen</h2>
+<div class="step">
+  <p>Ganz rechts in jeder Zeile steht der aktuelle Status als Text, darunter ein Auswahlmenü zum Ändern:</p>
+  <ul>
+    <li><b>Arbeitstag</b> – Standard, wenn Zeiten eingetragen sind</li>
+    <li><b>Urlaub</b>, <b>Krank</b>, <b>Frei</b>, <b>Sonderurlaub</b>, <b>Elternzeit</b> – für alle anderen Tage einfach auswählen,
+        die Zeiten-Felder werden dann ausgeblendet</li>
+  </ul>
+  <div class="hinweis">Das Auswahlmenü selbst erscheint nicht im gedruckten/gespeicherten PDF – nur der Status-Text bleibt sichtbar.</div>
+</div>
+
+<h2>5. Unterschreiben</h2>
+<div class="step">
+  <p>Ganz unten im Formular gibt es zwei Unterschriftenfelder (Mitarbeiter und Niederlassungsleiter). Einfach mit
+     der Maus oder am Handy/Tablet mit dem Finger hineinzeichnen:</p>
+  <img src="anleitung-bilder/unterschrift-beispiel.png" alt="Beispiel einer Unterschrift">
+  <p>Die Unterschrift wird automatisch gespeichert und bleibt für alle künftigen Monate erhalten – man muss nicht
+     jeden Monat neu unterschreiben. Über das kleine <b>✕</b> oben rechts im Feld lässt sie sich löschen und neu zeichnen.</p>
+</div>
+
+<h2>6. Fertigstellen</h2>
+<div class="step">
+  <p>Wenn der Monat komplett ausgefüllt ist:</p>
+  <ul>
+    <li><b>💾 Als PDF speichern</b> klicken, um die fertige Datei herunterzuladen, oder</li>
+    <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> klicken – die PDF wird automatisch heruntergeladen und
+        eine E-Mail mit Betreff/Text vorausgefüllt geöffnet. Die heruntergeladene PDF muss dort nur noch angehängt
+        werden (das kann der Browser aus Sicherheitsgründen nicht automatisch).</li>
+  </ul>
+</div>
+
+<footer>Spesen-Rechner &middot; Built by Rieb</footer>
+
+</body>
+</html>
