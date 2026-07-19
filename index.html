@@ -602,7 +602,7 @@ function renderFormular() {
       <tr>
         <td colspan="2" rowspan="2" class="signature-cell">
           <canvas id="signatureCanvas" width="260" height="60"></canvas>
-          <button class="no-print sig-clear-btn" onclick="clearSignature()" title="Unterschrift löschen">✕</button>
+          <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvas','spesen_signature')" title="Unterschrift löschen">✕</button>
           <div class="small">Unterschrift Mitarbeiter</div>
         </td>
         <td colspan="4">über Gehaltsabrechnung bezahlt</td>
@@ -618,12 +618,15 @@ function renderFormular() {
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="2">Unterschrift</td>
+        <td colspan="2" rowspan="2" class="signature-cell">
+          <canvas id="signatureCanvasNLL" width="260" height="60"></canvas>
+          <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvasNLL','spesen_signature_nll')" title="Unterschrift löschen">✕</button>
+          <div class="small">Unterschrift NLL</div>
+        </td>
         <td colspan="5" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL und ist 5 Jahre aufzubewahren.</td>
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="2">NLL :</td>
         <td colspan="5"></td>
         <td class="no-print"></td>
       </tr>
@@ -633,18 +636,23 @@ function renderFormular() {
   setupSignaturePad();
 }
 
-/* ===================== Unterschrift Mitarbeiter (Canvas) ===================== */
-function loadSignature() {
-  return localStorage.getItem("spesen_signature") || null;
+/* ===================== Unterschriften (Canvas: Mitarbeiter + NLL) ===================== */
+const SIGNATURE_PADS = [
+  { canvasId: "signatureCanvas", key: "spesen_signature" },
+  { canvasId: "signatureCanvasNLL", key: "spesen_signature_nll" },
+];
+
+function loadSignature(key) {
+  return localStorage.getItem(key) || null;
 }
 
-function clearSignature() {
-  localStorage.removeItem("spesen_signature");
-  setupSignaturePad();
+function clearSignature(canvasId, key) {
+  localStorage.removeItem(key);
+  initSignaturePad(canvasId, key);
 }
 
-function setupSignaturePad() {
-  const canvas = document.getElementById("signatureCanvas");
+function initSignaturePad(canvasId, key) {
+  const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -653,7 +661,7 @@ function setupSignaturePad() {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  const saved = loadSignature();
+  const saved = loadSignature(key);
   if (saved) {
     const img = new Image();
     img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -691,15 +699,25 @@ function setupSignaturePad() {
   function end() {
     if (!drawing) return;
     drawing = false;
-    localStorage.setItem("spesen_signature", canvas.toDataURL("image/png"));
+    localStorage.setItem(key, canvas.toDataURL("image/png"));
   }
 
   canvas.onmousedown = start;
   canvas.onmousemove = move;
-  window.onmouseup = end;
   canvas.ontouchstart = start;
   canvas.ontouchmove = move;
   canvas.ontouchend = end;
+  canvas._sigEnd = end; // damit der globale mouseup-Handler jedes Pad beenden kann
+}
+
+function setupSignaturePad() {
+  SIGNATURE_PADS.forEach(p => initSignaturePad(p.canvasId, p.key));
+  window.onmouseup = () => {
+    SIGNATURE_PADS.forEach(p => {
+      const c = document.getElementById(p.canvasId);
+      if (c && c._sigEnd) c._sigEnd();
+    });
+  };
 }
 
 /* ===================== Per E-Mail weiterleiten ===================== */
