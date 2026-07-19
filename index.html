@@ -427,25 +427,43 @@ function computeDay(date, holidaysMap) {
   // sich automatisch, sobald beide Zeiten da sind.
   const abfahrtStr = ov[startKey] || startDefault || "";
   const ankunftStr = ov[endKey] || endDefault || "";
-  let hours = null, pauschale = 0;
+  let hours = null, pauschale = 0, pauseAbgezogen = false;
   if (abfahrtStr && ankunftStr) {
     let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
     if (diffMin < 0) diffMin += 24 * 60; // Ende liegt nach Mitternacht
-    hours = Math.round((diffMin / 60) * 100) / 100;
+    let rawHours = diffMin / 60;
+    // Monteure: 30 Minuten Pause werden von der Arbeitszeit abgezogen
+    // (sichtbar per "*"-Markierung + Fussnote im Formular).
+    if (isMonteur) {
+      rawHours = Math.max(0, rawHours - 0.5);
+      pauseAbgezogen = true;
+    }
+    hours = Math.round(rawHours * 100) / 100;
     if (hours > 24) pauschale = config.pauschale24;
     else if (hours > 8) pauschale = config.pauschale8;
   }
 
-  const nlMatchesTag = config.nlTag === "alle" ? wd < 5 : wd === config.nlTag;
-  const nlDefault = config.nlAktiv && nlMatchesTag && !isHoliday;
-  const nl = ov.nl !== undefined ? ov.nl : nlDefault;
+  // Anwesenheit in NL: bei Monteuren die tatsaechliche taegliche Arbeitszeit-
+  // Spanne (sie sind ja waehrenddessen durchgehend in der NL) statt eines
+  // festen Zeitfensters - ersetzt fuer Monteure die Von/Bis-NL-Einstellung.
+  let nl;
+  if (isMonteur) {
+    nl = ov.nl !== undefined ? ov.nl : ((abfahrtStr && ankunftStr) ? (abfahrtStr + "-" + ankunftStr) : "");
+  } else {
+    const nlMatchesTag = config.nlTag === "alle" ? wd < 5 : wd === config.nlTag;
+    const nlDefault = config.nlAktiv && nlMatchesTag && !isHoliday;
+    const nlOn = ov.nl !== undefined ? ov.nl : nlDefault;
+    nl = nlOn ? (config.nlVon + "-" + config.nlBis) : "";
+  }
+
+  const orteStandard = isMonteur ? "" : config.orteDefault;
 
   return {
     iso, wd, status: "normal",
-    abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale,
+    abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
     startField: startKey, endField: endKey,
-    nl: nl ? (config.nlVon + "-" + config.nlBis) : "",
-    orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
+    nl,
+    orte: ov.orte !== undefined ? ov.orte : orteStandard,
     notiz: ov.notiz || "",
   };
 }
@@ -564,7 +582,7 @@ function liveUpdate(iso, field, value) {
   const e = computeDay(new Date(iso), holidaysMap);
   const stundenEl = document.getElementById("std-cell-" + iso);
   const pauschaleEl = document.getElementById("pauschale-cell-" + iso);
-  if (stundenEl) stundenEl.textContent = (e && e.hours !== null) ? e.hours.toString().replace(".", ",") : "";
+  if (stundenEl) stundenEl.textContent = (e && e.hours !== null) ? e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "") : "";
   if (pauschaleEl) pauschaleEl.textContent = (e && e.pauschale > 0) ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
 
   recomputeSummary(monat);
@@ -597,7 +615,7 @@ function renderFormular() {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     if (e.status === "normal") {
-      const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",");
+      const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       rows.push(`
         <tr>
@@ -691,6 +709,11 @@ function renderFormular() {
         <th class="no-print">Status</th>
       </tr>
       ${rows.join("")}
+      ${config.mitarbeitertyp === "monteur" ? `
+      <tr>
+        <td colspan="8" class="small" style="color:#666;">* Std. bereits abzüglich 30 Minuten Pause</td>
+        <td class="no-print"></td>
+      </tr>` : ""}
       <tr class="gesamt-row">
         <td colspan="6"></td><td class="bold">Gesamtpauschale</td>
         <td class="pauschale-cell bold" id="gesamtpauschale-value">${total.toFixed(2).replace(".", ",")} €</td>
