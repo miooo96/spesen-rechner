@@ -93,6 +93,14 @@
   }
   .settings-card .grid { gap: 0.85rem 1.5rem; }
   .settings-card button { margin-top: 0; }
+  /* Neutrale Variante fuer reine Gliederung (Stammdaten, Zeitraum, Pauschalen)
+     - gleiche Karten-Struktur, aber ohne die orange "Achtung"-Signalfarbe,
+     die den wirklich wichtigen Boxen (Standard-Zeiten, Abwesenheiten, etc.)
+     vorbehalten bleibt. */
+  .settings-card.neutral {
+    background: #f7f8fa; border: 1px solid #e3e6eb; border-top: 3px solid var(--accent);
+  }
+  .settings-card.neutral .hinweis-text { color: #666; }
 
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
   #formular-scroll {
@@ -231,15 +239,40 @@
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
   <h2 style="margin-top:0;">Einstellungen</h2>
-  <div class="grid">
-    <div>
-      <label>Mitarbeitertyp</label>
-      <select id="cfgMitarbeitertyp" onchange="saveConfig(); updateMitarbeitertypUI(); renderFormular();">
-        <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
-        <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
-      </select>
+
+  <div class="settings-card neutral">
+    <h3>👤 Stammdaten</h3>
+    <div class="grid">
+      <div>
+        <label>Mitarbeitertyp</label>
+        <select id="cfgMitarbeitertyp" onchange="saveConfig(); updateMitarbeitertypUI(); renderFormular();">
+          <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
+          <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
+        </select>
+      </div>
+      <div>
+        <label>Name</label>
+        <input id="cfgName" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>Straße</label>
+        <input id="cfgStrasse" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>Ort</label>
+        <input id="cfgOrt" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>Niederlassung</label>
+        <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
+        <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
+      </div>
     </div>
   </div>
+
   <div class="settings-card" id="fahrerZeitenGroup">
     <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
     <div class="grid">
@@ -272,66 +305,50 @@
     </div>
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen (30 Minuten Pause werden dabei automatisch abgezogen). Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
-  <div class="grid">
-    <div>
-      <label>Name</label>
-      <input id="cfgName" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>Straße</label>
-      <input id="cfgStrasse" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>Ort</label>
-      <input id="cfgOrt" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>Niederlassung</label>
-      <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
-      <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
-    </div>
-    <div>
-      <label>Jahr</label>
-      <input id="cfgJahr" type="number" oninput="saveConfig(); rebuildMonthPicker(); renderFormular();">
-    </div>
-    <div>
-      <label>Startmonat</label>
-      <select id="cfgStartMonat" onchange="saveConfig(); rebuildMonthPicker(); renderFormular();"></select>
-    </div>
-    <div>
-      <label>Endmonat</label>
-      <select id="cfgEndMonat" onchange="saveConfig(); rebuildMonthPicker(); renderFormular();"></select>
-    </div>
-    <div>
-      <label>Bundesland (für Feiertage)</label>
-      <select id="cfgBundesland" onchange="saveConfig(); renderFormular();"></select>
-    </div>
-    <div>
-      <label>Pauschale ab &gt; 8 Std (€)</label>
-      <input id="cfgPauschale8" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>Pauschale ab &gt; 24 Std (€)</label>
-      <input id="cfgPauschale24" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>Standard "besuchte Orte"</label>
-      <input id="cfgOrte" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
-      <label>Standard "über Gehaltsabrechnung bezahlt" (€, steht automatisch auf jedem Monat, pro Monat änderbar)</label>
-      <input id="cfgBezahltDefault" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+  <div class="settings-card neutral">
+    <h3>📅 Zeitraum &amp; Feiertage</h3>
+    <div class="grid">
+      <div>
+        <label>Jahr</label>
+        <input id="cfgJahr" type="number" oninput="saveConfig(); rebuildMonthPicker(); renderFormular();">
+      </div>
+      <div>
+        <label>Startmonat</label>
+        <select id="cfgStartMonat" onchange="saveConfig(); rebuildMonthPicker(); renderFormular();"></select>
+      </div>
+      <div>
+        <label>Endmonat</label>
+        <select id="cfgEndMonat" onchange="saveConfig(); rebuildMonthPicker(); renderFormular();"></select>
+      </div>
+      <div>
+        <label>Bundesland (für Feiertage)</label>
+        <select id="cfgBundesland" onchange="saveConfig(); renderFormular();"></select>
+      </div>
     </div>
   </div>
-  <p style="font-size:0.8rem; color:#666;">
-    Ohne Standardzeiten oben bleiben Abfahrt WP/Ankunft WP leer und werden pro
-    Tag direkt in der Tabelle eingetragen. Std. und Pauschale berechnen sich
-    automatisch, sobald beide Zeiten (ob per Standard oder manuell) da sind.
-    Einzelne Tage lassen sich in der Tabelle jederzeit abweichend überschreiben.
-  </p>
+
+  <div class="settings-card neutral">
+    <h3>💶 Pauschalen &amp; Standardwerte</h3>
+    <div class="grid">
+      <div>
+        <label>Pauschale ab &gt; 8 Std (€)</label>
+        <input id="cfgPauschale8" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>Pauschale ab &gt; 24 Std (€)</label>
+        <input id="cfgPauschale24" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>Standard "besuchte Orte"</label>
+        <input id="cfgOrte" oninput="saveConfig(); renderFormular();">
+      </div>
+      <div>
+        <label>Standard "über Gehaltsabrechnung bezahlt" (€, steht automatisch auf jedem Monat, pro Monat änderbar)</label>
+        <input id="cfgBezahltDefault" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+      </div>
+    </div>
+    <p class="hinweis-text">Ohne Standardzeiten oben bleiben Abfahrt WP/Ankunft WP leer und werden pro Tag direkt in der Tabelle eingetragen. Std. und Pauschale berechnen sich automatisch, sobald beide Zeiten (ob per Standard oder manuell) da sind. Einzelne Tage lassen sich in der Tabelle jederzeit abweichend überschreiben.</p>
+  </div>
 
   <div class="settings-card">
     <h3>🏢 Anwesenheit in der Niederlassung (NL)</h3>
