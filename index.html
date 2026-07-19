@@ -456,14 +456,12 @@ function computeDay(date, holidaysMap) {
     nl = nlOn ? (config.nlVon + "-" + config.nlBis) : "";
   }
 
-  const orteStandard = isMonteur ? "" : config.orteDefault;
-
   return {
     iso, wd, status: "normal",
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
     startField: startKey, endField: endKey,
     nl,
-    orte: ov.orte !== undefined ? ov.orte : orteStandard,
+    orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
     notiz: ov.notiz || "",
   };
 }
