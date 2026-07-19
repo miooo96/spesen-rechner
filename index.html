@@ -118,6 +118,7 @@
   <button onclick="window.print()">🖨️ Drucken</button>
   <button onclick="sendPerEmail()">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
   <button onclick="toggleSettings()">⚙️ Einstellungen</button>
+  <button onclick="toggleJahresuebersicht()">📊 Jahresübersicht</button>
   <button onclick="if(confirm('Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?')) resetAll()">🗑️ Zurücksetzen</button>
   <a class="btn" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;">❓ Anleitung</a>
   <button onclick="sendFeedback()">💬 Feedback</button>
@@ -288,6 +289,11 @@
     Alle Eingaben werden automatisch lokal in diesem Browser gespeichert (localStorage) &ndash;
     nichts wird irgendwohin hochgeladen. Diese Datei einfach per Doppelklick öffnen, keine Installation nötig.
   </p>
+</div>
+
+<div class="panel no-print" id="jahresuebersichtPanel" style="display:none;">
+  <h2 style="margin-top:0;" id="jahresuebersichtTitel">📊 Jahresübersicht</h2>
+  <div id="jahresuebersichtContent"></div>
 </div>
 
 <div id="formular"></div>
@@ -602,6 +608,70 @@ function initSettingsUI() {
 function toggleSettings() {
   const p = document.getElementById("settingsPanel");
   p.style.display = p.style.display === "none" ? "block" : "none";
+}
+
+/* ===================== Jahresuebersicht ===================== */
+function computeYearSummary() {
+  const rows = [];
+  const totals = { workdays: 0, pauschale: 0, urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
+  for (let m = config.startMonat; m <= config.endMonat; m++) {
+    const { entries, total, workdays } = computeMonth(config.jahr, m);
+    const counts = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
+    entries.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
+    rows.push({ monat: m, workdays, total, ...counts });
+    totals.workdays += workdays;
+    totals.pauschale += total;
+    totals.urlaub += counts.urlaub;
+    totals.krank += counts.krank;
+    totals.frei += counts.frei;
+    totals.sonderurlaub += counts.sonderurlaub;
+    totals.elternzeit += counts.elternzeit;
+  }
+  return { rows, totals };
+}
+
+function renderJahresuebersicht() {
+  document.getElementById("jahresuebersichtTitel").textContent = `📊 Jahresübersicht ${config.jahr}`;
+  const { rows, totals } = computeYearSummary();
+  const th = (label) => `<th style="border:1px solid #333; padding:6px 10px; background:#FDE9DC; text-align:left;">${label}</th>`;
+  const td = (val, alignRight) => `<td style="border:1px solid #333; padding:6px 10px;${alignRight ? " text-align:right;" : ""}">${val}</td>`;
+  const bodyRows = rows.map(r => `
+    <tr>
+      ${td(MONTH_NAMES[r.monat - 1])}
+      ${td(r.workdays, true)}
+      ${td(r.total.toFixed(2).replace(".", ",") + " €", true)}
+      ${td(r.urlaub || "", true)}
+      ${td(r.krank || "", true)}
+      ${td(r.frei || "", true)}
+      ${td(r.sonderurlaub || "", true)}
+      ${td(r.elternzeit || "", true)}
+    </tr>`).join("");
+  const html = `
+    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+      <tr>
+        ${th("Monat")}${th("Arbeitstage")}${th("Pauschale")}${th("Urlaub")}${th("Krank")}${th("Frei")}${th("Sonderurlaub")}${th("Elternzeit")}
+      </tr>
+      ${bodyRows}
+      <tr style="font-weight:bold;">
+        ${td("Gesamt " + config.jahr)}
+        ${td(totals.workdays, true)}
+        ${td(totals.pauschale.toFixed(2).replace(".", ",") + " €", true)}
+        ${td(totals.urlaub, true)}
+        ${td(totals.krank, true)}
+        ${td(totals.frei, true)}
+        ${td(totals.sonderurlaub, true)}
+        ${td(totals.elternzeit, true)}
+      </tr>
+    </table>
+  `;
+  document.getElementById("jahresuebersichtContent").innerHTML = html;
+}
+
+function toggleJahresuebersicht() {
+  const p = document.getElementById("jahresuebersichtPanel");
+  const showing = p.style.display !== "none";
+  if (!showing) renderJahresuebersicht();
+  p.style.display = showing ? "none" : "block";
 }
 
 function rebuildMonthPicker() {
