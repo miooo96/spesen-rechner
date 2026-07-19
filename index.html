@@ -167,6 +167,10 @@
       <label>Standard "besuchte Orte"</label>
       <input id="cfgOrte" oninput="saveConfig(); renderFormular();">
     </div>
+    <div>
+      <label>Standard "über Gehaltsabrechnung bezahlt" (€, steht automatisch auf jedem Monat, pro Monat änderbar)</label>
+      <input id="cfgBezahltDefault" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
+    </div>
   </div>
   <p style="font-size:0.8rem; color:#666;">
     Ohne Standardzeiten oben bleiben Abfahrt WP/Ankunft WP leer und werden pro
@@ -220,6 +224,7 @@ const DEFAULT_CONFIG = {
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
   abfahrtDefault: "", ankunftDefault: "",
+  bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
   nlAktiv: true, nlTag: 0, nlVon: "06:00", nlBis: "09:00",
 };
@@ -245,6 +250,8 @@ let overrides = loadOverrides();
 function saveConfig() {
   config.abfahrtDefault = val("cfgAbfahrtDefault");
   config.ankunftDefault = val("cfgAnkunftDefault");
+  config.bezahltDefault = parseFloat(val("cfgBezahltDefault"));
+  if (isNaN(config.bezahltDefault)) config.bezahltDefault = 0;
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
   config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
@@ -414,6 +421,7 @@ function computeMonth(jahr, monat) {
 function initSettingsUI() {
   document.getElementById("cfgAbfahrtDefault").value = config.abfahrtDefault || "";
   document.getElementById("cfgAnkunftDefault").value = config.ankunftDefault || "";
+  document.getElementById("cfgBezahltDefault").value = config.bezahltDefault;
   document.getElementById("cfgName").value = config.name;
   document.getElementById("cfgStrasse").value = config.strasse;
   document.getElementById("cfgOrt").value = config.ort;
@@ -470,7 +478,8 @@ function renderFormular() {
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const { entries, total, workdays } = computeMonth(config.jahr, monat);
   const bezahltKey = "bezahlt_" + config.jahr + "-" + pad(monat);
-  const bezahlt = parseFloat(localStorage.getItem(bezahltKey) || "0") || 0;
+  const bezahltRaw = localStorage.getItem(bezahltKey);
+  const bezahlt = bezahltRaw !== null ? (parseFloat(bezahltRaw) || 0) : config.bezahltDefault;
   const rest = total + bezahlt;
 
   const rows = [];
