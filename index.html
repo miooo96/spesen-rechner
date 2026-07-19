@@ -75,6 +75,17 @@
   .bezahlt-cell input { width: 70px; display: inline-block; color: #c0392b; font-weight: bold; }
   .logo-cell { text-align: center; vertical-align: middle !important; padding: 4px !important; }
   .logo-cell img { max-width: 100%; max-height: 90px; object-fit: contain; }
+  .signature-cell { position: relative; text-align: center; vertical-align: bottom !important; padding: 2px !important; }
+  .signature-cell canvas {
+    display: block; margin: 0 auto; width: 100%; max-width: 260px; height: 60px;
+    border-bottom: 1px solid var(--border); cursor: crosshair; touch-action: none;
+    background: #fff;
+  }
+  .signature-cell .small { margin-top: 2px; }
+  .sig-clear-btn {
+    position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; line-height: 1;
+    padding: 0; font-size: 0.7rem; border-radius: 50%; background: #fff; color: #888;
+  }
 
   footer { text-align: center; font-size: 0.75rem; color: #888; margin-top: 2rem; }
 
@@ -589,7 +600,11 @@ function renderFormular() {
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="2">Unterschrift</td>
+        <td colspan="2" rowspan="2" class="signature-cell">
+          <canvas id="signatureCanvas" width="260" height="60"></canvas>
+          <button class="no-print sig-clear-btn" onclick="clearSignature()" title="Unterschrift löschen">✕</button>
+          <div class="small">Unterschrift Mitarbeiter</div>
+        </td>
         <td colspan="4">über Gehaltsabrechnung bezahlt</td>
         <td class="pauschale-cell bezahlt-cell">
           <input class="cell-input" style="text-align:right;" type="number" step="0.5" value="${bezahlt}"
@@ -598,7 +613,6 @@ function renderFormular() {
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="2">Mitarbeiter :</td>
         <td colspan="4">Resterstattung LST-Jahresausgleich</td>
         <td class="pauschale-cell bold">${rest.toFixed(2).replace(".", ",")} €</td>
         <td class="no-print"></td>
@@ -616,6 +630,76 @@ function renderFormular() {
     </table>
   `;
   document.getElementById("formular").innerHTML = html;
+  setupSignaturePad();
+}
+
+/* ===================== Unterschrift Mitarbeiter (Canvas) ===================== */
+function loadSignature() {
+  return localStorage.getItem("spesen_signature") || null;
+}
+
+function clearSignature() {
+  localStorage.removeItem("spesen_signature");
+  setupSignaturePad();
+}
+
+function setupSignaturePad() {
+  const canvas = document.getElementById("signatureCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  const saved = loadSignature();
+  if (saved) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    img.src = saved;
+  }
+
+  let drawing = false;
+  let last = null;
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const t = e.touches && e.touches[0];
+    const clientX = t ? t.clientX : e.clientX;
+    const clientY = t ? t.clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    last = getPos(e);
+  }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last = p;
+  }
+  function end() {
+    if (!drawing) return;
+    drawing = false;
+    localStorage.setItem("spesen_signature", canvas.toDataURL("image/png"));
+  }
+
+  canvas.onmousedown = start;
+  canvas.onmousemove = move;
+  window.onmouseup = end;
+  canvas.ontouchstart = start;
+  canvas.ontouchmove = move;
+  canvas.ontouchend = end;
 }
 
 /* ===================== Per E-Mail weiterleiten ===================== */
