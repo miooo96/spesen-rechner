@@ -47,6 +47,18 @@
   .weekday-row span { width: 28px; font-weight: bold; font-size: 0.85rem; }
   .weekday-row input { width: 80px; }
 
+  /* Auffaellige Box fuer die Standard-Zeiten in den Einstellungen - vorher
+     gingen "Abfahrt WP"/"Ankunft WP" optisch im normalen Raster unter und
+     man hat leicht uebersehen, dass sie automatisch alle Wochentage fuellen. */
+  .default-zeiten-box {
+    background: #FDE9DC; border: 1px solid var(--accent); border-radius: 8px;
+    padding: 0.85rem 1rem 0.6rem; margin-bottom: 1.25rem;
+  }
+  .default-zeiten-box h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--brand-dark); }
+  .default-zeiten-box .hinweis-text {
+    font-size: 0.78rem; color: #6b4a2f; margin: 0.7rem 0 0; line-height: 1.4;
+  }
+
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
   #formular-scroll {
     max-width: 1000px; margin: 0 auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -187,29 +199,37 @@
       </select>
     </div>
   </div>
-  <div class="grid" id="fahrerZeitenGroup">
-    <div>
-      <label>Abfahrt WP (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgAbfahrtDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
-      <span class="time-picker-field empty" data-target="cfgAbfahrtDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
+  <div class="default-zeiten-box" id="fahrerZeitenGroup">
+    <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
+    <div class="grid">
+      <div>
+        <label>Abfahrt WP (Standard)</label>
+        <input id="cfgAbfahrtDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+        <span class="time-picker-field empty" data-target="cfgAbfahrtDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
+      </div>
+      <div>
+        <label>Ankunft WP (Standard)</label>
+        <input id="cfgAnkunftDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+        <span class="time-picker-field empty" data-target="cfgAnkunftDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
+      </div>
     </div>
-    <div>
-      <label>Ankunft WP (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgAnkunftDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
-      <span class="time-picker-field empty" data-target="cfgAnkunftDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
-    </div>
+    <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen. Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
-  <div class="grid" id="monteurZeitenGroup" style="display:none;">
-    <div>
-      <label>Arbeitsbeginn (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgArbeitsbeginnDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
-      <span class="time-picker-field empty" data-target="cfgArbeitsbeginnDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
+  <div class="default-zeiten-box" id="monteurZeitenGroup" style="display:none;">
+    <h3>⏰ Standard-Zeiten Arbeitsbeginn / Arbeitsende</h3>
+    <div class="grid">
+      <div>
+        <label>Arbeitsbeginn (Standard)</label>
+        <input id="cfgArbeitsbeginnDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+        <span class="time-picker-field empty" data-target="cfgArbeitsbeginnDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
+      </div>
+      <div>
+        <label>Arbeitsende (Standard)</label>
+        <input id="cfgArbeitsendeDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+        <span class="time-picker-field empty" data-target="cfgArbeitsendeDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
+      </div>
     </div>
-    <div>
-      <label>Arbeitsende (Standard, füllt automatisch alle Wochentage)</label>
-      <input id="cfgArbeitsendeDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
-      <span class="time-picker-field empty" data-target="cfgArbeitsendeDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
-    </div>
+    <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen (30 Minuten Pause werden dabei automatisch abgezogen). Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
   <div class="grid">
     <div>
@@ -621,8 +641,8 @@ function computeMonth(jahr, monat) {
 /* ===================== UI Aufbau ===================== */
 function updateMitarbeitertypUI() {
   const isMonteur = config.mitarbeitertyp === "monteur";
-  document.getElementById("fahrerZeitenGroup").style.display = isMonteur ? "none" : "grid";
-  document.getElementById("monteurZeitenGroup").style.display = isMonteur ? "grid" : "none";
+  document.getElementById("fahrerZeitenGroup").style.display = isMonteur ? "none" : "block";
+  document.getElementById("monteurZeitenGroup").style.display = isMonteur ? "block" : "none";
 }
 
 function syncTimePickerDisplay(inputId) {
