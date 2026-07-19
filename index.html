@@ -234,6 +234,38 @@
       <input id="cfgNlBis" type="time" oninput="saveConfig(); renderFormular();">
     </div>
   </div>
+  <h2>Abwesenheiten am Stück eintragen</h2>
+  <div class="grid">
+    <div>
+      <label>Status</label>
+      <select id="absenceStatus">
+        <option value="urlaub">Urlaub</option>
+        <option value="krank">Krank</option>
+        <option value="frei">Frei</option>
+        <option value="sonderurlaub">Sonderurlaub</option>
+        <option value="elternzeit">Elternzeit</option>
+      </select>
+    </div>
+    <div>
+      <label>Von</label>
+      <input id="absenceVon" type="date">
+    </div>
+    <div>
+      <label>Bis</label>
+      <input id="absenceBis" type="date">
+    </div>
+    <div style="display:flex; align-items:flex-end; gap:0.5rem;">
+      <button onclick="applyAbsenceRange()">Eintragen</button>
+      <button onclick="clearAbsenceRange()">Zurücksetzen</button>
+    </div>
+  </div>
+  <p style="font-size:0.8rem; color:#666;">
+    Trägt den gewählten Status (z.B. Urlaub) automatisch für jeden Tag im
+    Zeitraum ein - spart das einzelne Anklicken pro Tag. Einzelne Tage lassen
+    sich in der Tabelle danach trotzdem noch abweichend ändern.
+    „Zurücksetzen" macht den gewählten Zeitraum wieder zu normalen Arbeitstagen.
+  </p>
+
   <p style="font-size:0.8rem; color:#666;">
     Alle Eingaben werden automatisch lokal in diesem Browser gespeichert (localStorage) &ndash;
     nichts wird irgendwohin hochgeladen. Diese Datei einfach per Doppelklick öffnen, keine Installation nötig.
@@ -572,6 +604,54 @@ function updateOverride(iso, field, value) {
   if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
   saveOverrides();
   renderFormular();
+}
+
+/* ===================== Abwesenheiten am Stueck (Urlaub/Krank/etc.) ===================== */
+function eachDateInRange(vonISO, bisISO, callback) {
+  const von = new Date(vonISO + "T00:00:00");
+  const bis = new Date(bisISO + "T00:00:00");
+  for (let d = new Date(von); d <= bis; d.setDate(d.getDate() + 1)) {
+    callback(fmtISO(d));
+  }
+}
+
+function applyAbsenceRange() {
+  const status = document.getElementById("absenceStatus").value;
+  const von = document.getElementById("absenceVon").value;
+  const bis = document.getElementById("absenceBis").value;
+  if (!von || !bis) {
+    alert("Bitte Von- und Bis-Datum angeben.");
+    return;
+  }
+  if (bis < von) {
+    alert("Das Bis-Datum liegt vor dem Von-Datum.");
+    return;
+  }
+  eachDateInRange(von, bis, (iso) => {
+    overrides[iso] = overrides[iso] || {};
+    overrides[iso].status = status;
+  });
+  saveOverrides();
+  renderFormular();
+  alert(`${STATUS_LABELS[status]} wurde für den Zeitraum ${von} bis ${bis} eingetragen.`);
+}
+
+function clearAbsenceRange() {
+  const von = document.getElementById("absenceVon").value;
+  const bis = document.getElementById("absenceBis").value;
+  if (!von || !bis) {
+    alert("Bitte Von- und Bis-Datum angeben.");
+    return;
+  }
+  eachDateInRange(von, bis, (iso) => {
+    if (overrides[iso]) {
+      delete overrides[iso].status;
+      if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
+    }
+  });
+  saveOverrides();
+  renderFormular();
+  alert(`Zeitraum ${von} bis ${bis} wurde wieder auf normale Arbeitstage zurückgesetzt.`);
 }
 
 /* ===================== Live-Update ohne Tabelle neu aufzubauen =====================
