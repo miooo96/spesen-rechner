@@ -535,6 +535,47 @@ function updateOverride(iso, field, value) {
   renderFormular();
 }
 
+/* ===================== Live-Update ohne Tabelle neu aufzubauen =====================
+   Waehrend des Tippens (oninput) wird NUR der betroffene Tag neu berechnet und
+   gezielt per DOM aktualisiert (Std./Pauschale/Gesamtsumme) - der Cursor im
+   gerade bearbeiteten Feld bleibt dabei erhalten. Beim Verlassen des Feldes
+   (onchange) baut updateOverride() die Tabelle danach einmal vollstaendig neu
+   auf, um auch Sonderfaelle (Feiertag/Status/Leerzeilen) sauber abzubilden. */
+function recomputeSummary(monat) {
+  const { total } = computeMonth(config.jahr, monat);
+  const bezahltKey = "bezahlt_" + config.jahr + "-" + pad(monat);
+  const bezahltRaw = localStorage.getItem(bezahltKey);
+  const bezahlt = bezahltRaw !== null ? (parseFloat(bezahltRaw) || 0) : config.bezahltDefault;
+  const gesamtEl = document.getElementById("gesamtpauschale-value");
+  const restEl = document.getElementById("resterstattung-value");
+  if (gesamtEl) gesamtEl.textContent = total.toFixed(2).replace(".", ",") + " €";
+  if (restEl) restEl.textContent = (total + bezahlt).toFixed(2).replace(".", ",") + " €";
+}
+
+function liveUpdate(iso, field, value) {
+  overrides[iso] = overrides[iso] || {};
+  if (value === "" || value === null) delete overrides[iso][field];
+  else overrides[iso][field] = value;
+  if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
+  saveOverrides();
+
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const holidaysMap = feiertage(config.jahr, config.bundesland);
+  const e = computeDay(new Date(iso), holidaysMap);
+  const stundenEl = document.getElementById("std-cell-" + iso);
+  const pauschaleEl = document.getElementById("pauschale-cell-" + iso);
+  if (stundenEl) stundenEl.textContent = (e && e.hours !== null) ? e.hours.toString().replace(".", ",") : "";
+  if (pauschaleEl) pauschaleEl.textContent = (e && e.pauschale > 0) ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
+
+  recomputeSummary(monat);
+}
+
+function liveUpdateBezahlt(bezahltKey, value) {
+  localStorage.setItem(bezahltKey, value);
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  recomputeSummary(monat);
+}
+
 function renderFormular() {
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const { entries, total, workdays } = computeMonth(config.jahr, monat);
@@ -562,12 +603,16 @@ function renderFormular() {
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
           <td>${datumStr}</td>
-          <td><input class="cell-input time-input" placeholder="--:--" value="${e.abfahrt}" onchange="updateOverride('${e.iso}','${e.startField}',this.value)"></td>
+          <td><input class="cell-input time-input" placeholder="--:--" value="${e.abfahrt}"
+                oninput="liveUpdate('${e.iso}','${e.startField}',this.value)"
+                onchange="updateOverride('${e.iso}','${e.startField}',this.value)"></td>
           <td>${e.nl}</td>
           <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
-          <td><input class="cell-input time-input" placeholder="--:--" value="${e.ankunft}" onchange="updateOverride('${e.iso}','${e.endField}',this.value)"></td>
-          <td>${stunden}</td>
-          <td class="pauschale-cell">${pauschale}</td>
+          <td><input class="cell-input time-input" placeholder="--:--" value="${e.ankunft}"
+                oninput="liveUpdate('${e.iso}','${e.endField}',this.value)"
+                onchange="updateOverride('${e.iso}','${e.endField}',this.value)"></td>
+          <td id="std-cell-${e.iso}">${stunden}</td>
+          <td class="pauschale-cell" id="pauschale-cell-${e.iso}">${pauschale}</td>
           <td class="no-print">
             <select class="status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
               <option value="normal">Arbeitstag</option>
@@ -648,7 +693,7 @@ function renderFormular() {
       ${rows.join("")}
       <tr class="gesamt-row">
         <td colspan="6"></td><td class="bold">Gesamtpauschale</td>
-        <td class="pauschale-cell bold">${total.toFixed(2).replace(".", ",")} €</td>
+        <td class="pauschale-cell bold" id="gesamtpauschale-value">${total.toFixed(2).replace(".", ",")} €</td>
         <td class="no-print"></td>
       </tr>
       <tr>
@@ -660,13 +705,14 @@ function renderFormular() {
         <td colspan="4">über Gehaltsabrechnung bezahlt</td>
         <td class="pauschale-cell bezahlt-cell">
           <input class="cell-input" style="text-align:right;" type="number" step="0.5" value="${bezahlt}"
+            oninput="liveUpdateBezahlt('${bezahltKey}', this.value)"
             onchange="localStorage.setItem('${bezahltKey}', this.value); renderFormular();"> €
         </td>
         <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="4">Resterstattung LST-Jahresausgleich</td>
-        <td class="pauschale-cell bold">${rest.toFixed(2).replace(".", ",")} €</td>
+        <td class="pauschale-cell bold" id="resterstattung-value">${rest.toFixed(2).replace(".", ",")} €</td>
         <td class="no-print"></td>
       </tr>
       <tr>
