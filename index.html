@@ -109,6 +109,14 @@
   <h2 style="margin-top:0;">Einstellungen</h2>
   <div class="grid">
     <div>
+      <label>Abfahrt WP (Standard, füllt automatisch alle Wochentage)</label>
+      <input id="cfgAbfahrtDefault" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
+      <label>Ankunft WP (Standard, füllt automatisch alle Wochentage)</label>
+      <input id="cfgAnkunftDefault" type="time" oninput="saveConfig(); renderFormular();">
+    </div>
+    <div>
       <label>Name</label>
       <input id="cfgName" oninput="saveConfig(); renderFormular();">
     </div>
@@ -154,9 +162,10 @@
     </div>
   </div>
   <p style="font-size:0.8rem; color:#666;">
-    Abfahrt WP und Ankunft WP werden bewusst <b>nicht</b> vorausgefüllt &ndash;
-    bitte pro Tag direkt in der Tabelle eintragen. Tagesstunden und Pauschale
-    berechnen sich dann automatisch.
+    Ohne Standardzeiten oben bleiben Abfahrt WP/Ankunft WP leer und werden pro
+    Tag direkt in der Tabelle eingetragen. Std. und Pauschale berechnen sich
+    automatisch, sobald beide Zeiten (ob per Standard oder manuell) da sind.
+    Einzelne Tage lassen sich in der Tabelle jederzeit abweichend überschreiben.
   </p>
 
   <h2>Anwesenheit in der Niederlassung (NL)</h2>
@@ -203,6 +212,7 @@ const DEFAULT_CONFIG = {
   jahr: 2026, startMonat: 1, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
+  abfahrtDefault: "", ankunftDefault: "",
   orteDefault: "lt. Tourenplan",
   nlAktiv: true, nlTag: 0, nlVon: "06:00", nlBis: "09:00",
 };
@@ -226,6 +236,8 @@ let config = loadConfig();
 let overrides = loadOverrides();
 
 function saveConfig() {
+  config.abfahrtDefault = val("cfgAbfahrtDefault");
+  config.ankunftDefault = val("cfgAnkunftDefault");
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
@@ -335,20 +347,24 @@ function computeDay(date, holidaysMap) {
   }
 
   const isHoliday = holidaysMap[iso];
-  const abfahrtStr = ov.abfahrt || "";
-  const ankunftStr = ov.ankunft || "";
-  const hasManualTimes = abfahrtStr !== "" || ankunftStr !== "";
+  // Fuer die Frage "ist das ueberhaupt ein Arbeitstag" zaehlt nur eine
+  // TATSAECHLICHE Eingabe an diesem Tag - die globalen Standardzeiten aus
+  // den Einstellungen duerfen Wochenenden nicht automatisch zu Arbeitstagen
+  // machen (die bleiben weiterhin leer, ausser man traegt explizit was ein).
+  const hasOverride = (ov.abfahrt && ov.abfahrt !== "") || (ov.ankunft && ov.ankunft !== "");
 
-  if (!hasManualTimes) {
+  if (!hasOverride) {
     if (isHoliday) {
       return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
     }
     if (wd >= 5) return null; // Wochenende, kein Standard-Arbeitstag
   }
 
-  // Abfahrt WP und Ankunft WP werden bewusst NICHT vorausgefüllt - die
-  // Person traegt beides pro Tag manuell ein. Std. und Pauschale berechnen
-  // sich daraus automatisch, sobald beide Zeiten ausgefuellt sind.
+  // Abfahrt WP / Ankunft WP: erst individuelle Eingabe an diesem Tag,
+  // sonst die Standardzeit aus den Einstellungen (falls gesetzt), sonst leer.
+  // Std. und Pauschale berechnen sich automatisch, sobald beide Zeiten da sind.
+  const abfahrtStr = ov.abfahrt || config.abfahrtDefault || "";
+  const ankunftStr = ov.ankunft || config.ankunftDefault || "";
   let hours = null, pauschale = 0;
   if (abfahrtStr && ankunftStr) {
     let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
@@ -388,6 +404,8 @@ function computeMonth(jahr, monat) {
 
 /* ===================== UI Aufbau ===================== */
 function initSettingsUI() {
+  document.getElementById("cfgAbfahrtDefault").value = config.abfahrtDefault || "";
+  document.getElementById("cfgAnkunftDefault").value = config.ankunftDefault || "";
   document.getElementById("cfgName").value = config.name;
   document.getElementById("cfgStrasse").value = config.strasse;
   document.getElementById("cfgOrt").value = config.ort;
