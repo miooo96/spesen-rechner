@@ -8,7 +8,8 @@
   :root {
     --border: #333;
     --bg-light: #f5f5f5;
-    --accent: #0a6cff;
+    --accent: #FE5C01;      /* Hall Tabakwaren Orange */
+    --brand-dark: #370F06;  /* Hall Tabakwaren Dunkelbraun */
   }
   * { box-sizing: border-box; }
   body {
@@ -16,21 +17,21 @@
     margin: 0; padding: 1.5rem;
     background: #e9edf1; color: #1a1a1a;
   }
-  h1 { font-size: 1.4rem; margin: 0 0 1rem; }
-  h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 1rem; color: var(--brand-dark); }
+  h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--brand-dark); }
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;
   }
   button, .btn {
-    padding: 8px 14px; border: 1px solid #888; background: #fff;
-    border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+    padding: 8px 14px; border: 1px solid var(--brand-dark); background: #fff;
+    color: var(--brand-dark); border-radius: 6px; cursor: pointer; font-size: 0.9rem;
   }
   button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   button:hover { filter: brightness(0.95); }
 
   .panel {
-    background: #fff; border: 1px solid #ccc; border-radius: 8px;
-    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+    background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
   }
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -58,18 +59,22 @@
   #formular .center { text-align: center; }
   #formular .bold { font-weight: bold; }
   #formular .small { font-size: 0.75rem; }
-  #formular th { background: var(--bg-light); }
+  #formular th { background: #FDE9DC; }
   #formular input.cell-input {
     border: none; width: 100%; font-size: 0.85rem; padding: 2px; background: transparent;
   }
   #formular input.cell-input:focus { background: #fffbdd; }
+  #formular input.cell-input.time-input { text-align: center; }
+  #formular input.cell-input.time-input::placeholder { color: #bbb; }
   select.status-select { font-size: 0.75rem; padding: 2px; width: 100%; min-width: 90px; }
   #formular th:last-child, #formular td:last-child { min-width: 100px; }
   tr.status-urlaub, tr.status-krank, tr.status-frei, tr.status-feiertag { color: #888; background: #fafafa; }
   td.pauschale-cell { text-align: right; }
-  .gesamt-row td { font-weight: bold; background: var(--bg-light); }
+  .gesamt-row td { font-weight: bold; background: #FDE9DC; }
   .bezahlt-cell { color: #c0392b; white-space: nowrap; }
   .bezahlt-cell input { width: 70px; display: inline-block; color: #c0392b; font-weight: bold; }
+  .logo-cell { text-align: center; vertical-align: middle !important; padding: 4px !important; }
+  .logo-cell img { max-width: 100%; max-height: 90px; object-fit: contain; }
 
   footer { text-align: center; font-size: 0.75rem; color: #888; margin-top: 2rem; }
 
@@ -90,7 +95,7 @@
 </head>
 <body>
 
-<h1 class="no-print">🧮 Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</h1>
+<h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"> Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</h1>
 
 <div class="toolbar no-print">
   <button class="primary" onclick="window.print()">📄 Als PDF drucken/speichern</button>
@@ -144,17 +149,15 @@
       <input id="cfgPauschale24" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
     </div>
     <div>
-      <label>Abfahrt WP (Standard)</label>
-      <input id="cfgAbfahrt" type="time" oninput="saveConfig(); renderFormular();">
-    </div>
-    <div>
       <label>Standard "besuchte Orte"</label>
       <input id="cfgOrte" oninput="saveConfig(); renderFormular();">
     </div>
   </div>
-
-  <h2>Tagesstunden je Wochentag</h2>
-  <div id="weekdayHours"></div>
+  <p style="font-size:0.8rem; color:#666;">
+    Abfahrt WP und Ankunft WP werden bewusst <b>nicht</b> vorausgefüllt &ndash;
+    bitte pro Tag direkt in der Tabelle eintragen. Tagesstunden und Pauschale
+    berechnen sich dann automatisch.
+  </p>
 
   <h2>Anwesenheit in der Niederlassung (NL)</h2>
   <div class="grid">
@@ -200,9 +203,7 @@ const DEFAULT_CONFIG = {
   jahr: 2026, startMonat: 7, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
-  abfahrt: "06:00",
   orteDefault: "lt. Tourenplan",
-  wochenstunden: { 0: 9.5, 1: 9.0, 2: 9.75, 3: 9.25, 4: 8.5 }, // Mo-Fr, Sa/So = kein Arbeitstag
   nlAktiv: true, nlTag: 0, nlVon: "06:00", nlBis: "09:00",
 };
 
@@ -233,12 +234,7 @@ function saveConfig() {
   config.bundesland = val("cfgBundesland");
   config.pauschale8 = parseFloat(val("cfgPauschale8")) || 0;
   config.pauschale24 = parseFloat(val("cfgPauschale24")) || 0;
-  config.abfahrt = val("cfgAbfahrt");
   config.orteDefault = val("cfgOrte");
-  for (let d = 0; d <= 4; d++) {
-    const el = document.getElementById("wh_" + d);
-    if (el) config.wochenstunden[d] = parseFloat(el.value) || 0;
-  }
   config.nlAktiv = document.getElementById("cfgNlAktiv").checked;
   config.nlTag = parseInt(val("cfgNlTag"));
   config.nlVon = val("cfgNlVon");
@@ -335,29 +331,32 @@ function computeDay(date, holidaysMap) {
   const ov = overrides[iso] || {};
 
   if (ov.status && ["urlaub", "krank", "frei"].includes(ov.status)) {
-    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: 0, pauschale: 0, nl: "", orte: ov.orte || "", notiz: ov.notiz || ov.status };
+    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: ov.orte || "", notiz: ov.notiz || ov.status };
   }
 
   const isHoliday = holidaysMap[iso];
-  const hasOverrideHours = ov.hours !== undefined && ov.hours !== null && ov.hours !== "";
+  const abfahrtStr = ov.abfahrt || "";
+  const ankunftStr = ov.ankunft || "";
+  const hasManualTimes = abfahrtStr !== "" || ankunftStr !== "";
 
-  if (!hasOverrideHours) {
+  if (!hasManualTimes) {
     if (isHoliday) {
-      return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: 0, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
+      return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
     }
     if (wd >= 5) return null; // Wochenende, kein Standard-Arbeitstag
   }
 
-  const hours = hasOverrideHours ? parseFloat(ov.hours) : (config.wochenstunden[wd] || 0);
-  if (!hours) return null;
-
-  const abfahrtStr = ov.abfahrt || config.abfahrt;
-  const ankunftMin = timeToMinutes(abfahrtStr) + Math.round(hours * 60);
-  const ankunftStr = minutesToTime(ankunftMin);
-
-  let pauschale = 0;
-  if (hours > 24) pauschale = config.pauschale24;
-  else if (hours > 8) pauschale = config.pauschale8;
+  // Abfahrt WP und Ankunft WP werden bewusst NICHT vorausgefüllt - die
+  // Person traegt beides pro Tag manuell ein. Std. und Pauschale berechnen
+  // sich daraus automatisch, sobald beide Zeiten ausgefuellt sind.
+  let hours = null, pauschale = 0;
+  if (abfahrtStr && ankunftStr) {
+    let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
+    if (diffMin < 0) diffMin += 24 * 60; // Ankunft liegt nach Mitternacht
+    hours = Math.round((diffMin / 60) * 100) / 100;
+    if (hours > 24) pauschale = config.pauschale24;
+    else if (hours > 8) pauschale = config.pauschale8;
+  }
 
   const nlDefault = config.nlAktiv && wd === config.nlTag && !isHoliday;
   const nl = ov.nl !== undefined ? ov.nl : nlDefault;
@@ -383,7 +382,7 @@ function computeMonth(jahr, monat) {
     if (e) entries.push(e);
   }
   const total = entries.reduce((s, e) => s + (e.pauschale || 0), 0);
-  const workdays = entries.filter(e => e.status === "normal").length;
+  const workdays = entries.filter(e => e.status === "normal" && e.pauschale > 0).length;
   return { entries, total, workdays };
 }
 
@@ -396,7 +395,6 @@ function initSettingsUI() {
   document.getElementById("cfgJahr").value = config.jahr;
   document.getElementById("cfgPauschale8").value = config.pauschale8;
   document.getElementById("cfgPauschale24").value = config.pauschale24;
-  document.getElementById("cfgAbfahrt").value = config.abfahrt;
   document.getElementById("cfgOrte").value = config.orteDefault;
   document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
   document.getElementById("cfgNlVon").value = config.nlVon;
@@ -414,11 +412,6 @@ function initSettingsUI() {
 
   const nlTagSel = document.getElementById("cfgNlTag");
   nlTagSel.innerHTML = WEEKDAY_NAMES.slice(0, 5).map((w, i) => `<option value="${i}" ${i === config.nlTag ? "selected" : ""}>${w}</option>`).join("");
-
-  const whDiv = document.getElementById("weekdayHours");
-  whDiv.innerHTML = WEEKDAY_NAMES.slice(0, 5).map((w, i) =>
-    `<div class="weekday-row"><span>${w}</span><input id="wh_${i}" type="number" step="0.25" value="${config.wochenstunden[i]}" oninput="saveConfig(); renderFormular();"> Std.</div>`
-  ).join("");
 }
 
 function toggleSettings() {
@@ -464,16 +457,18 @@ function renderFormular() {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     if (e.status === "normal") {
+      const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",");
+      const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       rows.push(`
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
           <td>${datumStr}</td>
-          <td><input class="cell-input" value="${e.abfahrt}" onchange="updateOverride('${e.iso}','abfahrt',this.value)"></td>
+          <td><input class="cell-input time-input" placeholder="--:--" value="${e.abfahrt}" onchange="updateOverride('${e.iso}','abfahrt',this.value)"></td>
           <td>${e.nl}</td>
           <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
-          <td>${e.ankunft}</td>
-          <td>${e.hours.toString().replace(".", ",")}</td>
-          <td class="pauschale-cell">${e.pauschale.toFixed(2).replace(".", ",")} €</td>
+          <td><input class="cell-input time-input" placeholder="--:--" value="${e.ankunft}" onchange="updateOverride('${e.iso}','ankunft',this.value)"></td>
+          <td>${stunden}</td>
+          <td class="pauschale-cell">${pauschale}</td>
           <td class="no-print">
             <select class="status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
               <option value="normal">Arbeitstag</option>
@@ -508,50 +503,43 @@ function renderFormular() {
     <table>
       <tr>
         <td colspan="7" class="head-title">Niederlassung: &nbsp; ${config.niederlassung || "&mdash;"}</td>
-        <td class="no-print"></td>
+        <td rowspan="8" class="logo-cell"><img src="hall-logo.png" alt="Hall Tabakwaren"></td>
       </tr>
       <tr>
         <td colspan="2" class="bold">Spesenabrechnung Monat:</td>
         <td class="center bold">${MONTH_NAMES[monat - 1]}</td>
         <td colspan="4">Pauschalspesen für Dienstreisen Inland</td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="2" class="bold">Jahr:</td>
         <td class="center bold">${config.jahr}</td>
         <td colspan="2">AB 1.1.2020</td>
         <td colspan="2" class="bold center">Hinweis</td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="3" class="small">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
         <td>Wohnung/Parkplatz</td><td>= WP</td>
         <td colspan="2" class="small bold">Es dürfen keine Fahrtkosten Wohnung/Arbeitsstätte beim Finanzamt geltend gemacht werden</td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="3"></td>
         <td>Niederlassung</td><td>= NL</td>
         <td colspan="2"></td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="3">Name : ${config.name || ""}</td>
         <td>Dienstreise</td><td class="bold">Pauschale</td>
         <td colspan="2"></td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="3">Ort : ${config.ort || ""}</td>
         <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
         <td colspan="2"></td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <td colspan="3">Straße : ${config.strasse || ""}</td>
         <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
         <td colspan="2"></td>
-        <td class="no-print"></td>
       </tr>
       <tr>
         <th>Tag</th><th>Datum</th><th>Abfahrt WP</th><th>Anwesenheit in NL</th>
@@ -600,7 +588,7 @@ function exportCSV() {
   const { entries, total, workdays } = computeMonth(config.jahr, monat);
   const rows = [["Datum", "Tag", "Abfahrt", "Ankunft", "Stunden", "Anwesenheit NL", "Besuchte Orte", "Pauschale (EUR)", "Notiz"]];
   for (const e of entries) {
-    rows.push([e.iso, WEEKDAY_NAMES[e.wd], e.abfahrt, e.ankunft, e.hours, e.nl, e.orte, e.pauschale.toFixed(2), e.notiz || ""]);
+    rows.push([e.iso, WEEKDAY_NAMES[e.wd], e.abfahrt, e.ankunft, e.hours === null ? "" : e.hours, e.nl, e.orte, e.pauschale.toFixed(2), e.notiz || ""]);
   }
   rows.push([]);
   rows.push(["", "", "", "", "", "", "Summe", total.toFixed(2), workdays + " Arbeitstage"]);
