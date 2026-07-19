@@ -65,26 +65,34 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.75rem 1.5rem;
   }
-  label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 2px; }
+  label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 3px; }
   input, select {
-    width: 100%; padding: 6px 8px; border: 1px solid #bbb; border-radius: 4px;
-    font-size: 0.9rem;
+    width: 100%; padding: 7px 10px; border: 1px solid #d8dce2; border-radius: 7px;
+    font-size: 0.9rem; background: #fff; color: #1a1a1a;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  input:hover, select:hover { border-color: #b9c0cb; }
+  input:focus, select:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(254,92,1,0.15);
   }
   .weekday-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 4px; }
   .weekday-row span { width: 28px; font-weight: bold; font-size: 0.85rem; }
   .weekday-row input { width: 80px; }
 
-  /* Auffaellige Box fuer die Standard-Zeiten in den Einstellungen - vorher
-     gingen "Abfahrt WP"/"Ankunft WP" optisch im normalen Raster unter und
-     man hat leicht uebersehen, dass sie automatisch alle Wochentage fuellen. */
-  .default-zeiten-box {
-    background: #FDE9DC; border: 1px solid var(--accent); border-radius: 8px;
-    padding: 0.85rem 1rem 0.6rem; margin-bottom: 1.25rem;
+  /* Einheitliche, modernere Karten-Optik fuer zusammengehoerige Einstellungs-
+     Bloecke (Standard-Zeiten, Anwesenheit NL, Abwesenheiten am Stueck,
+     Datensicherung) - vorher gingen diese im gleichfoermigen Raster mit
+     Name/Strasse/etc. optisch unter. */
+  .settings-card {
+    background: #FDE9DC; border: 1px solid var(--accent); border-radius: 10px;
+    padding: 0.9rem 1.1rem 0.75rem; margin-bottom: 1.25rem;
   }
-  .default-zeiten-box h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--brand-dark); }
-  .default-zeiten-box .hinweis-text {
-    font-size: 0.78rem; color: #6b4a2f; margin: 0.7rem 0 0; line-height: 1.4;
+  .settings-card h3 { margin: 0 0 0.65rem; font-size: 0.95rem; color: var(--brand-dark); }
+  .settings-card .hinweis-text {
+    font-size: 0.78rem; color: #6b4a2f; margin: 0.75rem 0 0; line-height: 1.45;
   }
+  .settings-card .grid { gap: 0.85rem 1.5rem; }
+  .settings-card button { margin-top: 0; }
 
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
   #formular-scroll {
@@ -109,7 +117,13 @@
   #formular input.cell-input:focus { background: #fffbdd; }
   #formular input.cell-input.time-input { text-align: center; }
   #formular input.cell-input.time-input::placeholder { color: #bbb; }
-  select.status-select { font-size: 0.75rem; padding: 2px; width: 100%; min-width: 90px; }
+  select.status-select {
+    font-size: 0.75rem; padding: 3px 5px; width: 100%; min-width: 90px;
+    border: 1px solid #d8dce2; border-radius: 5px; background: #fff; color: var(--brand-dark);
+    cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  select.status-select:hover { border-color: var(--accent); }
+  select.status-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(254,92,1,0.15); }
   #formular th:last-child, #formular td:last-child { min-width: 100px; }
   tr.status-urlaub, tr.status-krank, tr.status-frei, tr.status-feiertag,
   tr.status-sonderurlaub, tr.status-elternzeit { color: #888; background: #fafafa; }
@@ -226,7 +240,7 @@
       </select>
     </div>
   </div>
-  <div class="default-zeiten-box" id="fahrerZeitenGroup">
+  <div class="settings-card" id="fahrerZeitenGroup">
     <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
     <div class="grid">
       <div>
@@ -242,7 +256,7 @@
     </div>
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen. Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
-  <div class="default-zeiten-box" id="monteurZeitenGroup" style="display:none;">
+  <div class="settings-card" id="monteurZeitenGroup" style="display:none;">
     <h3>⏰ Standard-Zeiten Arbeitsbeginn / Arbeitsende</h3>
     <div class="grid">
       <div>
@@ -319,75 +333,72 @@
     Einzelne Tage lassen sich in der Tabelle jederzeit abweichend überschreiben.
   </p>
 
-  <h2>Anwesenheit in der Niederlassung (NL)</h2>
-  <div class="grid">
-    <div>
-      <label><input type="checkbox" id="cfgNlAktiv" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();"> Aktiv an einem festen Wochentag</label>
+  <div class="settings-card">
+    <h3>🏢 Anwesenheit in der Niederlassung (NL)</h3>
+    <div class="grid">
+      <div>
+        <label><input type="checkbox" id="cfgNlAktiv" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();"> Aktiv an einem festen Wochentag</label>
+      </div>
+      <div>
+        <label>Wochentag</label>
+        <select id="cfgNlTag" onchange="saveConfig(); renderFormular();"></select>
+      </div>
+      <div>
+        <label>Von</label>
+        <input id="cfgNlVon" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+        <span class="time-picker-field empty" data-target="cfgNlVon" onclick="openTimeWheelForSetting(this)">--:--</span>
+      </div>
+      <div>
+        <label>Bis</label>
+        <input id="cfgNlBis" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
+        <span class="time-picker-field empty" data-target="cfgNlBis" onclick="openTimeWheelForSetting(this)">--:--</span>
+      </div>
     </div>
-    <div>
-      <label>Wochentag</label>
-      <select id="cfgNlTag" onchange="saveConfig(); renderFormular();"></select>
-    </div>
-    <div>
-      <label>Von</label>
-      <input id="cfgNlVon" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
-      <span class="time-picker-field empty" data-target="cfgNlVon" onclick="openTimeWheelForSetting(this)">--:--</span>
-    </div>
-    <div>
-      <label>Bis</label>
-      <input id="cfgNlBis" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
-      <span class="time-picker-field empty" data-target="cfgNlBis" onclick="openTimeWheelForSetting(this)">--:--</span>
-    </div>
+    <p class="hinweis-text">💡 Nur für Fahrer relevant: trägt an einem festen Wochentag (z.B. jeden Montag) automatisch eine Anwesenheitszeit in der Niederlassung ein. Bei Monteuren übernimmt diese Spalte automatisch die tägliche Arbeitszeit - hier ist dann nichts einzustellen.</p>
   </div>
-  <h2>Abwesenheiten am Stück eintragen</h2>
-  <div class="grid">
-    <div>
-      <label>Status</label>
-      <select id="absenceStatus">
-        <option value="urlaub">Urlaub</option>
-        <option value="krank">Krank</option>
-        <option value="frei">Frei</option>
-        <option value="sonderurlaub">Sonderurlaub</option>
-        <option value="elternzeit">Elternzeit</option>
-      </select>
-    </div>
-    <div>
-      <label>Von</label>
-      <input id="absenceVon" type="date">
-    </div>
-    <div>
-      <label>Bis</label>
-      <input id="absenceBis" type="date">
-    </div>
-    <div style="display:flex; align-items:flex-end; gap:0.5rem;">
-      <button onclick="applyAbsenceRange()">Eintragen</button>
-      <button onclick="clearAbsenceRange()">Zurücksetzen</button>
-    </div>
-  </div>
-  <p style="font-size:0.8rem; color:#666;">
-    Trägt den gewählten Status (z.B. Urlaub) automatisch für jeden Tag im
-    Zeitraum ein - spart das einzelne Anklicken pro Tag. Einzelne Tage lassen
-    sich in der Tabelle danach trotzdem noch abweichend ändern.
-    „Zurücksetzen" macht den gewählten Zeitraum wieder zu normalen Arbeitstagen.
-  </p>
 
-  <h2>💾 Datensicherung</h2>
-  <div class="grid">
-    <div>
-      <button onclick="exportBackup()">📦 Backup als Datei speichern</button>
+  <div class="settings-card">
+    <h3>🗓️ Abwesenheiten am Stück eintragen</h3>
+    <div class="grid">
+      <div>
+        <label>Status</label>
+        <select id="absenceStatus">
+          <option value="urlaub">Urlaub</option>
+          <option value="krank">Krank</option>
+          <option value="frei">Frei</option>
+          <option value="sonderurlaub">Sonderurlaub</option>
+          <option value="elternzeit">Elternzeit</option>
+        </select>
+      </div>
+      <div>
+        <label>Von</label>
+        <input id="absenceVon" type="date">
+      </div>
+      <div>
+        <label>Bis</label>
+        <input id="absenceBis" type="date">
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:0.5rem;">
+        <button class="primary" onclick="applyAbsenceRange()">Eintragen</button>
+        <button onclick="clearAbsenceRange()">Zurücksetzen</button>
+      </div>
     </div>
-    <div>
-      <button onclick="document.getElementById('backupFileInput').click()">📂 Backup wiederherstellen</button>
-      <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importBackupFile(this)">
-    </div>
+    <p class="hinweis-text">💡 Trägt den gewählten Status (z.B. Urlaub) automatisch für jeden Tag im Zeitraum ein - spart das einzelne Anklicken pro Tag. Einzelne Tage lassen sich in der Tabelle danach trotzdem noch abweichend ändern. „Zurücksetzen" macht den gewählten Zeitraum wieder zu normalen Arbeitstagen.</p>
   </div>
-  <p style="font-size:0.8rem; color:#666;">
-    Da alle Daten nur in diesem Browser gespeichert werden (siehe unten), gehen sie beim Löschen des
-    Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern"
-    wird alles (Einstellungen, alle Monate, beide Unterschriften) als Datei gesichert - regelmäßig
-    empfehlenswert, z.B. einmal im Monat. Über „Backup wiederherstellen" lässt sich diese Datei später
-    wieder einlesen, auch auf einem anderen Gerät/Browser.
-  </p>
+
+  <div class="settings-card">
+    <h3>💾 Datensicherung</h3>
+    <div class="grid">
+      <div>
+        <button class="primary" onclick="exportBackup()">📦 Backup als Datei speichern</button>
+      </div>
+      <div>
+        <button onclick="document.getElementById('backupFileInput').click()">📂 Backup wiederherstellen</button>
+        <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importBackupFile(this)">
+      </div>
+    </div>
+    <p class="hinweis-text">💡 Da alle Daten nur in diesem Browser gespeichert werden, gehen sie beim Löschen des Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern" wird alles (Einstellungen, alle Monate, beide Unterschriften) als Datei gesichert - regelmäßig empfehlenswert, z.B. einmal im Monat. Über „Backup wiederherstellen" lässt sich diese Datei später wieder einlesen, auch auf einem anderen Gerät/Browser.</p>
+  </div>
 
   <p style="font-size:0.8rem; color:#666;">
     Alle Eingaben werden automatisch lokal in diesem Browser gespeichert (localStorage) &ndash;
