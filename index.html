@@ -639,18 +639,25 @@ function computeDay(date, holidaysMap) {
   // machen (die bleiben weiterhin leer, ausser man traegt explizit was ein).
   const hasOverride = (ov[startKey] && ov[startKey] !== "") || (ov[endKey] && ov[endKey] !== "");
 
+  // Ausnahme fuer den seltenen Fall, dass die feste NL-Anwesenheit (siehe unten)
+  // ausgerechnet auf einen Samstag faellt: dieser Tag braucht trotz Wochenende
+  // eine Zeile im Formular, damit die NL-Zeit automatisch erscheint.
+  const isFixedNlWeekendDay = !isMonteur && wd >= 5 && config.nlAktiv && config.nlTag === wd;
+
   if (!hasOverride) {
     if (isHoliday) {
       return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
     }
-    if (wd >= 5) return null; // Wochenende, kein Standard-Arbeitstag
+    if (wd >= 5 && !isFixedNlWeekendDay) return null; // Wochenende, kein Standard-Arbeitstag
   }
 
   // Erst individuelle Eingabe an diesem Tag, sonst die Standardzeit aus den
   // Einstellungen (falls gesetzt), sonst leer. Std. und Pauschale berechnen
-  // sich automatisch, sobald beide Zeiten da sind.
-  const abfahrtStr = ov[startKey] || startDefault || "";
-  const ankunftStr = ov[endKey] || endDefault || "";
+  // sich automatisch, sobald beide Zeiten da sind. An Wochenenden gelten die
+  // globalen Standardzeiten nie automatisch (auch nicht am fixen NL-Samstag) -
+  // sonst wuerde daraus ungewollt ein kompletter Arbeitstag.
+  const abfahrtStr = ov[startKey] || (wd >= 5 ? "" : startDefault) || "";
+  const ankunftStr = ov[endKey] || (wd >= 5 ? "" : endDefault) || "";
   let hours = null, pauschale = 0, pauseAbgezogen = false;
   if (abfahrtStr && ankunftStr) {
     let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
@@ -755,7 +762,9 @@ function initSettingsUI() {
   blSel.innerHTML = Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === config.bundesland ? "selected" : ""}>${v}</option>`).join("");
 
   const nlTagSel = document.getElementById("cfgNlTag");
-  const nlTagOptions = WEEKDAY_NAMES.slice(0, 5).map((w, i) => `<option value="${i}" ${i === config.nlTag ? "selected" : ""}>${w}</option>`).join("");
+  // Mo-Sa waehlbar (Samstag fuer die seltenen Faelle, in denen die NL-Anwesenheit
+  // auf einen Samstag faellt) - Sonntag bewusst nicht dabei, da praktisch nie relevant.
+  const nlTagOptions = WEEKDAY_NAMES.slice(0, 6).map((w, i) => `<option value="${i}" ${i === config.nlTag ? "selected" : ""}>${w}</option>`).join("");
   nlTagSel.innerHTML = nlTagOptions +
     `<option value="alle" ${config.nlTag === "alle" ? "selected" : ""}>Alle Wochentage (Mo-Fr, z.B. Monteure)</option>`;
 }
