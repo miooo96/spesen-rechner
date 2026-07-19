@@ -92,13 +92,16 @@
     footer { display: none; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
 <h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"> Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</h1>
 
 <div class="toolbar no-print">
-  <button class="primary" onclick="window.print()">📄 Als PDF drucken/speichern</button>
+  <button class="primary" onclick="downloadPDF()">💾 Als PDF speichern</button>
+  <button onclick="window.print()">🖨️ Drucken</button>
   <button onclick="sendPerEmail()">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
   <button onclick="toggleSettings()">⚙️ Einstellungen</button>
   <button onclick="if(confirm('Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?')) resetAll()">🗑️ Zurücksetzen</button>
@@ -607,7 +610,38 @@ function renderFormular() {
 }
 
 /* ===================== Per E-Mail weiterleiten ===================== */
-function sendPerEmail() {
+/* ===================== PDF direkt speichern (ohne Druckdialog) ===================== */
+async function downloadPDF() {
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const monthName = MONTH_NAMES[monat - 1];
+  const el = document.getElementById("formular");
+
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" });
+  const imgData = canvas.toDataURL("image/png");
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 8;
+  const maxWidth = pageWidth - margin * 2;
+  const maxHeight = pageHeight - margin * 2;
+  let imgWidth = maxWidth;
+  let imgHeight = (canvas.height * imgWidth) / canvas.width;
+  if (imgHeight > maxHeight) {
+    imgHeight = maxHeight;
+    imgWidth = (canvas.width * imgHeight) / canvas.height;
+  }
+  const x = (pageWidth - imgWidth) / 2;
+  pdf.addImage(imgData, "PNG", x, margin, imgWidth, imgHeight);
+
+  const filename = `Spesennachweis_${monthName}_${config.jahr}.pdf`;
+  pdf.save(filename);
+  return filename;
+}
+
+/* ===================== Per E-Mail weiterleiten ===================== */
+async function sendPerEmail() {
   if (!config.arbeitgeberEmail) {
     alert('Bitte zuerst in den Einstellungen die E-Mail-Adresse des Arbeitgebers/der Niederlassung eintragen.');
     document.getElementById("settingsPanel").style.display = "block";
@@ -620,12 +654,12 @@ function sendPerEmail() {
   const subject = `Spesennachweis ${monthName} ${config.jahr}${wer}`;
   const body =
     `Hallo,\n\nanbei mein Spesennachweis für ${monthName} ${config.jahr}.\n\n` +
-    `Hinweis: Bitte die soeben gespeicherte PDF-Datei noch an diese E-Mail anhängen ` +
+    `Hinweis: Bitte die soeben heruntergeladene PDF-Datei noch an diese E-Mail anhängen ` +
     `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
     `Viele Grüße\n${config.name || ""}`;
 
-  alert('Gleich öffnet sich der Druckdialog zum Speichern der PDF. Danach öffnet sich automatisch eine vorausgefüllte E-Mail - dort bitte die gespeicherte PDF noch anhängen.');
-  window.print();
+  const filename = await downloadPDF();
+  alert(`PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen.`);
   window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
