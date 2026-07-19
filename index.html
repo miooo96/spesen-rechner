@@ -846,7 +846,13 @@ async function downloadPDF() {
   const monthName = MONTH_NAMES[monat - 1];
   const el = document.getElementById("formular");
 
-  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" });
+  const canvas = await html2canvas(el, {
+    scale: 2,
+    backgroundColor: "#ffffff",
+    // Status-Dropdowns und andere Bedienelemente (class="no-print") sollen
+    // nie in der gespeicherten PDF landen - nur das ausgefuellte Formular.
+    ignoreElements: (node) => node.classList && node.classList.contains("no-print"),
+  });
   const imgData = canvas.toDataURL("image/png");
 
   const { jsPDF } = window.jspdf;
