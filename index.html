@@ -68,7 +68,10 @@
   #formular input.cell-input.time-input::placeholder { color: #bbb; }
   select.status-select { font-size: 0.75rem; padding: 2px; width: 100%; min-width: 90px; }
   #formular th:last-child, #formular td:last-child { min-width: 100px; }
-  tr.status-urlaub, tr.status-krank, tr.status-frei, tr.status-feiertag { color: #888; background: #fafafa; }
+  tr.status-urlaub, tr.status-krank, tr.status-frei, tr.status-feiertag,
+  tr.status-sonderurlaub, tr.status-elternzeit { color: #888; background: #fafafa; }
+  .status-cell { text-align: center; }
+  .status-print-label { font-weight: 600; margin-bottom: 2px; color: #1a1a1a; }
   td.pauschale-cell { text-align: right; }
   .gesamt-row td { font-weight: bold; background: #FDE9DC; }
   .bezahlt-cell { color: #c0392b; white-space: nowrap; }
@@ -243,6 +246,24 @@
 /* ===================== Konfiguration & Speicher ===================== */
 const WEEKDAY_NAMES = ["MO","DI","MI","DO","FR","SA","SO"];
 const MONTH_NAMES = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const STATUS_LABELS = {
+  normal: "Arbeitstag",
+  urlaub: "Urlaub",
+  krank: "Krank",
+  frei: "Frei",
+  sonderurlaub: "Sonderurlaub",
+  elternzeit: "Elternzeit",
+  feiertag: "Feiertag",
+};
+// Reihenfolge der Dropdown-Optionen (Feiertag nicht dabei - wird automatisch erkannt, nicht manuell waehlbar)
+const STATUS_DROPDOWN_ORDER = ["normal", "urlaub", "krank", "frei", "sonderurlaub", "elternzeit"];
+const ABWESENHEITS_STATUS = ["urlaub", "krank", "frei", "sonderurlaub", "elternzeit"];
+
+function statusOptionsHTML(selected) {
+  return STATUS_DROPDOWN_ORDER.map(val =>
+    `<option value="${val}" ${val === selected ? "selected" : ""}>${STATUS_LABELS[val]}</option>`
+  ).join("");
+}
 const BUNDESLAENDER = {
   "BW":"Baden-Württemberg","BY":"Bayern","BE":"Berlin","BB":"Brandenburg","HB":"Bremen",
   "HH":"Hamburg","HE":"Hessen","MV":"Mecklenburg-Vorpommern","NI":"Niedersachsen",
@@ -395,8 +416,8 @@ function computeDay(date, holidaysMap) {
   const wd = (date.getDay() + 6) % 7; // 0=Mo .. 6=So
   const ov = overrides[iso] || {};
 
-  if (ov.status && ["urlaub", "krank", "frei"].includes(ov.status)) {
-    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: ov.orte || "", notiz: ov.notiz || ov.status };
+  if (ov.status && ABWESENHEITS_STATUS.includes(ov.status)) {
+    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: ov.orte || "", notiz: ov.notiz || STATUS_LABELS[ov.status] };
   }
 
   const isHoliday = holidaysMap[iso];
@@ -629,17 +650,15 @@ function renderFormular() {
                 onchange="updateOverride('${e.iso}','${e.endField}',this.value)"></td>
           <td id="std-cell-${e.iso}">${stunden}</td>
           <td class="pauschale-cell" id="pauschale-cell-${e.iso}">${pauschale}</td>
-          <td class="no-print">
-            <select class="status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
-              <option value="normal">Arbeitstag</option>
-              <option value="urlaub">Urlaub</option>
-              <option value="krank">Krank</option>
-              <option value="frei">Frei</option>
+          <td class="status-cell">
+            <div class="status-print-label small">${STATUS_LABELS.normal}</div>
+            <select class="no-print status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
+              ${statusOptionsHTML("normal")}
             </select>
           </td>
         </tr>`);
     } else {
-      const label = e.status === "feiertag" ? e.notiz : (e.notiz || e.status);
+      const label = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status]);
       rows.push(`
         <tr class="status-${e.status}">
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
@@ -647,12 +666,10 @@ function renderFormular() {
           <td colspan="4" class="small">${label}</td>
           <td></td>
           <td></td>
-          <td class="no-print">
-            <select class="status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
-              <option value="normal">Arbeitstag</option>
-              <option value="urlaub" ${e.status === "urlaub" ? "selected" : ""}>Urlaub</option>
-              <option value="krank" ${e.status === "krank" ? "selected" : ""}>Krank</option>
-              <option value="frei" ${e.status === "frei" ? "selected" : ""}>Frei</option>
+          <td class="status-cell">
+            <div class="status-print-label small">${STATUS_LABELS[e.status] || e.status}</div>
+            <select class="no-print status-select" onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
+              ${statusOptionsHTML(e.status)}
             </select>
           </td>
         </tr>`);
@@ -704,7 +721,7 @@ function renderFormular() {
       <tr>
         <th>Tag</th><th>Datum</th><th>${startLabel}</th><th>Anwesenheit in NL</th>
         <th>besuchte Orte</th><th>${endLabel}</th><th>Std.</th><th>Pauschale</th>
-        <th class="no-print">Status</th>
+        <th>Status</th>
       </tr>
       ${rows.join("")}
       ${config.mitarbeitertyp === "monteur" ? `
@@ -849,6 +866,10 @@ async function downloadPDF() {
   const canvas = await html2canvas(el, {
     scale: 2,
     backgroundColor: "#ffffff",
+    // Feste virtuelle Fensterbreite, damit die Tabelle IMMER komplett erfasst
+    // wird - unabhaengig von der tatsaechlichen Bildschirmbreite (sonst wird
+    // auf schmalen Bildschirmen/Handys die Tabelle rechts abgeschnitten).
+    windowWidth: 1050,
     // Status-Dropdowns und andere Bedienelemente (class="no-print") sollen
     // nie in der gespeicherten PDF landen - nur das ausgefuellte Formular.
     ignoreElements: (node) => node.classList && node.classList.contains("no-print"),
