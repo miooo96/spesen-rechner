@@ -266,6 +266,24 @@
     „Zurücksetzen" macht den gewählten Zeitraum wieder zu normalen Arbeitstagen.
   </p>
 
+  <h2>💾 Datensicherung</h2>
+  <div class="grid">
+    <div>
+      <button onclick="exportBackup()">📦 Backup als Datei speichern</button>
+    </div>
+    <div>
+      <button onclick="document.getElementById('backupFileInput').click()">📂 Backup wiederherstellen</button>
+      <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importBackupFile(this)">
+    </div>
+  </div>
+  <p style="font-size:0.8rem; color:#666;">
+    Da alle Daten nur in diesem Browser gespeichert werden (siehe unten), gehen sie beim Löschen des
+    Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern"
+    wird alles (Einstellungen, alle Monate, beide Unterschriften) als Datei gesichert - regelmäßig
+    empfehlenswert, z.B. einmal im Monat. Über „Backup wiederherstellen" lässt sich diese Datei später
+    wieder einlesen, auch auf einem anderen Gerät/Browser.
+  </p>
+
   <p style="font-size:0.8rem; color:#666;">
     Alle Eingaben werden automatisch lokal in diesem Browser gespeichert (localStorage) &ndash;
     nichts wird irgendwohin hochgeladen. Diese Datei einfach per Doppelklick öffnen, keine Installation nötig.
@@ -652,6 +670,62 @@ function clearAbsenceRange() {
   saveOverrides();
   renderFormular();
   alert(`Zeitraum ${von} bis ${bis} wurde wieder auf normale Arbeitstage zurückgesetzt.`);
+}
+
+/* ===================== Datensicherung (Backup Export/Import) =====================
+   Erfasst ALLES, was das Tool in localStorage ablegt: Einstellungen, alle
+   Tages-Overrides (Zeiten/Status/Orte fuer jeden jemals bearbeiteten Tag),
+   beide Unterschriften, und die "bereits bezahlt"-Werte jedes Monats (deren
+   Schluessel dynamisch pro Monat/Jahr entstehen - deshalb ueber ALLE
+   localStorage-Schluessel iterieren statt eine feste Liste zu pflegen). */
+function exportBackup() {
+  const backup = {
+    _type: "spesen-rechner-backup",
+    _version: 1,
+    _exportedAt: new Date().toISOString(),
+    data: {},
+  };
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith("spesen_") || key.startsWith("bezahlt_")) {
+      backup.data[key] = localStorage.getItem(key);
+    }
+  }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `spesen-rechner-backup-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importBackupFile(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (!backup || backup._type !== "spesen-rechner-backup" || !backup.data) {
+        throw new Error("Das ist keine gültige Spesen-Rechner-Backup-Datei.");
+      }
+      const anzahl = Object.keys(backup.data).length;
+      if (!confirm(`Backup vom ${new Date(backup._exportedAt).toLocaleString("de-DE")} einlesen? ` +
+                   `Aktuelle Daten in diesem Browser (${anzahl} gespeicherte Einträge im Backup) werden überschrieben.`)) {
+        return;
+      }
+      Object.entries(backup.data).forEach(([key, value]) => localStorage.setItem(key, value));
+      alert("Backup erfolgreich wiederhergestellt. Die Seite wird neu geladen.");
+      location.reload();
+    } catch (err) {
+      alert("Fehler beim Einlesen des Backups: " + err.message);
+    } finally {
+      fileInput.value = "";
+    }
+  };
+  reader.readAsText(file);
 }
 
 /* ===================== Live-Update ohne Tabelle neu aufzubauen =====================
