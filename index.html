@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Spesen-Rechner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="hall-logo.png">
 <style>
   :root {
     --border: #333;
@@ -229,31 +230,92 @@
   }
   .time-wheel-buttons { display: flex; justify-content: space-between; margin-top: 1rem; gap: 0.5rem; }
   .time-wheel-buttons button { flex: 1; }
+
+  /* ===================== Generisches Modal (Changelog, QR-Code, Setup-Assistent) ===================== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1100;
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-box {
+    background: #fff; border-radius: 14px; padding: 1.5rem; width: 100%; max-width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35); max-height: 85vh; overflow-y: auto;
+  }
+  .modal-box h2 { margin-top: 0; }
+  .modal-close-row { display: flex; justify-content: flex-end; margin-top: 1.25rem; }
+
+  /* Changelog */
+  .changelog-entry { margin-bottom: 1rem; }
+  .changelog-entry .version { font-weight: bold; color: var(--brand-dark); }
+  .changelog-entry .date { color: #888; font-size: 0.8rem; margin-left: 6px; }
+  .changelog-entry ul { margin: 0.3rem 0 0; padding-left: 1.2rem; font-size: 0.88rem; }
+
+  /* QR-Code Modal */
+  #qrCodeCanvas { display: flex; justify-content: center; margin: 1rem 0; }
+  .qr-url { text-align: center; font-size: 0.85rem; color: #444; word-break: break-all; }
+
+  /* Setup-Assistent */
+  .wizard-step { display: none; }
+  .wizard-step.active { display: block; }
+  .wizard-dots { display: flex; justify-content: center; gap: 6px; margin: 1rem 0; }
+  .wizard-dots span { width: 8px; height: 8px; border-radius: 50%; background: #e3e6eb; }
+  .wizard-dots span.active { background: var(--accent); }
+  .wizard-buttons { display: flex; justify-content: space-between; margin-top: 1.25rem; gap: 0.5rem; }
+
+  /* Versionsnummer/Sprache im Footer */
+  footer .footer-link { color: #888; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 0.75rem; padding: 0; }
+  footer .footer-sep { margin: 0 6px; }
+
+  /* Monat-gesperrt-Banner */
+  .month-locked-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    background: #eaf7ea; border: 1px solid #b7dfb7; color: #2e6b2e;
+    border-radius: 8px; padding: 0.7rem 1rem; margin-bottom: 0.75rem; font-size: 0.88rem;
+  }
+  .formular-locked #formular .time-picker-field,
+  .formular-locked #formular select.status-select,
+  .formular-locked #formular input.cell-input {
+    pointer-events: none; opacity: 0.65;
+  }
+
+  /* Plausibilitaets-Warnhinweise */
+  .warn-icon { color: #c0392b; cursor: help; margin-left: 3px; font-size: 0.85em; }
+  td.warn-hours { background: #fdecea !important; }
+
+  /* Sprachauswahl in der Werkzeugleiste */
+  #langSwitch { padding: 9px 12px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
-<h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"> Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</h1>
+<h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
 <div class="toolbar no-print">
-  <button class="primary" onclick="downloadPDF()">💾 Als PDF speichern</button>
-  <button onclick="window.print()">🖨️ Drucken</button>
-  <button onclick="sendPerEmail()">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-  <button onclick="toggleSettings()">⚙️ Einstellungen</button>
-  <button onclick="toggleJahresuebersicht()">📊 Jahresübersicht</button>
-  <button class="danger" onclick="if(confirm('Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?')) resetAll()">🗑️ Zurücksetzen</button>
-  <a class="btn ghost" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;">❓ Anleitung</a>
-  <button class="ghost" onclick="sendFeedback()">💬 Feedback</button>
+  <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
+  <button onclick="window.print()" data-i18n="btnPrint">🖨️ Drucken</button>
+  <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
+  <button class="ghost" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+  <button class="ghost" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
+  <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
+  <button onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
+  <button class="ghost" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
+  <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll()" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+  <a class="btn ghost" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
+  <button class="ghost" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
   <select id="monthPicker" onchange="renderFormular()"></select>
+  <select id="langSwitch" onchange="setLang(this.value)">
+    <option value="de">🇩🇪 Deutsch</option>
+    <option value="en">🇬🇧 English</option>
+  </select>
 </div>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
-  <h2 style="margin-top:0;">Einstellungen</h2>
+  <h2 style="margin-top:0;" data-i18n="settingsTitle">Einstellungen</h2>
 
   <div class="settings-card neutral">
-    <h3>👤 Stammdaten</h3>
+    <h3 data-i18n="stammdaten">👤 Stammdaten</h3>
     <div class="grid">
       <div>
         <label>Mitarbeitertyp</label>
@@ -318,7 +380,7 @@
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen (30 Minuten Pause werden dabei automatisch abgezogen). Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
   <div class="settings-card neutral">
-    <h3>📅 Zeitraum &amp; Feiertage</h3>
+    <h3 data-i18n="zeitraum">📅 Zeitraum &amp; Feiertage</h3>
     <div class="grid">
       <div>
         <label>Jahr</label>
@@ -340,7 +402,7 @@
   </div>
 
   <div class="settings-card neutral">
-    <h3>💶 Pauschalen &amp; Standardwerte</h3>
+    <h3 data-i18n="pauschalenCard">💶 Pauschalen &amp; Standardwerte</h3>
     <div class="grid">
       <div>
         <label>Pauschale ab &gt; 8 Std (€)</label>
@@ -363,7 +425,7 @@
   </div>
 
   <div class="settings-card">
-    <h3>🏢 Anwesenheit in der Niederlassung (NL)</h3>
+    <h3 data-i18n="nlCard">🏢 Anwesenheit in der Niederlassung (NL)</h3>
     <div class="grid">
       <div>
         <label><input type="checkbox" id="cfgNlAktiv" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();"> Aktiv an einem festen Wochentag</label>
@@ -387,7 +449,7 @@
   </div>
 
   <div class="settings-card">
-    <h3>🗓️ Abwesenheiten am Stück eintragen</h3>
+    <h3 data-i18n="absenceCard">🗓️ Abwesenheiten am Stück eintragen</h3>
     <div class="grid">
       <div>
         <label>Status</label>
@@ -417,7 +479,7 @@
   </div>
 
   <div class="settings-card">
-    <h3>💾 Datensicherung</h3>
+    <h3 data-i18n="backupCard">💾 Datensicherung</h3>
     <div class="grid">
       <div>
         <button class="primary" onclick="exportBackup()">📦 Backup als Datei speichern</button>
@@ -443,21 +505,95 @@
 
 <div id="formular-scroll"><div id="formular"></div></div>
 
-<footer class="no-print">Spesen-Rechner &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built by Rieb</footer>
+<footer class="no-print">
+  Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built by Rieb
+  <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
+</footer>
+
+<div id="modalRoot"></div>
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const WEEKDAY_NAMES = ["MO","DI","MI","DO","FR","SA","SO"];
-const MONTH_NAMES = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-const STATUS_LABELS = {
-  normal: "Arbeitstag",
-  urlaub: "Urlaub",
-  krank: "Krank",
-  frei: "Frei",
-  sonderurlaub: "Sonderurlaub",
-  elternzeit: "Elternzeit",
-  feiertag: "Feiertag",
+const APP_VERSION = "1.6";
+
+/* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
+   WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
+   werden bei setLang() umgeschaltet - so muessen die vielen Stellen im Code,
+   die diese Konstanten lesen, NICHT einzeln angepasst werden. */
+const WEEKDAY_NAMES_DE = ["MO","DI","MI","DO","FR","SA","SO"];
+const WEEKDAY_NAMES_EN = ["MO","TU","WE","TH","FR","SA","SU"];
+const MONTH_NAMES_DE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const MONTH_NAMES_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const STATUS_LABELS_DE = {
+  normal: "Arbeitstag", urlaub: "Urlaub", krank: "Krank", frei: "Frei",
+  sonderurlaub: "Sonderurlaub", elternzeit: "Elternzeit", feiertag: "Feiertag",
 };
+const STATUS_LABELS_EN = {
+  normal: "Workday", urlaub: "Vacation", krank: "Sick", frei: "Day off",
+  sonderurlaub: "Special leave", elternzeit: "Parental leave", feiertag: "Holiday",
+};
+let WEEKDAY_NAMES = WEEKDAY_NAMES_DE;
+let MONTH_NAMES = MONTH_NAMES_DE;
+let STATUS_LABELS = STATUS_LABELS_DE;
+
+const I18N = {
+  de: {
+    pageTitle: "Spesen-Rechner", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
+    btnPdf: "💾 Als PDF speichern", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
+    btnCsv: "📄 CSV-Export", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
+    btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
+    btnLockMonth: "🔒 Monat abschließen",
+    confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
+    colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
+    colStd: "Std.", colPauschale: "Pauschale", colStatus: "Status",
+    colWorkStart: "Arbeitsbeginn", colWorkEnd: "Arbeitsende", colDepart: "Abfahrt WP", colArrive: "Ankunft WP",
+    settingsTitle: "Einstellungen", yearTitle: "📊 Jahresübersicht",
+    stammdaten: "👤 Stammdaten", zeitraum: "📅 Zeitraum & Feiertage", pauschalenCard: "💶 Pauschalen & Standardwerte",
+    nlCard: "🏢 Anwesenheit in der Niederlassung (NL)", absenceCard: "🗓️ Abwesenheiten am Stück eintragen",
+    backupCard: "💾 Datensicherung",
+    monthLockedBanner: "Eingereicht am {ts} – Bearbeitung gesperrt.",
+    unlockBtn: "🔓 Wieder öffnen", lockBtn: "🔒 Monat abschließen",
+  },
+  en: {
+    pageTitle: "Expense Calculator", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
+    btnPdf: "💾 Save as PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
+    btnCsv: "📄 CSV export", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
+    btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
+    btnLockMonth: "🔒 Submit month",
+    confirmReset: "Really reset all entries (including saved ones)?",
+    colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
+    colStd: "Hrs.", colPauschale: "Allowance", colStatus: "Status",
+    colWorkStart: "Work start", colWorkEnd: "Work end", colDepart: "Departure (home)", colArrive: "Arrival (home)",
+    settingsTitle: "Settings", yearTitle: "📊 Yearly overview",
+    stammdaten: "👤 Basic data", zeitraum: "📅 Period & public holidays", pauschalenCard: "💶 Allowances & defaults",
+    nlCard: "🏢 Presence at the branch office", absenceCard: "🗓️ Enter absences for a period",
+    backupCard: "💾 Backup",
+    monthLockedBanner: "Submitted on {ts} – editing locked.",
+    unlockBtn: "🔓 Unlock again", lockBtn: "🔒 Submit month",
+  },
+};
+let currentLang = "de";
+function t(key) { return (I18N[currentLang] && I18N[currentLang][key]) || I18N.de[key] || key; }
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.title = t("pageTitle");
+  const langSel = document.getElementById("langSwitch");
+  if (langSel) langSel.value = currentLang;
+}
+function setLang(lang) {
+  currentLang = lang;
+  WEEKDAY_NAMES = lang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
+  MONTH_NAMES = lang === "en" ? MONTH_NAMES_EN : MONTH_NAMES_DE;
+  STATUS_LABELS = lang === "en" ? STATUS_LABELS_EN : STATUS_LABELS_DE;
+  config.lang = lang;
+  saveConfig();
+  applyI18n();
+  rebuildMonthPicker();
+  initSettingsUI();
+  renderFormular();
+  renderAbsenceRangesList();
+}
+
 // Reihenfolge der Dropdown-Optionen (Feiertag nicht dabei - wird automatisch erkannt, nicht manuell waehlbar)
 const STATUS_DROPDOWN_ORDER = ["normal", "urlaub", "krank", "frei", "sonderurlaub", "elternzeit"];
 const ABWESENHEITS_STATUS = ["urlaub", "krank", "frei", "sonderurlaub", "elternzeit"];
@@ -485,6 +621,7 @@ const DEFAULT_CONFIG = {
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
   nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
+  lang: "de",
 };
 
 function loadConfig() {
@@ -687,6 +824,11 @@ function computeDay(date, holidaysMap) {
     nl = nlOn ? (config.nlVon + "-" + config.nlBis) : "";
   }
 
+  // Plausibilitaetspruefungen (rein informativ, blockieren nichts): unrealistisch
+  // lange Arbeitszeit, oder ein Werktag, der komplett ohne Eingabe geblieben ist.
+  const warnLongHours = hours !== null && hours > 16;
+  const warnEmpty = wd < 5 && !isHoliday && !abfahrtStr && !ankunftStr;
+
   return {
     iso, wd, status: "normal",
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
@@ -694,6 +836,7 @@ function computeDay(date, holidaysMap) {
     nl,
     orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
     notiz: ov.notiz || "",
+    warnLongHours, warnEmpty,
   };
 }
 
@@ -776,6 +919,82 @@ function toggleSettings() {
   if (opening) renderAbsenceRangesList();
 }
 
+/* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
+   Erkennungsmerkmal fuer "erster Besuch": spesen_config existiert noch gar
+   nicht in localStorage (nicht nur "ist leer") - danach nie wieder automatisch. */
+let wizardStep = 1;
+
+function maybeShowSetupWizard() {
+  if (localStorage.getItem("spesen_config") !== null) return;
+  wizardStep = 1;
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2>👋 Willkommen beim Spesen-Rechner!</h2>
+        <p style="font-size:0.9rem; color:#444;">Kurz ein paar Angaben, dann kann es losgehen - alles lässt sich später in den Einstellungen jederzeit ändern.</p>
+
+        <div class="wizard-step active" data-step="1">
+          <label>Ihr Name</label>
+          <input id="wizName" placeholder="Max Mustermann">
+        </div>
+        <div class="wizard-step" data-step="2">
+          <label>Sie arbeiten als...</label>
+          <select id="wizTyp">
+            <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
+            <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
+          </select>
+        </div>
+        <div class="wizard-step" data-step="3">
+          <label>Bundesland (für automatische Feiertage)</label>
+          <select id="wizBundesland"></select>
+        </div>
+
+        <div class="wizard-dots">
+          <span class="dot active" data-dot="1"></span>
+          <span class="dot" data-dot="2"></span>
+          <span class="dot" data-dot="3"></span>
+        </div>
+        <div class="wizard-buttons">
+          <button id="wizBack" onclick="wizardBack()" style="visibility:hidden;">Zurück</button>
+          <button class="primary" id="wizNext" onclick="wizardNext()">Weiter</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById("wizBundesland").innerHTML =
+    Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === "HE" ? "selected" : ""}>${v}</option>`).join("");
+}
+
+function wizardShowStep(n) {
+  document.querySelectorAll(".wizard-step").forEach((el) => el.classList.toggle("active", el.dataset.step == n));
+  document.querySelectorAll(".wizard-dots span").forEach((el) => el.classList.toggle("active", el.dataset.dot == n));
+  document.getElementById("wizBack").style.visibility = n === 1 ? "hidden" : "visible";
+  document.getElementById("wizNext").textContent = n === 3 ? "Fertig" : "Weiter";
+}
+
+function wizardNext() {
+  if (wizardStep === 3) {
+    config.name = document.getElementById("wizName").value.trim();
+    config.mitarbeitertyp = document.getElementById("wizTyp").value;
+    config.bundesland = document.getElementById("wizBundesland").value;
+    localStorage.setItem("spesen_config", JSON.stringify(config));
+    closeModal();
+    initSettingsUI();
+    updateMitarbeitertypUI();
+    renderFormular();
+    return;
+  }
+  wizardStep++;
+  wizardShowStep(wizardStep);
+}
+
+function wizardBack() {
+  if (wizardStep === 1) return;
+  wizardStep--;
+  wizardShowStep(wizardStep);
+}
+
 /* ===================== Jahresuebersicht ===================== */
 function computeYearSummary() {
   const rows = [];
@@ -796,8 +1015,29 @@ function computeYearSummary() {
   return { rows, totals };
 }
 
+/* Kleines, abhaengigkeitsfreies SVG-Balkendiagramm der Pauschale je Monat -
+   macht die Jahresuebersicht auf einen Blick lesbar statt nur Zahlenkolonnen,
+   z.B. praktisch fuer eine kurze Chef-Praesentation. */
+function buildPauschaleBarChart(rows) {
+  const maxVal = Math.max(1, ...rows.map((r) => r.total));
+  const barWidth = 28, gap = 14, chartHeight = 150, leftPad = 10;
+  const width = rows.length * (barWidth + gap) + leftPad;
+  const bars = rows.map((r, i) => {
+    const h = Math.round((r.total / maxVal) * (chartHeight - 40));
+    const x = leftPad + i * (barWidth + gap);
+    const y = chartHeight - h - 22;
+    const label = MONTH_NAMES[r.monat - 1].slice(0, 3);
+    return `
+      <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(h,1)}" rx="4" fill="#FE5C01"></rect>
+      <text x="${x + barWidth / 2}" y="${y - 5}" font-size="10" text-anchor="middle" fill="#370F06">${r.total > 0 ? Math.round(r.total) : ""}</text>
+      <text x="${x + barWidth / 2}" y="${chartHeight - 6}" font-size="10" text-anchor="middle" fill="#666">${label}</text>
+    `;
+  }).join("");
+  return `<svg width="${width}" height="${chartHeight}" viewBox="0 0 ${width} ${chartHeight}" style="max-width:100%; display:block; margin:0 auto 1.25rem;">${bars}</svg>`;
+}
+
 function renderJahresuebersicht() {
-  document.getElementById("jahresuebersichtTitel").textContent = `📊 Jahresübersicht ${config.jahr}`;
+  document.getElementById("jahresuebersichtTitel").textContent = `${t("yearTitle")} ${config.jahr}`;
   const { rows, totals } = computeYearSummary();
   const th = (label) => `<th style="border:1px solid #333; padding:6px 10px; background:#FDE9DC; text-align:left;">${label}</th>`;
   const td = (val, alignRight) => `<td style="border:1px solid #333; padding:6px 10px;${alignRight ? " text-align:right;" : ""}">${val}</td>`;
@@ -813,6 +1053,7 @@ function renderJahresuebersicht() {
       ${td(r.elternzeit || "", true)}
     </tr>`).join("");
   const html = `
+    ${buildPauschaleBarChart(rows)}
     <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
       <tr>
         ${th("Monat")}${th("Arbeitstage")}${th("Pauschale")}${th("Urlaub")}${th("Krank")}${th("Frei")}${th("Sonderurlaub")}${th("Elternzeit")}
@@ -858,6 +1099,38 @@ function updateOverride(iso, field, value) {
   if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
   saveOverrides();
   renderFormular();
+}
+
+/* ===================== Monat abschliessen/sperren =====================
+   Nach dem Einreichen (per E-Mail oder manuell) wird der Monat mit einem
+   Zeitstempel als "eingereicht" markiert und die Bearbeitung optisch/faktisch
+   gesperrt (pointer-events:none auf Zeitfeldern/Status/Orte), bis er ueber
+   den Banner-Button wieder geoeffnet wird. Rein lokal in localStorage, kein
+   Server noetig - passt zum bestehenden Datenschutz-Prinzip des Tools. */
+function monthSubmittedKey(jahr, monat) { return `spesen_submitted_${jahr}-${pad(monat)}`; }
+
+function isMonthSubmitted(jahr, monat) { return localStorage.getItem(monthSubmittedKey(jahr, monat)) !== null; }
+
+function submitMonth(jahr, monat) {
+  localStorage.setItem(monthSubmittedKey(jahr, monat), new Date().toISOString());
+  renderFormular();
+}
+
+function submitCurrentMonth() {
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  if (!confirm("Diesen Monat als eingereicht markieren und die Bearbeitung sperren?")) return;
+  submitMonth(config.jahr, monat);
+}
+
+function reopenMonth(jahr, monat) {
+  if (!confirm("Diesen Monat wieder zur Bearbeitung öffnen?")) return;
+  localStorage.removeItem(monthSubmittedKey(jahr, monat));
+  renderFormular();
+}
+
+function formatTimestampDE(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("de-DE") + " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
 }
 
 /* ===================== Abwesenheiten am Stueck (Urlaub/Krank/etc.) ===================== */
@@ -1080,8 +1353,16 @@ function renderFormular() {
   const bezahltRaw = localStorage.getItem(bezahltKey);
   const bezahlt = bezahltRaw !== null ? (parseFloat(bezahltRaw) || 0) : config.bezahltDefault;
   const rest = total + bezahlt;
-  const startLabel = config.mitarbeitertyp === "monteur" ? "Arbeitsbeginn" : "Abfahrt WP";
-  const endLabel = config.mitarbeitertyp === "monteur" ? "Arbeitsende" : "Ankunft WP";
+  const startLabel = config.mitarbeitertyp === "monteur" ? t("colWorkStart") : t("colDepart");
+  const endLabel = config.mitarbeitertyp === "monteur" ? t("colWorkEnd") : t("colArrive");
+
+  const submittedAt = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
+  document.body.classList.toggle("formular-locked", !!submittedAt);
+  const lockBanner = submittedAt ? `
+    <div class="no-print month-locked-banner">
+      <span>🔒 ${t("monthLockedBanner").replace("{ts}", formatTimestampDE(submittedAt))}</span>
+      <button onclick="reopenMonth(${config.jahr}, ${monat})">${t("unlockBtn")}</button>
+    </div>` : "";
 
   const rows = [];
   let lastWeek = null;
@@ -1096,17 +1377,20 @@ function renderFormular() {
     if (e.status === "normal") {
       const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
+      const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
+      const stdCellClass = e.warnLongHours ? "warn-hours" : "";
+      const stdTitle = e.warnLongHours ? ` title="Über 16 Std. - bitte Uhrzeiten prüfen"` : "";
       rows.push(`
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
           <td>${datumStr}</td>
           <td><span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}"
-                data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span></td>
+                data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>${emptyWarn}</td>
           <td>${e.nl}</td>
           <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
           <td><span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}"
                 data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span></td>
-          <td id="std-cell-${e.iso}">${stunden}</td>
+          <td id="std-cell-${e.iso}" class="${stdCellClass}"${stdTitle}>${stunden}${e.warnLongHours ? ` <span class="warn-icon no-print">⚠️</span>` : ""}</td>
           <td class="pauschale-cell" id="pauschale-cell-${e.iso}">${pauschale}</td>
           <td class="status-cell">
             <div class="status-print-label small">${STATUS_LABELS.normal}</div>
@@ -1135,6 +1419,7 @@ function renderFormular() {
   }
 
   const html = `
+    ${lockBanner}
     <table>
       <tr>
         <td colspan="7" class="head-title">Niederlassung: &nbsp; ${config.niederlassung || "&mdash;"}</td>
@@ -1177,9 +1462,9 @@ function renderFormular() {
         <td colspan="2"></td>
       </tr>
       <tr>
-        <th>Tag</th><th>Datum</th><th>${startLabel}</th><th>Anwesenheit in NL</th>
-        <th>besuchte Orte</th><th>${endLabel}</th><th>Std.</th><th>Pauschale</th>
-        <th>Status</th>
+        <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
+        <th>${t('colOrte')}</th><th>${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
+        <th>${t('colStatus')}</th>
       </tr>
       ${rows.join("")}
       ${config.mitarbeitertyp === "monteur" ? `
@@ -1197,6 +1482,7 @@ function renderFormular() {
           <canvas id="signatureCanvas" width="260" height="60"></canvas>
           <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvas','spesen_signature')" title="Unterschrift löschen">✕</button>
           <div class="small">Unterschrift Mitarbeiter</div>
+          <div class="small" id="sigTs-spesen_signature" style="color:#888;"></div>
         </td>
         <td colspan="4">über Gehaltsabrechnung bezahlt</td>
         <td class="pauschale-cell bezahlt-cell">
@@ -1216,6 +1502,7 @@ function renderFormular() {
           <canvas id="signatureCanvasNLL" width="260" height="60"></canvas>
           <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvasNLL','spesen_signature_nll')" title="Unterschrift löschen">✕</button>
           <div class="small">Unterschrift NLL</div>
+          <div class="small" id="sigTs-spesen_signature_nll" style="color:#888;"></div>
         </td>
         <td colspan="5" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL und ist 5 Jahre aufzubewahren.</td>
         <td class="no-print"></td>
@@ -1242,7 +1529,19 @@ function loadSignature(key) {
 
 function clearSignature(canvasId, key) {
   localStorage.removeItem(key);
+  localStorage.removeItem(key + "_ts");
   initSignaturePad(canvasId, key);
+  renderSignatureTimestamp(key);
+}
+
+/* Zeigt "unterschrieben am TT.MM.JJJJ um HH:MM" unter der jeweiligen
+   Unterschrift an - sowohl auf dem Bildschirm als auch im PDF, gibt der
+   Unterschrift echten Beweischarakter (wer hat wann unterschrieben). */
+function renderSignatureTimestamp(key) {
+  const el = document.getElementById("sigTs-" + key);
+  if (!el) return;
+  const ts = localStorage.getItem(key + "_ts");
+  el.textContent = ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "";
 }
 
 function initSignaturePad(canvasId, key) {
@@ -1294,6 +1593,8 @@ function initSignaturePad(canvasId, key) {
     if (!drawing) return;
     drawing = false;
     localStorage.setItem(key, canvas.toDataURL("image/png"));
+    localStorage.setItem(key + "_ts", new Date().toISOString());
+    renderSignatureTimestamp(key);
   }
 
   canvas.onmousedown = start;
@@ -1305,7 +1606,7 @@ function initSignaturePad(canvasId, key) {
 }
 
 function setupSignaturePad() {
-  SIGNATURE_PADS.forEach(p => initSignaturePad(p.canvasId, p.key));
+  SIGNATURE_PADS.forEach(p => { initSignaturePad(p.canvasId, p.key); renderSignatureTimestamp(p.key); });
   window.onmouseup = () => {
     SIGNATURE_PADS.forEach(p => {
       const c = document.getElementById(p.canvasId);
@@ -1364,6 +1665,122 @@ async function downloadPDF() {
   return filename;
 }
 
+/* ===================== CSV-Export =====================
+   Zusaetzlich zum PDF: reine Zahlen/Zeiten als CSV, damit Buchhaltung/
+   Niederlassung die Werte weiterverarbeiten kann, ohne aus dem PDF abzutippen. */
+function csvEscape(val) {
+  const s = String(val ?? "");
+  return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCSV() {
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const monthName = MONTH_NAMES[monat - 1];
+  const { entries } = computeMonth(config.jahr, monat);
+  const startLabel = config.mitarbeitertyp === "monteur" ? t("colWorkStart") : t("colDepart");
+  const endLabel = config.mitarbeitertyp === "monteur" ? t("colWorkEnd") : t("colArrive");
+  const header = [t("colTag"), t("colDatum"), startLabel, t("colNl"), t("colOrte"), endLabel, t("colStd"), t("colPauschale"), t("colStatus")];
+  const lines = [header.map(csvEscape).join(";")];
+  for (const e of entries) {
+    const [y, m, d] = e.iso.split("-");
+    const datumStr = `${d}.${m}.${y}`;
+    const statusLabel = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status] || STATUS_LABELS.normal);
+    const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
+    const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") : "";
+    lines.push([
+      WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "",
+      e.ankunft || "", stunden, pauschale, statusLabel,
+    ].map(csvEscape).join(";"));
+  }
+  const csv = "﻿" + lines.join("\r\n"); // BOM, damit Excel Umlaute korrekt zeigt
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Spesennachweis_${monthName}_${config.jahr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== QR-Code Modal =====================
+   Zeigt einen QR-Code zur Tool-URL - komplett clientseitig ueber die
+   qrcodejs-Bibliothek generiert, keine externe Anfrage noetig. */
+function openQrModal() {
+  const root = document.getElementById("modalRoot");
+  const url = window.location.origin + window.location.pathname;
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box" style="text-align:center;">
+        <h2>📱 QR-Code</h2>
+        <p style="font-size:0.9rem; color:#444;">Einfach mit dem Handy scannen, um den Spesen-Rechner direkt zu öffnen - z.B. praktisch zum Aushängen am Schwarzen Brett.</p>
+        <div id="qrCodeCanvas"></div>
+        <div class="qr-url">${url}</div>
+        <div class="modal-close-row">
+          <button class="primary" onclick="closeModal()">Schließen</button>
+        </div>
+      </div>
+    </div>
+  `;
+  new QRCode(document.getElementById("qrCodeCanvas"), {
+    text: url, width: 220, height: 220,
+    colorDark: "#370F06", colorLight: "#ffffff",
+  });
+}
+
+function closeModal() {
+  document.getElementById("modalRoot").innerHTML = "";
+}
+
+/* ===================== Changelog Modal ===================== */
+const CHANGELOG = [
+  { version: "1.6", date: "20.07.2026", changes: [
+    "Mehrsprachigkeit (Deutsch/Englisch)",
+    "Einrichtungsassistent beim ersten Öffnen",
+    "Monat abschließen/sperren nach Einreichung",
+    "Zeitstempel bei der Unterschrift",
+    "Plausibilitätsprüfungen (unplausible Zeiten, leere Tage)",
+    "CSV-Export, QR-Code, Änderungshistorie, Balkendiagramm in der Jahresübersicht",
+  ]},
+  { version: "1.5", date: "19.07.2026", changes: [
+    "Mehrere getrennte Abwesenheits-Zeiträume mit Übersichtsliste",
+    "Samstag als Anwesenheitstag in der Niederlassung wählbar",
+    "Moderneres Design (Werkzeugleiste, Einstellungs-Karten)",
+    "Tastatur-Bedienung für das Zeit-Dreh-Rad",
+  ]},
+  { version: "1.4", date: "19.07.2026", changes: [
+    "Uhrzeit-Dreh-Rad (wie bei einer iPhone-Uhr) statt Texteingabe",
+    "Jahresübersicht, Datensicherung (Backup/Wiederherstellen)",
+    "Abwesenheiten am Stück eintragen",
+    "Mobile Bedienbarkeit verbessert",
+  ]},
+  { version: "1.0", date: "18.07.2026", changes: [
+    "Erste Web-Version für alle Fahrer und Monteure bei Hall Tabakwaren",
+    "Automatische Berechnung von Stunden, Pauschale und Feiertagen",
+    "Digitale Unterschrift, PDF-Export",
+  ]},
+];
+
+function openChangelogModal() {
+  const root = document.getElementById("modalRoot");
+  const html = CHANGELOG.map(c => `
+    <div class="changelog-entry">
+      <span class="version">v${c.version}</span><span class="date">${c.date}</span>
+      <ul>${c.changes.map(ch => `<li>${ch}</li>`).join("")}</ul>
+    </div>
+  `).join("");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <h2>Änderungshistorie</h2>
+        ${html}
+        <div class="modal-close-row">
+          <button class="primary" onclick="closeModal()">Schließen</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /* ===================== Feedback an den Entwickler ===================== */
 function sendFeedback() {
   const subject = "Feedback Spesen-Rechner";
@@ -1393,7 +1810,8 @@ async function sendPerEmail() {
     `Viele Grüße\n${config.name || ""}`;
 
   const filename = await downloadPDF();
-  alert(`PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen.`);
+  submitMonth(config.jahr, monat); // Monat gilt ab Versand als eingereicht und wird gesperrt
+  alert(`PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen. Der Monat wurde als eingereicht markiert und gesperrt (über "🔓 Wieder öffnen" bei Bedarf änderbar).`);
   window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -1533,10 +1951,17 @@ function openTimeWheelForSetting(el) {
 }
 
 /* ===================== Init ===================== */
+currentLang = config.lang === "en" ? "en" : "de";
+WEEKDAY_NAMES = currentLang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
+MONTH_NAMES = currentLang === "en" ? MONTH_NAMES_EN : MONTH_NAMES_DE;
+STATUS_LABELS = currentLang === "en" ? STATUS_LABELS_EN : STATUS_LABELS_DE;
+applyI18n();
+document.getElementById("footerVersion").textContent = "v" + APP_VERSION;
 initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
 renderAbsenceRangesList();
+maybeShowSetupWizard();
 </script>
 </body>
 </html>
