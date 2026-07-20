@@ -48,21 +48,31 @@
 <h1><img src="hall-logo.png" alt="Hall Tabakwaren"> Spesen-Rechner – Anleitung</h1>
 <p>Kurze Schritt-für-Schritt-Anleitung, wie der Spesennachweis ausgefüllt wird.
 Alles läuft im Browser, nichts muss installiert werden.</p>
+<div class="hinweis">
+  <b>Beim allerersten Öffnen</b> erscheint automatisch ein kurzer 3-Schritte-Einrichtungsassistent
+  (Name, Fahrer/Monteur, Bundesland) - alles darin lässt sich später in den Einstellungen jederzeit ändern.
+</div>
 
 <h2>1. Werkzeugleiste</h2>
 <div class="step">
-  <p>Oben im Tool gibt es acht Buttons und die Monatsauswahl:</p>
+  <p>Oben im Tool gibt es die Werkzeugleiste mit Monats- und Sprachauswahl:</p>
   <img src="anleitung-bilder/toolbar.png" alt="Werkzeugleiste mit Buttons">
   <ul>
     <li><b>💾 Als PDF speichern</b> – lädt den fertigen Spesennachweis als PDF-Datei herunter</li>
     <li><b>🖨️ Drucken</b> – öffnet den normalen Druckdialog</li>
-    <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> – speichert die PDF und öffnet direkt eine vorausgefüllte E-Mail</li>
+    <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> – speichert die PDF, öffnet eine vorausgefüllte E-Mail
+        und markiert den Monat automatisch als eingereicht (siehe Schritt 10)</li>
+    <li><b>🔒 Monat abschließen</b> – markiert den Monat manuell als eingereicht/gesperrt, auch ohne E-Mail-Versand
+        (z.B. wer stattdessen ausdruckt und persönlich abgibt) - siehe Schritt 10</li>
+    <li><b>📄 CSV-Export</b> – exportiert die Monatsdaten zusätzlich als CSV-Datei (z.B. für die Buchhaltung)</li>
     <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten, Anwesenheit NL, Abwesenheiten, Datensicherung (siehe Schritt 2, 5, 6 und 9)</li>
-    <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick (siehe Schritt 8)</li>
+    <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick, inkl. Balkendiagramm (siehe Schritt 8)</li>
+    <li><b>📱 QR-Code</b> – zeigt einen QR-Code zur Tool-Adresse an, z.B. praktisch zum Aushängen am Schwarzen Brett</li>
     <li><b>🗑️ Zurücksetzen</b> – löscht alle Eingaben (Vorsicht, nicht rückgängig zu machen – vorher ggf. Backup speichern, Schritt 9)</li>
     <li><b>❓ Anleitung</b> – diese Seite hier</li>
     <li><b>💬 Feedback</b> – öffnet eine vorausgefüllte E-Mail für Verbesserungsvorschläge</li>
     <li><b>Monats-Dropdown</b> – wechselt zwischen den Monaten des eingestellten Zeitraums</li>
+    <li><b>🇩🇪/🇬🇧 Sprachauswahl</b> – schaltet die Oberfläche zwischen Deutsch und Englisch um</li>
   </ul>
 </div>
 
@@ -102,6 +112,12 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <p><b>Std.</b> und <b>Pauschale</b> berechnen sich danach automatisch:</p>
   <img src="anleitung-bilder/zeiten-beispiel.png" alt="Beispiel einer ausgefüllten Zeile">
   <p>„Anwesenheit in NL" und „besuchte Orte" lassen sich ebenfalls anpassen, falls nötig.</p>
+  <div class="hinweis">
+    <b>⚠️ Hinweis-Symbole:</b> Ein kleines ⚠️ neben der Uhrzeit zeigt an, dass für einen Werktag noch gar keine
+    Zeit eingetragen ist (einfach ignorieren, falls der Tag noch bewusst offen ist). Ein rot hinterlegtes
+    Std.-Feld mit ⚠️ warnt vor einer unrealistisch langen Arbeitszeit (über 16 Std.) - beides rein informativ,
+    blockiert nichts und erscheint nicht im Ausdruck/PDF.
+  </div>
 </div>
 
 <h2>4. Status auswählen</h2>
@@ -154,13 +170,16 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <img src="anleitung-bilder/unterschrift-beispiel.png" alt="Beispiel einer Unterschrift">
   <p>Die Unterschrift wird automatisch gespeichert und bleibt für alle künftigen Monate erhalten – man muss nicht
      jeden Monat neu unterschreiben. Über das kleine <b>✕</b> oben rechts im Feld lässt sie sich löschen und neu zeichnen.</p>
+  <div class="hinweis">Unter jeder Unterschrift erscheint automatisch „unterschrieben am TT.MM.JJJJ um HH:MM" -
+    das gibt der Unterschrift echten Beweischarakter und wird auch mit ins PDF übernommen.</div>
 </div>
 
 <h2>8. Jahresübersicht</h2>
 <div class="step">
   <p>Über den Button <b>📊 Jahresübersicht</b> in der Werkzeugleiste lässt sich der komplette Jahresverlauf auf
-     einen Blick einsehen: Arbeitstage und Pauschale-Summe je Monat, dazu die Anzahl der Urlaubs-, Krankheits-,
-     Sonderurlaubs- und Elternzeit-Tage – mit Gesamtzeile fürs ganze Jahr:</p>
+     einen Blick einsehen: ein Balkendiagramm der Pauschale je Monat, dazu Arbeitstage und Pauschale-Summe je
+     Monat sowie die Anzahl der Urlaubs-, Krankheits-, Sonderurlaubs- und Elternzeit-Tage – mit Gesamtzeile
+     fürs ganze Jahr:</p>
   <img src="anleitung-bilder/jahresuebersicht-beispiel.png" alt="Beispiel einer Jahresübersicht">
 </div>
 
@@ -179,18 +198,31 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     vor dem Klick auf „🗑️ Zurücksetzen".</div>
 </div>
 
-<h2>10. Fertigstellen</h2>
+<h2>10. Monat abschließen</h2>
+<div class="step">
+  <p>Sobald ein Monat fertig ausgefüllt und eingereicht ist, lässt er sich sperren - das verhindert versehentliches
+     Nachbearbeiten. Das passiert automatisch beim Klick auf <b>📧 Per E-Mail an Arbeitgeber weiterleiten</b>,
+     oder manuell über <b>🔒 Monat abschließen</b> (z.B. wer stattdessen ausdruckt und persönlich abgibt):</p>
+  <img src="anleitung-bilder/monat-gesperrt.png" alt="Banner: Monat eingereicht und gesperrt">
+  <p>Ein grüner Banner zeigt Datum und Uhrzeit der Einreichung, alle Zeitfelder/Status/Orte-Eingaben in der
+     Tabelle sind währenddessen gesperrt (leicht abgeblendet). Über <b>🔓 Wieder öffnen</b> im Banner lässt sich
+     der Monat jederzeit wieder zur Bearbeitung freigeben.</p>
+</div>
+
+<h2>11. Fertigstellen</h2>
 <div class="step">
   <p>Wenn der Monat komplett ausgefüllt ist:</p>
   <ul>
     <li><b>💾 Als PDF speichern</b> klicken, um die fertige Datei herunterzuladen, oder</li>
     <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> klicken – die PDF wird automatisch heruntergeladen und
         eine E-Mail mit Betreff/Text vorausgefüllt geöffnet. Die heruntergeladene PDF muss dort nur noch angehängt
-        werden (das kann der Browser aus Sicherheitsgründen nicht automatisch).</li>
+        werden (das kann der Browser aus Sicherheitsgründen nicht automatisch). Der Monat wird dabei automatisch
+        als eingereicht markiert (siehe Schritt 10).</li>
+    <li>Optional zusätzlich <b>📄 CSV-Export</b>, falls die Zahlen z.B. von der Buchhaltung weiterverarbeitet werden sollen.</li>
   </ul>
 </div>
 
-<footer>Spesen-Rechner &middot; Built by Rieb</footer>
+<footer>Spesen-Rechner &middot; Built by Rieb &middot; alle bisherigen Neuerungen: „Änderungshistorie" im Fußbereich des Tools</footer>
 
 </body>
 </html>
