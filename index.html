@@ -26,6 +26,18 @@
     margin-bottom: 1.25rem; background: #fff; padding: 0.7rem 0.85rem;
     border-radius: 14px; box-shadow: 0 2px 12px rgba(24,26,32,0.08);
   }
+  /* Buttons in logische Gruppen gebuendelt (Dokument / Verwaltung / Hilfe /
+     Riskant / Auswahl), damit die Werkzeugleiste bei vielen Funktionen
+     uebersichtlich bleibt statt einer einzigen langen Reihe. */
+  .toolbar-group { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  .toolbar-divider {
+    width: 1px; align-self: stretch; background: #e3e6eb; margin: 2px 2px;
+    flex-shrink: 0;
+  }
+  @media (max-width: 700px) {
+    .toolbar-divider { display: none; }
+    .toolbar-group { width: 100%; }
+  }
   button, .btn {
     padding: 9px 16px; border: 1px solid transparent; background: #f1f3f6;
     color: var(--brand-dark); border-radius: 999px; cursor: pointer; font-size: 0.86rem;
@@ -293,22 +305,36 @@
 <h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
 <div class="toolbar no-print">
-  <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
-  <button onclick="window.print()" data-i18n="btnPrint">🖨️ Drucken</button>
-  <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-  <button class="ghost" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-  <button class="ghost" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
-  <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
-  <button onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
-  <button class="ghost" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
-  <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll()" data-i18n="btnReset">🗑️ Zurücksetzen</button>
-  <a class="btn ghost" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
-  <button class="ghost" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
-  <select id="monthPicker" onchange="renderFormular()"></select>
-  <select id="langSwitch" onchange="setLang(this.value)">
-    <option value="de">🇩🇪 Deutsch</option>
-    <option value="en">🇬🇧 English</option>
-  </select>
+  <div class="toolbar-group">
+    <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
+    <button onclick="window.print()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
+    <button class="ghost" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
+    <button onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
+    <button class="ghost" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <a class="btn ghost" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
+    <button class="ghost" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
+    <button class="ghost" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll()" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <select id="monthPicker" onchange="renderFormular()"></select>
+    <select id="langSwitch" onchange="setLang(this.value)">
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
+  </div>
 </div>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
@@ -345,6 +371,9 @@
         <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
       </div>
     </div>
+    <p class="hinweis-text">💡 Falls beim Einrichten (z.B. im Einrichtungsassistenten) versehentlich der falsche
+      Mitarbeitertyp gewählt wurde: einfach oben bei „Mitarbeitertyp" korrigieren - die Tabelle unten und alle
+      zugehörigen Felder passen sich sofort automatisch an den richtigen Zettel (Fahrer/Monteur) an.</p>
   </div>
 
   <div class="settings-card" id="fahrerZeitenGroup">
@@ -675,13 +704,20 @@ function saveOverrides() {
 function val(id) { return document.getElementById(id).value; }
 
 function resetAll() {
-  localStorage.removeItem("spesen_config");
-  localStorage.removeItem("spesen_overrides");
-  config = structuredClone(DEFAULT_CONFIG);
-  overrides = {};
-  initSettingsUI();
-  rebuildMonthPicker();
-  renderFormular();
+  // Wirklich ALLES loeschen (Einstellungen, Tages-Overrides, beide
+  // Unterschriften+Zeitstempel, "eingereicht/gesperrt"-Status jedes Monats,
+  // "bereits bezahlt"-Werte) - vorher wurden nur Einstellungen/Overrides
+  // geloescht, der Rest blieb unbemerkt bestehen. Gleiche Logik wie
+  // exportBackup() (alle spesen_*/bezahlt_*-Schluessel), nur loeschend statt
+  // exportierend. Danach neu laden, damit auch der Einrichtungsassistent
+  // beim naechsten Mal wieder von vorne beginnt.
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith("spesen_") || key.startsWith("bezahlt_")) keysToRemove.push(key);
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
+  location.reload();
 }
 
 /* ===================== Feiertage (bewegliche + fixe) ===================== */
