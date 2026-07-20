@@ -939,13 +939,21 @@ function maybeShowSetupWizard() {
           <input id="wizName" placeholder="Max Mustermann">
         </div>
         <div class="wizard-step" data-step="2">
+          <label>Straße</label>
+          <input id="wizStrasse" placeholder="Musterstraße 1" style="margin-bottom:0.75rem;">
+          <label>Ort</label>
+          <input id="wizOrt" placeholder="Musterstadt" style="margin-bottom:0.75rem;">
+          <label>Niederlassung</label>
+          <input id="wizNiederlassung" placeholder="z.B. Buseck">
+        </div>
+        <div class="wizard-step" data-step="3">
           <label>Sie arbeiten als...</label>
           <select id="wizTyp">
             <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
             <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
           </select>
         </div>
-        <div class="wizard-step" data-step="3">
+        <div class="wizard-step" data-step="4">
           <label>Bundesland (für automatische Feiertage)</label>
           <select id="wizBundesland"></select>
         </div>
@@ -954,6 +962,7 @@ function maybeShowSetupWizard() {
           <span class="dot active" data-dot="1"></span>
           <span class="dot" data-dot="2"></span>
           <span class="dot" data-dot="3"></span>
+          <span class="dot" data-dot="4"></span>
         </div>
         <div class="wizard-buttons">
           <button id="wizBack" onclick="wizardBack()" style="visibility:hidden;">Zurück</button>
@@ -966,16 +975,21 @@ function maybeShowSetupWizard() {
     Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === "HE" ? "selected" : ""}>${v}</option>`).join("");
 }
 
+const WIZARD_STEPS = 4;
+
 function wizardShowStep(n) {
   document.querySelectorAll(".wizard-step").forEach((el) => el.classList.toggle("active", el.dataset.step == n));
   document.querySelectorAll(".wizard-dots span").forEach((el) => el.classList.toggle("active", el.dataset.dot == n));
   document.getElementById("wizBack").style.visibility = n === 1 ? "hidden" : "visible";
-  document.getElementById("wizNext").textContent = n === 3 ? "Fertig" : "Weiter";
+  document.getElementById("wizNext").textContent = n === WIZARD_STEPS ? "Fertig" : "Weiter";
 }
 
 function wizardNext() {
-  if (wizardStep === 3) {
+  if (wizardStep === WIZARD_STEPS) {
     config.name = document.getElementById("wizName").value.trim();
+    config.strasse = document.getElementById("wizStrasse").value.trim();
+    config.ort = document.getElementById("wizOrt").value.trim();
+    config.niederlassung = document.getElementById("wizNiederlassung").value.trim();
     config.mitarbeitertyp = document.getElementById("wizTyp").value;
     config.bundesland = document.getElementById("wizBundesland").value;
     localStorage.setItem("spesen_config", JSON.stringify(config));
@@ -983,6 +997,11 @@ function wizardNext() {
     initSettingsUI();
     updateMitarbeitertypUI();
     renderFormular();
+    // Direkt in die Einstellungen springen, damit das Dokument (E-Mail-Adresse
+    // Arbeitgeber, Pauschalen, Standard-Zeiten etc.) gleich fertiggestellt
+    // werden kann, statt die Einstellungen erst manuell suchen zu muessen.
+    document.getElementById("settingsPanel").style.display = "block";
+    renderAbsenceRangesList();
     return;
   }
   wizardStep++;
