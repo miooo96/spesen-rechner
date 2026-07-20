@@ -127,6 +127,15 @@
   }
   .absence-range-remove:hover { background: #fdecea; }
 
+  /* Liste der abgeschlossenen Monate (Archiv-Panel) */
+  .archiv-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    background: #fff; border: 1px solid #e3e6eb; border-radius: 8px;
+    padding: 0.6rem 0.9rem; margin-bottom: 0.6rem;
+  }
+  .archiv-row .archiv-meta { font-size: 0.8rem; color: #888; margin-top: 2px; }
+  .archiv-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
   #formular-scroll {
     max-width: 1000px; margin: 0 auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -316,6 +325,7 @@
     <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
     <button onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
     <button class="ghost" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button class="ghost" onclick="toggleArchivPanel()" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
@@ -532,6 +542,11 @@
   <div id="jahresuebersichtContent"></div>
 </div>
 
+<div class="panel no-print" id="archivPanel" style="display:none;">
+  <h2 style="margin-top:0;" data-i18n="archivTitle">📁 Abgeschlossene Monate</h2>
+  <div id="archivContent"></div>
+</div>
+
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">
@@ -571,7 +586,7 @@ const I18N = {
     btnPdf: "💾 Als PDF speichern", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV-Export", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
-    btnLockMonth: "🔒 Monat abschließen",
+    btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
     colStd: "Std.", colPauschale: "Pauschale", colStatus: "Status",
@@ -588,7 +603,7 @@ const I18N = {
     btnPdf: "💾 Save as PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV export", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
-    btnLockMonth: "🔒 Submit month",
+    btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
     colStd: "Hrs.", colPauschale: "Allowance", colStatus: "Status",
@@ -1186,6 +1201,91 @@ function reopenMonth(jahr, monat) {
 function formatTimestampDE(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString("de-DE") + " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+}
+
+/* ===================== Archiv der abgeschlossenen Monate =====================
+   Durchsucht ALLE spesen_submitted_JJJJ-MM-Schluessel in localStorage (nicht
+   nur den aktuell eingestellten Zeitraum) - so bleiben auch Monate aus
+   frueheren Jahren/Zeitraeumen sichtbar. Rein lesend, veraendert nichts am
+   eigentlichen Spesenzettel (#formular) - nur eine zusaetzliche Uebersicht
+   drumherum. */
+function computeArchivedMonths() {
+  const result = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const m = key.match(/^spesen_submitted_(\d{4})-(\d{2})$/);
+    if (!m) continue;
+    const jahr = parseInt(m[1]), monat = parseInt(m[2]);
+    const ts = localStorage.getItem(key);
+    const { total } = computeMonth(jahr, monat);
+    result.push({ jahr, monat, ts, total });
+  }
+  result.sort((a, b) => (b.jahr - a.jahr) || (b.monat - a.monat)); // neuester Monat zuerst
+  return result;
+}
+
+function toggleArchivPanel() {
+  const p = document.getElementById("archivPanel");
+  const showing = p.style.display !== "none";
+  if (!showing) renderArchivPanel();
+  p.style.display = showing ? "none" : "block";
+}
+
+function renderArchivPanel() {
+  const months = computeArchivedMonths();
+  const inRange = months.filter((m) => m.jahr === config.jahr && m.monat >= config.startMonat && m.monat <= config.endMonat).length;
+  const rangeTotal = config.endMonat - config.startMonat + 1;
+
+  let html = `
+    <div class="settings-card neutral">
+      <h3>💾 Backup</h3>
+      <p class="hinweis-text">Abgeschlossene Monate werden - wie alle Daten in diesem Tool - nur lokal in
+        diesem Browser gespeichert. Bei einem Geräte- oder Browserwechsel gehen sie sonst verloren: vorher
+        einmal ein Backup speichern, dann lassen sie sich auf dem neuen Gerät wieder einlesen.</p>
+      <button class="primary" onclick="exportBackup()">📦 Backup als Datei speichern</button>
+    </div>
+    <p class="hinweis-text" style="margin: 0 0 1rem;">${inRange} von ${rangeTotal} Monaten im eingestellten Zeitraum ${config.jahr} abgeschlossen.</p>
+  `;
+
+  if (months.length === 0) {
+    html += `<p class="hinweis-text">Noch keine Monate abgeschlossen. Über „🔒 Monat abschließen" in der
+      Werkzeugleiste oder automatisch nach „📧 Per E-Mail weiterleiten" erscheinen fertige Monate hier.</p>`;
+  } else {
+    html += months.map((m) => `
+      <div class="archiv-row">
+        <div>
+          <b>${MONTH_NAMES[m.monat - 1]} ${m.jahr}</b>
+          <div class="archiv-meta">eingereicht am ${formatTimestampDE(m.ts)} &middot; ${m.total.toFixed(2).replace(".", ",")} €</div>
+        </div>
+        <div class="archiv-actions">
+          <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, false)" title="Diesen Monat im Formular anzeigen">👁️ Ansehen</button>
+          <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, true)" title="Diesen Monat anzeigen und als PDF herunterladen">📄 PDF</button>
+        </div>
+      </div>
+    `).join("");
+  }
+  document.getElementById("archivContent").innerHTML = html;
+}
+
+/* Springt zu einem abgeschlossenen Monat (auch aus einem anderen Jahr als dem
+   aktuell eingestellten - das eingestellte Jahr wechselt dabei mit, genau wie
+   beim manuellen Umstellen in den Einstellungen). Optional wird direkt danach
+   die PDF heruntergeladen. */
+async function openArchivedMonth(jahr, monat, alsoDownloadPdf) {
+  // Jahr und - falls noetig - den eingestellten Start-/Endmonat so anpassen,
+  // dass der archivierte Monat ueberhaupt im Monats-Dropdown waehlbar ist
+  // (sonst z.B. ein Monat aus einem frueheren, engeren Zeitraum unsichtbar).
+  let changed = false;
+  if (jahr !== config.jahr) { config.jahr = jahr; document.getElementById("cfgJahr").value = jahr; changed = true; }
+  if (monat < config.startMonat) { config.startMonat = monat; document.getElementById("cfgStartMonat").value = monat; changed = true; }
+  if (monat > config.endMonat) { config.endMonat = monat; document.getElementById("cfgEndMonat").value = monat; changed = true; }
+  if (changed) saveConfig();
+  rebuildMonthPicker();
+  document.getElementById("monthPicker").value = monat;
+  renderFormular();
+  document.getElementById("archivPanel").style.display = "none";
+  document.getElementById("settingsPanel").style.display = "none";
+  if (alsoDownloadPdf) await downloadPDF();
 }
 
 /* ===================== Abwesenheiten am Stueck (Urlaub/Krank/etc.) ===================== */
