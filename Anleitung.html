@@ -57,9 +57,9 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     <li><b>💾 Als PDF speichern</b> – lädt den fertigen Spesennachweis als PDF-Datei herunter</li>
     <li><b>🖨️ Drucken</b> – öffnet den normalen Druckdialog</li>
     <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> – speichert die PDF und öffnet direkt eine vorausgefüllte E-Mail</li>
-    <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten, Abwesenheiten, Datensicherung (siehe Schritt 2, 5 und 8)</li>
-    <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick (siehe Schritt 7)</li>
-    <li><b>🗑️ Zurücksetzen</b> – löscht alle Eingaben (Vorsicht, nicht rückgängig zu machen – vorher ggf. Backup speichern, Schritt 7)</li>
+    <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten, Anwesenheit NL, Abwesenheiten, Datensicherung (siehe Schritt 2, 5, 6 und 9)</li>
+    <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick (siehe Schritt 8)</li>
+    <li><b>🗑️ Zurücksetzen</b> – löscht alle Eingaben (Vorsicht, nicht rückgängig zu machen – vorher ggf. Backup speichern, Schritt 9)</li>
     <li><b>❓ Anleitung</b> – diese Seite hier</li>
     <li><b>💬 Feedback</b> – öffnet eine vorausgefüllte E-Mail für Verbesserungsvorschläge</li>
     <li><b>Monats-Dropdown</b> – wechselt zwischen den Monaten des eingestellten Zeitraums</li>
@@ -94,6 +94,11 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <p>Stunde und Minute lassen sich mit der Maus, dem Mausrad/Trackpad oder am Handy/Tablet mit dem Finger auf die
      gewünschte Zeile schieben – die Mitte (orange umrandet) zeigt die aktuell ausgewählte Uhrzeit. Mit
      <b>Übernehmen</b> bestätigen oder mit <b>Abbrechen</b> das Fenster ohne Änderung schließen.</p>
+  <div class="hinweis">
+    <b>Auch per Tastatur bedienbar:</b> Pfeiltasten hoch/runter bewegen die ausgewählte Walze, Zahlen eintippen
+    springt direkt zur gewünschten Uhrzeit (z.B. „1" dann „5" für 15), <b>Enter</b> übernimmt, <b>Escape</b>
+    bricht ab.
+  </div>
   <p><b>Std.</b> und <b>Pauschale</b> berechnen sich danach automatisch:</p>
   <img src="anleitung-bilder/zeiten-beispiel.png" alt="Beispiel einer ausgefüllten Zeile">
   <p>„Anwesenheit in NL" und „besuchte Orte" lassen sich ebenfalls anpassen, falls nötig.</p>
@@ -110,17 +115,39 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <div class="hinweis">Das Auswahlmenü selbst erscheint nicht im gedruckten/gespeicherten PDF – nur der Status-Text bleibt sichtbar.</div>
 </div>
 
-<h2>5. Abwesenheiten am Stück eintragen</h2>
+<h2>5. Anwesenheit in der Niederlassung (NL)</h2>
+<div class="step">
+  <p>Unter <b>⚙️ Einstellungen</b> im Abschnitt „🏢 Anwesenheit in der Niederlassung (NL)" lässt sich festlegen,
+     an welchem festen Wochentag automatisch eine Anwesenheitszeit in der Niederlassung eingetragen wird
+     (z.B. jeden Montag zur Teambesprechung):</p>
+  <img src="anleitung-bilder/nl-anwesenheit.png" alt="Anwesenheit in der Niederlassung einstellen">
+  <ul>
+    <li><b>Aktiv an einem festen Wochentag</b> – Häkchen setzen, um die automatische Eintragung zu aktivieren</li>
+    <li><b>Wochentag</b> – Montag bis Samstag wählbar (Samstag für die seltenen Fälle, in denen die NL-Anwesenheit
+        auf einen Samstag fällt; Sonntag ist bewusst nicht dabei)</li>
+    <li><b>Von / Bis</b> – die Uhrzeit der Anwesenheit, per Dreh-Rad einstellbar (siehe Schritt 3)</li>
+  </ul>
+  <div class="hinweis">Diese Einstellung ist nur für <b>Fahrer</b> relevant. Bei <b>Monteuren</b> übernimmt die
+    Spalte „Anwesenheit NL" automatisch die tägliche Arbeitszeit - hier ist dann nichts einzustellen.</div>
+</div>
+
+<h2>6. Abwesenheiten am Stück eintragen</h2>
 <div class="step">
   <p>Statt Urlaub, Krankheit o.ä. Tag für Tag einzeln umzustellen (Schritt 4), lässt sich das auch für einen
      ganzen Zeitraum auf einmal erledigen: unter <b>⚙️ Einstellungen</b> im Abschnitt „Abwesenheiten am Stück
      eintragen" Status, Von- und Bis-Datum wählen und auf „Eintragen" klicken:</p>
   <img src="anleitung-bilder/abwesenheit-beispiel.png" alt="Abwesenheiten am Stück eintragen">
   <p>Der Zeitraum darf auch über mehrere Wochen oder Monate gehen. Einzelne Tage darin lassen sich in der Tabelle
-     trotzdem noch abweichend ändern. Über „Zurücksetzen" wird derselbe Zeitraum wieder zu normalen Arbeitstagen.</p>
+     trotzdem noch abweichend ändern.</p>
+  <p><b>Mehrere getrennte Zeiträume möglich:</b> nach „Eintragen" werden Von/Bis automatisch geleert (der Status
+     bleibt stehen) - so lässt sich direkt danach ein zweiter, unabhängiger Zeitraum eintragen, auch im selben
+     Monat und auch mit einem anderen Status (z.B. erst eine Woche Urlaub, danach zwei Tage Krank). Darunter
+     erscheint eine Liste aller aktuell eingetragenen Zeiträume, die sich einzeln über das <b>✕</b> wieder
+     entfernen lassen:</p>
+  <img src="anleitung-bilder/abwesenheit-liste.png" alt="Liste der eingetragenen Abwesenheits-Zeiträume">
 </div>
 
-<h2>6. Unterschreiben</h2>
+<h2>7. Unterschreiben</h2>
 <div class="step">
   <p>Ganz unten im Formular gibt es zwei Unterschriftenfelder (Mitarbeiter und Niederlassungsleiter). Einfach mit
      der Maus oder am Handy/Tablet mit dem Finger hineinzeichnen:</p>
@@ -129,7 +156,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
      jeden Monat neu unterschreiben. Über das kleine <b>✕</b> oben rechts im Feld lässt sie sich löschen und neu zeichnen.</p>
 </div>
 
-<h2>7. Jahresübersicht</h2>
+<h2>8. Jahresübersicht</h2>
 <div class="step">
   <p>Über den Button <b>📊 Jahresübersicht</b> in der Werkzeugleiste lässt sich der komplette Jahresverlauf auf
      einen Blick einsehen: Arbeitstage und Pauschale-Summe je Monat, dazu die Anzahl der Urlaubs-, Krankheits-,
@@ -137,7 +164,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <img src="anleitung-bilder/jahresuebersicht-beispiel.png" alt="Beispiel einer Jahresübersicht">
 </div>
 
-<h2>8. Datensicherung</h2>
+<h2>9. Datensicherung</h2>
 <div class="step">
   <p>Da alle Daten ausschließlich lokal im eigenen Browser gespeichert werden (siehe Datenschutz-Hinweis in
      Schritt 2), gehen sie beim Löschen des Browser-Verlaufs oder einem Gerätewechsel sonst unwiderruflich
@@ -152,7 +179,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     vor dem Klick auf „🗑️ Zurücksetzen".</div>
 </div>
 
-<h2>9. Fertigstellen</h2>
+<h2>10. Fertigstellen</h2>
 <div class="step">
   <p>Wenn der Monat komplett ausgefüllt ist:</p>
   <ul>
