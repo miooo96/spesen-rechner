@@ -136,6 +136,24 @@
   .archiv-row .archiv-meta { font-size: 0.8rem; color: #888; margin-top: 2px; }
   .archiv-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
+  /* Auswertung (versteckter Chef-/Buchhaltungs-Bereich) */
+  .mitarbeiter-card {
+    background: #fff; border: 1px solid #e3e6eb; border-radius: 10px;
+    padding: 1rem 1.1rem; margin-bottom: 1rem;
+  }
+  .mitarbeiter-card h4 { margin: 0 0 0.5rem; color: var(--brand-dark); font-size: 1rem; }
+  .mitarbeiter-card table { border-collapse: collapse; font-size: 0.85rem; margin-bottom: 0.75rem; }
+  .mitarbeiter-card th, .mitarbeiter-card td { border: 1px solid #e3e6eb; padding: 4px 10px; text-align: right; }
+  .mitarbeiter-card th:first-child, .mitarbeiter-card td:first-child { text-align: left; }
+  .trend-satz {
+    background: #FDE9DC; border-left: 4px solid var(--accent); border-radius: 4px;
+    padding: 0.5rem 0.8rem; font-size: 0.85rem; color: var(--brand-dark); margin-bottom: 0.75rem;
+  }
+  .auswertung-pin-input {
+    text-align: center; font-size: 1.6rem; letter-spacing: 0.6rem; width: 150px;
+    margin: 0.5rem auto; display: block;
+  }
+
   /* --- Formular-Ansicht (identisch zum gedruckten Original) --- */
   #formular-scroll {
     max-width: 1000px; margin: 0 auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -552,7 +570,13 @@
 <footer class="no-print">
   Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built by Rieb
   <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
+  <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openAuswertungGate()">Auswertung</button>
 </footer>
+
+<div class="panel no-print" id="auswertungPanel" style="display:none;">
+  <h2 style="margin-top:0;">📈 Auswertung</h2>
+  <div id="auswertungContent"></div>
+</div>
 
 <div id="modalRoot"></div>
 
@@ -1288,6 +1312,277 @@ async function openArchivedMonth(jahr, monat, alsoDownloadPdf) {
   if (alsoDownloadPdf) await downloadPDF();
 }
 
+/* ===================== Auswertung (versteckter Chef-/Buchhaltungs-Bereich) =====================
+   Kein Server, keine automatische Uebertragung: der Chef zieht hier die
+   Backup-Dateien rein, die er von jedem Mitarbeiter sowieso per E-Mail
+   bekommt (siehe "Per E-Mail an Arbeitgeber weiterleiten"). Alles bleibt
+   lokal auf SEINEM Geraet, unter einem eigenen localStorage-Namensraum
+   ("auswertung_..."), komplett getrennt von den "spesen_..."-Schluesseln der
+   eigenen Spesenerfassung - damit weder "Zurücksetzen" noch ein normales
+   Spesen-Backup versehentlich vermischt werden.
+   Der 4-stellige PIN ist bewusst NICHT im Quellcode hinterlegt (der waere in
+   jeder ausgelieferten Kopie sichtbar), sondern wird beim ersten Aufruf vom
+   Chef selbst festgelegt und nur als SHA-256-Hash lokal gespeichert. Das ist
+   "Verschleierung vor zufaelligem Entdecken", keine echte Verschluesselung -
+   wer gezielt die Browser-Konsole nutzt, koennte die Pruefung umgehen. Das ist
+   hier unkritisch, weil dabei nichts Sensibles zu holen ist: die eigentlichen
+   Mitarbeiter-Daten existieren nur auf dem Geraet, auf dem der Chef sie
+   selbst importiert hat. */
+const AUSWERTUNG_PIN_KEY = "auswertung_pin_hash";
+const AUSWERTUNG_STORE_KEY = "auswertung_mitarbeiter";
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function openAuswertungGate() {
+  const hasPin = localStorage.getItem(AUSWERTUNG_PIN_KEY) !== null;
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box" style="max-width:320px; text-align:center;">
+        <h2>🔐 Auswertung</h2>
+        <p style="font-size:0.9rem; color:#444;">${hasPin
+          ? "PIN eingeben:"
+          : "Noch kein PIN festgelegt - jetzt einen eigenen 4-stelligen PIN wählen (nur auf diesem Gerät gültig):"}</p>
+        <input id="auswertungPinInput" class="auswertung-pin-input" type="password" inputmode="numeric" maxlength="4"
+          pattern="[0-9]*" autocomplete="off">
+        <p id="auswertungPinError" style="color:#c0392b; font-size:0.85rem; min-height:1.2em;"></p>
+        <div class="modal-close-row" style="justify-content:center;">
+          <button class="primary" onclick="submitAuswertungPin(${!hasPin})">${hasPin ? "Entsperren" : "PIN festlegen"}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const input = document.getElementById("auswertungPinInput");
+  input.focus();
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuswertungPin(!hasPin); });
+}
+
+async function submitAuswertungPin(isSetup) {
+  const val = document.getElementById("auswertungPinInput").value;
+  if (!/^\d{4}$/.test(val)) {
+    document.getElementById("auswertungPinError").textContent = "Bitte genau 4 Ziffern eingeben.";
+    return;
+  }
+  const hash = await sha256Hex(val);
+  if (isSetup) {
+    localStorage.setItem(AUSWERTUNG_PIN_KEY, hash);
+    closeModal();
+    openAuswertungPanel();
+    return;
+  }
+  const stored = localStorage.getItem(AUSWERTUNG_PIN_KEY);
+  if (hash === stored) {
+    closeModal();
+    openAuswertungPanel();
+  } else {
+    document.getElementById("auswertungPinError").textContent = "Falscher PIN.";
+    document.getElementById("auswertungPinInput").value = "";
+    document.getElementById("auswertungPinInput").focus();
+  }
+}
+
+function openAuswertungPanel() {
+  document.getElementById("settingsPanel").style.display = "none";
+  document.getElementById("jahresuebersichtPanel").style.display = "none";
+  document.getElementById("archivPanel").style.display = "none";
+  document.getElementById("auswertungPanel").style.display = "block";
+  renderAuswertungPanel();
+}
+
+function loadAuswertungStore() {
+  const raw = localStorage.getItem(AUSWERTUNG_STORE_KEY);
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function saveAuswertungStore(store) {
+  localStorage.setItem(AUSWERTUNG_STORE_KEY, JSON.stringify(store));
+}
+
+/* Liest eine importierte Backup-Datei aus, zaehlt Abwesenheits-Tage pro Jahr
+   direkt aus den Overrides (unabhaengig von Wochenende/Feiertag - ein
+   eingetragener Status zaehlt so oder so) und berechnet zusaetzlich die
+   Jahres-Pauschale ueber die bestehende computeMonth()-Logik (dafuer werden
+   die globalen config/overrides kurz getauscht und danach sofort wieder
+   zurueckgesetzt). */
+function processImportedBackup(backup, store) {
+  const cfgRaw = backup.data["spesen_config"];
+  if (!cfgRaw) throw new Error("Enthält keine Konfiguration/keinen Namen.");
+  const importedConfig = Object.assign(structuredClone(DEFAULT_CONFIG), JSON.parse(cfgRaw));
+  const ovRaw = backup.data["spesen_overrides"];
+  const importedOverrides = ovRaw ? JSON.parse(ovRaw) : {};
+  const name = importedConfig.name || "Unbekannt";
+
+  if (!store[name]) store[name] = { jahre: {} };
+  const jahre = store[name].jahre;
+
+  const ensureJahr = (j) => {
+    if (!jahre[j]) jahre[j] = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0, pauschale: 0 };
+  };
+
+  Object.entries(importedOverrides).forEach(([iso, ov]) => {
+    if (!ov.status || !ABWESENHEITS_STATUS.includes(ov.status)) return;
+    const jahr = iso.slice(0, 4);
+    ensureJahr(jahr);
+    jahre[jahr][ov.status]++;
+  });
+
+  const savedConfig = config, savedOverrides = overrides;
+  try {
+    config = importedConfig;
+    overrides = importedOverrides;
+    const jahreZuBerechnen = new Set(Object.keys(jahre));
+    jahreZuBerechnen.add(String(importedConfig.jahr));
+    jahreZuBerechnen.forEach((jahrStr) => {
+      const jahr = parseInt(jahrStr);
+      ensureJahr(jahrStr);
+      let pauschale = 0;
+      for (let m = 1; m <= 12; m++) pauschale += computeMonth(jahr, m).total;
+      jahre[jahrStr].pauschale = Math.round(pauschale * 100) / 100;
+    });
+  } finally {
+    config = savedConfig;
+    overrides = savedOverrides;
+  }
+}
+
+function importAuswertungFiles(fileInput) {
+  const files = [...fileInput.files];
+  if (files.length === 0) return;
+  const store = loadAuswertungStore();
+  let pending = files.length;
+  let importedNames = [];
+  let errors = [];
+  files.forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const backup = JSON.parse(e.target.result);
+        if (!backup || backup._type !== "spesen-rechner-backup" || !backup.data) {
+          throw new Error("keine gültige Spesen-Rechner-Backup-Datei");
+        }
+        const before = Object.keys(store).length;
+        processImportedBackup(backup, store);
+        importedNames.push(Object.keys(store).length !== before ? "(neu)" : "");
+      } catch (err) {
+        errors.push(`"${file.name}": ${err.message}`);
+      } finally {
+        pending--;
+        if (pending === 0) {
+          saveAuswertungStore(store);
+          renderAuswertungPanel();
+          if (errors.length) alert("Einige Dateien konnten nicht eingelesen werden:\n" + errors.join("\n"));
+        }
+      }
+    };
+    reader.readAsText(file);
+  });
+  fileInput.value = "";
+}
+
+function removeMitarbeiterAusAuswertung(name) {
+  if (!confirm(`"${name}" wirklich aus der Auswertung entfernen?`)) return;
+  const store = loadAuswertungStore();
+  delete store[name];
+  saveAuswertungStore(store);
+  renderAuswertungPanel();
+}
+
+/* Vergleicht die beiden juengsten Jahre eines Mitarbeiters und formuliert
+   einen kurzen, automatisch generierten Auswertungssatz. */
+function buildTrendSatz(name, jahre) {
+  const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
+  if (jahrKeys.length < 2) {
+    return `Für ${name} liegt bisher nur ein Jahr vor - noch kein Trend über mehrere Jahre berechenbar.`;
+  }
+  const last = jahrKeys[jahrKeys.length - 1], prev = jahrKeys[jahrKeys.length - 2];
+  const diff = jahre[last].krank - jahre[prev].krank;
+  let richtung;
+  if (diff > 0) richtung = `um ${diff} Tag(e) gestiegen`;
+  else if (diff < 0) richtung = `um ${Math.abs(diff)} Tag(e) gesunken`;
+  else richtung = "unverändert geblieben";
+  return `Krankheitstage bei ${name} sind von ${prev} (${jahre[prev].krank}) auf ${last} (${jahre[last].krank}) ${richtung}.`;
+}
+
+/* Kleines, abhaengigkeitsfreies SVG-Balkendiagramm - generische Variante des
+   Diagramms aus der Jahresuebersicht, hier fuer Krankheitstage pro Jahr. */
+function buildTrendBarChart(jahre) {
+  const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
+  const maxVal = Math.max(1, ...jahrKeys.map((j) => jahre[j].krank));
+  const barWidth = 26, gap = 12, chartHeight = 120, leftPad = 8;
+  const width = jahrKeys.length * (barWidth + gap) + leftPad;
+  const bars = jahrKeys.map((jahr, i) => {
+    const val = jahre[jahr].krank;
+    const h = Math.round((val / maxVal) * (chartHeight - 34));
+    const x = leftPad + i * (barWidth + gap);
+    const y = chartHeight - h - 18;
+    return `
+      <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(h, 1)}" rx="3" fill="#c0392b"></rect>
+      <text x="${x + barWidth / 2}" y="${y - 4}" font-size="9" text-anchor="middle" fill="#370F06">${val || ""}</text>
+      <text x="${x + barWidth / 2}" y="${chartHeight - 4}" font-size="9" text-anchor="middle" fill="#666">${jahr}</text>
+    `;
+  }).join("");
+  return `<svg width="${width}" height="${chartHeight}" viewBox="0 0 ${width} ${chartHeight}" style="max-width:100%; display:block;">${bars}</svg>`;
+}
+
+function renderAuswertungPanel() {
+  const store = loadAuswertungStore();
+  const names = Object.keys(store).sort();
+
+  let html = `
+    <div class="settings-card neutral">
+      <h3>📂 Backup-Dateien importieren</h3>
+      <p class="hinweis-text">Die von Mitarbeitern per E-Mail erhaltenen Backup-Dateien (.json, über
+        „💾 Backup als Datei speichern" erzeugt) hier auswählen - mehrere Dateien und mehrere Mitarbeiter
+        gleichzeitig möglich. Ein erneuter Import desselben Mitarbeiters ergänzt/aktualisiert nur die
+        jeweiligen Jahre, nichts geht verloren.</p>
+      <input type="file" id="auswertungFileInput" accept=".json" multiple onchange="importAuswertungFiles(this)">
+    </div>
+    <div class="settings-card neutral">
+      <h3>💾 Auswertungsdaten sichern</h3>
+      <p class="hinweis-text">Diese importierten/aggregierten Daten liegen nur auf diesem Gerät. Bei einem
+        Geräte- oder Browserwechsel vorher sichern (eigene Datei, getrennt vom normalen Spesen-Backup).</p>
+      <button class="primary" onclick="exportAuswertungBackup()">📦 Backup als Datei speichern</button>
+    </div>
+  `;
+
+  if (names.length === 0) {
+    html += `<p class="hinweis-text">Noch keine Mitarbeiter importiert.</p>`;
+  } else {
+    html += names.map((name) => {
+      const jahre = store[name].jahre;
+      const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
+      const rows = jahrKeys.map((j) => `
+        <tr>
+          <td>${j}</td>
+          <td>${jahre[j].urlaub || 0}</td>
+          <td>${jahre[j].krank || 0}</td>
+          <td>${jahre[j].frei || 0}</td>
+          <td>${jahre[j].sonderurlaub || 0}</td>
+          <td>${jahre[j].elternzeit || 0}</td>
+          <td>${(jahre[j].pauschale || 0).toFixed(2).replace(".", ",")} €</td>
+        </tr>
+      `).join("");
+      return `
+        <div class="mitarbeiter-card">
+          <h4>👤 ${name} <button class="ghost archiv-actions" style="font-size:0.75rem; padding:2px 10px; color:#c0392b;" onclick="removeMitarbeiterAusAuswertung('${name}')">✕ entfernen</button></h4>
+          <div class="trend-satz">${buildTrendSatz(name, jahre)}</div>
+          ${buildTrendBarChart(jahre)}
+          <table>
+            <tr><th>Jahr</th><th>Urlaub</th><th>Krank</th><th>Frei</th><th>Sonderurl.</th><th>Elternzeit</th><th>Pauschale</th></tr>
+            ${rows}
+          </table>
+        </div>
+      `;
+    }).join("");
+  }
+
+  document.getElementById("auswertungContent").innerHTML = html;
+}
+
 /* ===================== Abwesenheiten am Stueck (Urlaub/Krank/etc.) ===================== */
 function eachDateInRange(vonISO, bisISO, callback) {
   const von = new Date(vonISO + "T00:00:00");
@@ -1419,6 +1714,11 @@ function exportBackup() {
   };
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
+    // Bewusst OHNE "auswertung_"-Schluessel: ein normales Spesen-Backup soll
+    // niemals versehentlich den Auswertung-PIN-Hash oder importierte
+    // Mitarbeiterdaten von einem anderen Geraet (z.B. dem Chef-Geraet)
+    // mit exportieren. Die Auswertung hat dafuer eine eigene Backup-Funktion,
+    // siehe exportAuswertungBackup().
     if (key.startsWith("spesen_") || key.startsWith("bezahlt_")) {
       backup.data[key] = localStorage.getItem(key);
     }
@@ -1429,6 +1729,32 @@ function exportBackup() {
   const dateStr = new Date().toISOString().slice(0, 10);
   a.href = url;
   a.download = `spesen-rechner-backup-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Eigene Backup-Funktion nur fuer die Auswertung (PIN-Hash + importierte
+   Mitarbeiterdaten) - getrennt von exportBackup(), damit ein normales
+   Spesen-Backup diese Daten nie mit exportiert. Laesst sich ueber die
+   normale "Backup wiederherstellen"-Funktion in den Einstellungen wieder
+   einlesen (gleiches Dateiformat/_type, keine eigene Import-Funktion noetig). */
+function exportAuswertungBackup() {
+  const backup = {
+    _type: "spesen-rechner-backup",
+    _version: 1,
+    _exportedAt: new Date().toISOString(),
+    data: {},
+  };
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith("auswertung_")) backup.data[key] = localStorage.getItem(key);
+  }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `auswertung-backup-${dateStr}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
