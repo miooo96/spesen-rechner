@@ -196,6 +196,10 @@
   .status-cell { text-align: center; }
   .status-print-label { font-weight: 600; margin-bottom: 2px; color: #1a1a1a; }
   td.pauschale-cell { text-align: right; }
+  /* Stammdaten (Name/Ort/Straße) als EIN großes Feld ohne Zwischenlinien - wie im Original-Vordruck. */
+  .stammdaten-cell { vertical-align: top; line-height: 1.3; padding: 6px 8px !important; }
+  /* Leere Rasterzeilen behalten die Spaltenrahmen (beschreibbare Felder wie im Original). */
+  tr.leerzeile td { height: 1.6em; }
   .gesamt-row td { font-weight: bold; background: #FDE9DC; }
   .bezahlt-cell { color: #c0392b; white-space: nowrap; }
   .bezahlt-cell input { width: 70px; display: inline-block; color: #c0392b; font-weight: bold; }
@@ -492,6 +496,10 @@
         <label>Bundesland (für Feiertage)</label>
         <select id="cfgBundesland" onchange="saveConfig(); renderFormular();"></select>
       </div>
+      <div>
+        <label><input type="checkbox" id="cfgSamstagAktiv" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();"> Samstag als Tages-Zeile hinzufügen</label>
+        <p class="hinweis-text" style="margin:4px 0 0;">Nur wenn aktiviert, erscheint nach dem Freitag ein eigenes Samstags-Kästchen zum Ausfüllen. Standardmäßig aus – dann bleiben unter dem Freitag nur die zwei leeren Ausgleichsfelder.</p>
+      </div>
     </div>
   </div>
 
@@ -604,6 +612,10 @@
 
 <div class="abgabe-hinweis no-print">
   📅 <b>Abgabe spätestens am 3. Werktag des Folgemonats!</b>
+</div>
+<div class="no-print" style="max-width:1000px; margin:0 auto 0.6rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.82rem; color:var(--brand-dark); line-height:1.4;">
+  ℹ️ <b>Zur Info:</b> Eine Pauschale gibt es nur, wenn an einem Tag <b>8,5 Std</b> erreicht werden – kürzere Tage bringen keine Pauschale.
+  &nbsp;·&nbsp; Tage über <b>10 Std</b> werden <b>nicht genehmigt</b>. &nbsp;·&nbsp; Abgabe spätestens am <b>3. Werktag des Folgemonats</b>.
 </div>
 <div id="formular-scroll"><div id="formular"></div></div>
 
@@ -729,6 +741,7 @@ const DEFAULT_CONFIG = {
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
   nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
+  samstagAktiv: false,
   lang: "de",
 };
 
@@ -769,6 +782,7 @@ function saveConfig() {
   config.pauschale24 = parseFloat(val("cfgPauschale24")) || 0;
   config.orteDefault = val("cfgOrte");
   config.nlAktiv = document.getElementById("cfgNlAktiv").checked;
+  config.samstagAktiv = document.getElementById("cfgSamstagAktiv").checked;
   const nlTagVal = val("cfgNlTag");
   config.nlTag = nlTagVal === "alle" ? "alle" : parseInt(nlTagVal);
   config.nlVon = val("cfgNlVon");
@@ -907,7 +921,11 @@ function computeDay(date, holidaysMap) {
     if (isHoliday) {
       return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
     }
-    if (wd >= 5 && !isFixedNlWeekendDay) return null; // Wochenende, kein Standard-Arbeitstag
+    // Sonntag erscheint nie automatisch. Samstag nur, wenn in den Einstellungen
+    // "Samstag als Tages-Zeile hinzufügen" aktiviert ist (oder als fixer NL-Tag) -
+    // so lässt sich ein Samstag ausschließlich über das Einstellungs-Menü zuschalten.
+    if (wd === 6 && !isFixedNlWeekendDay) return null; // Sonntag
+    if (wd === 5 && !isFixedNlWeekendDay && !config.samstagAktiv) return null; // Samstag nur wenn aktiviert
   }
 
   // Erst individuelle Eingabe an diesem Tag, sonst die Standardzeit aus den
@@ -1011,6 +1029,7 @@ function initSettingsUI() {
   document.getElementById("cfgPauschale24").value = config.pauschale24;
   document.getElementById("cfgOrte").value = config.orteDefault;
   document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
+  document.getElementById("cfgSamstagAktiv").checked = config.samstagAktiv;
   document.getElementById("cfgNlVon").value = config.nlVon;
   document.getElementById("cfgNlBis").value = config.nlBis;
   ["cfgAbfahrtDefault", "cfgAnkunftDefault", "cfgArbeitsbeginnDefault", "cfgArbeitsendeDefault", "cfgNlVon", "cfgNlBis"]
@@ -1257,11 +1276,20 @@ function submitMonth(jahr, monat) {
   renderFormular();
 }
 
-function submitCurrentMonth() {
+async function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
-  if (!confirm("Diesen Monat abschließen und sperren?\n\nDanach lässt sich der Monat NICHT mehr bearbeiten. Ein erneutes Öffnen ist nur mit PIN möglich.")) return;
+  const monthName = MONTH_NAMES[monat - 1];
+  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
   submitMonth(config.jahr, monat);
+  // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
+  // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
+  try {
+    await downloadPDF();
+  } catch (e) {
+    console.error("PDF-Ablage beim Monatsabschluss fehlgeschlagen:", e);
+    alert("Der Monat wurde abgeschlossen, aber die PDF konnte nicht automatisch gespeichert werden.\nBitte einmal manuell über \"💾 Als PDF speichern\" ablegen.");
+  }
 }
 
 function reopenMonth(jahr, monat) {
@@ -1971,12 +1999,18 @@ function renderFormular() {
       <button onclick="reopenMonth(${config.jahr}, ${monat})">${t("unlockBtn")}</button>
     </div>` : "";
 
+  // Leere Rasterzeile mit voller Spaltenstruktur (wie im Original-Vordruck):
+  // jede Spalte behält ihren Rahmen, dadurch entstehen leere, beschreibbare
+  // Felder - u.a. in der Wochentag-Spalte. Zwei je Wochenblock dienen als
+  // Puffer, z.B. um einen durch einen Feiertag unter der Woche ausgefallenen
+  // Tag am Samstag auszugleichen, ohne extra eine Samstagszeile anzulegen.
+  const leerzeile = `<tr class="leerzeile"><td class="bold">&nbsp;</td><td></td><td></td><td></td><td class="orte-cell"></td><td></td><td></td><td class="pauschale-cell"></td><td class="status-cell"></td></tr>`;
   const rows = [];
   let lastWeek = null;
   for (const e of entries) {
     const dateObj = new Date(e.iso);
     const week = Math.floor((dateObj.getDate() + new Date(config.jahr, monat - 1, 1).getDay() - 1) / 7);
-    if (lastWeek !== null && week !== lastWeek) rows.push(`<tr><td colspan="8">&nbsp;</td></tr>`);
+    if (lastWeek === null || week !== lastWeek) rows.push(leerzeile + leerzeile);
     lastWeek = week;
 
     const [y, m, d] = e.iso.split("-");
@@ -2024,6 +2058,8 @@ function renderFormular() {
         </tr>`);
     }
   }
+  // Wie im Original: zwei Leerzeilen zwischen dem letzten Tag und der Gesamtpauschale.
+  if (rows.length) rows.push(leerzeile + leerzeile);
 
   const html = `
     ${lockBanner}
@@ -2053,27 +2089,23 @@ function renderFormular() {
         <td colspan="2" class="bold center">Fahrtkosten</td>
       </tr>
       <tr>
-        <td colspan="3">Name : ${config.name || ""}</td>
+        <td colspan="3" rowspan="5" class="stammdaten-cell">Name&nbsp;&nbsp;&nbsp;&nbsp;: ${config.name || ""}<br><br><br>Ort&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${config.ort || ""}<br><br><br>Straße&nbsp;: ${config.strasse || ""}</td>
         <td colspan="2">Dienstreise</td><td class="bold">Pauschale</td>
         <td colspan="2" class="bold center">Wohnung / Arbeitsstätte</td>
       </tr>
       <tr>
-        <td colspan="3"></td>
         <td colspan="2"></td><td></td>
         <td colspan="2" class="bold center">beim Finanzamt</td>
       </tr>
       <tr>
-        <td colspan="3">Ort : ${config.ort || ""}</td>
         <td colspan="2">über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
         <td colspan="2" class="bold center">geltend</td>
       </tr>
       <tr>
-        <td colspan="3"></td>
         <td colspan="2">über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
         <td colspan="2" class="bold center">gemacht werden</td>
       </tr>
       <tr>
-        <td colspan="3">Straße : ${config.strasse || ""}</td>
         <td colspan="2"></td><td></td>
         <td colspan="2"></td>
       </tr>
@@ -2260,7 +2292,7 @@ function stundenLimitOk() {
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box">
         <h2>⛔ Speichern nicht möglich</h2>
-        <p style="font-size:0.92rem; color:#444;">Ein Arbeitstag darf <b>10 Stunden nicht überschreiten</b>.
+        <p style="font-size:0.92rem; color:#444;">Ein Arbeitstag über <b>10 Stunden wird nicht genehmigt</b>.
         Folgende${drueber.length > 1 ? " Tage liegen" : "r Tag liegt"} darüber:</p>
         <ul style="font-size:0.92rem; color:#c0392b; margin:0 0 0.5rem 1.1rem;">${liste}</ul>
         <p style="font-size:0.92rem; color:#444;">Bitte die Uhrzeiten so anpassen, dass der Tag
