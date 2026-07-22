@@ -177,6 +177,9 @@
   #formular input.cell-input:focus { background: #fffbdd; }
   #formular input.cell-input.time-input { text-align: center; }
   #formular input.cell-input.time-input::placeholder { color: #bbb; }
+  /* "besuchte Orte": im Formular ein Eingabefeld (kann abschneiden), im
+     Ausdruck/PDF stattdessen umbrechender Text, damit ALLES lesbar bleibt. */
+  .orte-print { display: none; }
   select.status-select {
     font-size: 0.75rem; padding: 3px 5px; width: 100%; min-width: 90px;
     border: 1px solid #d8dce2; border-radius: 5px; background: #fff; color: var(--brand-dark);
@@ -229,6 +232,8 @@
     #formular td, #formular th { padding: 1px 4px; }
     #formular .head-title { font-size: 1rem; padding: 4px; }
     input.cell-input, select.status-select { border: none !important; }
+    #formular .orte-input { display: none !important; }
+    #formular .orte-print { display: block !important; white-space: normal; word-break: break-word; }
     select.status-select { -webkit-appearance: none; appearance: none; }
     footer { display: none; }
     .time-picker-field { border-bottom: none !important; cursor: default !important; }
@@ -248,6 +253,8 @@
   .pdf-export .time-picker-field { border-bottom: none !important; cursor: default !important; }
   .pdf-export #formular .status-col, .pdf-export #formular .status-cell { display: none !important; }
   .pdf-export #formular td.warn-hours { background: #fff !important; }
+  .pdf-export #formular .orte-input { display: none !important; }
+  .pdf-export #formular .orte-print { display: block !important; white-space: normal; word-break: break-word; }
   .time-wheel-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;
     display: flex; align-items: center; justify-content: center;
@@ -838,6 +845,13 @@ function feiertage(jahr, bundesland) {
 
 /* ===================== Berechnungslogik (analog spesen_tool.py) ===================== */
 function pad(n) { return String(n).padStart(2, "0"); }
+// HTML-sicheres Escapen fuer Freitext (z.B. "besuchte Orte"), damit Sonderzeichen
+// die Tabelle nicht zerschiessen und der Text im PDF sauber umbrechen kann.
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
 function minutesToTime(m) {
   const h = Math.floor(m / 60) % 24, mm = m % 60;
@@ -1926,7 +1940,7 @@ function renderFormular() {
           <td><span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}"
                 data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>${emptyWarn}</td>
           <td>${e.nl}</td>
-          <td><input class="cell-input" value="${e.orte}" onchange="updateOverride('${e.iso}','orte',this.value)"></td>
+          <td class="orte-cell"><input class="cell-input orte-input" value="${escapeHtml(e.orte)}" onchange="updateOverride('${e.iso}','orte',this.value)"><span class="orte-print">${escapeHtml(e.orte)}</span></td>
           <td><span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}"
                 data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span></td>
           <td id="std-cell-${e.iso}" class="${stdCellClass}"${stdTitle}>${stunden}${e.warnLongHours ? ` <span class="warn-icon no-print">⚠️</span>` : ""}</td>
