@@ -198,6 +198,8 @@
   td.pauschale-cell { text-align: right; }
   /* Stammdaten (Name/Ort/Straße) als EIN großes Feld ohne Zwischenlinien - wie im Original-Vordruck. */
   .stammdaten-cell { vertical-align: top; line-height: 1.3; padding: 6px 8px !important; }
+  /* Hinweis-Text als EIN Feld ohne innere Trennlinien (wie im Original). */
+  .hinweis-cell { vertical-align: middle; line-height: 1.35; }
   /* Leere Rasterzeilen behalten die Spaltenrahmen (beschreibbare Felder wie im Original). */
   tr.leerzeile td { height: 1.6em; }
   .gesamt-row td { font-weight: bold; background: #FDE9DC; }
@@ -2082,32 +2084,26 @@ function renderFormular() {
       <tr>
         <td colspan="4" rowspan="2" class="bold center">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
         <td style="white-space:nowrap; font-size:0.8rem;">Wohnung/ Parkplatz</td><td>= WP</td>
-        <td colspan="2" class="bold center">Es dürfen keine</td>
+        <td colspan="2" rowspan="7" class="bold center hinweis-cell">Es dürfen keine<br><br>Fahrtkosten<br><br>Wohnung / Arbeitsstätte<br><br>beim Finanzamt<br><br>geltend<br><br>gemacht werden</td>
       </tr>
       <tr>
         <td>Niederlassung</td><td>= NL</td>
-        <td colspan="2" class="bold center">Fahrtkosten</td>
       </tr>
       <tr>
         <td colspan="4" rowspan="5" class="stammdaten-cell">Name&nbsp;&nbsp;&nbsp;&nbsp;: ${config.name || ""}<br><br><br>Ort&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${config.ort || ""}<br><br><br>Straße&nbsp;: ${config.strasse || ""}</td>
         <td>Dienstreise</td><td class="bold">Pauschale</td>
-        <td colspan="2" class="bold center">Wohnung / Arbeitsstätte</td>
       </tr>
       <tr>
         <td></td><td></td>
-        <td colspan="2" class="bold center">beim Finanzamt</td>
       </tr>
       <tr>
         <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
-        <td colspan="2" class="bold center">geltend</td>
       </tr>
       <tr>
         <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
-        <td colspan="2" class="bold center">gemacht werden</td>
       </tr>
       <tr>
         <td></td><td></td>
-        <td colspan="2"></td>
       </tr>
       <tr>
         <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
