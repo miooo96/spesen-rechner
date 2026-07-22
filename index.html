@@ -180,6 +180,9 @@
   /* "besuchte Orte": im Formular ein Eingabefeld (kann abschneiden), im
      Ausdruck/PDF stattdessen umbrechender Text, damit ALLES lesbar bleibt. */
   .orte-print { display: none; }
+  .orte-cell, .orte-col { text-align: center; min-width: 96px; }
+  #formular input.orte-input { text-align: center; }
+  .bezahlt-print { display: none; }
   select.status-select {
     font-size: 0.75rem; padding: 3px 5px; width: 100%; min-width: 90px;
     border: 1px solid #d8dce2; border-radius: 5px; background: #fff; color: var(--brand-dark);
@@ -234,6 +237,9 @@
     input.cell-input, select.status-select { border: none !important; }
     #formular .orte-input { display: none !important; }
     #formular .orte-print { display: block !important; white-space: normal; word-break: break-word; }
+    #formular .bezahlt-edit { display: none !important; }
+    #formular .bezahlt-print { display: inline !important; }
+    #formular th, #formular .gesamt-row td { background: #fff !important; }
     select.status-select { -webkit-appearance: none; appearance: none; }
     footer { display: none; }
     .time-picker-field { border-bottom: none !important; cursor: default !important; }
@@ -255,6 +261,9 @@
   .pdf-export #formular td.warn-hours { background: #fff !important; }
   .pdf-export #formular .orte-input { display: none !important; }
   .pdf-export #formular .orte-print { display: block !important; white-space: normal; word-break: break-word; }
+  .pdf-export #formular .bezahlt-edit { display: none !important; }
+  .pdf-export #formular .bezahlt-print { display: inline !important; }
+  .pdf-export #formular th, .pdf-export #formular .gesamt-row td { background: #fff !important; }
   .time-wheel-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;
     display: flex; align-items: center; justify-content: center;
@@ -638,7 +647,7 @@ const I18N = {
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
-    colStd: "Std.", colPauschale: "Pauschale", colStatus: "Status",
+    colStd: "Stunden", colPauschale: "Pauschale", colStatus: "Status",
     colWorkStart: "Arbeitsbeginn", colWorkEnd: "Arbeitsende", colDepart: "Abfahrt WP", colArrive: "Ankunft WP",
     settingsTitle: "Einstellungen", yearTitle: "📊 Jahresübersicht",
     stammdaten: "👤 Stammdaten", zeitraum: "📅 Zeitraum & Feiertage", pauschalenCard: "💶 Pauschalen & Standardwerte",
@@ -655,7 +664,7 @@ const I18N = {
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
-    colStd: "Hrs.", colPauschale: "Allowance", colStatus: "Status",
+    colStd: "Hours", colPauschale: "Allowance", colStatus: "Status",
     colWorkStart: "Work start", colWorkEnd: "Work end", colDepart: "Departure (home)", colArrive: "Arrival (home)",
     settingsTitle: "Settings", yearTitle: "📊 Yearly overview",
     stammdaten: "👤 Basic data", zeitraum: "📅 Period & public holidays", pauschalenCard: "💶 Allowances & defaults",
@@ -1928,7 +1937,7 @@ function renderFormular() {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     if (e.status === "normal") {
-      const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
+      const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
       const stdCellClass = e.warnLongHours ? "warn-hours" : "";
@@ -1979,44 +1988,53 @@ function renderFormular() {
         <!-- Logo bewusst aus dem Spesenblatt entfernt (Kundenwunsch, "optisch wie das Original") -->
       </tr>
       <tr>
-        <td colspan="2" class="bold">Spesenabrechnung Monat:</td>
-        <td class="center bold">${MONTH_NAMES[monat - 1]}</td>
-        <td colspan="5">Pauschalspesen für Dienstreisen Inland</td>
+        <td colspan="3" class="bold">Spesenabrechnung Monat:</td>
+        <td colspan="2" class="center bold">${MONTH_NAMES[monat - 1]}</td>
+        <td colspan="3">Pauschalspesen für Dienstreisen Inland</td>
       </tr>
       <tr>
-        <td colspan="2" class="bold">Jahr:</td>
-        <td class="center bold">${config.jahr}</td>
-        <td colspan="2">AB 1.1.2020</td>
-        <td colspan="3" class="bold center">Hinweis</td>
+        <td colspan="3" class="bold" style="text-align:right;">Jahr:</td>
+        <td colspan="2" class="center bold">${config.jahr}</td>
+        <td>AB 1. 1. 2020</td>
+        <td colspan="2" class="bold center">Hinweis:</td>
       </tr>
       <tr>
-        <td colspan="3" class="small">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
-        <td>Wohnung/Parkplatz</td><td>= WP</td>
-        <td colspan="3" class="small bold">Es dürfen keine Fahrtkosten Wohnung/Arbeitsstätte beim Finanzamt geltend gemacht werden</td>
+        <td colspan="3" rowspan="2" class="bold center">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
+        <td colspan="2">Wohnung/ Parkplatz</td><td>= WP</td>
+        <td colspan="2" class="bold center">Es dürfen keine</td>
       </tr>
       <tr>
-        <td colspan="3"></td>
-        <td>Niederlassung</td><td>= NL</td>
-        <td colspan="3"></td>
+        <td colspan="2">Niederlassung</td><td>= NL</td>
+        <td colspan="2" class="bold center">Fahrtkosten</td>
       </tr>
       <tr>
         <td colspan="3">Name : ${config.name || ""}</td>
-        <td>Dienstreise</td><td class="bold">Pauschale</td>
+        <td colspan="2">Dienstreise</td><td class="bold">Pauschale</td>
+        <td colspan="2" class="bold center">Wohnung / Arbeitsstätte</td>
+      </tr>
+      <tr>
         <td colspan="3"></td>
+        <td colspan="2"></td><td></td>
+        <td colspan="2" class="bold center">beim Finanzamt</td>
       </tr>
       <tr>
         <td colspan="3">Ort : ${config.ort || ""}</td>
-        <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
+        <td colspan="2">über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
+        <td colspan="2" class="bold center">geltend</td>
+      </tr>
+      <tr>
         <td colspan="3"></td>
+        <td colspan="2">über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
+        <td colspan="2" class="bold center">gemacht werden</td>
       </tr>
       <tr>
         <td colspan="3">Straße : ${config.strasse || ""}</td>
-        <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
-        <td colspan="3"></td>
+        <td colspan="2"></td><td></td>
+        <td colspan="2"></td>
       </tr>
       <tr>
         <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
-        <th>${t('colOrte')}</th><th>${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
+        <th class="orte-col">${t('colOrte')}</th><th>${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
         <th class="status-col">${t('colStatus')}</th>
       </tr>
       ${rows.join("")}
@@ -2039,9 +2057,9 @@ function renderFormular() {
         </td>
         <td colspan="4">über Gehaltsabrechnung bezahlt</td>
         <td class="pauschale-cell bezahlt-cell">
-          <input class="cell-input" style="text-align:right;" type="number" step="0.5" value="${bezahlt}"
+          <span class="bezahlt-edit"><input class="cell-input" style="text-align:right;" type="number" step="0.5" value="${bezahlt}"
             oninput="liveUpdateBezahlt('${bezahltKey}', this.value)"
-            onchange="localStorage.setItem('${bezahltKey}', this.value); renderFormular();"> €
+            onchange="localStorage.setItem('${bezahltKey}', this.value); renderFormular();"> €</span><span class="bezahlt-print">${bezahlt.toFixed(2).replace(".", ",")} €</span>
         </td>
         <td class="no-print"></td>
       </tr>
@@ -2061,7 +2079,7 @@ function renderFormular() {
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="5"></td>
+        <td colspan="5" style="text-align:right; font-size:0.7rem; color:#333; padding-right:6px;">02.01.2019 Hs</td>
         <td class="no-print"></td>
       </tr>
     </table>
@@ -2279,7 +2297,7 @@ function exportCSV() {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     const statusLabel = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status] || STATUS_LABELS.normal);
-    const stunden = e.hours === null ? "" : e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
+    const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
     const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") : "";
     lines.push([
       WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "",
