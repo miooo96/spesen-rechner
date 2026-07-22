@@ -1261,7 +1261,7 @@ function submitCurrentMonth() {
 function reopenMonth(jahr, monat) {
   // Wieder-Oeffnen nur mit PIN (nutzt dieselbe PIN wie der Chef-/Auswertungsbereich).
   // So laesst sich ein abgeschlossener Monat nicht mehr mit einem Klick aendern.
-  const hasPin = localStorage.getItem(AUSWERTUNG_PIN_KEY) !== null;
+  const hasPin = true; // feste PIN vorgegeben (VORGEGEBENE_PIN)
   const root = document.getElementById("modalRoot");
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
@@ -1289,10 +1289,7 @@ async function submitReopenPin(jahr, monat, isSetup) {
     document.getElementById("reopenPinError").textContent = "Bitte genau 4 Ziffern eingeben.";
     return;
   }
-  const hash = await sha256Hex(val);
-  if (isSetup) {
-    localStorage.setItem(AUSWERTUNG_PIN_KEY, hash);
-  } else if (hash !== localStorage.getItem(AUSWERTUNG_PIN_KEY)) {
+  if (val !== VORGEGEBENE_PIN) {
     document.getElementById("reopenPinError").textContent = "Falscher PIN.";
     document.getElementById("reopenPinInput").value = "";
     document.getElementById("reopenPinInput").focus();
@@ -1410,6 +1407,10 @@ async function openArchivedMonth(jahr, monat, alsoDownloadPdf) {
    Mitarbeiter-Daten existieren nur auf dem Geraet, auf dem der Chef sie
    selbst importiert hat. */
 const AUSWERTUNG_PIN_KEY = "auswertung_pin_hash";
+// Fest vom Chef vorgegebene PIN - gilt fuer Wieder-Oeffnen UND Auswertungsbereich.
+// Bewusst simpel gehalten (steht im Quelltext) = Riegel gegen beilaeufiges Aendern,
+// keine bankenechte Sicherheit - passend zum uebrigen "Verschleierungs"-Modell.
+const VORGEGEBENE_PIN = "1903";
 const AUSWERTUNG_STORE_KEY = "auswertung_mitarbeiter";
 
 async function sha256Hex(text) {
@@ -1418,7 +1419,7 @@ async function sha256Hex(text) {
 }
 
 function openAuswertungGate() {
-  const hasPin = localStorage.getItem(AUSWERTUNG_PIN_KEY) !== null;
+  const hasPin = true; // feste PIN vorgegeben (VORGEGEBENE_PIN)
   const root = document.getElementById("modalRoot");
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
@@ -1454,8 +1455,7 @@ async function submitAuswertungPin(isSetup) {
     openAuswertungPanel();
     return;
   }
-  const stored = localStorage.getItem(AUSWERTUNG_PIN_KEY);
-  if (hash === stored) {
+  if (val === VORGEGEBENE_PIN) {
     closeModal();
     openAuswertungPanel();
   } else {
