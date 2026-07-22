@@ -214,6 +214,11 @@
   }
 
   footer { text-align: center; font-size: 0.75rem; color: #888; margin-top: 2rem; }
+  .pdf-preview-box { max-width: 920px; width: 94vw; height: 90vh; display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
+  .pdf-preview-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .pdf-preview-head h2 { margin: 0; font-size: 1.05rem; }
+  .pdf-preview-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .pdf-preview-frame { flex: 1; width: 100%; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
   .abgabe-hinweis {
     background: #FDE9DC; border: 1px solid var(--accent); border-left: 4px solid var(--accent);
     color: var(--brand-dark); border-radius: 8px; padding: 10px 16px; margin: 0 0 12px;
@@ -365,6 +370,7 @@
 <div class="toolbar no-print">
   <div class="toolbar-group">
     <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
+    <button onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
     <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
     <button class="ghost chef-only" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
@@ -641,7 +647,7 @@ let STATUS_LABELS = STATUS_LABELS_DE;
 const I18N = {
   de: {
     pageTitle: "Spesen-Rechner", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
-    btnPdf: "💾 Als PDF speichern", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
+    btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV-Export", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
@@ -658,7 +664,7 @@ const I18N = {
   },
   en: {
     pageTitle: "Expense Calculator", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
-    btnPdf: "💾 Save as PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
+    btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV export", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
@@ -2267,27 +2273,22 @@ function stundenLimitOk() {
   return false;
 }
 
-async function downloadPDF() {
-  if (!stundenLimitOk()) return;
+// Erzeugt das PDF (ohne zu speichern) und gibt { pdf, filename } zurueck -
+// oder null, wenn die 10-Std-Sperre greift. Basis fuer Speichern UND Vorschau.
+async function buildPdf() {
+  if (!stundenLimitOk()) return null;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
   const el = document.getElementById("formular");
 
-  // Waehrend des Screenshots die Klick-Optik der Zeit-Felder ausblenden (kein
-  // gestrichelter Rand), damit die PDF wie ein fertiges Dokument aussieht und
-  // nicht wie ein noch bedienbares Formular.
+  // Waehrend des Screenshots die Klick-Optik der Zeit-Felder ausblenden.
   document.body.classList.add("pdf-export");
   let canvas;
   try {
     canvas = await html2canvas(el, {
       scale: 2,
       backgroundColor: "#ffffff",
-      // Feste virtuelle Fensterbreite, damit die Tabelle IMMER komplett erfasst
-      // wird - unabhaengig von der tatsaechlichen Bildschirmbreite (sonst wird
-      // auf schmalen Bildschirmen/Handys die Tabelle rechts abgeschnitten).
       windowWidth: 1050,
-      // Status-Dropdowns und andere Bedienelemente (class="no-print") sollen
-      // nie in der gespeicherten PDF landen - nur das ausgefuellte Formular.
       ignoreElements: (node) => node.classList && node.classList.contains("no-print"),
     });
   } finally {
@@ -2312,8 +2313,48 @@ async function downloadPDF() {
   pdf.addImage(imgData, "PNG", x, margin, imgWidth, imgHeight);
 
   const filename = `Spesennachweis_${monthName}_${config.jahr}.pdf`;
-  pdf.save(filename);
-  return filename;
+  return { pdf, filename };
+}
+
+// Direkt speichern (wie bisher) - auch von E-Mail-Versand/Abschluss genutzt.
+async function downloadPDF() {
+  const r = await buildPdf();
+  if (!r) return;
+  r.pdf.save(r.filename);
+  return r.filename;
+}
+
+// Nur ansehen: PDF in einem Fenster zeigen, NICHT automatisch speichern.
+let __pdfPreview = null, __pdfPreviewUrl = null;
+async function previewPDF() {
+  const r = await buildPdf();
+  if (!r) return;
+  __pdfPreview = r;
+  __pdfPreviewUrl = r.pdf.output("bloburl");
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closePdfPreview()">
+      <div class="modal-box pdf-preview-box">
+        <div class="pdf-preview-head">
+          <h2>👁️ PDF-Vorschau</h2>
+          <div class="pdf-preview-actions">
+            <button class="primary" onclick="savePdfFromPreview()">💾 Speichern</button>
+            <button onclick="closePdfPreview()">Schließen</button>
+          </div>
+        </div>
+        <iframe class="pdf-preview-frame" src="${__pdfPreviewUrl}"></iframe>
+      </div>
+    </div>`;
+}
+
+function savePdfFromPreview() {
+  if (__pdfPreview) __pdfPreview.pdf.save(__pdfPreview.filename);
+}
+
+function closePdfPreview() {
+  try { if (__pdfPreviewUrl) URL.revokeObjectURL(__pdfPreviewUrl); } catch (e) {}
+  __pdfPreview = null; __pdfPreviewUrl = null;
+  closeModal();
 }
 
 /* ===================== CSV-Export =====================
