@@ -313,6 +313,10 @@
 
   /* Versionsnummer/Sprache im Footer */
   footer .footer-link { color: #888; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 0.75rem; padding: 0; }
+  /* Chef-Funktionen (Auswertung, CSV-Export) - fuer Mitarbeiter unsichtbar.
+     Werden nur im Chef-Modus (geheimer Link, siehe unten) eingeblendet. */
+  .chef-only { display: none !important; }
+  body.chef-mode .chef-only { display: inline-block !important; }
   footer .footer-sep { margin: 0 6px; }
 
   /* Monat-gesperrt-Banner */
@@ -347,7 +351,7 @@
     <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
     <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-    <button class="ghost" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
+    <button class="ghost chef-only" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
@@ -584,7 +588,7 @@
 <footer class="no-print">
   Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built by Rieb
   <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
-  <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openAuswertungGate()">Auswertung</button>
+  <span class="footer-sep chef-only">&middot;</span><button class="footer-link chef-only" onclick="openAuswertungGate()">Auswertung</button>
 </footer>
 
 <div class="panel no-print" id="auswertungPanel" style="display:none;">
@@ -1225,6 +1229,7 @@ function submitMonth(jahr, monat) {
 }
 
 function submitCurrentMonth() {
+  if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   if (!confirm("Diesen Monat als eingereicht markieren und die Bearbeitung sperren?")) return;
   submitMonth(config.jahr, monat);
@@ -2493,7 +2498,13 @@ WEEKDAY_NAMES = currentLang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
 MONTH_NAMES = currentLang === "en" ? MONTH_NAMES_EN : MONTH_NAMES_DE;
 STATUS_LABELS = currentLang === "en" ? STATUS_LABELS_EN : STATUS_LABELS_DE;
 applyI18n();
-document.getElementById("footerVersion").textContent = "v" + APP_VERSION;
+// Chef-Modus: nur ueber den geheimen Link (…/#chef) sichtbar. Mitarbeiter, die
+  // die normale Adresse oeffnen, sehen keine Chef-Funktionen (Auswertung, CSV).
+  // Die Auswertung selbst bleibt zusaetzlich per PIN geschuetzt.
+  if (/(^|[#?&])chef\b/i.test(location.hash + location.search)) {
+    document.body.classList.add("chef-mode");
+  }
+  document.getElementById("footerVersion").textContent = "v" + APP_VERSION;
 initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
