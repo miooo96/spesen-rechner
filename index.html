@@ -615,7 +615,7 @@
 </div>
 <div class="no-print" style="max-width:1000px; margin:0 auto 0.6rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.82rem; color:var(--brand-dark); line-height:1.4;">
   ℹ️ <b>Zur Info:</b> Eine Pauschale gibt es nur, wenn an einem Tag <b>8,5 Std</b> erreicht werden – kürzere Tage bringen keine Pauschale.
-  &nbsp;·&nbsp; Tage über <b>10 Std</b> werden <b>nicht genehmigt</b>. &nbsp;·&nbsp; Abgabe spätestens am <b>3. Werktag des Folgemonats</b>.
+  &nbsp;·&nbsp; Tage über <b>10 Std</b> werden <b>nicht genehmigt</b>.
 </div>
 <div id="formular-scroll"><div id="formular"></div></div>
 
@@ -2070,43 +2070,43 @@ function renderFormular() {
       </tr>
       <tr>
         <td colspan="3" class="bold">Spesenabrechnung Monat:</td>
-        <td colspan="2" class="center bold">${MONTH_NAMES[monat - 1]}</td>
-        <td colspan="3">Pauschalspesen für Dienstreisen Inland</td>
+        <td class="center bold">${MONTH_NAMES[monat - 1]}</td>
+        <td colspan="4">Pauschalspesen für Dienstreisen Inland</td>
       </tr>
       <tr>
         <td colspan="3" class="bold" style="text-align:right;">Jahr:</td>
-        <td colspan="2" class="center bold">${config.jahr}</td>
-        <td>AB 1. 1. 2020</td>
+        <td class="center bold">${config.jahr}</td>
+        <td colspan="2">AB 1. 1. 2020</td>
         <td colspan="2" class="bold center">Hinweis:</td>
       </tr>
       <tr>
-        <td colspan="3" rowspan="2" class="bold center">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
-        <td colspan="2">Wohnung/ Parkplatz</td><td>= WP</td>
+        <td colspan="4" rowspan="2" class="bold center">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
+        <td>Wohnung/ Parkplatz</td><td>= WP</td>
         <td colspan="2" class="bold center">Es dürfen keine</td>
       </tr>
       <tr>
-        <td colspan="2">Niederlassung</td><td>= NL</td>
+        <td>Niederlassung</td><td>= NL</td>
         <td colspan="2" class="bold center">Fahrtkosten</td>
       </tr>
       <tr>
-        <td colspan="3" rowspan="5" class="stammdaten-cell">Name&nbsp;&nbsp;&nbsp;&nbsp;: ${config.name || ""}<br><br><br>Ort&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${config.ort || ""}<br><br><br>Straße&nbsp;: ${config.strasse || ""}</td>
-        <td colspan="2">Dienstreise</td><td class="bold">Pauschale</td>
+        <td colspan="4" rowspan="5" class="stammdaten-cell">Name&nbsp;&nbsp;&nbsp;&nbsp;: ${config.name || ""}<br><br><br>Ort&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${config.ort || ""}<br><br><br>Straße&nbsp;: ${config.strasse || ""}</td>
+        <td>Dienstreise</td><td class="bold">Pauschale</td>
         <td colspan="2" class="bold center">Wohnung / Arbeitsstätte</td>
       </tr>
       <tr>
-        <td colspan="2"></td><td></td>
+        <td></td><td></td>
         <td colspan="2" class="bold center">beim Finanzamt</td>
       </tr>
       <tr>
-        <td colspan="2">über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
+        <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
         <td colspan="2" class="bold center">geltend</td>
       </tr>
       <tr>
-        <td colspan="2">über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
+        <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
         <td colspan="2" class="bold center">gemacht werden</td>
       </tr>
       <tr>
-        <td colspan="2"></td><td></td>
+        <td></td><td></td>
         <td colspan="2"></td>
       </tr>
       <tr>

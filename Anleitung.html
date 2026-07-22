@@ -83,7 +83,8 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     <li><b>🖨️ Drucken</b> – öffnet den normalen Druckdialog</li>
     <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> – speichert die PDF, öffnet eine vorausgefüllte E-Mail
         und markiert den Monat automatisch als eingereicht (siehe Schritt 10)</li>
-    <li><b>🔒 Monat abschließen</b> – markiert den Monat manuell als eingereicht/gesperrt, auch ohne E-Mail-Versand
+    <li><b>🔒 Monat abschließen</b> – markiert den Monat manuell als eingereicht/gesperrt und <b>speichert dabei
+        automatisch die fertige PDF als Datei ab</b> (für die eigene Steuer-/Jahresablage) - auch ohne E-Mail-Versand
         (z.B. wer stattdessen ausdruckt und persönlich abgibt) - siehe Schritt 10</li>
     <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten, Anwesenheit NL, Abwesenheiten, Datensicherung (siehe Schritt 2, 5, 6 und 9)</li>
     <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick, inkl. Balkendiagramm (siehe Schritt 8)</li>
@@ -140,9 +141,19 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     informativ und erscheinen nicht im Ausdruck/PDF.
   </div>
   <div class="hinweis">
-    <b>⛔ Wichtig - 10-Stunden-Grenze:</b> Ein Arbeitstag darf 10 Stunden nicht überschreiten. Solange ein
+    <b>⛔ Wichtig - 10-Stunden-Grenze:</b> Ein Arbeitstag über 10 Stunden wird nicht genehmigt. Solange ein
     Tag darüber liegt, lässt sich der Nachweis <b>nicht speichern, drucken oder per E-Mail versenden</b> -
     das Tool nennt den betroffenen Tag und bittet, die Uhrzeiten erst unter 10 Std. zu bringen.
+  </div>
+  <div class="hinweis">
+    <b>ℹ️ Pauschale erst ab 8,5 Std:</b> Eine Pauschale gibt es nur, wenn an einem Tag mindestens 8,5 Stunden
+    erreicht werden - kürzere Tage bringen keine Pauschale. Oben über der Tabelle steht dazu ein Info-Hinweis;
+    er erscheint bewusst nur im Tool, nicht auf dem gedruckten Spesenblatt.
+  </div>
+  <div class="hinweis">
+    <b>Zwei Leerfelder unter jedem Freitag:</b> Nach jeder Woche stehen zwei leere Tages-Kästchen als Puffer -
+    z.B. um einen durch einen Feiertag unter der Woche ausgefallenen Tag am Samstag auszugleichen, ohne extra
+    eine Samstagszeile anlegen zu müssen. Genau wie im Original-Vordruck.
   </div>
 </div>
 
@@ -171,6 +182,24 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   </ul>
   <div class="hinweis">Diese Einstellung ist nur für <b>Fahrer</b> relevant. Bei <b>Monteuren</b> übernimmt die
     Spalte „Anwesenheit NL" automatisch die tägliche Arbeitszeit - hier ist dann nichts einzustellen.</div>
+</div>
+
+<h2>Extra: Samstag hinzufügen (optional)</h2>
+<div class="step">
+  <p>Normalerweise erscheint auf dem Spesenblatt kein Samstag - unter jedem Freitag stehen stattdessen die zwei
+     leeren Puffer-Felder (siehe Schritt 3). Wer trotzdem einen Samstag als eigene Tages-Zeile braucht,
+     aktiviert ihn <b>ausschließlich über das Einstellungs-Menü</b> - auf dem Spesenblatt selbst gibt es dafür
+     bewusst keinen Knopf:</p>
+  <ul>
+    <li>Auf <b>⚙️ Einstellungen</b> klicken</li>
+    <li>Im Abschnitt <b>„📅 Zeitraum &amp; Feiertage"</b> das Häkchen bei
+        <b>„Samstag als Tages-Zeile hinzufügen"</b> setzen</li>
+    <li>Einstellungen schließen - ab sofort erscheint der Samstag automatisch <b>direkt unter dem jeweiligen
+        Freitag</b> in einem eigenen, leeren Tages-Kästchen (mit „SA"), das sich wie jeder andere Tag ausfüllen lässt</li>
+  </ul>
+  <div class="hinweis">Häkchen wieder entfernen = der Samstag verschwindet wieder, und unter dem Freitag stehen
+    erneut nur die zwei leeren Puffer-Felder. Standardmäßig ist die Option <b>aus</b>. Sonntag lässt sich nicht
+    hinzufügen.</div>
 </div>
 
 <h2>6. Abwesenheiten am Stück eintragen</h2>
@@ -233,6 +262,9 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <p>Ein grüner Banner zeigt Datum und Uhrzeit der Einreichung, alle Zeitfelder/Status/Orte-Eingaben in der
      Tabelle sind währenddessen gesperrt (leicht abgeblendet). Über <b>🔓 Wieder öffnen</b> im Banner lässt sich
      der Monat jederzeit wieder zur Bearbeitung freigeben.</p>
+  <div class="hinweis"><b>Automatische Ablage:</b> Beim Abschließen über <b>🔒 Monat abschließen</b> wird die
+    fertige PDF (<code>Spesennachweis_Monat_Jahr.pdf</code>) automatisch als Datei gespeichert. So liegt jeder
+    abgeschlossene Monat auch rückwirkend als Datei vor - praktisch für die eigene Steuer-/Jahresablage.</div>
 </div>
 
 <h2>11. Abgeschlossene Monate</h2>
