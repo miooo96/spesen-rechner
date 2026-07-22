@@ -37,6 +37,14 @@
   }
   a.back { color: var(--accent); font-weight: bold; text-decoration: none; }
   a.back:hover { text-decoration: underline; }
+  .video-box {
+    border: 1px solid #ddd; border-top: 3px solid var(--accent);
+    border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0 2rem;
+    background: #fafbfc;
+  }
+  .video-box h3 { color: var(--brand-dark); font-size: 1.05rem; margin: 0 0 0.5rem; }
+  .video-box video { width: 100%; border-radius: 6px; background: #000; display: block; }
+  .video-box p { font-size: 0.88rem; color: #666; margin: 0.6rem 0 0; }
   footer { text-align: center; font-size: 0.8rem; color: #888; margin: 2.5rem 0 1rem; }
   code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; }
 </style>
@@ -53,6 +61,16 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   (Name, Straße/Ort/Niederlassung, Fahrer/Monteur, Bundesland) - alles darin lässt sich später in den
   Einstellungen jederzeit ändern. Nach dem letzten Schritt öffnen sich automatisch die Einstellungen,
   um das Dokument gleich fertigzustellen (z.B. E-Mail-Adresse des Arbeitgebers, Pauschalen, Standard-Zeiten).
+</div>
+
+<div class="video-box">
+  <h3>🎬 Video-Anleitung (ca. 8 Min.)</h3>
+  <video controls preload="none" poster="anleitung-bilder/toolbar.png" src="Anleitung-Video.mp4">
+    Ihr Browser kann dieses Video nicht abspielen &ndash; die schriftliche Anleitung unten
+    zeigt aber jeden Schritt einzeln.
+  </video>
+  <p>Zeigt den kompletten Ablauf einmal von vorne bis hinten &ndash; mit gesprochener
+  Erkl&auml;rung. Wer lieber liest, findet darunter jeden Schritt einzeln mit Bild.</p>
 </div>
 
 <h2>1. Werkzeugleiste</h2>
