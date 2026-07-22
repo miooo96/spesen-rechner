@@ -208,12 +208,21 @@
   }
 
   footer { text-align: center; font-size: 0.75rem; color: #888; margin-top: 2rem; }
+  .abgabe-hinweis {
+    background: #FDE9DC; border: 1px solid var(--accent); border-left: 4px solid var(--accent);
+    color: var(--brand-dark); border-radius: 8px; padding: 10px 16px; margin: 0 0 12px;
+    font-size: 0.95rem;
+  }
 
   @media print {
     @page { size: A4 portrait; margin: 8mm; }
     body { background: #fff; padding: 0; margin: 0; font-size: 0.7rem; }
     .no-print { display: none !important; }
     .panel { display: none !important; }
+    /* Status-Spalte gehoert nicht auf das offizielle Spesenblatt (Kundenwunsch). */
+    #formular .status-col, #formular .status-cell { display: none !important; }
+    /* Warn-Hintergrund (>10,5 Std) ist ein Bildschirm-Hinweis, nicht Teil des Dokuments. */
+    #formular td.warn-hours { background: #fff !important; }
     h1 { display: none; }
     #formular-scroll { overflow-x: visible; max-width: 100%; margin: 0; }
     #formular { border: 2px solid #000; max-width: 100%; min-width: 0; font-size: 0.65rem; }
@@ -237,6 +246,8 @@
      Linie/Klick-Optik, die an ein noch bedienbares Formular erinnert. Wird nur
      kurz waehrend des Erstellens des Screenshots gesetzt (siehe downloadPDF()). */
   .pdf-export .time-picker-field { border-bottom: none !important; cursor: default !important; }
+  .pdf-export #formular .status-col, .pdf-export #formular .status-cell { display: none !important; }
+  .pdf-export #formular td.warn-hours { background: #fff !important; }
   .time-wheel-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;
     display: flex; align-items: center; justify-content: center;
@@ -565,6 +576,9 @@
   <div id="archivContent"></div>
 </div>
 
+<div class="abgabe-hinweis no-print">
+  📅 <b>Abgabe spätestens am 3. Werktag des Folgemonats!</b>
+</div>
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">
@@ -901,7 +915,7 @@ function computeDay(date, holidaysMap) {
 
   // Plausibilitaetspruefungen (rein informativ, blockieren nichts): unrealistisch
   // lange Arbeitszeit, oder ein Werktag, der komplett ohne Eingabe geblieben ist.
-  const warnLongHours = hours !== null && hours > 16;
+  const warnLongHours = hours !== null && hours > 10.5;
   const warnEmpty = wd < 5 && !isHoliday && !abfahrtStr && !ankunftStr;
 
   return {
@@ -1860,7 +1874,7 @@ function renderFormular() {
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
       const stdCellClass = e.warnLongHours ? "warn-hours" : "";
-      const stdTitle = e.warnLongHours ? ` title="Über 16 Std. - bitte Uhrzeiten prüfen"` : "";
+      const stdTitle = e.warnLongHours ? ` title="Über 10,5 Std. - bitte Uhrzeiten prüfen"` : "";
       rows.push(`
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
@@ -1903,49 +1917,49 @@ function renderFormular() {
     ${lockBanner}
     <table>
       <tr>
-        <td colspan="7" class="head-title">Niederlassung: &nbsp; ${config.niederlassung || "&mdash;"}</td>
-        <td rowspan="8" class="logo-cell"><img src="hall-logo.png" alt="Hall Tabakwaren"></td>
+        <td colspan="8" class="head-title">Niederlassung: &nbsp; ${config.niederlassung || "&mdash;"}</td>
+        <!-- Logo bewusst aus dem Spesenblatt entfernt (Kundenwunsch, "optisch wie das Original") -->
       </tr>
       <tr>
         <td colspan="2" class="bold">Spesenabrechnung Monat:</td>
         <td class="center bold">${MONTH_NAMES[monat - 1]}</td>
-        <td colspan="4">Pauschalspesen für Dienstreisen Inland</td>
+        <td colspan="5">Pauschalspesen für Dienstreisen Inland</td>
       </tr>
       <tr>
         <td colspan="2" class="bold">Jahr:</td>
         <td class="center bold">${config.jahr}</td>
         <td colspan="2">AB 1.1.2020</td>
-        <td colspan="2" class="bold center">Hinweis</td>
+        <td colspan="3" class="bold center">Hinweis</td>
       </tr>
       <tr>
         <td colspan="3" class="small">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
         <td>Wohnung/Parkplatz</td><td>= WP</td>
-        <td colspan="2" class="small bold">Es dürfen keine Fahrtkosten Wohnung/Arbeitsstätte beim Finanzamt geltend gemacht werden</td>
+        <td colspan="3" class="small bold">Es dürfen keine Fahrtkosten Wohnung/Arbeitsstätte beim Finanzamt geltend gemacht werden</td>
       </tr>
       <tr>
         <td colspan="3"></td>
         <td>Niederlassung</td><td>= NL</td>
-        <td colspan="2"></td>
+        <td colspan="3"></td>
       </tr>
       <tr>
         <td colspan="3">Name : ${config.name || ""}</td>
         <td>Dienstreise</td><td class="bold">Pauschale</td>
-        <td colspan="2"></td>
+        <td colspan="3"></td>
       </tr>
       <tr>
         <td colspan="3">Ort : ${config.ort || ""}</td>
         <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
-        <td colspan="2"></td>
+        <td colspan="3"></td>
       </tr>
       <tr>
         <td colspan="3">Straße : ${config.strasse || ""}</td>
         <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
-        <td colspan="2"></td>
+        <td colspan="3"></td>
       </tr>
       <tr>
         <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
         <th>${t('colOrte')}</th><th>${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
-        <th>${t('colStatus')}</th>
+        <th class="status-col">${t('colStatus')}</th>
       </tr>
       ${rows.join("")}
       ${config.mitarbeitertyp === "monteur" ? `
