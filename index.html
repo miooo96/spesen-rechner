@@ -345,7 +345,7 @@
 <div class="toolbar no-print">
   <div class="toolbar-group">
     <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
-    <button onclick="window.print()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
     <button class="ghost" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
   </div>
@@ -2112,7 +2112,48 @@ function setupSignaturePad() {
 
 /* ===================== Per E-Mail weiterleiten ===================== */
 /* ===================== PDF direkt speichern (ohne Druckdialog) ===================== */
+/* ArbZG-Grenze: kein Tag darf ueber 10 Std kommen. Solange ein Tag darueber
+   liegt, wird das Erzeugen des offiziellen Dokuments (PDF/Druck/E-Mail)
+   blockiert - der Nutzer muss die betroffenen Tage erst unter 10 Std bringen. */
+function printSpesen() {
+  if (!stundenLimitOk()) return;
+  window.print();
+}
+
+function tageUeber10() {
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const { entries } = computeMonth(config.jahr, monat);
+  return entries.filter(e => e.hours !== null && e.hours > 10);
+}
+
+function stundenLimitOk() {
+  const drueber = tageUeber10();
+  if (drueber.length === 0) return true;
+  const liste = drueber.map(e => {
+    const d = e.iso.split("-").reverse().join(".");
+    const std = e.hours.toFixed(2).replace(".", ",");
+    return `<li><b>${WEEKDAY_NAMES[e.wd]}, ${d}</b> - ${std} Std.</li>`;
+  }).join("");
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <h2>⛔ Speichern nicht möglich</h2>
+        <p style="font-size:0.92rem; color:#444;">Ein Arbeitstag darf <b>10 Stunden nicht überschreiten</b>.
+        Folgende${drueber.length > 1 ? " Tage liegen" : "r Tag liegt"} darüber:</p>
+        <ul style="font-size:0.92rem; color:#c0392b; margin:0 0 0.5rem 1.1rem;">${liste}</ul>
+        <p style="font-size:0.92rem; color:#444;">Bitte die Uhrzeiten so anpassen, dass der Tag
+        <b>unter 10 Stunden</b> bleibt. Erst danach lässt sich der Nachweis speichern, drucken oder versenden.</p>
+        <div class="modal-close-row">
+          <button class="primary" onclick="closeModal()">Verstanden</button>
+        </div>
+      </div>
+    </div>`;
+  return false;
+}
+
 async function downloadPDF() {
+  if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
   const el = document.getElementById("formular");
@@ -2288,6 +2329,7 @@ function sendFeedback() {
 
 /* ===================== Per E-Mail weiterleiten ===================== */
 async function sendPerEmail() {
+  if (!stundenLimitOk()) return;
   if (!config.arbeitgeberEmail) {
     alert('Bitte zuerst in den Einstellungen die E-Mail-Adresse des Arbeitgebers/der Niederlassung eintragen.');
     document.getElementById("settingsPanel").style.display = "block";
