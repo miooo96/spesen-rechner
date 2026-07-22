@@ -915,7 +915,7 @@ function computeDay(date, holidaysMap) {
 
   // Plausibilitaetspruefungen (rein informativ, blockieren nichts): unrealistisch
   // lange Arbeitszeit, oder ein Werktag, der komplett ohne Eingabe geblieben ist.
-  const warnLongHours = hours !== null && hours > 10.5;
+  const warnLongHours = hours !== null && hours > 10;
   const warnEmpty = wd < 5 && !isHoliday && !abfahrtStr && !ankunftStr;
 
   return {
@@ -1874,7 +1874,7 @@ function renderFormular() {
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
       const stdCellClass = e.warnLongHours ? "warn-hours" : "";
-      const stdTitle = e.warnLongHours ? ` title="Über 10,5 Std. - bitte Uhrzeiten prüfen"` : "";
+      const stdTitle = e.warnLongHours ? ` title="Über 10 Std. - bitte Uhrzeiten prüfen"` : "";
       rows.push(`
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
