@@ -1510,20 +1510,43 @@ function removeMitarbeiterAusAuswertung(name) {
   renderAuswertungPanel();
 }
 
-/* Vergleicht die beiden juengsten Jahre eines Mitarbeiters und formuliert
-   einen kurzen, automatisch generierten Auswertungssatz. */
+/* Durchschnitt der Krankheitstage ueber ALLE vorliegenden Jahre - vom ersten
+   bis zum aktuellsten. Wird sowohl im Auswertungssatz als auch als Linie im
+   Diagramm verwendet, damit ein einzelnes Ausreisser-Jahr nicht den Eindruck
+   bestimmt. */
+function krankDurchschnitt(jahre) {
+  const keys = Object.keys(jahre).map(Number);
+  if (!keys.length) return 0;
+  const summe = keys.reduce((s, j) => s + (jahre[j].krank || 0), 0);
+  return summe / keys.length;
+}
+
+/* Formuliert den automatisch erzeugten Auswertungssatz: aktuelles Jahr im
+   Vergleich zum Durchschnitt aller erfassten Jahre. */
 function buildTrendSatz(name, jahre) {
   const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
   if (jahrKeys.length < 2) {
-    return `Für ${name} liegt bisher nur ein Jahr vor - noch kein Trend über mehrere Jahre berechenbar.`;
+    return `Für ${name} liegt bisher nur ein Jahr vor - noch kein Durchschnitt über mehrere Jahre berechenbar.`;
   }
-  const last = jahrKeys[jahrKeys.length - 1], prev = jahrKeys[jahrKeys.length - 2];
-  const diff = jahre[last].krank - jahre[prev].krank;
-  let richtung;
-  if (diff > 0) richtung = `um ${diff} Tag(e) gestiegen`;
-  else if (diff < 0) richtung = `um ${Math.abs(diff)} Tag(e) gesunken`;
-  else richtung = "unverändert geblieben";
-  return `Krankheitstage bei ${name} sind von ${prev} (${jahre[prev].krank}) auf ${last} (${jahre[last].krank}) ${richtung}.`;
+  const first = jahrKeys[0], last = jahrKeys[jahrKeys.length - 1];
+  const aktuell = jahre[last].krank || 0;
+  const schnitt = krankDurchschnitt(jahre);
+  const schnittTxt = schnitt.toFixed(1).replace(".", ",");
+  const diff = aktuell - schnitt;
+  const diffTxt = Math.abs(diff).toFixed(1).replace(".", ",");
+
+  let bewertung;
+  if (Math.abs(diff) < 0.05) {
+    bewertung = `genau im Durchschnitt`;
+  } else if (diff > 0) {
+    bewertung = `${diffTxt} Tag(e) über dem Durchschnitt`;
+  } else {
+    bewertung = `${diffTxt} Tag(e) unter dem Durchschnitt`;
+  }
+
+  return `Krankheitstage bei ${name}: ${aktuell} im Jahr ${last}. `
+    + `Durchschnitt ${first}-${last} (${jahrKeys.length} Jahre): ${schnittTxt} Tage. `
+    + `Das aktuelle Jahr liegt damit ${bewertung}.`;
 }
 
 /* Kleines, abhaengigkeitsfreies SVG-Balkendiagramm - generische Variante des
@@ -1544,7 +1567,23 @@ function buildTrendBarChart(jahre) {
       <text x="${x + barWidth / 2}" y="${chartHeight - 4}" font-size="9" text-anchor="middle" fill="#666">${jahr}</text>
     `;
   }).join("");
-  return `<svg width="${width}" height="${chartHeight}" viewBox="0 0 ${width} ${chartHeight}" style="max-width:100%; display:block;">${bars}</svg>`;
+
+  // Durchschnittslinie ueber alle Jahre - macht auf einen Blick sichtbar,
+  // welche Jahre darueber und welche darunter liegen.
+  let schnittLinie = "";
+  if (jahrKeys.length >= 2) {
+    const schnitt = krankDurchschnitt(jahre);
+    const hS = Math.round((schnitt / maxVal) * (chartHeight - 34));
+    const yS = chartHeight - hS - 18;
+    const label = schnitt.toFixed(1).replace(".", ",");
+    schnittLinie = `
+      <line x1="${leftPad - 4}" y1="${yS}" x2="${width - 4}" y2="${yS}"
+            stroke="#370F06" stroke-width="1.5" stroke-dasharray="5 4"></line>
+      <text x="${width - 4}" y="${yS - 4}" font-size="9" text-anchor="end"
+            fill="#370F06">&#216; ${label}</text>
+    `;
+  }
+  return `<svg width="${width}" height="${chartHeight}" viewBox="0 0 ${width} ${chartHeight}" style="max-width:100%; display:block;">${bars}${schnittLinie}</svg>`;
 }
 
 function renderAuswertungPanel() {
