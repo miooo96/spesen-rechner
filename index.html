@@ -1254,13 +1254,52 @@ function submitMonth(jahr, monat) {
 function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
-  if (!confirm("Diesen Monat als eingereicht markieren und die Bearbeitung sperren?")) return;
+  if (!confirm("Diesen Monat abschließen und sperren?\n\nDanach lässt sich der Monat NICHT mehr bearbeiten. Ein erneutes Öffnen ist nur mit PIN möglich.")) return;
   submitMonth(config.jahr, monat);
 }
 
 function reopenMonth(jahr, monat) {
-  if (!confirm("Diesen Monat wieder zur Bearbeitung öffnen?")) return;
+  // Wieder-Oeffnen nur mit PIN (nutzt dieselbe PIN wie der Chef-/Auswertungsbereich).
+  // So laesst sich ein abgeschlossener Monat nicht mehr mit einem Klick aendern.
+  const hasPin = localStorage.getItem(AUSWERTUNG_PIN_KEY) !== null;
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box" style="max-width:360px; text-align:center;">
+        <h2>🔒 Monat wieder öffnen</h2>
+        <p style="font-size:0.9rem; color:#444;">Dieser Monat ist abgeschlossen. Zum erneuten Bearbeiten
+          ${hasPin ? "bitte die PIN eingeben:" : "zuerst einen 4-stelligen PIN festlegen (schützt künftig das Wieder-Öffnen):"}</p>
+        <input id="reopenPinInput" class="auswertung-pin-input" type="password" inputmode="numeric" maxlength="4"
+          pattern="[0-9]*" autocomplete="off">
+        <p id="reopenPinError" style="color:#c0392b; font-size:0.85rem; min-height:1.2em;"></p>
+        <div class="modal-close-row" style="justify-content:center; gap:8px;">
+          <button onclick="closeModal()">Abbrechen</button>
+          <button class="primary" onclick="submitReopenPin(${jahr}, ${monat}, ${!hasPin})">${hasPin ? "Entsperren" : "PIN festlegen & öffnen"}</button>
+        </div>
+      </div>
+    </div>`;
+  const input = document.getElementById("reopenPinInput");
+  input.focus();
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") submitReopenPin(jahr, monat, !hasPin); });
+}
+
+async function submitReopenPin(jahr, monat, isSetup) {
+  const val = document.getElementById("reopenPinInput").value;
+  if (!/^\d{4}$/.test(val)) {
+    document.getElementById("reopenPinError").textContent = "Bitte genau 4 Ziffern eingeben.";
+    return;
+  }
+  const hash = await sha256Hex(val);
+  if (isSetup) {
+    localStorage.setItem(AUSWERTUNG_PIN_KEY, hash);
+  } else if (hash !== localStorage.getItem(AUSWERTUNG_PIN_KEY)) {
+    document.getElementById("reopenPinError").textContent = "Falscher PIN.";
+    document.getElementById("reopenPinInput").value = "";
+    document.getElementById("reopenPinInput").focus();
+    return;
+  }
   localStorage.removeItem(monthSubmittedKey(jahr, monat));
+  closeModal();
   renderFormular();
 }
 
