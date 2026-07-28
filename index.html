@@ -479,6 +479,19 @@
     </div>
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen (30 Minuten Pause werden dabei automatisch abgezogen). Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
+
+  <div class="settings-card" style="border:1px solid var(--accent); background:#FDE9DC;">
+    <h3>✨ Zeiten automatisch variieren</h3>
+    <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;">
+      <input type="checkbox" id="cfgZeitenVariieren" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();">
+      Aktivieren – nicht jeden Tag exakt dieselben Zeiten
+    </label>
+    <p class="hinweis-text">Erzeugt beim automatischen Ausfüllen für jeden Wochentag leicht <b>unterschiedliche, realistische</b> Zeiten
+      bei Abfahrt WP / Ankunft WP – die Tagesstunden liegen dabei immer <b>über 8,5</b> und <b>nie über 10</b> (gelegentlich bis 10),
+      statt jeden Tag exakt dieselben „glatten" Werte. Freitags tendenziell etwas kürzer, wie im echten Alltag.
+      Jeder Tag lässt sich weiterhin von Hand überschreiben. <b>Bitte prüfen, dass die Zeiten zu Ihrem tatsächlichen Arbeitstag passen.</b></p>
+  </div>
+
   <div class="settings-card neutral">
     <h3 data-i18n="zeitraum">📅 Zeitraum &amp; Feiertage</h3>
     <div class="grid">
@@ -744,6 +757,7 @@ const DEFAULT_CONFIG = {
   orteDefault: "lt. Tourenplan",
   nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
   samstagAktiv: false,
+  zeitenVariieren: false,
   lang: "de",
 };
 
@@ -785,6 +799,7 @@ function saveConfig() {
   config.orteDefault = val("cfgOrte");
   config.nlAktiv = document.getElementById("cfgNlAktiv").checked;
   config.samstagAktiv = document.getElementById("cfgSamstagAktiv").checked;
+  config.zeitenVariieren = document.getElementById("cfgZeitenVariieren").checked;
   const nlTagVal = val("cfgNlTag");
   config.nlTag = nlTagVal === "alle" ? "alle" : parseInt(nlTagVal);
   config.nlVon = val("cfgNlVon");
@@ -884,6 +899,32 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
+/* ===================== Zeiten automatisch variieren =====================
+   Erzeugt pro Wochentag leicht unterschiedliche, realistische Zeiten - immer
+   deterministisch aus dem Datum (gleiches Datum => gleiche Zeiten, aendern sich
+   nicht bei jedem Neu-Rendern), aber jeder Tag anders. Angezeigte Tagesstunden
+   liegen strikt ueber 8,5 und nie ueber 10 (gelegentlich bis 10). */
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function mulberry32(a){ return function(){ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function minToTime(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+":"+pad(m%60); }
+function deround(m, r){ const mm=((Math.round(m)%60)+60)%60; if(mm===0||mm===30) m += (r<0.5?-1:1)*(2+Math.floor(r*4)); return Math.round(m); }
+function variedTimes(iso, startDefault, isMonteur, wd){
+  const rnd = mulberry32(hashStr(iso + "|" + (startDefault || "06:00")));
+  let H;
+  if (wd === 4)            H = 8.55 + rnd()*0.75;   // Freitag: tendenziell kuerzer (8,55-9,30)
+  else if (rnd() < 0.14)   H = 9.70 + rnd()*0.30;   // ~14% der Tage nahe an 10
+  else                     H = 8.70 + rnd()*1.00;   // sonst 8,70-9,70
+  if (H > 10) H = 10; if (H <= 8.5) H = 8.55;
+  const base = timeToMinutes(startDefault || "06:00");
+  let dep = base + Math.round(rnd()*12 - 6);                 // Abfahrt +/- 6 Minuten
+  let arr = dep + (isMonteur ? H + 0.5 : H) * 60;            // Monteur: 30 Min Pause wird abgezogen
+  dep = deround(dep, rnd()); arr = deround(arr, rnd());      // "nicht glatt": weg von :00 / :30
+  let disp = (arr - dep) / 60 - (isMonteur ? 0.5 : 0);       // angezeigte Stunden
+  if (disp > 10)   arr -= Math.round((disp - 10) * 60);
+  if (disp <= 8.5) arr += Math.round((8.56 - disp) * 60);
+  return { abfahrt: minToTime(dep), ankunft: minToTime(arr) };
+}
 function minutesToTime(m) {
   const h = Math.floor(m / 60) % 24, mm = m % 60;
   return pad(h) + ":" + pad(mm);
@@ -935,8 +976,16 @@ function computeDay(date, holidaysMap) {
   // sich automatisch, sobald beide Zeiten da sind. An Wochenenden gelten die
   // globalen Standardzeiten nie automatisch (auch nicht am fixen NL-Samstag) -
   // sonst wuerde daraus ungewollt ein kompletter Arbeitstag.
-  const abfahrtStr = ov[startKey] || (wd >= 5 ? "" : startDefault) || "";
-  const ankunftStr = ov[endKey] || (wd >= 5 ? "" : endDefault) || "";
+  let abfahrtStr, ankunftStr;
+  const hasStartOv = ov[startKey] && ov[startKey] !== "";
+  const hasEndOv = ov[endKey] && ov[endKey] !== "";
+  if (config.zeitenVariieren && wd < 5 && !hasStartOv && !hasEndOv && !isHoliday) {
+    const v = variedTimes(iso, startDefault, isMonteur, wd);
+    abfahrtStr = v.abfahrt; ankunftStr = v.ankunft;
+  } else {
+    abfahrtStr = ov[startKey] || (wd >= 5 ? "" : startDefault) || "";
+    ankunftStr = ov[endKey] || (wd >= 5 ? "" : endDefault) || "";
+  }
   let hours = null, pauschale = 0, pauseAbgezogen = false;
   if (abfahrtStr && ankunftStr) {
     let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
@@ -1032,6 +1081,7 @@ function initSettingsUI() {
   document.getElementById("cfgOrte").value = config.orteDefault;
   document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
   document.getElementById("cfgSamstagAktiv").checked = config.samstagAktiv;
+  document.getElementById("cfgZeitenVariieren").checked = config.zeitenVariieren;
   document.getElementById("cfgNlVon").value = config.nlVon;
   document.getElementById("cfgNlBis").value = config.nlBis;
   ["cfgAbfahrtDefault", "cfgAnkunftDefault", "cfgArbeitsbeginnDefault", "cfgArbeitsendeDefault", "cfgNlVon", "cfgNlBis"]
@@ -1087,7 +1137,7 @@ function maybeShowSetupWizard() {
           <label>Ort</label>
           <input id="wizOrt" placeholder="Musterstadt" style="margin-bottom:0.75rem;">
           <label>Niederlassung</label>
-          <input id="wizNiederlassung" placeholder="z.B. Buseck">
+          <input id="wizNiederlassung" placeholder="z.B. Lollar">
         </div>
         <div class="wizard-step" data-step="3">
           <label>Sie arbeiten als...</label>
