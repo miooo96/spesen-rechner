@@ -2435,13 +2435,18 @@ async function previewPDF() {
             <button onclick="closePdfPreview()">Schließen</button>
           </div>
         </div>
+        <div style="background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; padding:7px 12px; margin-bottom:8px; font-size:0.85rem; color:var(--brand-dark);">
+          ✍️ <b>Nicht vergessen:</b> Der ausgedruckte Nachweis muss noch mit einer echten, handschriftlichen Unterschrift des Mitarbeiters versehen werden.
+        </div>
         <iframe class="pdf-preview-frame" src="${__pdfPreviewUrl}"></iframe>
       </div>
     </div>`;
 }
 
 function savePdfFromPreview() {
-  if (__pdfPreview) __pdfPreview.pdf.save(__pdfPreview.filename);
+  if (!__pdfPreview) return;
+  if (!unterschriftHinweisOk()) return;
+  __pdfPreview.pdf.save(__pdfPreview.filename);
 }
 
 function closePdfPreview() {
