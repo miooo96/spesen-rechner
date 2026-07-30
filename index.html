@@ -269,6 +269,7 @@
      kurz waehrend des Erstellens des Screenshots gesetzt (siehe downloadPDF()). */
   .pdf-export .time-picker-field { border-bottom: none !important; cursor: default !important; }
   .pdf-export #formular .status-col, .pdf-export #formular .status-cell { display: none !important; }
+  .pdf-export #formular .no-print { display: none !important; }
   .pdf-export #formular td.warn-hours { background: #fff !important; }
   .pdf-export #formular .orte-input { display: none !important; }
   .pdf-export #formular .orte-print { display: block !important; white-space: normal; word-break: break-word; }
@@ -1025,7 +1026,7 @@ function computeDay(date, holidaysMap) {
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
     startField: startKey, endField: endKey,
     nl,
-    orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
+    orte: ov.orte !== undefined ? ov.orte : (isMonteur ? "" : config.orteDefault),
     notiz: ov.notiz || "",
     warnLongHours, warnEmpty,
   };
@@ -2021,7 +2022,7 @@ function liveUpdate(iso, field, value) {
   const e = computeDay(new Date(iso), holidaysMap);
   const stundenEl = document.getElementById("std-cell-" + iso);
   const pauschaleEl = document.getElementById("pauschale-cell-" + iso);
-  if (stundenEl) stundenEl.textContent = (e && e.hours !== null) ? e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? "*" : "") : "";
+  if (stundenEl) stundenEl.innerHTML = (e && e.hours !== null) ? e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? '<span class="no-print">*</span>' : "") : "";
   if (pauschaleEl) pauschaleEl.textContent = (e && e.pauschale > 0) ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
 
   recomputeSummary(monat);
@@ -2068,7 +2069,7 @@ function renderFormular() {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     if (e.status === "normal") {
-      const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
+      const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? '<span class="no-print">*</span>' : "");
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
       const stdCellClass = e.warnLongHours ? "warn-hours" : "";
@@ -2162,9 +2163,9 @@ function renderFormular() {
       </tr>
       ${rows.join("")}
       ${config.mitarbeitertyp === "monteur" ? `
-      <tr>
-        <td colspan="8" class="small" style="color:#666;">* Std. bereits abzüglich 30 Minuten Pause</td>
-        <td class="no-print"></td>
+      <tr class="no-print">
+        <td colspan="8" class="small" style="color:#666;">* Std. bereits abzüglich 30 Minuten Pause (nur am Bildschirm, nicht im PDF)</td>
+        <td></td>
       </tr>` : ""}
       <tr class="gesamt-row">
         <td colspan="6"></td><td class="bold">Gesamtpauschale</td>
