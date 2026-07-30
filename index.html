@@ -465,15 +465,15 @@
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen. Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
   <div class="settings-card" id="monteurZeitenGroup" style="display:none;">
-    <h3>⏰ Standard-Zeiten Arbeitsbeginn / Arbeitsende</h3>
+    <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
     <div class="grid">
       <div>
-        <label>Arbeitsbeginn (Standard)</label>
+        <label>Abfahrt WP (Standard)</label>
         <input id="cfgArbeitsbeginnDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
         <span class="time-picker-field empty" data-target="cfgArbeitsbeginnDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
       <div>
-        <label>Arbeitsende (Standard)</label>
+        <label>Ankunft WP (Standard)</label>
         <input id="cfgArbeitsendeDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
         <span class="time-picker-field empty" data-target="cfgArbeitsendeDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
@@ -2043,8 +2043,8 @@ function renderFormular() {
   const bezahltRaw = localStorage.getItem(bezahltKey);
   const bezahlt = bezahltRaw !== null ? (parseFloat(bezahltRaw) || 0) : config.bezahltDefault;
   const rest = total + bezahlt;
-  const startLabel = config.mitarbeitertyp === "monteur" ? t("colWorkStart") : t("colDepart");
-  const endLabel = config.mitarbeitertyp === "monteur" ? t("colWorkEnd") : t("colArrive");
+  const startLabel = t("colDepart");
+  const endLabel = t("colArrive");
 
   const submittedAt = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
   document.body.classList.toggle("formular-locked", !!submittedAt);
@@ -2467,8 +2467,8 @@ function exportCSV() {
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
   const { entries } = computeMonth(config.jahr, monat);
-  const startLabel = config.mitarbeitertyp === "monteur" ? t("colWorkStart") : t("colDepart");
-  const endLabel = config.mitarbeitertyp === "monteur" ? t("colWorkEnd") : t("colArrive");
+  const startLabel = t("colDepart");
+  const endLabel = t("colArrive");
   const header = [t("colTag"), t("colDatum"), startLabel, t("colNl"), t("colOrte"), endLabel, t("colStd"), t("colPauschale"), t("colStatus")];
   const lines = [header.map(csvEscape).join(";")];
   for (const e of entries) {
