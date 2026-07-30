@@ -2159,6 +2159,10 @@ function renderFormular() {
         <td></td><td></td>
       </tr>
       <tr>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
         <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
         <th class="orte-col">${t('colOrte')}</th><th>${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
         <th class="status-col">${t('colStatus')}</th>
@@ -2169,18 +2173,19 @@ function renderFormular() {
         <td></td>
       </tr>
       <tr class="gesamt-row">
-        <td colspan="6"></td><td class="bold">Gesamtpauschale</td>
+        <td colspan="4"></td>
+        <td colspan="3" class="bold">Gesamtpauschale</td>
         <td class="pauschale-cell bold" id="gesamtpauschale-value">${total.toFixed(2).replace(".", ",")} €</td>
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="2" rowspan="2" class="signature-cell">
+        <td colspan="4" rowspan="2" class="signature-cell">
           <canvas id="signatureCanvas" width="260" height="60"></canvas>
           <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvas','spesen_signature')" title="Unterschrift löschen">✕</button>
           <div class="small">Unterschrift Mitarbeiter</div>
           <div class="small" id="sigTs-spesen_signature" style="color:#888;"></div>
         </td>
-        <td colspan="4">über Gehaltsabrechnung bezahlt</td>
+        <td colspan="3">über Gehaltsabrechnung bezahlt</td>
         <td class="pauschale-cell bezahlt-cell">
           <span class="bezahlt-edit"><input class="cell-input" style="text-align:right;" type="number" step="0.5" value="${bezahlt}"
             oninput="liveUpdateBezahlt('${bezahltKey}', this.value)"
@@ -2189,22 +2194,27 @@ function renderFormular() {
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="4">Resterstattung LST-Jahresausgleich</td>
+        <td colspan="3">Resterstattung LST- Jahresausgleich</td>
         <td class="pauschale-cell bold" id="resterstattung-value">${rest.toFixed(2).replace(".", ",")} €</td>
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="2" rowspan="2" class="signature-cell">
+        <td colspan="4" rowspan="2" class="signature-cell">
           <canvas id="signatureCanvasNLL" width="260" height="60"></canvas>
           <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvasNLL','spesen_signature_nll')" title="Unterschrift löschen">✕</button>
           <div class="small">Unterschrift NLL</div>
           <div class="small" id="sigTs-spesen_signature_nll" style="color:#888;"></div>
         </td>
-        <td colspan="5" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL und ist 5 Jahre aufzubewahren.</td>
+        <td colspan="4" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL</td>
         <td class="no-print"></td>
       </tr>
       <tr>
-        <td colspan="5" style="text-align:right; font-size:0.7rem; color:#333; padding-right:6px;">02.01.2019 Hs</td>
+        <td colspan="4" class="center small">und ist 5 Jahre aufzubewahren.</td>
+        <td class="no-print"></td>
+      </tr>
+      <tr>
+        <td colspan="6"></td>
+        <td colspan="2" style="text-align:right; font-size:0.7rem; color:#333; padding-right:6px;">02.01.2019 Hs</td>
         <td class="no-print"></td>
       </tr>
     </table>
