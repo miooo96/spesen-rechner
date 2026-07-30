@@ -102,10 +102,11 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 <div class="step">
   <p>Auf <b>⚙️ Einstellungen</b> klicken. Ganz oben zuerst den <b>Mitarbeitertyp</b> wählen:</p>
   <ul>
-    <li><b>Fahrer</b> – trägt „Abfahrt WP" / „Ankunft WP" ein (Fahrten von/nach Hause)</li>
-    <li><b>Monteur</b> – trägt stattdessen „Arbeitsbeginn" / „Arbeitsende" ein; die „Anwesenheit NL" wird automatisch
-        aus dieser Zeitspanne übernommen, und 30 Minuten Pause werden automatisch abgezogen (mit „*" markiert)</li>
+    <li><b>Fahrer</b> – trägt „Abfahrt WP" / „Ankunft WP" ein (Fahrten von/nach Hause); „besuchte Orte" steht standardmäßig auf „lt. Tourenplan"</li>
+    <li><b>Monteur</b> – trägt stattdessen „Arbeitsbeginn" / „Arbeitsende" ein; „besuchte Orte" bleibt leer (ohne Tourenplan)</li>
   </ul>
+  <div class="hinweis"><b>30 Minuten Pause:</b> Werden bei <b>Fahrern und Monteuren</b> automatisch von den Tagesstunden abgezogen.
+    Am Bildschirm ist das mit „*" markiert – auf dem gedruckten/gespeicherten PDF erscheint das „*" bewusst nicht.</div>
   <p>Danach Name, Straße, Ort, Niederlassung und – falls gewünscht – die E-Mail-Adresse des Arbeitgebers eintragen
      (nur nötig für den „Per E-Mail weiterleiten"-Button). Bundesland auswählen, damit Feiertage automatisch stimmen.</p>
   <img src="anleitung-bilder/einstellungen.png" alt="Einstellungen ausgefüllt">
@@ -176,12 +177,13 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <img src="anleitung-bilder/nl-anwesenheit.png" alt="Anwesenheit in der Niederlassung einstellen">
   <ul>
     <li><b>Aktiv an einem festen Wochentag</b> – Häkchen setzen, um die automatische Eintragung zu aktivieren</li>
-    <li><b>Wochentag</b> – Montag bis Samstag wählbar (Samstag für die seltenen Fälle, in denen die NL-Anwesenheit
-        auf einen Samstag fällt; Sonntag ist bewusst nicht dabei)</li>
+    <li><b>Wochentag</b> – Montag bis Samstag einzeln oder <b>„Alle Wochentage (Mo–Fr)"</b> wählbar
+        (Samstag für seltene Fälle; Sonntag ist bewusst nicht dabei)</li>
     <li><b>Von / Bis</b> – die Uhrzeit der Anwesenheit, per Dreh-Rad einstellbar (siehe Schritt 3)</li>
   </ul>
-  <div class="hinweis">Diese Einstellung ist nur für <b>Fahrer</b> relevant. Bei <b>Monteuren</b> übernimmt die
-    Spalte „Anwesenheit NL" automatisch die tägliche Arbeitszeit - hier ist dann nichts einzustellen.</div>
+  <div class="hinweis">Diese Einstellung gilt für <b>Fahrer und Monteure</b>. Wer Mo–Fr in der Niederlassung ist
+    (z.B. Monteure): Häkchen setzen, Wochentag <b>„Alle Wochentage (Mo–Fr)"</b> wählen und Von/Bis eintragen –
+    dann wird „Anwesenheit in NL" an jedem Werktag automatisch ausgefüllt.</div>
 </div>
 
 <h2>Extra: Samstag hinzufügen (optional)</h2>
@@ -227,6 +229,9 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
      jeden Monat neu unterschreiben. Über das kleine <b>✕</b> oben rechts im Feld lässt sie sich löschen und neu zeichnen.</p>
   <div class="hinweis">Unter jeder Unterschrift erscheint automatisch „unterschrieben am TT.MM.JJJJ um HH:MM" -
     das gibt der Unterschrift echten Beweischarakter und wird auch mit ins PDF übernommen.</div>
+  <div class="hinweis">✍️ <b>Wichtig – echte Unterschrift:</b> Vor dem <b>Speichern, Drucken oder E-Mail-Versand</b> erscheint jedes Mal
+    ein Hinweis, dass der <b>ausgedruckte</b> Spesennachweis noch mit einer <b>echten, handschriftlichen Unterschrift des
+    Mitarbeiters</b> versehen werden muss. Das gilt für Fahrer und Monteure gleichermaßen.</div>
 </div>
 
 <h2>8. Jahresübersicht</h2>

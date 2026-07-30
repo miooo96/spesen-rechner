@@ -563,7 +563,7 @@
         <span class="time-picker-field empty" data-target="cfgNlBis" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
     </div>
-    <p class="hinweis-text">💡 Nur für Fahrer relevant: trägt an einem festen Wochentag (z.B. jeden Montag) automatisch eine Anwesenheitszeit in der Niederlassung ein. Bei Monteuren übernimmt diese Spalte automatisch die tägliche Arbeitszeit - hier ist dann nichts einzustellen.</p>
+    <p class="hinweis-text">💡 Für Fahrer <b>und</b> Monteure: trägt an den gewählten Wochentagen automatisch die Anwesenheitszeit in der Niederlassung ein. Wer Mo–Fr in der NL ist (z.B. Monteure): Häkchen setzen, Wochentag „Alle Wochentage (Mo–Fr)" wählen und Von/Bis eintragen – dann wird „Anwesenheit in NL" jeden Werktag ausgefüllt.</p>
   </div>
 
   <div class="settings-card">
@@ -901,6 +901,16 @@ function escapeHtml(s) {
 }
 function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
 
+// Stammdaten-Zeile (Name/Ort/Straße) mit gepunkteter Ausfülllinie - 1:1 wie der
+// Original-Vordruck: der Wert steht auf einer durchgehenden Punktlinie bis zum Rand.
+function stammLine(label, value, last) {
+  return `<div style="display:flex; align-items:flex-end; ${last ? "" : "margin-bottom:30px;"}">
+    <span style="min-width:48px; white-space:nowrap;">${escapeHtml(label)}</span>
+    <span style="padding:0 3px;">:</span>
+    <span style="flex:1; border-bottom:1px dotted #333; padding-left:5px; line-height:1.15;">${escapeHtml(value || "")}</span>
+  </div>`;
+}
+
 /* ===================== Zeiten automatisch variieren =====================
    Erzeugt pro Wochentag leicht unterschiedliche, realistische Zeiten - immer
    deterministisch aus dem Datum (gleiches Datum => gleiche Zeiten, aendern sich
@@ -919,9 +929,9 @@ function variedTimes(iso, startDefault, isMonteur, wd){
   if (H > 10) H = 10; if (H <= 8.5) H = 8.55;
   const base = timeToMinutes(startDefault || "06:00");
   let dep = base + Math.round(rnd()*12 - 6);                 // Abfahrt +/- 6 Minuten
-  let arr = dep + (isMonteur ? H + 0.5 : H) * 60;            // Monteur: 30 Min Pause wird abgezogen
+  let arr = dep + (H + 0.5) * 60;                            // 30 Min Pause immer eingerechnet (Fahrer & Monteur)
   dep = deround(dep, rnd()); arr = deround(arr, rnd());      // "nicht glatt": weg von :00 / :30
-  let disp = (arr - dep) / 60 - (isMonteur ? 0.5 : 0);       // angezeigte Stunden
+  let disp = (arr - dep) / 60 - 0.5;                         // angezeigte Stunden (nach Pausenabzug)
   if (disp > 10)   arr -= Math.round((disp - 10) * 60);
   if (disp <= 8.5) arr += Math.round((8.56 - disp) * 60);
   return { abfahrt: minToTime(dep), ankunft: minToTime(arr) };
@@ -992,29 +1002,21 @@ function computeDay(date, holidaysMap) {
     let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
     if (diffMin < 0) diffMin += 24 * 60; // Ende liegt nach Mitternacht
     let rawHours = diffMin / 60;
-    // Monteure: 30 Minuten Pause werden von der Arbeitszeit abgezogen
-    // (sichtbar per "*"-Markierung + Fussnote im Formular).
-    if (isMonteur) {
-      rawHours = Math.max(0, rawHours - 0.5);
-      pauseAbgezogen = true;
-    }
+    // 30 Minuten Pause werden bei Fahrern UND Monteuren automatisch abgezogen
+    // (nur am Bildschirm per "*" markiert, nicht im PDF).
+    rawHours = Math.max(0, rawHours - 0.5);
+    pauseAbgezogen = true;
     hours = Math.round(rawHours * 100) / 100;
     if (hours > 24) pauschale = config.pauschale24;
     else if (hours > 8) pauschale = config.pauschale8;
   }
 
-  // Anwesenheit in NL: bei Monteuren die tatsaechliche taegliche Arbeitszeit-
-  // Spanne (sie sind ja waehrenddessen durchgehend in der NL) statt eines
-  // festen Zeitfensters - ersetzt fuer Monteure die Von/Bis-NL-Einstellung.
-  let nl;
-  if (isMonteur) {
-    nl = ov.nl !== undefined ? ov.nl : ((abfahrtStr && ankunftStr) ? (abfahrtStr + "-" + ankunftStr) : "");
-  } else {
-    const nlMatchesTag = config.nlTag === "alle" ? wd < 5 : wd === config.nlTag;
-    const nlDefault = config.nlAktiv && nlMatchesTag && !isHoliday;
-    const nlOn = ov.nl !== undefined ? ov.nl : nlDefault;
-    nl = nlOn ? (config.nlVon + "-" + config.nlBis) : "";
-  }
+  // Anwesenheit in NL: fuer Fahrer UND Monteure ueber die NL-Einstellung
+  // (aktiv an festem Wochentag, "alle" = Montag bis Freitag) mit den Von/Bis-Zeiten.
+  const nlMatchesTag = config.nlTag === "alle" ? wd < 5 : wd === config.nlTag;
+  const nlDefault = config.nlAktiv && nlMatchesTag && !isHoliday;
+  const nlOn = ov.nl !== undefined ? ov.nl : nlDefault;
+  const nl = nlOn ? (config.nlVon + "-" + config.nlBis) : "";
 
   // Plausibilitaetspruefungen (rein informativ, blockieren nichts): unrealistisch
   // lange Arbeitszeit, oder ein Werktag, der komplett ohne Eingabe geblieben ist.
@@ -1333,12 +1335,12 @@ async function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
-  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
+  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\n✍️ Bitte den ausgedruckten Nachweis noch mit einer echten, handschriftlichen Unterschrift des Mitarbeiters versehen.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
   submitMonth(config.jahr, monat);
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
   try {
-    await downloadPDF();
+    await downloadPDF(true);
   } catch (e) {
     console.error("PDF-Ablage beim Monatsabschluss fehlgeschlagen:", e);
     alert("Der Monat wurde abgeschlossen, aber die PDF konnte nicht automatisch gespeichert werden.\nBitte einmal manuell über \"💾 Als PDF speichern\" ablegen.");
@@ -2141,7 +2143,7 @@ function renderFormular() {
         <td>Niederlassung</td><td>= NL</td>
       </tr>
       <tr>
-        <td colspan="4" rowspan="5" class="stammdaten-cell">Name&nbsp;&nbsp;&nbsp;&nbsp;: ${config.name || ""}<br><br><br>Ort&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${config.ort || ""}<br><br><br>Straße&nbsp;: ${config.strasse || ""}</td>
+        <td colspan="4" rowspan="5" class="stammdaten-cell">${stammLine("Name", config.name)}${stammLine("Ort", config.ort)}${stammLine("Straße", config.strasse, true)}</td>
         <td>Dienstreise</td><td class="bold">Pauschale</td>
       </tr>
       <tr>
@@ -2162,11 +2164,10 @@ function renderFormular() {
         <th class="status-col">${t('colStatus')}</th>
       </tr>
       ${rows.join("")}
-      ${config.mitarbeitertyp === "monteur" ? `
       <tr class="no-print">
         <td colspan="8" class="small" style="color:#666;">* Std. bereits abzüglich 30 Minuten Pause (nur am Bildschirm, nicht im PDF)</td>
         <td></td>
-      </tr>` : ""}
+      </tr>
       <tr class="gesamt-row">
         <td colspan="6"></td><td class="bold">Gesamtpauschale</td>
         <td class="pauschale-cell bold" id="gesamtpauschale-value">${total.toFixed(2).replace(".", ",")} €</td>
@@ -2315,8 +2316,20 @@ function setupSignaturePad() {
 /* ArbZG-Grenze: kein Tag darf ueber 10 Std kommen. Solange ein Tag darueber
    liegt, wird das Erzeugen des offiziellen Dokuments (PDF/Druck/E-Mail)
    blockiert - der Nutzer muss die betroffenen Tage erst unter 10 Std bringen. */
+// Erinnerung vor dem Erstellen des offiziellen Nachweises: der Ausdruck braucht
+// eine echte, handschriftliche Unterschrift des Mitarbeiters. Rueckgabe false = Abbruch.
+function unterschriftHinweisOk() {
+  return confirm(
+    "✍️ Bitte nicht vergessen:\n\n" +
+    "Der ausgedruckte Spesennachweis muss noch mit einer echten, handschriftlichen " +
+    "Unterschrift des Mitarbeiters versehen werden.\n\n" +
+    "Jetzt fortfahren?"
+  );
+}
+
 function printSpesen() {
   if (!stundenLimitOk()) return;
+  if (!unterschriftHinweisOk()) return;
   window.print();
 }
 
@@ -2396,7 +2409,8 @@ async function buildPdf() {
 }
 
 // Direkt speichern (wie bisher) - auch von E-Mail-Versand/Abschluss genutzt.
-async function downloadPDF() {
+async function downloadPDF(internal) {
+  if (!internal && !unterschriftHinweisOk()) return;
   const r = await buildPdf();
   if (!r) return;
   r.pdf.save(r.filename);
@@ -2581,7 +2595,8 @@ async function sendPerEmail() {
     `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
     `Viele Grüße\n${config.name || ""}`;
 
-  const filename = await downloadPDF();
+  if (!unterschriftHinweisOk()) return;
+  const filename = await downloadPDF(true);
   submitMonth(config.jahr, monat); // Monat gilt ab Versand als eingereicht und wird gesperrt
   alert(`PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen. Der Monat wurde als eingereicht markiert und gesperrt (über "🔓 Wieder öffnen" bei Bedarf änderbar).`);
   window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
