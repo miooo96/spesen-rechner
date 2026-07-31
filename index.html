@@ -207,9 +207,10 @@
   .bezahlt-cell input { width: 70px; display: inline-block; color: #c0392b; font-weight: bold; }
   .logo-cell { text-align: center; vertical-align: middle !important; padding: 4px !important; }
   .logo-cell img { max-width: 100%; max-height: 90px; object-fit: contain; }
-  .signature-cell { position: relative; text-align: center; vertical-align: bottom !important; padding: 2px !important; }
+  .signature-cell { position: relative; text-align: left; vertical-align: top !important; padding: 4px 6px !important; }
+  .signature-cell .sig-label { font-weight: normal; line-height: 1.25; margin-bottom: 2px; }
   .signature-cell canvas {
-    display: block; margin: 0 auto; width: 100%; max-width: 260px; height: 60px;
+    display: block; margin: 2px 0 0; width: 100%; max-width: 300px; height: 52px;
     border-bottom: 1px solid var(--border); cursor: crosshair; touch-action: none;
     background: #fff;
   }
@@ -2137,7 +2138,7 @@ function renderFormular() {
       <tr>
         <td colspan="4" rowspan="2" class="bold center">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
         <td style="white-space:nowrap; font-size:0.8rem;">Wohnung/ Parkplatz</td><td>= WP</td>
-        <td colspan="2" rowspan="7" class="bold center hinweis-cell">Es dürfen keine<br><br>Fahrtkosten<br><br>Wohnung / Arbeitsstätte<br><br>beim Finanzamt<br><br>geltend<br><br>gemacht werden</td>
+        <td colspan="2" rowspan="6" class="bold center hinweis-cell">Es dürfen keine<br><br>Fahrtkosten<br><br>Wohnung / Arbeitsstätte<br><br>beim Finanzamt<br><br>geltend<br><br>gemacht werden</td>
       </tr>
       <tr>
         <td>Niederlassung</td><td>= NL</td>
@@ -2156,7 +2157,7 @@ function renderFormular() {
         <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
       </tr>
       <tr>
-        <td></td><td></td>
+        <td></td><td></td><td colspan="2"></td>
       </tr>
       <tr>
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
@@ -2180,9 +2181,9 @@ function renderFormular() {
       </tr>
       <tr>
         <td colspan="4" rowspan="2" class="signature-cell">
+          <div class="small sig-label">Unterschrift<br>Mitarbeiter :</div>
           <canvas id="signatureCanvas" width="260" height="60"></canvas>
           <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvas','spesen_signature')" title="Unterschrift löschen">✕</button>
-          <div class="small">Unterschrift Mitarbeiter</div>
           <div class="small" id="sigTs-spesen_signature" style="color:#888;"></div>
         </td>
         <td colspan="3">über Gehaltsabrechnung bezahlt</td>
@@ -2200,9 +2201,9 @@ function renderFormular() {
       </tr>
       <tr>
         <td colspan="4" rowspan="2" class="signature-cell">
+          <div class="small sig-label">Unterschrift<br>NLL :</div>
           <canvas id="signatureCanvasNLL" width="260" height="60"></canvas>
           <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvasNLL','spesen_signature_nll')" title="Unterschrift löschen">✕</button>
-          <div class="small">Unterschrift NLL</div>
           <div class="small" id="sigTs-spesen_signature_nll" style="color:#888;"></div>
         </td>
         <td colspan="4" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL</td>
@@ -2770,6 +2771,31 @@ rebuildMonthPicker();
 renderFormular();
 renderAbsenceRangesList();
 maybeShowSetupWizard();
+</script>
+
+<script>
+/* ===================== Automatisches Update ("harter Reset für alle") =====================
+   Prüft eine kleine version.txt (am Cache vorbei). Weicht sie von der geladenen
+   Version ab, lädt die Seite einmal frisch nach - so nutzt jeder automatisch die
+   neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
+   im Browser und gehen dabei NICHT verloren. */
+(function () {
+  const APP_VERSION = "2026-07-31-1"; // bei jedem Deploy zusammen mit version.txt hochzählen
+  async function checkForUpdate() {
+    try {
+      const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      const latest = (await r.text()).trim();
+      if (!latest || latest === APP_VERSION) return;
+      if (sessionStorage.getItem("reloaded_for") === latest) return; // Schutz vor Reload-Schleife
+      sessionStorage.setItem("reloaded_for", latest);
+      const base = location.pathname.replace(/\?.*$/, "");
+      location.replace(base + "?v=" + encodeURIComponent(latest));
+    } catch (e) { /* offline o.ä. - einfach weiterlaufen */ }
+  }
+  checkForUpdate();
+  setInterval(checkForUpdate, 5 * 60 * 1000); // alle 5 Minuten erneut prüfen
+})();
 </script>
 </body>
 </html>
