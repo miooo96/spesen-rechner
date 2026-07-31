@@ -389,7 +389,7 @@
     <button onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
     <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-    <button class="ghost chef-only" onclick="exportCSV()" data-i18n="btnCsv">📄 CSV-Export</button>
+    <button class="ghost" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
@@ -450,6 +450,10 @@
       <div>
         <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
         <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
+      </div>
+      <div>
+        <label>Ihre eigene E-Mail (für "CSV an mich selbst")</label>
+        <input id="cfgEigeneEmail" type="email" placeholder="ihre.adresse@example.de" oninput="saveConfig();">
       </div>
     </div>
     <p class="hinweis-text">💡 Falls beim Einrichten (z.B. im Einrichtungsassistenten) versehentlich der falsche
@@ -659,7 +663,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "1.8";
+const APP_VERSION = "1.9";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -685,7 +689,7 @@ const I18N = {
   de: {
     pageTitle: "Spesen-Rechner", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
-    btnCsv: "📄 CSV-Export", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
+    btnCsv: "📄 CSV (für Steuer)", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
@@ -702,7 +706,7 @@ const I18N = {
   en: {
     pageTitle: "Expense Calculator", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
-    btnCsv: "📄 CSV export", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
+    btnCsv: "📄 CSV (for taxes)", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
@@ -756,7 +760,7 @@ const BUNDESLAENDER = {
 };
 
 const DEFAULT_CONFIG = {
-  name: "", strasse: "", ort: "", niederlassung: "", arbeitgeberEmail: "",
+  name: "", strasse: "", ort: "", niederlassung: "", arbeitgeberEmail: "", eigeneEmail: "",
   jahr: 2026, startMonat: 1, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
@@ -800,6 +804,7 @@ function saveConfig() {
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
   config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
+  config.eigeneEmail = val("cfgEigeneEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
   config.startMonat = parseInt(val("cfgStartMonat"));
   config.endMonat = parseInt(val("cfgEndMonat"));
@@ -1087,6 +1092,7 @@ function initSettingsUI() {
   document.getElementById("cfgOrt").value = config.ort;
   document.getElementById("cfgNiederlassung").value = config.niederlassung;
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
+  document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
   document.getElementById("cfgPauschale8").value = config.pauschale8;
   document.getElementById("cfgPauschale24").value = config.pauschale24;
@@ -2484,33 +2490,104 @@ function csvEscape(val) {
   return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-function exportCSV() {
+// Baut die CSV-Daten des aktuell gewählten Monats (Header + Zeilen + fertiger CSV-String).
+function buildCsvData() {
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
   const { entries } = computeMonth(config.jahr, monat);
   const startLabel = t("colDepart");
   const endLabel = t("colArrive");
   const header = [t("colTag"), t("colDatum"), startLabel, t("colNl"), t("colOrte"), endLabel, t("colStd"), t("colPauschale"), t("colStatus")];
-  const lines = [header.map(csvEscape).join(";")];
+  const rows = [];
   for (const e of entries) {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     const statusLabel = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status] || STATUS_LABELS.normal);
     const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
     const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") : "";
-    lines.push([
-      WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "",
-      e.ankunft || "", stunden, pauschale, statusLabel,
-    ].map(csvEscape).join(";"));
+    rows.push([WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "", e.ankunft || "", stunden, pauschale, statusLabel]);
   }
+  const lines = [header.map(csvEscape).join(";"), ...rows.map(r => r.map(csvEscape).join(";"))];
   const csv = "﻿" + lines.join("\r\n"); // BOM, damit Excel Umlaute korrekt zeigt
+  const filename = `Spesennachweis_${monthName}_${config.jahr}.csv`;
+  return { csv, filename, header, rows, monthName };
+}
+
+// CSV als Datei herunterladen.
+function downloadCsvFile() {
+  const { csv, filename } = buildCsvData();
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Spesennachweis_${monthName}_${config.jahr}.csv`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+  return filename;
+}
+
+// Rückwärtskompatibel (bestehende Aufrufe von exportCSV bleiben gültig).
+function exportCSV() { return downloadCsvFile(); }
+
+// CSV als lesbare Tabelle in einem neuen Fenster drucken.
+function csvPrint() {
+  const { header, rows, monthName } = buildCsvData();
+  const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const th = header.map(h => `<th>${esc(h)}</th>`).join("");
+  const trs = rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("");
+  const w = window.open("", "_blank");
+  if (!w) { alert("Bitte Pop-ups für diese Seite erlauben, damit die CSV gedruckt werden kann."); return; }
+  w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Spesen ${esc(monthName)} ${config.jahr}</title>`
+    + `<style>body{font-family:system-ui,Arial,sans-serif;padding:16px;color:#111;}h2{margin:0 0 12px;}`
+    + `table{border-collapse:collapse;width:100%;font-size:12px;}th,td{border:1px solid #999;padding:4px 6px;text-align:left;}th{background:#eee;}</style>`
+    + `</head><body><h2>Spesen ${esc(monthName)} ${config.jahr}${config.name ? " – " + esc(config.name) : ""}</h2>`
+    + `<table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`
+    + `<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// CSV NUR an die eigene, hinterlegte Adresse senden (Absender = Empfänger = man selbst).
+function csvEmailSelf() {
+  const self = (config.eigeneEmail || "").trim();
+  if (!self) {
+    alert("Bitte zuerst in den Einstellungen Ihre eigene E-Mail-Adresse eintragen.\n\nDie CSV wird ausschließlich an diese Adresse (an Sie selbst) gesendet – nie an den Arbeitgeber.");
+    closeModal();
+    document.getElementById("settingsPanel").style.display = "block";
+    const el = document.getElementById("cfgEigeneEmail"); if (el) el.focus();
+    return;
+  }
+  const { filename, monthName } = buildCsvData();
+  downloadCsvFile();
+  const subject = `Meine Spesen-CSV ${monthName} ${config.jahr} (Steuerunterlagen)`;
+  const body = `Diese CSV ist für meine eigenen Steuerunterlagen.\n\n`
+    + `Hinweis: Bitte die soeben heruntergeladene Datei „${filename}" noch an diese E-Mail anhängen `
+    + `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).`;
+  closeModal();
+  // Empfänger fest = eigene Adresse -> geht ausschließlich an einen selbst.
+  window.location.href = `mailto:${self}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+// Kleines Menü mit den drei CSV-Aktionen (für die eigene Steuer).
+function openCsvMenu() {
+  const self = (config.eigeneEmail || "").trim();
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <h2>📄 CSV für die Steuer</h2>
+        <p style="font-size:0.92rem; color:#444;">Die CSV enthält die reinen Zahlen und Zeiten dieses Monats – praktisch für Ihre eigenen Steuerunterlagen.</p>
+        <div style="display:flex; flex-direction:column; gap:8px; margin:0.7rem 0;">
+          <button class="primary" onclick="closeModal(); downloadCsvFile();">💾 CSV speichern</button>
+          <button onclick="closeModal(); csvPrint();">🖨️ CSV drucken</button>
+          <button onclick="csvEmailSelf();">📧 CSV an mich selbst senden</button>
+        </div>
+        <div style="font-size:0.83rem; color:#666; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; padding:8px 12px; line-height:1.4;">
+          📧 Der Versand geht <b>ausschließlich an Ihre eigene, hinterlegte Adresse</b>${self ? ` (<b>${self}</b>)` : " – diese ist noch nicht eingetragen"}.
+          So bleibt die CSV bei Ihnen und geht nie an den Arbeitgeber.
+        </div>
+        <div class="modal-close-row"><button onclick="closeModal()">Schließen</button></div>
+      </div>
+    </div>`;
 }
 
 /* ===================== QR-Code Modal =====================
@@ -2815,7 +2892,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-07-31-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-07-31-6"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
