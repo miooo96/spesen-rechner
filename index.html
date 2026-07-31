@@ -209,12 +209,17 @@
   .logo-cell img { max-width: 100%; max-height: 90px; object-fit: contain; }
   .signature-cell { position: relative; text-align: left; vertical-align: top !important; padding: 4px 6px !important; }
   .signature-cell .sig-label { font-weight: normal; line-height: 1.25; margin-bottom: 2px; }
-  .signature-cell canvas {
-    display: block; margin: 2px 0 0; width: 100%; max-width: 300px; height: 52px;
-    border-bottom: 1px solid var(--border); cursor: crosshair; touch-action: none;
-    background: #fff;
+  .signature-cell .sig-box {
+    display: flex; align-items: flex-end; justify-content: flex-start;
+    margin: 2px 0 0; width: 100%; max-width: 300px; height: 52px;
+    border-bottom: 1px solid var(--border); background: #fff;
   }
+  .signature-cell .sig-img { max-width: 100%; max-height: 50px; object-fit: contain; }
   .signature-cell .small { margin-top: 2px; }
+  .sig-upload-btn {
+    position: absolute; top: 2px; right: 26px; height: 20px; line-height: 18px;
+    padding: 0 8px; font-size: 0.62rem; border-radius: 10px; background: #fff; color: #555;
+  }
   .sig-clear-btn {
     position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; line-height: 1;
     padding: 0; font-size: 0.7rem; border-radius: 50%; background: #fff; color: #888;
@@ -654,7 +659,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -1339,7 +1344,7 @@ async function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
-  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\n✍️ Bitte den ausgedruckten Nachweis noch mit einer echten, handschriftlichen Unterschrift des Mitarbeiters versehen.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
+  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\n✍️ Bitte sicherstellen, dass die handschriftliche Unterschrift (Foto/Scan) eingefügt ist – andernfalls den Ausdruck von Hand unterschreiben.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
   submitMonth(config.jahr, monat);
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
@@ -2194,8 +2199,10 @@ function renderFormular() {
       <tr>
         <td colspan="4" rowspan="2" class="signature-cell">
           <div class="small sig-label">Unterschrift<br>Mitarbeiter :</div>
-          <canvas id="signatureCanvas" width="260" height="60"></canvas>
-          <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvas','spesen_signature')" title="Unterschrift löschen">✕</button>
+          <div class="sig-box"><img id="sigImg-spesen_signature" class="sig-img" alt="" style="display:none"></div>
+          <input type="file" id="sigFile-spesen_signature" class="no-print" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'spesen_signature')">
+          <button class="no-print sig-upload-btn" onclick="document.getElementById('sigFile-spesen_signature').click()" title="Foto/Scan der handschriftlichen Unterschrift hochladen">📷 Foto/Scan</button>
+          <button class="no-print sig-clear-btn" onclick="clearSignature('spesen_signature')" title="Unterschrift entfernen">✕</button>
           <div class="small" id="sigTs-spesen_signature" style="color:#888;"></div>
         </td>
         <td colspan="3">über Gehaltsabrechnung bezahlt</td>
@@ -2214,8 +2221,10 @@ function renderFormular() {
       <tr>
         <td colspan="4" rowspan="2" class="signature-cell">
           <div class="small sig-label">Unterschrift<br>NLL :</div>
-          <canvas id="signatureCanvasNLL" width="260" height="60"></canvas>
-          <button class="no-print sig-clear-btn" onclick="clearSignature('signatureCanvasNLL','spesen_signature_nll')" title="Unterschrift löschen">✕</button>
+          <div class="sig-box"><img id="sigImg-spesen_signature_nll" class="sig-img" alt="" style="display:none"></div>
+          <input type="file" id="sigFile-spesen_signature_nll" class="no-print" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'spesen_signature_nll')">
+          <button class="no-print sig-upload-btn" onclick="document.getElementById('sigFile-spesen_signature_nll').click()" title="Foto/Scan der handschriftlichen Unterschrift hochladen">📷 Foto/Scan</button>
+          <button class="no-print sig-clear-btn" onclick="clearSignature('spesen_signature_nll')" title="Unterschrift entfernen">✕</button>
           <div class="small" id="sigTs-spesen_signature_nll" style="color:#888;"></div>
         </td>
         <td colspan="4" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL</td>
@@ -2233,25 +2242,18 @@ function renderFormular() {
     </table>
   `;
   document.getElementById("formular").innerHTML = html;
-  setupSignaturePad();
+  setupSignatureFields();
 }
 
 /* ===================== Unterschriften (Canvas: Mitarbeiter + NLL) ===================== */
+/* Statt digital zu zeichnen wird ein Foto/Scan der ECHTEN, handschriftlichen
+   Unterschrift hochgeladen. Das Bild wird verkleinert, lokal gespeichert und
+   erscheint 1:1 im PDF. Gleiche localStorage-Keys wie zuvor -> Backup/Restore
+   und bereits gespeicherte Unterschriften funktionieren unveraendert. */
 const SIGNATURE_PADS = [
-  { canvasId: "signatureCanvas", key: "spesen_signature" },
-  { canvasId: "signatureCanvasNLL", key: "spesen_signature_nll" },
+  { imgId: "sigImg-spesen_signature", key: "spesen_signature" },
+  { imgId: "sigImg-spesen_signature_nll", key: "spesen_signature_nll" },
 ];
-
-function loadSignature(key) {
-  return localStorage.getItem(key) || null;
-}
-
-function clearSignature(canvasId, key) {
-  localStorage.removeItem(key);
-  localStorage.removeItem(key + "_ts");
-  initSignaturePad(canvasId, key);
-  renderSignatureTimestamp(key);
-}
 
 /* Zeigt "unterschrieben am TT.MM.JJJJ um HH:MM" unter der jeweiligen
    Unterschrift an - sowohl auf dem Bildschirm als auch im PDF, gibt der
@@ -2263,75 +2265,62 @@ function renderSignatureTimestamp(key) {
   el.textContent = ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "";
 }
 
-function initSignaturePad(canvasId, key) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#1a1a1a";
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  const saved = loadSignature(key);
-  if (saved) {
-    const img = new Image();
-    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    img.src = saved;
-  }
-
-  let drawing = false;
-  let last = null;
-
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const t = e.touches && e.touches[0];
-    const clientX = t ? t.clientX : e.clientX;
-    const clientY = t ? t.clientY : e.clientY;
-    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-  }
-
-  function start(e) {
-    e.preventDefault();
-    drawing = true;
-    last = getPos(e);
-  }
-  function move(e) {
-    if (!drawing) return;
-    e.preventDefault();
-    const p = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(last.x, last.y);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-    last = p;
-  }
-  function end() {
-    if (!drawing) return;
-    drawing = false;
-    localStorage.setItem(key, canvas.toDataURL("image/png"));
-    localStorage.setItem(key + "_ts", new Date().toISOString());
-    renderSignatureTimestamp(key);
-  }
-
-  canvas.onmousedown = start;
-  canvas.onmousemove = move;
-  canvas.ontouchstart = start;
-  canvas.ontouchmove = move;
-  canvas.ontouchend = end;
-  canvas._sigEnd = end; // damit der globale mouseup-Handler jedes Pad beenden kann
+/* Gespeicherte Unterschrift (falls vorhanden) im Bild-Element anzeigen. */
+function loadSignatureImageInto(imgId, key) {
+  const img = document.getElementById(imgId);
+  if (!img) return;
+  const saved = localStorage.getItem(key);
+  if (saved) { img.src = saved; img.style.display = "block"; }
+  else { img.removeAttribute("src"); img.style.display = "none"; }
 }
 
-function setupSignaturePad() {
-  SIGNATURE_PADS.forEach(p => { initSignaturePad(p.canvasId, p.key); renderSignatureTimestamp(p.key); });
-  window.onmouseup = () => {
-    SIGNATURE_PADS.forEach(p => {
-      const c = document.getElementById(p.canvasId);
-      if (c && c._sigEnd) c._sigEnd();
-    });
+/* Foto/Scan hochladen: auf max. 600x200 verkleinern, weisser Hintergrund,
+   als JPEG speichern (klein genug fuer localStorage) + Zeitstempel setzen. */
+function handleSignatureUpload(input, key) {
+  const file = input.files && input.files[0];
+  input.value = ""; // erlaubt erneutes Hochladen derselben Datei
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const maxW = 600, maxH = 200;
+      const ratio = Math.min(maxW / im.width, maxH / im.height, 1);
+      const w = Math.max(1, Math.round(im.width * ratio));
+      const h = Math.max(1, Math.round(im.height * ratio));
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(im, 0, 0, w, h);
+      const dataUrl = c.toDataURL("image/jpeg", 0.85);
+      try {
+        localStorage.setItem(key, dataUrl);
+        localStorage.setItem(key + "_ts", new Date().toISOString());
+      } catch (e) {
+        alert("Das Bild ist zu groß zum Speichern. Bitte ein kleineres/kompakteres Foto verwenden.");
+        return;
+      }
+      loadSignatureImageInto("sigImg-" + key, key);
+      renderSignatureTimestamp(key);
+    };
+    im.onerror = () => alert("Diese Datei konnte nicht als Bild gelesen werden. Bitte ein Foto (JPG/PNG) verwenden.");
+    im.src = reader.result;
   };
+  reader.onerror = () => alert("Die Datei konnte nicht gelesen werden.");
+  reader.readAsDataURL(file);
+}
+
+/* Unterschrift entfernen. */
+function clearSignature(key) {
+  localStorage.removeItem(key);
+  localStorage.removeItem(key + "_ts");
+  loadSignatureImageInto("sigImg-" + key, key);
+  renderSignatureTimestamp(key);
+}
+
+function setupSignatureFields() {
+  SIGNATURE_PADS.forEach(p => { loadSignatureImageInto(p.imgId, p.key); renderSignatureTimestamp(p.key); });
 }
 
 /* ===================== Per E-Mail weiterleiten ===================== */
@@ -2343,9 +2332,10 @@ function setupSignaturePad() {
 // eine echte, handschriftliche Unterschrift des Mitarbeiters. Rueckgabe false = Abbruch.
 function unterschriftHinweisOk() {
   return confirm(
-    "✍️ Bitte nicht vergessen:\n\n" +
-    "Der ausgedruckte Spesennachweis muss noch mit einer echten, handschriftlichen " +
-    "Unterschrift des Mitarbeiters versehen werden.\n\n" +
+    "✍️ Bitte prüfen:\n\n" +
+    "Ist die handschriftliche Unterschrift (Foto/Scan) im Nachweis eingefügt?\n" +
+    "Falls nicht: über „📷 Foto/Scan\" hochladen – oder den Ausdruck " +
+    "anschließend von Hand unterschreiben.\n\n" +
     "Jetzt fortfahren?"
   );
 }
@@ -2459,7 +2449,7 @@ async function previewPDF() {
           </div>
         </div>
         <div style="background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; padding:7px 12px; margin-bottom:8px; font-size:0.85rem; color:var(--brand-dark);">
-          ✍️ <b>Nicht vergessen:</b> Der ausgedruckte Nachweis muss noch mit einer echten, handschriftlichen Unterschrift des Mitarbeiters versehen werden.
+          ✍️ <b>Nicht vergessen:</b> Die handschriftliche Unterschrift (Foto/Scan) muss eingefügt sein – andernfalls den Ausdruck von Hand unterschreiben.
         </div>
         <iframe class="pdf-preview-frame" src="${__pdfPreviewUrl}"></iframe>
       </div>
@@ -2792,7 +2782,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-07-31-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-07-31-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
