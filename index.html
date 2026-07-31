@@ -2780,7 +2780,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-07-31-1"; // bei jedem Deploy zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-07-31-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
@@ -2793,8 +2793,7 @@ maybeShowSetupWizard();
       location.replace(base + "?v=" + encodeURIComponent(latest));
     } catch (e) { /* offline o.ä. - einfach weiterlaufen */ }
   }
-  checkForUpdate();
-  setInterval(checkForUpdate, 5 * 60 * 1000); // alle 5 Minuten erneut prüfen
+  checkForUpdate(); // nur beim Öffnen prüfen - kein Dauer-Intervall
 })();
 </script>
 </body>
