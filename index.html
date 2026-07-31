@@ -269,7 +269,10 @@
      Linie/Klick-Optik, die an ein noch bedienbares Formular erinnert. Wird nur
      kurz waehrend des Erstellens des Screenshots gesetzt (siehe downloadPDF()). */
   .pdf-export .time-picker-field { border-bottom: none !important; cursor: default !important; }
-  .pdf-export #formular .status-col, .pdf-export #formular .status-cell { display: none !important; }
+  /* Status-Spalte wird im PDF zur schmalen leeren Rand-Spalte (wie Spalte I im Original) */
+  .pdf-export #formular .status-col, .pdf-export #formular .status-cell { width: 24px !important; min-width: 24px !important; max-width: 24px !important; padding: 0 !important; border-top: none !important; border-bottom: none !important; }
+  .pdf-export #formular .status-cell > * { display: none !important; }
+  .pdf-export #formular th.status-col { font-size: 0 !important; }
   .pdf-export #formular .no-print { display: none !important; }
   .pdf-export #formular td.warn-hours { background: #fff !important; }
   .pdf-export #formular .orte-input { display: none !important; }
@@ -2122,46 +2125,55 @@ function renderFormular() {
     <table>
       <tr>
         <td colspan="8" class="head-title">Niederlassung: &nbsp; ${config.niederlassung || "&mdash;"}</td>
-        <!-- Logo bewusst aus dem Spesenblatt entfernt (Kundenwunsch, "optisch wie das Original") -->
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td colspan="3" class="bold">Spesenabrechnung Monat:</td>
         <td class="center bold">${MONTH_NAMES[monat - 1]}</td>
         <td colspan="4">Pauschalspesen für Dienstreisen Inland</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td colspan="3" class="bold" style="text-align:right;">Jahr:</td>
         <td class="center bold">${config.jahr}</td>
         <td colspan="2">AB 1. 1. 2020</td>
         <td colspan="2" class="bold center">Hinweis:</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td colspan="4" rowspan="2" class="bold center">für alle Außendienstmitarbeiter, die für Fahrten zw. Wohnung u. Arbeitsstätte das Firmenfahrzeug nutzen und dieses am Wohnort parken.</td>
         <td style="white-space:nowrap; font-size:0.8rem;">Wohnung/ Parkplatz</td><td>= WP</td>
         <td colspan="2" rowspan="6" class="bold center hinweis-cell">Es dürfen keine<br><br>Fahrtkosten<br><br>Wohnung / Arbeitsstätte<br><br>beim Finanzamt<br><br>geltend<br><br>gemacht werden</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td>Niederlassung</td><td>= NL</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td colspan="4" rowspan="5" class="stammdaten-cell">${stammLine("Name", config.name)}${stammLine("Ort", config.ort)}${stammLine("Straße", config.strasse, true)}</td>
         <td>Dienstreise</td><td class="bold">Pauschale</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td></td><td></td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td></td><td></td><td colspan="2"></td>
+        <td class="status-col"></td>
       </tr>
       <tr>
         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
       <tr>
         <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
@@ -2177,7 +2189,7 @@ function renderFormular() {
         <td colspan="4"></td>
         <td colspan="3" class="bold">Gesamtpauschale</td>
         <td class="pauschale-cell bold" id="gesamtpauschale-value">${total.toFixed(2).replace(".", ",")} €</td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
       <tr>
         <td colspan="4" rowspan="2" class="signature-cell">
@@ -2192,12 +2204,12 @@ function renderFormular() {
             oninput="liveUpdateBezahlt('${bezahltKey}', this.value)"
             onchange="localStorage.setItem('${bezahltKey}', this.value); renderFormular();"> €</span><span class="bezahlt-print">${bezahlt.toFixed(2).replace(".", ",")} €</span>
         </td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
       <tr>
         <td colspan="3">Resterstattung LST- Jahresausgleich</td>
         <td class="pauschale-cell bold" id="resterstattung-value">${rest.toFixed(2).replace(".", ",")} €</td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
       <tr>
         <td colspan="4" rowspan="2" class="signature-cell">
@@ -2207,16 +2219,16 @@ function renderFormular() {
           <div class="small" id="sigTs-spesen_signature_nll" style="color:#888;"></div>
         </td>
         <td colspan="4" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL</td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
       <tr>
         <td colspan="4" class="center small">und ist 5 Jahre aufzubewahren.</td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
       <tr>
         <td colspan="6"></td>
         <td colspan="2" style="text-align:right; font-size:0.7rem; color:#333; padding-right:6px;">02.01.2019 Hs</td>
-        <td class="no-print"></td>
+        <td class="status-cell"></td>
       </tr>
     </table>
   `;
@@ -2780,7 +2792,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-07-31-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-07-31-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
