@@ -659,7 +659,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -1339,6 +1339,14 @@ function submitMonth(jahr, monat) {
   localStorage.setItem(monthSubmittedKey(jahr, monat), new Date().toISOString());
   renderFormular();
 }
+
+/* Zaehlt, wie oft ein Monat schon per E-Mail versendet wurde. Anders als die
+   "eingereicht/gesperrt"-Markierung wird dieser Zaehler beim "Wieder oeffnen"
+   NICHT zurueckgesetzt - so laesst sich ein zweiter Versand zuverlaessig als
+   Korrektur erkennen, egal ob vorher wieder geoeffnet wurde oder nicht. */
+function monthSentCountKey(jahr, monat) { return `spesen_sentcount_${jahr}-${pad(monat)}`; }
+function getMonthSentCount(jahr, monat) { return parseInt(localStorage.getItem(monthSentCountKey(jahr, monat)) || "0", 10) || 0; }
+function bumpMonthSentCount(jahr, monat) { localStorage.setItem(monthSentCountKey(jahr, monat), String(getMonthSentCount(jahr, monat) + 1)); }
 
 async function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
@@ -2605,10 +2613,30 @@ async function sendPerEmail() {
   }
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
+
+  // Jeder Monat soll normalerweise nur einmal versendet werden. Wurde er schon
+  // gesendet, kommt eine Warn-Rueckfrage; ein bewusstes erneutes Senden gilt als
+  // Korrektur und wird im Betreff (und im Text) entsprechend gekennzeichnet.
+  const sentCount = getMonthSentCount(config.jahr, monat);
+  const istKorrektur = sentCount >= 1;
+  if (istKorrektur) {
+    const prevTs = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
+    const wannStr = prevTs ? ` am ${formatTimestampDE(prevTs)}` : "";
+    if (!confirm(
+      `Dieser Monat wurde bereits${wannStr} per E-Mail eingereicht.\n\n` +
+      `Möchten Sie ihn wirklich erneut senden?\n` +
+      `Die neue Version gilt als Korrektur und ersetzt die vorherige.`
+    )) return;
+  }
+
   const wer = config.name ? " - " + config.name : "";
-  const subject = `Spesennachweis ${monthName} ${config.jahr}${wer}`;
+  const korrekturBetreff = istKorrektur ? (sentCount === 1 ? " (Korrektur)" : ` (Korrektur ${sentCount})`) : "";
+  const subject = `Spesennachweis ${monthName} ${config.jahr}${wer}${korrekturBetreff}`;
   const body =
     `Hallo,\n\nanbei mein Spesennachweis für ${monthName} ${config.jahr}.\n\n` +
+    (istKorrektur
+      ? `Hinweis: Dies ist eine korrigierte Fassung – sie ersetzt meinen zuvor gesendeten Nachweis für diesen Monat.\n\n`
+      : ``) +
     `Hinweis: Bitte die soeben heruntergeladene PDF-Datei noch an diese E-Mail anhängen ` +
     `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
     `Viele Grüße\n${config.name || ""}`;
@@ -2616,7 +2644,12 @@ async function sendPerEmail() {
   if (!unterschriftHinweisOk()) return;
   const filename = await downloadPDF(true);
   submitMonth(config.jahr, monat); // Monat gilt ab Versand als eingereicht und wird gesperrt
-  alert(`PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen. Der Monat wurde als eingereicht markiert und gesperrt (über "🔓 Wieder öffnen" bei Bedarf änderbar).`);
+  bumpMonthSentCount(config.jahr, monat); // zaehlt jeden Versand (fuer Korrektur-Erkennung; bleibt beim Wieder-Oeffnen erhalten)
+  alert(
+    `PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen.` +
+    (istKorrektur ? `\n\nHinweis: Der Betreff ist als Korrektur gekennzeichnet.` : ``) +
+    `\n\nDer Monat wurde als eingereicht markiert und gesperrt (über "🔓 Wieder öffnen" bei Bedarf änderbar).`
+  );
   window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -2782,7 +2815,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-07-31-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-07-31-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
