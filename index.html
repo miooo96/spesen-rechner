@@ -2355,22 +2355,13 @@ function unterschriftHinweisOk() {
 }
 
 async function printSpesen() {
-  if (!stundenLimitOk()) return;
-  if (!unterschriftHinweisOk()) return;
-  // Drucken = genau das gleiche fertige 1-Seiten-PDF drucken, das auch beim
-  // Speichern/"PDF ansehen" entsteht. So bricht der Browser NICHTS mehr auf
-  // eine zweite Seite um und es wird nichts abgeschnitten - in jedem Browser
-  // identisch. (Frueher: window.print() der Live-Seite -> konnte 2 Seiten werden.)
-  const r = await buildPdf();
-  if (!r) return;
-  r.pdf.autoPrint();
-  const old = document.getElementById("__printFrame");
-  if (old) old.remove();
-  const iframe = document.createElement("iframe");
-  iframe.id = "__printFrame";
-  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
-  iframe.src = r.pdf.output("bloburl");
-  document.body.appendChild(iframe);
+  // Drucken zeigt jetzt DIESELBE sichtbare PDF-Vorschau wie "PDF ansehen"
+  // (genau 1 A4-Seite, nichts abgeschnitten) und druckt daraus per Knopf im
+  // Fenster. Grund: der fruehere Weg (autoPrint + verstecktes 0x0-iframe)
+  // startete in Chrome/Edge/Safari den PDF-Betrachter gar nicht -> es wurde
+  // nie gedruckt. Aus einem SICHTBAREN, geladenen iframe druckt jeder Browser
+  // zuverlaessig. Die 10-Std-Sperre greift ueber buildPdf() weiterhin.
+  await previewPDF();
 }
 
 function tageUeber10() {
@@ -2471,6 +2462,7 @@ async function previewPDF() {
         <div class="pdf-preview-head">
           <h2>👁️ PDF-Vorschau</h2>
           <div class="pdf-preview-actions">
+            <button class="primary" onclick="printFromPreview()">🖨️ Drucken</button>
             <button class="primary" onclick="savePdfFromPreview()">💾 Speichern</button>
             <button onclick="closePdfPreview()">Schließen</button>
           </div>
@@ -2487,6 +2479,23 @@ function savePdfFromPreview() {
   if (!__pdfPreview) return;
   if (!unterschriftHinweisOk()) return;
   __pdfPreview.pdf.save(__pdfPreview.filename);
+}
+
+// Druckt das PDF aus dem SICHTBAREN, bereits geladenen Vorschau-iframe. Das
+// ist der Weg, den auch der Drucker-Knopf des Browsers nimmt -> funktioniert
+// zuverlaessig in Chrome, Edge, Firefox und Safari. Fallback: PDF in neuem Tab
+// oeffnen (dort kann per Strg/Cmd+P gedruckt werden).
+function printFromPreview() {
+  if (!__pdfPreview) return;
+  if (!unterschriftHinweisOk()) return;
+  const f = document.querySelector(".pdf-preview-frame");
+  if (!f) return;
+  try {
+    f.contentWindow.focus();
+    f.contentWindow.print();
+  } catch (e) {
+    if (__pdfPreviewUrl) window.open(__pdfPreviewUrl, "_blank");
+  }
 }
 
 function closePdfPreview() {
@@ -2905,7 +2914,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-03-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-03-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
