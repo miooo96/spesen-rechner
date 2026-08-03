@@ -2354,10 +2354,23 @@ function unterschriftHinweisOk() {
   );
 }
 
-function printSpesen() {
+async function printSpesen() {
   if (!stundenLimitOk()) return;
   if (!unterschriftHinweisOk()) return;
-  window.print();
+  // Drucken = genau das gleiche fertige 1-Seiten-PDF drucken, das auch beim
+  // Speichern/"PDF ansehen" entsteht. So bricht der Browser NICHTS mehr auf
+  // eine zweite Seite um und es wird nichts abgeschnitten - in jedem Browser
+  // identisch. (Frueher: window.print() der Live-Seite -> konnte 2 Seiten werden.)
+  const r = await buildPdf();
+  if (!r) return;
+  r.pdf.autoPrint();
+  const old = document.getElementById("__printFrame");
+  if (old) old.remove();
+  const iframe = document.createElement("iframe");
+  iframe.id = "__printFrame";
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  iframe.src = r.pdf.output("bloburl");
+  document.body.appendChild(iframe);
 }
 
 function tageUeber10() {
@@ -2892,7 +2905,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-07-31-6"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-03-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
