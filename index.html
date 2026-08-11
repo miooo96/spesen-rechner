@@ -395,6 +395,8 @@
   <div class="toolbar-group">
     <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
     <button onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
+    <button onclick="toggleArbeitszeitPanel()" data-i18n="btnArbeitszeit">⏱️ Arbeitszeit</button>
+    <button onclick="toggleUrlaubPanel()" data-i18n="btnUrlaub">🌴 Urlaubskalender</button>
     <button class="ghost" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
     <button class="ghost" onclick="toggleArchivPanel()" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
   </div>
@@ -639,10 +641,150 @@
   <div id="archivContent"></div>
 </div>
 
-<div class="abgabe-hinweis no-print">
+<!-- ===================== Arbeitszeit-Erfassung (Stechuhr) =====================
+     Bewusst voellig getrennt von der Spesen-Abrechnung: eigene
+     localStorage-Schluessel (spesen_az_*), eigene Einstellungen, eigenes
+     Zuruecksetzen. Es wird NICHTS in die Spesen-Tabelle uebernommen und
+     nichts aus ihr gelesen - eine gepruefte Abrechnung kann sich durch das
+     Stempeln also nie nachtraeglich veraendern.
+
+     Der Praefix "spesen_az_" ist Absicht: dadurch wird die Arbeitszeit vom
+     bestehenden Backup (exportBackup nimmt alle spesen_*-Schluessel) und vom
+     globalen Zuruecksetzen automatisch miterfasst, ohne dass dort Code
+     angefasst werden muss.
+
+     "no-print" sorgt dafuer, dass die Arbeitszeit niemals im Spesen-PDF
+     auftaucht. -->
+<div class="panel no-print" id="arbeitszeitPanel" style="display:none;">
+  <h2 style="margin-top:0;">⏱️ Arbeitszeit erfassen</h2>
+
+  <p class="hinweis-text">
+    💡 Diese Funktion läuft <b>völlig getrennt</b> von der Spesen-Abrechnung.
+    Gestempelte Zeiten werden <b>nicht</b> in die Spesen-Tabelle übernommen und
+    erscheinen <b>nicht</b> im PDF. Sie dient nur dazu, die eigenen Überstunden
+    mitzuzählen. Die Daten bleiben wie alles andere lokal auf diesem Gerät und
+    sind im normalen Backup enthalten.
+  </p>
+
+  <div class="settings-card neutral">
+    <div id="azUhr" style="font-size:2.6rem; font-weight:700; text-align:center; letter-spacing:-1px; font-variant-numeric:tabular-nums; margin:0.3rem 0; color:var(--brand-dark);">00:00:00</div>
+    <div id="azStatus" style="text-align:center; color:#666; font-size:0.9rem; margin-bottom:0.9rem;">Noch nicht gestartet</div>
+    <button id="azBtn" class="primary" style="width:100%; padding:0.9rem; font-size:1.05rem;" onclick="azStempeln()">Arbeitsbeginn</button>
+    <div style="display:flex; align-items:center; gap:0.6rem; margin:0.85rem 0 0.6rem; color:#999; font-size:0.8rem;">
+      <span style="flex:1; height:1px; background:#ddd;"></span>oder<span style="flex:1; height:1px; background:#ddd;"></span>
+    </div>
+    <button class="ghost" style="width:100%; padding:0.7rem;" onclick="azNachtragenModal()">✍️ Zeiten von Hand eintragen &nbsp;<span style="color:#888; font-weight:normal;">z. B. 6:00 – 15:30</span></button>
+    <p class="hinweis-text" style="margin-bottom:0;">
+      Beide Wege führen in dieselbe Liste. Stempeln ist bequemer, wenn Sie das
+      Handy dabei haben – von Hand eintragen ist der Weg für vergessene Tage,
+      für nachträgliche Korrekturen oder wenn Sie mehrere Tage auf einmal
+      nachpflegen wollen.
+    </p>
+  </div>
+
+  <div class="settings-card neutral">
+    <h3>⚙️ Vorgaben</h3>
+    <div class="grid">
+      <label>Regulärer Arbeitstag (Std.)
+        <input id="azSoll" type="number" step="0.25" min="0" value="8.5" oninput="azSaveCfg()">
+      </label>
+      <label style="display:flex; align-items:center; gap:0.6rem;">
+        <input id="azGesetzlichePause" type="checkbox" onchange="azSaveCfg()" style="width:auto; flex:none;">
+        <span>Mache ich üblicherweise Pause?<br><span style="font-weight:normal; font-size:0.8rem; color:#666;">Nur die Vorgabe für neue Tage – pro Tag umstellbar</span></span>
+      </label>
+    </div>
+    <div id="azPausenErklaerung" class="hinweis-text"></div>
+  </div>
+
+  <div class="settings-card neutral">
+    <h3>📅 Monatsübersicht</h3>
+    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:0.75rem;">
+      <select id="azMonat" onchange="azRender()" style="min-width:180px;"></select>
+      <button class="ghost" onclick="azExport()">📋 Als Text kopieren</button>
+      <button class="danger" id="azLoeschAuswahl" onclick="azLoescheAuswahl()" disabled>🗑️ Auswahl löschen</button>
+    </div>
+    <div id="azListe"></div>
+  </div>
+
+  <div class="settings-card neutral" id="azJahrKarte">
+    <h3>📊 Überstunden im Jahr</h3>
+    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:0.75rem;">
+      <select id="azJahr" onchange="azRenderJahr()" style="min-width:120px;"></select>
+    </div>
+    <div id="azJahrContent"></div>
+  </div>
+</div>
+
+<!-- ===================== Urlaubskalender =====================
+     Arbeitet BEWUSST auf denselben Daten wie die Abrechnung (overrides
+     mit .status). Ein hier eingetragener Urlaubstag steht damit sofort
+     auch in der Monatsabrechnung und in der Jahresuebersicht - einmal
+     eintragen statt zweimal pflegen. -->
+<div class="panel no-print" id="urlaubPanel" style="display:none;">
+  <h2 style="margin-top:0;">🌴 Urlaubskalender</h2>
+
+  <p class="hinweis-text">
+    💡 Dieser Kalender arbeitet mit <b>denselben Daten wie Ihre Abrechnung</b>.
+    Was Sie hier eintragen, steht sofort auch im Monatsformular und in der
+    Jahresübersicht – und umgekehrt. Sie müssen Urlaub also nur einmal erfassen.
+  </p>
+
+  <div class="settings-card neutral">
+    <h3>🧮 Urlaubsanspruch</h3>
+    <div class="grid">
+      <label>Urlaubstage pro Jahr
+        <input id="urlaubAnspruch" type="number" step="0.5" min="0" value="30" oninput="urlaubSaveAnspruch()">
+      </label>
+      <label>Übertrag aus dem Vorjahr (Tage)
+        <input id="urlaubUebertrag" type="number" step="0.5" min="0" value="0" oninput="urlaubSaveAnspruch()">
+      </label>
+      <label>Jahr
+        <select id="urlaubJahr" onchange="urlaubRender()"></select>
+      </label>
+    </div>
+    <div id="urlaubBilanz" style="margin-top:0.75rem;"></div>
+  </div>
+
+  <div class="settings-card neutral">
+    <h3>📅 Zeitraum oder einzelnen Tag eintragen</h3>
+    <div class="grid">
+      <label>Was
+        <select id="urlaubStatus">
+          <option value="urlaub">🌴 Urlaub</option>
+          <option value="krank">🤒 Krank</option>
+          <option value="frei">🏠 Frei</option>
+          <option value="sonderurlaub">🎉 Sonderurlaub</option>
+          <option value="elternzeit">👶 Elternzeit</option>
+          <option value="normal">↩️ Wieder normaler Arbeitstag</option>
+        </select>
+      </label>
+      <label>Von
+        <input id="urlaubVon" type="date">
+      </label>
+      <label>Bis <span style="font-weight:normal; color:#888; font-size:0.8rem;">(leer = nur ein Tag)</span>
+        <input id="urlaubBis" type="date">
+      </label>
+    </div>
+    <div id="urlaubVorschau" style="margin-top:0.6rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.85rem; color:var(--brand-dark);"></div>
+    <button class="primary" style="margin-top:0.75rem;" onclick="urlaubEintragen()">Eintragen</button>
+    <p class="hinweis-text">
+      Für einen <b>einzelnen Tag</b> reicht das Von-Feld – Bis bleibt leer.
+      Im Kalender unten lässt sich außerdem jeder Tag direkt anklicken.
+      Wochenenden und Feiertage werden beim Zählen übersprungen.
+    </p>
+  </div>
+
+  <div class="settings-card neutral">
+    <h3>🗓️ Jahreskalender</h3>
+    <div id="urlaubKalenderLegende" style="margin-bottom:0.75rem;"></div>
+    <div id="urlaubKalender"></div>
+  </div>
+</div>
+
+<div class="abgabe-hinweis no-print" id="abgabeHinweis">
   📅 <b>Abgabe spätestens am 3. Werktag des Folgemonats!</b>
 </div>
-<div class="no-print" style="max-width:1000px; margin:0 auto 0.6rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.82rem; color:var(--brand-dark); line-height:1.4;">
+<div class="no-print" id="pauschaleHinweis" style="max-width:1000px; margin:0 auto 0.6rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.82rem; color:var(--brand-dark); line-height:1.4;">
   ℹ️ <b>Zur Info:</b> Eine Pauschale gibt es nur, wenn an einem Tag <b>8,5 Std</b> erreicht werden – kürzere Tage bringen keine Pauschale.
   &nbsp;·&nbsp; Tage über <b>10 Std</b> werden <b>nicht genehmigt</b>.
 </div>
@@ -690,6 +832,7 @@ const I18N = {
     pageTitle: "Spesen-Rechner", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
+    btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
@@ -707,6 +850,7 @@ const I18N = {
     pageTitle: "Expense Calculator", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
+    btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
@@ -770,6 +914,7 @@ const DEFAULT_CONFIG = {
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
   nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
+  urlaubsanspruch: 30, urlaubUebertrag: 0,
   samstagAktiv: false,
   zeitenVariieren: false,
   lang: "de",
@@ -2892,6 +3037,876 @@ currentLang = config.lang === "en" ? "en" : "de";
 WEEKDAY_NAMES = currentLang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
 MONTH_NAMES = currentLang === "en" ? MONTH_NAMES_EN : MONTH_NAMES_DE;
 STATUS_LABELS = currentLang === "en" ? STATUS_LABELS_EN : STATUS_LABELS_DE;
+/* ===================== Arbeitszeit-Erfassung (Stechuhr) =====================
+   Komplett eigenstaendiger Block. Beruehrt weder "config" noch "overrides"
+   der Spesen-Abrechnung. Uebernommen aus der eigenstaendigen Stechuhr
+   (~/Desktop/stechuhr/index.html), erweitert um Monatsuebersicht,
+   Einzelloeschung und Nachtragen.
+
+   Datenformat spesen_az_tage: [{ start: ISO, ende: ISO, min: Bruttominuten }]
+   "min" ist bewusst die BRUTTO-Zeit (Feierabend minus Beginn). Der
+   Pausenabzug passiert erst bei der Anzeige in azNetto() - so aendert sich
+   die Rechnung rueckwirkend korrekt mit, wenn die Pausen-Vorgabe spaeter
+   angepasst wird, und es geht keine Information verloren. */
+
+/* Jeder Schreibvorgang wird geprueft. Faellt der Browser-Speicher aus
+   (voll, privater Modus, Speicher gesperrt), verschwaende ein stilles
+   Scheitern einen kompletten Arbeitstag - der Nutzer wuerde es erst
+   Wochen spaeter beim Zaehlen der Ueberstunden merken. Deshalb: sofort
+   laut Bescheid geben. */
+function azSchreibe(schluessel, wert) {
+  try {
+    if (wert === null) localStorage.removeItem(schluessel);
+    else localStorage.setItem(schluessel, wert);
+    // Gegenprobe: wirklich angekommen?
+    if (wert !== null && localStorage.getItem(schluessel) !== wert) throw new Error("Rueckgelesener Wert weicht ab");
+    return true;
+  } catch (e) {
+    alert("⚠️ Die Arbeitszeit konnte NICHT gespeichert werden.\n\n" +
+      "Grund: " + (e && e.message ? e.message : "unbekannt") + "\n\n" +
+      "Meist liegt es an einem vollen Browser-Speicher oder am privaten Modus. " +
+      "Bitte notieren Sie sich die Zeiten vorerst von Hand.");
+    return false;
+  }
+}
+
+const AZ = {
+  get lauf() { return localStorage.getItem("spesen_az_lauf"); },
+  set lauf(v) { azSchreibe("spesen_az_lauf", v ? v : null); },
+  get tage() { try { return JSON.parse(localStorage.getItem("spesen_az_tage") || "[]"); } catch (e) { return []; } },
+  set tage(v) { azSchreibe("spesen_az_tage", JSON.stringify(v)); },
+  get cfg() {
+    try { return Object.assign({ soll: 8.5, pause: 0, ab6: false }, JSON.parse(localStorage.getItem("spesen_az_cfg") || "{}")); }
+    catch (e) { return { soll: 8.5, pause: 0, ab6: false }; }
+  },
+  set cfg(v) { azSchreibe("spesen_az_cfg", JSON.stringify(v)); },
+};
+
+let azTimer = null;
+
+/* Pausenabzug in Minuten.
+
+   "gesetz" bildet § 4 ArbZG ab:
+     "Die Arbeit ist durch im voraus feststehende Ruhepausen von mindestens
+      30 Minuten bei einer Arbeitszeit von mehr als sechs bis zu neun Stunden
+      und 45 Minuten bei einer Arbeitszeit von mehr als neun Stunden
+      insgesamt zu unterbrechen."
+   Also: bis 6 Std. nichts, ueber 6 bis 9 Std. 30 Min., ueber 9 Std. 45 Min.
+   "mehr als" ist woertlich zu nehmen - genau 6:00 Std. loesen noch nichts aus,
+   genau 9:00 Std. bleiben bei 30 Minuten.
+
+   Wichtig: Das ist die gesetzliche MINDESTpause. Ein Tarifvertrag oder eine
+   Betriebsvereinbarung kann laengere Pausen vorschreiben - im Zweifel gilt
+   das, was bei Hall Tabakwaren vereinbart ist. */
+/* Gesetzliche Pausenlaenge zu einer Brutto-Anwesenheit (§ 4 ArbZG). */
+function azGesetzPause(bruttoMin) {
+  if (bruttoMin > 540) return 45;   // mehr als neun Stunden
+  if (bruttoMin > 360) return 30;   // mehr als sechs bis neun Stunden
+  return 0;                          // bis sechs Stunden: keine Pflichtpause
+}
+
+/* Hat es an DIESEM Tag eine Pause gegeben?
+   Der Tag darf die allgemeine Vorgabe ueberstimmen - denn eine Pause, die
+   nicht stattgefunden hat, darf nicht abgezogen werden (§ 2 Abs. 1 ArbZG
+   zieht nur genommene Ruhepausen ab), und umgekehrt. Fehlt die Angabe am
+   Tag (alte Eintraege), gilt die allgemeine Vorgabe. */
+function azTagPause(e) {
+  return typeof e.pause === "boolean" ? e.pause : azPauseAn();
+}
+
+function azAbzugFuer(e) {
+  return azTagPause(e) ? azGesetzPause(e.min) : 0;
+}
+
+function azNettoFuer(e) {
+  return Math.max(0, e.min - azAbzugFuer(e));
+}
+
+/* Nur noch fuer die Beispielzeilen in der Erklaerung: rechnet mit der
+   allgemeinen Vorgabe, ohne konkreten Tag. */
+function azPausenAbzug(bruttoMin) {
+  return azPauseAn() ? azGesetzPause(bruttoMin) : 0;
+}
+
+/* Ein einziger Schalter: gesetzliche Pause an oder aus.
+   Aeltere Einstellungen werden uebersetzt - wer frueher irgendeinen
+   Pausenabzug eingestellt hatte, bekommt den Schalter auf "an". */
+function azPauseAn() {
+  const c = AZ.cfg;
+  if (typeof c.gesetzlichePause === "boolean") return c.gesetzlichePause;
+  if (c.modus) return c.modus !== "keine";
+  return !!c.pause;
+}
+
+function azNetto(bruttoMin) {
+  return Math.max(0, bruttoMin - azPausenAbzug(bruttoMin));
+}
+
+/* Einzeiler fuer Export, Fusszeilen und Belege - damit ueberall dieselbe
+   Beschreibung der geltenden Regel steht. */
+function azModusText() {
+  return azPauseAn()
+    ? "gesetzliche Pause abgezogen (30 Min. ab 6 Std., 45 Min. ab 9 Std. – § 4 ArbZG)"
+    : "ohne Pausenabzug – gestempelte Zeit zählt voll";
+}
+
+function azHhmm(m) {
+  const v = Math.abs(Math.round(m));
+  return (m < 0 ? "-" : "") + Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0");
+}
+function azUhrzeit(iso) {
+  return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+}
+function azMonatsKey(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+function azMonatsLabel(key) {
+  const [j, m] = key.split("-");
+  return MONTH_NAMES[parseInt(m, 10) - 1] + " " + j;
+}
+
+/* Die Arbeitszeit ist eine eigene ANSICHT, kein zusaetzlicher Kasten:
+   solange sie offen ist, verschwindet die Spesen-Tabelle samt ihrer
+   Hinweise. Sonst scrollt man unter den Ueberstunden noch durch eine
+   Monatsabrechnung, die gerade niemanden interessiert - und die Gefahr,
+   versehentlich in der Abrechnung zu tippen, faellt weg. */
+function azSpesenAnsicht(sichtbar) {
+  ["formular-scroll", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = sichtbar ? "" : "none";
+  });
+  // Die PDF-/E-Mail-Knopfgruppe gehoert zur Abrechnung, nicht zur Arbeitszeit.
+  const leiste = document.querySelector(".toolbar .toolbar-group");
+  if (leiste) leiste.style.display = sichtbar ? "" : "none";
+}
+
+function toggleArbeitszeitPanel() {
+  const p = document.getElementById("arbeitszeitPanel");
+  const showing = p.style.display !== "none";
+  p.style.display = showing ? "none" : "block";
+  azSpesenAnsicht(showing);
+  if (!showing) {
+    // Andere Panels schliessen - es soll immer nur eine Ansicht offen sein
+    ["settingsPanel", "jahresuebersichtPanel", "archivPanel", "urlaubPanel"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+    azRender();
+    // Bewusst OHNE "behavior: smooth": waehrend einer Scroll-Animation
+    // wandern alle Knoepfe mit. Ein zweiter, schnell nachgesetzter Tipp
+    // landet dann auf dem falschen Knopf - beim Testen ist so ein
+    // Null-Minuten-Arbeitstag entstanden, weil der Tipp statt auf
+    // "Arbeitszeit" auf "Arbeitsbeginn" ging.
+    p.scrollIntoView({ block: "start" });
+  }
+}
+
+function azSaveCfg() {
+  AZ.cfg = Object.assign({}, AZ.cfg, {
+    soll: parseFloat(document.getElementById("azSoll").value) || 0,
+    gesetzlichePause: document.getElementById("azGesetzlichePause").checked,
+  });
+  azRender();
+}
+
+/* Zeigt in Klartext, was die gewaehlte Regel konkret bedeutet - mit
+   Beispielen aus dem eigenen Arbeitsalltag statt abstrakter Beschreibung. */
+/* Stellt beide Rechnungen nebeneinander, damit der Unterschied sichtbar
+   ist statt erklaert werden zu muessen: was der Schalter gerade macht,
+   und was er in der anderen Stellung machen wuerde. */
+function azPausenErklaerung() {
+  const el = document.getElementById("azPausenErklaerung");
+  if (!el) return;
+  const an = azPauseAn();
+  const soll = AZ.cfg.soll * 60;
+
+  const zeile = (std) => {
+    const b = Math.round(std * 60);
+    const abzug = an ? (b > 540 ? 45 : b > 360 ? 30 : 0) : 0;
+    const netto = b - abzug;
+    const diff = netto - soll;
+    return `<tr>
+      <td style="padding:2px 10px 2px 0; color:#666;">${String(std).replace(".", ",")} Std. anwesend</td>
+      <td style="padding:2px 10px 2px 0;">${abzug ? "− " + abzug + " Min." : "kein Abzug"}</td>
+      <td style="padding:2px 10px 2px 0;"><b>${azHhmm(netto)}</b> gearbeitet</td>
+      <td style="padding:2px 0; font-weight:600; color:${diff >= 0 ? "#1a7f37" : "#c0392b"};">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</td>
+    </tr>`;
+  };
+
+  el.innerHTML =
+    (an
+      ? `Neue Tage werden <b>mit Pause</b> angelegt: 30 Min. ab 6 Std., 45 Min. ab 9 Std. (§ 4 ArbZG).
+         Abgezogen wird, weil Arbeitszeit nach § 2 Abs. 1 ArbZG „die Zeit vom Beginn bis zum Ende
+         der Arbeit <b>ohne die Ruhepausen</b>" ist.`
+      : `Neue Tage werden <b>ohne Pause</b> angelegt – die gestempelte Zeit zählt voll.
+         Richtig, solange Sie tatsächlich durcharbeiten: <b>eine Pause, die es nicht gab,
+         darf nicht abgezogen werden.</b>`) +
+    `<table style="margin-top:0.5rem; border-collapse:collapse; font-size:0.82rem;">${zeile(4)}${zeile(8.5)}${zeile(10)}</table>` +
+    `<span style="color:#666;">Das ist nur die <b>Vorgabe</b>. In der Monatsübersicht lässt sich für
+     <b>jeden einzelnen Tag</b> ankreuzen, ob es an dem Tag eine Pause gab – dann stimmt die
+     Rechnung auch, wenn es mal so und mal so läuft.</span>`;
+}
+
+function azStempeln() {
+  if (AZ.lauf) {
+    const start = new Date(AZ.lauf);
+    const min = (Date.now() - start.getTime()) / 60000;
+    // Unter einer Minute ist immer ein Fehlgriff, kein Arbeitstag. Wird
+    // kommentarlos verworfen statt mit Rueckfragen - ein versehentlich
+    // gespeicherter Null-Minuten-Tag zaehlt sonst als volles Minus von
+    // 8,5 Stunden und verfaelscht die Monatssumme. Echte kurze Tage
+    // lassen sich ueber "Tag nachtragen" eintragen.
+    if (min < 1) {
+      AZ.lauf = null;
+      azRender();
+      alert("Nur " + Math.round(min * 60) + " Sekunden erfasst – das war offenbar ein Fehlgriff.\n\nDer Eintrag wurde verworfen. Über „➕ Tag nachtragen“ lässt sich ein Tag von Hand eintragen.");
+      return;
+    }
+    const t = AZ.tage;
+    // "pause" wird sofort festgeschrieben (nicht erst bei der Anzeige aus der
+    // Vorgabe abgeleitet), damit eine spaetere Aenderung der Vorgabe alte
+    // Tage nicht rueckwirkend umrechnet.
+    t.push({ start: AZ.lauf, ende: new Date().toISOString(), min: Math.round(min), pause: azPauseAn() });
+    AZ.tage = t;
+    AZ.lauf = null;
+  } else {
+    AZ.lauf = new Date().toISOString();
+  }
+  azRender();
+}
+
+function azTick() {
+  const el = document.getElementById("azUhr");
+  if (!el) return;
+  const l = AZ.lauf;
+  if (!l) { el.textContent = "00:00:00"; return; }
+  const s = Math.max(0, Math.floor((Date.now() - new Date(l).getTime()) / 1000));
+  el.textContent = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60]
+    .map((v) => String(v).padStart(2, "0")).join(":");
+}
+
+/* Einzelnen Tag loeschen - identifiziert ueber den Start-Zeitstempel,
+   der pro Eintrag eindeutig ist. */
+function azLoescheTag(startIso) {
+  const t = AZ.tage;
+  const e = t.find((x) => x.start === startIso);
+  if (!e) return;
+  const d = new Date(e.start).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" });
+  if (!confirm(d + "\n" + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende) + "\n\nDiesen Tag wirklich löschen?")) return;
+  AZ.tage = t.filter((x) => x.start !== startIso);
+  azRender();
+}
+
+/* Mehrere Tage auf einmal loeschen - bewusst ANSTELLE eines
+   "alles loeschen"-Knopfes. Ein einziger Fehlgriff darf nicht die
+   Ueberstunden von Monaten vernichten; es laesst sich immer nur das
+   loeschen, was vorher sichtbar angehakt wurde. */
+function azGewaehlte() {
+  return [...document.querySelectorAll("#azListe input.az-auswahl:checked")].map((c) => c.value);
+}
+
+function azAuswahlGeaendert() {
+  const n = azGewaehlte().length;
+  const btn = document.getElementById("azLoeschAuswahl");
+  btn.disabled = n === 0;
+  btn.textContent = n === 0 ? "🗑️ Auswahl löschen" : `🗑️ ${n} ${n === 1 ? "Tag" : "Tage"} löschen`;
+  const alle = document.getElementById("azAlle");
+  if (alle) {
+    const gesamt = document.querySelectorAll("#azListe input.az-auswahl").length;
+    alle.checked = n > 0 && n === gesamt;
+    alle.indeterminate = n > 0 && n < gesamt;
+  }
+}
+
+function azAlleAuswaehlen(an) {
+  document.querySelectorAll("#azListe input.az-auswahl").forEach((c) => { c.checked = an; });
+  azAuswahlGeaendert();
+}
+
+/* Pause fuer einen einzelnen Tag an- oder abschalten. Der Wert wird am
+   Tag selbst gespeichert und ueberstimmt damit dauerhaft die allgemeine
+   Vorgabe - auch wenn diese spaeter geaendert wird. */
+function azTagPauseUmschalten(startIso, an) {
+  const t = AZ.tage;
+  const e = t.find((x) => x.start === startIso);
+  if (!e) return;
+  e.pause = an;
+  AZ.tage = t;
+  azRender();
+}
+
+function azLoescheAuswahl() {
+  const ids = azGewaehlte();
+  if (!ids.length) return;
+  const tage = AZ.tage.filter((e) => ids.includes(e.start));
+  const liste = tage.map((e) => "• " + new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) +
+    "  " + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join("\n");
+  if (!confirm(ids.length + (ids.length === 1 ? " Tag" : " Tage") + " löschen?\n\n" + liste + "\n\nRückgängig machen geht nicht.")) return;
+  AZ.tage = AZ.tage.filter((e) => !ids.includes(e.start));
+  azRender();
+}
+
+/* Die zuletzt eingetragenen Zeiten werden als Vorgabe gemerkt. Wer eine
+   Woche nachpflegt, tippt sonst zehnmal dieselben 6:00 und 15:30. */
+function azNachtragenModal(datumVorgabe) {
+  const c = AZ.cfg;
+  const heute = datumVorgabe || new Date().toISOString().slice(0, 10);
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) azSchliesseModal()">
+      <div class="modal-box">
+        <h2 style="margin-top:0;">✍️ Arbeitszeit von Hand eintragen</h2>
+        <p class="hinweis-text">Für vergessenes Stempeln, zum Berichtigen oder zum Nachpflegen mehrerer Tage.</p>
+        <div class="grid">
+          <label>Datum <input id="azNachDatum" type="date" value="${heute}"></label>
+          <label>Arbeitsbeginn <input id="azNachVon" type="time" value="${c.letzteVon || "06:00"}"></label>
+          <label>Feierabend <input id="azNachBis" type="time" value="${c.letzteBis || "15:30"}"></label>
+          <label style="display:flex; align-items:center; gap:0.5rem;">
+            <input id="azNachPause" type="checkbox" ${azPauseAn() ? "checked" : ""} style="width:auto; flex:none;">
+            An diesem Tag Pause gemacht
+          </label>
+        </div>
+        <div id="azNachVorschau" style="margin-top:0.75rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.85rem; color:var(--brand-dark);"></div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem; flex-wrap:wrap;">
+          <button class="ghost" onclick="azSchliesseModal()">Abbrechen</button>
+          <button class="ghost" onclick="azNachtragenSpeichern(true)">Eintragen &amp; nächster Tag</button>
+          <button class="primary" onclick="azNachtragenSpeichern(false)">Eintragen</button>
+        </div>
+      </div>
+    </div>`;
+  ["azNachDatum", "azNachVon", "azNachBis"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", azNachVorschau));
+  document.getElementById("azNachPause").addEventListener("change", azNachVorschau);
+  azNachVorschau();
+}
+
+/* Zeigt schon vor dem Speichern, was der Eintrag bedeutet - damit ein
+   Zahlendreher auffaellt, bevor er in der Liste steht. */
+function azNachVorschau() {
+  const el = document.getElementById("azNachVorschau");
+  if (!el) return;
+  const d = document.getElementById("azNachDatum").value;
+  const von = document.getElementById("azNachVon").value;
+  const bis = document.getElementById("azNachBis").value;
+  if (!d || !von || !bis) { el.textContent = "Bitte Datum und beide Zeiten ausfüllen."; return; }
+  const s = new Date(d + "T" + von);
+  let e = new Date(d + "T" + bis);
+  let nacht = false;
+  if (e <= s) { e = new Date(e.getTime() + 864e5); nacht = true; }
+  const brutto = Math.round((e - s) / 60000);
+  const pauseAn = document.getElementById("azNachPause").checked;
+  const abzug = pauseAn ? azGesetzPause(brutto) : 0;
+  const netto = Math.max(0, brutto - abzug);
+  const diff = netto - AZ.cfg.soll * 60;
+  const wochentag = s.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" });
+  el.innerHTML = `<b>${wochentag}</b>${nacht ? " <span style='color:#c0392b;'>(über Mitternacht)</span>" : ""}<br>` +
+    `Arbeitszeit <b>${azHhmm(netto)} Std.</b>` +
+    (abzug ? ` <span style="color:#666;">(${azHhmm(brutto)} minus ${abzug} Min. Pause)</span>` : "") +
+    ` &nbsp;·&nbsp; <b style="color:${diff >= 0 ? "#1a7f37" : "#c0392b"};">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</b> gegenüber ${String(AZ.cfg.soll).replace(".", ",")} Std.` +
+    (!pauseAn && brutto > 360
+      ? `<br><span style="color:#c0392b;">⚠️ Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen, der Tag wird nur gekennzeichnet.</span>`
+      : "");
+}
+function azSchliesseModal() { document.getElementById("modalRoot").innerHTML = ""; }
+
+function azNachtragenSpeichern(weiter) {
+  const datum = document.getElementById("azNachDatum").value;
+  const von = document.getElementById("azNachVon").value;
+  const bis = document.getElementById("azNachBis").value;
+  if (!datum || !von || !bis) { alert("Bitte Datum, Arbeitsbeginn und Feierabend ausfüllen."); return; }
+  const start = new Date(datum + "T" + von);
+  let ende = new Date(datum + "T" + bis);
+  // Nachtschicht: Feierabend vor Arbeitsbeginn heisst "am Folgetag".
+  if (ende <= start) ende = new Date(ende.getTime() + 24 * 60 * 60 * 1000);
+  const min = Math.round((ende - start) / 60000);
+  if (min > 16 * 60 && !confirm("Das sind " + azHhmm(min) + " Stunden. Wirklich eintragen?")) return;
+
+  // Doppelt erfasste Tage sind der haeufigste Weg zu falschen Ueberstunden -
+  // deshalb vorher warnen statt stillschweigend addieren.
+  const schonDa = AZ.tage.filter((e) => e.start.slice(0, 10) === start.toISOString().slice(0, 10));
+  if (schonDa.length) {
+    const liste = schonDa.map((e) => azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join(", ");
+    if (!confirm("Für diesen Tag ist bereits etwas erfasst:\n" + liste +
+      "\n\nDer neue Eintrag kommt zusätzlich dazu und wird mitgezählt. Trotzdem eintragen?")) return;
+  }
+
+  const t = AZ.tage;
+  t.push({ start: start.toISOString(), ende: ende.toISOString(), min: min,
+           pause: document.getElementById("azNachPause").checked });
+  t.sort((a, b) => new Date(a.start) - new Date(b.start));
+  AZ.tage = t;
+
+  // Zeiten als Vorgabe fuer den naechsten Eintrag merken
+  AZ.cfg = Object.assign(AZ.cfg, { letzteVon: von, letzteBis: bis });
+
+  azRender();
+
+  if (weiter) {
+    // Direkt mit dem Folgetag weitermachen - fuer eine ganze Woche am Stueck
+    const naechster = new Date(start.getTime() + 864e5).toISOString().slice(0, 10);
+    azNachtragenModal(naechster);
+  } else {
+    azSchliesseModal();
+  }
+}
+
+function azExport() {
+  const key = document.getElementById("azMonat").value;
+  const soll = AZ.cfg.soll * 60;
+  const tage = AZ.tage.filter((e) => azMonatsKey(e.start) === key);
+  if (!tage.length) { alert("Für diesen Monat sind keine Zeiten erfasst."); return; }
+  const zeilen = tage.map((e) => {
+    const n = azNettoFuer(e), d = n - soll, abzug = azAbzugFuer(e);
+    return new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) +
+      "  " + azUhrzeit(e.start) + "-" + azUhrzeit(e.ende) +
+      "  Pause " + (abzug ? abzug + " Min." : "keine") +
+      "  " + azHhmm(n) + " Std.  " + (d >= 0 ? "+" : "") + azHhmm(d) +
+      (!azTagPause(e) && e.min > 360 ? "  (!) ueber 6 Std. ohne Pause" : "");
+  }).join("\n");
+  const summe = tage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
+  const c = AZ.cfg;
+  const txt = "Arbeitszeit " + azMonatsLabel(key) +
+    "\nSoll " + String(c.soll).replace(".", ",") + " Std./Tag, " + azModusText() +
+    "\n\n" + zeilen +
+    "\n\nÜberstunden im Monat: " + (summe >= 0 ? "+" : "") + azHhmm(summe);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => alert("In die Zwischenablage kopiert."), () => prompt("Kopieren:", txt));
+  } else { prompt("Kopieren:", txt); }
+}
+
+function azRender() {
+  const panel = document.getElementById("arbeitszeitPanel");
+  if (!panel) return;
+
+  const c = AZ.cfg;
+  document.getElementById("azSoll").value = c.soll;
+  document.getElementById("azGesetzlichePause").checked = azPauseAn();
+  azPausenErklaerung();
+
+  // Stempel-Knopf
+  const l = AZ.lauf;
+  const btn = document.getElementById("azBtn");
+  btn.textContent = l ? "Feierabend" : "Arbeitsbeginn";
+  btn.className = l ? "danger" : "primary";
+  document.getElementById("azStatus").innerHTML = l
+    ? "Läuft seit <b>" + azUhrzeit(l) + "</b>"
+    : "Noch nicht gestartet";
+  azTick();
+
+  // Monatsauswahl: alle Monate mit Einträgen, plus der laufende Monat
+  const alle = AZ.tage;
+  const keys = Array.from(new Set(alle.map((e) => azMonatsKey(e.start))));
+  const jetzt = azMonatsKey(new Date().toISOString());
+  if (!keys.includes(jetzt)) keys.push(jetzt);
+  keys.sort().reverse();
+
+  const sel = document.getElementById("azMonat");
+  const vorher = sel.value;
+  sel.innerHTML = keys.map((k) => `<option value="${k}">${azMonatsLabel(k)}</option>`).join("");
+  sel.value = keys.includes(vorher) ? vorher : jetzt;
+
+  // Liste des gewaehlten Monats
+  const soll = c.soll * 60;
+  const monatTage = alle.filter((e) => azMonatsKey(e.start) === sel.value)
+    .sort((a, b) => new Date(b.start) - new Date(a.start));
+
+  let html;
+  if (!monatTage.length) {
+    html = `<p style="color:#666; text-align:center; padding:1.2rem 0; margin:0;">Für ${azMonatsLabel(sel.value)} ist noch nichts erfasst.</p>`;
+  } else {
+    html = `<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+      <thead><tr style="text-align:left; color:#666; font-size:0.8rem;">
+        <th style="padding:6px 4px; width:28px;"><input type="checkbox" id="azAlle" onchange="azAlleAuswaehlen(this.checked)" title="Alle Tage dieses Monats auswählen"></th>
+        <th style="padding:6px 4px;">Tag</th><th style="padding:6px 4px;">Von–Bis</th>
+        <th style="padding:6px 4px; text-align:center;">Pause</th>
+        <th style="padding:6px 4px; text-align:right;">Arbeitszeit</th>
+        <th style="padding:6px 4px; text-align:right;">Über/Unter</th>
+        <th style="padding:6px 4px;"></th></tr></thead><tbody>`;
+    monatTage.forEach((e) => {
+      const n = azNettoFuer(e), diff = n - soll;
+      const farbe = diff >= 0 ? "#1a7f37" : "#c0392b";
+      const pauseAn = azTagPause(e);
+      const abzug = azAbzugFuer(e);
+      // Ein Tag ueber 6 Std. ohne Pause ist nach § 4 Satz 2 ArbZG nicht
+      // zulaessig - wir ziehen trotzdem nichts ab (es hat ja keine Pause
+      // gegeben), kennzeichnen es aber, damit es belegbar ist.
+      const verstoss = !pauseAn && e.min > 360;
+      html += `<tr style="border-top:1px solid #eee;">
+        <td style="padding:8px 4px;"><input type="checkbox" class="az-auswahl" value="${e.start}" onchange="azAuswahlGeaendert()"></td>
+        <td style="padding:8px 4px;">${new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
+        <td style="padding:8px 4px; color:#666;">${azUhrzeit(e.start)}–${azUhrzeit(e.ende)}</td>
+        <td style="padding:8px 4px; text-align:center; white-space:nowrap;">
+          <input type="checkbox" ${pauseAn ? "checked" : ""} onchange="azTagPauseUmschalten('${e.start}', this.checked)"
+                 title="${pauseAn ? "Pause gemacht – wird abgezogen" : "Keine Pause gemacht – nichts wird abgezogen"}">
+          <span style="font-size:0.75rem; color:#888;">${abzug ? "−" + abzug + "′" : "–"}</span>
+          ${verstoss ? `<span title="Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen; der Tag ist nur gekennzeichnet." style="cursor:help;">⚠️</span>` : ""}
+        </td>
+        <td style="padding:8px 4px; text-align:right; font-variant-numeric:tabular-nums;">${azHhmm(n)}</td>
+        <td style="padding:8px 4px; text-align:right; font-weight:600; font-variant-numeric:tabular-nums; color:${farbe};">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</td>
+        <td style="padding:8px 4px; text-align:right;"><button class="ghost" style="padding:2px 8px; font-size:0.8rem;" onclick="azLoescheTag('${e.start}')" title="Diesen Tag löschen">🗑️</button></td>
+      </tr>`;
+    });
+    const summeMonat = monatTage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
+    const summeAlle = alle.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
+    html += `</tbody></table>
+      <div style="display:flex; justify-content:space-between; padding-top:10px; margin-top:8px; border-top:2px solid #ddd; font-weight:600;">
+        <span>Überstunden ${azMonatsLabel(sel.value)} (${monatTage.length} ${monatTage.length === 1 ? "Tag" : "Tage"})</span>
+        <span style="color:${summeMonat >= 0 ? "#1a7f37" : "#c0392b"}; font-variant-numeric:tabular-nums;">${summeMonat >= 0 ? "+" : ""}${azHhmm(summeMonat)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding-top:6px; color:#666; font-size:0.85rem;">
+        <span>Überstunden insgesamt (alle Monate)</span>
+        <span style="font-variant-numeric:tabular-nums;">${summeAlle >= 0 ? "+" : ""}${azHhmm(summeAlle)}</span>
+      </div>`;
+  }
+  document.getElementById("azListe").innerHTML = html;
+  azAuswahlGeaendert();
+  azRenderJahr();
+}
+
+/* ---------- Jahresuebersicht der Ueberstunden ----------
+   Bewusst im Stil der bestehenden Spesen-Jahresuebersicht (gleiche
+   Rahmen, gleiches Orange), aber mit einer Besonderheit: Ueberstunden
+   koennen negativ sein. Das Balkendiagramm hat deshalb eine Nulllinie,
+   Plus geht nach oben (gruen), Minus nach unten (rot). */
+function azJahrBalken(monate) {
+  const maxAbs = Math.max(30, ...monate.map((m) => Math.abs(m.diff)));
+  const barWidth = 28, gap = 14, halbe = 60, leftPad = 34, chartHeight = halbe * 2 + 26;
+  const width = monate.length * (barWidth + gap) + leftPad;
+  const null_y = halbe + 4;
+  const bars = monate.map((m, i) => {
+    const h = Math.round((Math.abs(m.diff) / maxAbs) * (halbe - 14));
+    const x = leftPad + i * (barWidth + gap);
+    const y = m.diff >= 0 ? null_y - h : null_y;
+    const farbe = m.diff >= 0 ? "#1a7f37" : "#c0392b";
+    const beschriftung = m.tage ? (m.diff >= 0 ? "+" : "") + azHhmm(m.diff) : "";
+    const textY = m.diff >= 0 ? y - 4 : y + h + 11;
+    return `
+      <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(m.tage ? h : 0, m.tage ? 1 : 0)}" rx="3" fill="${farbe}"></rect>
+      <text x="${x + barWidth / 2}" y="${textY}" font-size="9" text-anchor="middle" fill="#370F06">${beschriftung}</text>
+      <text x="${x + barWidth / 2}" y="${chartHeight - 4}" font-size="10" text-anchor="middle" fill="#666">${MONTH_NAMES[m.monat - 1].slice(0, 3)}</text>`;
+  }).join("");
+  return `<svg width="${width}" height="${chartHeight}" viewBox="0 0 ${width} ${chartHeight}" style="max-width:100%; display:block; margin:0 auto 1rem;">
+    <line x1="${leftPad - 6}" y1="${null_y}" x2="${width}" y2="${null_y}" stroke="#bbb" stroke-width="1"></line>
+    <text x="0" y="${null_y + 3}" font-size="9" fill="#999">0</text>
+    ${bars}</svg>`;
+}
+
+function azRenderJahr() {
+  const sel = document.getElementById("azJahr");
+  if (!sel) return;
+  const alle = AZ.tage;
+  const jahre = Array.from(new Set(alle.map((e) => new Date(e.start).getFullYear())));
+  const aktuell = new Date().getFullYear();
+  if (!jahre.includes(aktuell)) jahre.push(aktuell);
+  jahre.sort().reverse();
+  const vorher = sel.value;
+  sel.innerHTML = jahre.map((j) => `<option value="${j}">${j}</option>`).join("");
+  sel.value = jahre.includes(parseInt(vorher, 10)) ? vorher : String(aktuell);
+
+  const jahr = parseInt(sel.value, 10);
+  const soll = AZ.cfg.soll * 60;
+  const monate = [];
+  for (let m = 1; m <= 12; m++) {
+    const tage = alle.filter((e) => {
+      const d = new Date(e.start);
+      return d.getFullYear() === jahr && d.getMonth() + 1 === m;
+    });
+    const arbeit = tage.reduce((s, e) => s + azNettoFuer(e), 0);
+    monate.push({ monat: m, tage: tage.length, arbeit, diff: arbeit - tage.length * soll });
+  }
+  const gesamtTage = monate.reduce((s, m) => s + m.tage, 0);
+
+  if (!gesamtTage) {
+    document.getElementById("azJahrContent").innerHTML =
+      `<p style="color:#666; text-align:center; padding:1.2rem 0; margin:0;">Für ${jahr} ist noch nichts erfasst.</p>`;
+    return;
+  }
+
+  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 10px; background:#FDE9DC; text-align:${r ? "right" : "left"};">${l}</th>`;
+  const td = (v, r, extra) => `<td style="border:1px solid #333; padding:6px 10px;${r ? " text-align:right;" : ""}${extra || ""}">${v}</td>`;
+  const gesamtArbeit = monate.reduce((s, m) => s + m.arbeit, 0);
+  const gesamtDiff = monate.reduce((s, m) => s + m.diff, 0);
+
+  const zeilen = monate.map((m) => {
+    if (!m.tage) return `<tr style="color:#bbb;">${td(MONTH_NAMES[m.monat - 1])}${td("–", true)}${td("–", true)}${td("–", true)}</tr>`;
+    return `<tr>
+      ${td(MONTH_NAMES[m.monat - 1])}
+      ${td(m.tage, true)}
+      ${td(azHhmm(m.arbeit), true)}
+      ${td((m.diff >= 0 ? "+" : "") + azHhmm(m.diff), true, ` font-weight:600; color:${m.diff >= 0 ? "#1a7f37" : "#c0392b"};`)}
+    </tr>`;
+  }).join("");
+
+  document.getElementById("azJahrContent").innerHTML = `
+    ${azJahrBalken(monate)}
+    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+      <tr>${th("Monat")}${th("Tage", true)}${th("Arbeitszeit", true)}${th("Über/Unter", true)}</tr>
+      ${zeilen}
+      <tr style="font-weight:bold;">
+        ${td("Gesamt " + jahr)}
+        ${td(gesamtTage, true)}
+        ${td(azHhmm(gesamtArbeit), true)}
+        ${td((gesamtDiff >= 0 ? "+" : "") + azHhmm(gesamtDiff), true, ` color:${gesamtDiff >= 0 ? "#1a7f37" : "#c0392b"};`)}
+      </tr>
+    </table>
+    <p class="hinweis-text" style="margin-top:0.75rem;">
+      Gerechnet mit <b>${String(AZ.cfg.soll).replace(".", ",")} Std./Tag</b> Soll, <b>${azModusText()}</b>.
+      Nur Tage mit erfasster Zeit zählen – nicht gestempelte Tage ergeben kein Minus.
+    </p>`;
+}
+
+function azInit() {
+  if (azTimer) clearInterval(azTimer);
+  azTimer = setInterval(azTick, 1000);
+  azRender();
+}
+
+/* ===================== Urlaubskalender =====================
+   Liest und schreibt "overrides" - dieselbe Datenquelle wie die
+   Abrechnung. Deshalb hier KEIN eigener Speicher: ein Urlaubstag ist ein
+   Urlaubstag, egal wo er eingetragen wurde.
+
+   Gezaehlt wird nach der abgestimmten Regel: Montag bis Freitag,
+   gesetzliche Feiertage des eingestellten Bundeslandes zaehlen nicht mit. */
+
+const URLAUB_FARBEN = {
+  urlaub:       { bg: "#2ecc71", txt: "#fff", label: "Urlaub" },
+  krank:        { bg: "#e74c3c", txt: "#fff", label: "Krank" },
+  frei:         { bg: "#95a5a6", txt: "#fff", label: "Frei" },
+  sonderurlaub: { bg: "#9b59b6", txt: "#fff", label: "Sonderurlaub" },
+  elternzeit:   { bg: "#e67e22", txt: "#fff", label: "Elternzeit" },
+};
+
+function urlaubJahrWert() {
+  const sel = document.getElementById("urlaubJahr");
+  return sel && sel.value ? parseInt(sel.value, 10) : config.jahr;
+}
+
+/* Zaehlt ein Datum gegen den Urlaubsanspruch?
+   Nein bei Samstag/Sonntag und an gesetzlichen Feiertagen. */
+function urlaubZaehltTag(iso, holidaysMap) {
+  const d = new Date(iso + "T12:00:00");
+  const wd = d.getDay();               // 0 = So, 6 = Sa
+  if (wd === 0 || wd === 6) return false;
+  if (holidaysMap[iso]) return false;
+  return true;
+}
+
+function urlaubSaveAnspruch() {
+  config.urlaubsanspruch = parseFloat(document.getElementById("urlaubAnspruch").value) || 0;
+  config.urlaubUebertrag = parseFloat(document.getElementById("urlaubUebertrag").value) || 0;
+  localStorage.setItem("spesen_config", JSON.stringify(config));
+  urlaubRender();
+}
+
+function toggleUrlaubPanel() {
+  const p = document.getElementById("urlaubPanel");
+  const showing = p.style.display !== "none";
+  p.style.display = showing ? "none" : "block";
+  azSpesenAnsicht(showing);
+  if (!showing) {
+    ["settingsPanel", "jahresuebersichtPanel", "archivPanel", "arbeitszeitPanel"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+    urlaubRender();
+    p.scrollIntoView({ block: "start" });
+  }
+}
+
+/* Alle Tage eines Zeitraums durchgehen. "bis" darf leer sein - dann ist
+   es ein einzelner Tag. */
+function urlaubTageImZeitraum(von, bis) {
+  const tage = [];
+  const start = new Date(von + "T12:00:00");
+  const ende = new Date((bis || von) + "T12:00:00");
+  for (let d = new Date(start); d <= ende; d.setDate(d.getDate() + 1)) {
+    tage.push(d.toISOString().slice(0, 10));
+  }
+  return tage;
+}
+
+function urlaubVorschau() {
+  const el = document.getElementById("urlaubVorschau");
+  if (!el) return;
+  const von = document.getElementById("urlaubVon").value;
+  const bis = document.getElementById("urlaubBis").value;
+  const status = document.getElementById("urlaubStatus").value;
+  if (!von) { el.textContent = "Bitte mindestens ein Von-Datum wählen."; return; }
+  if (bis && bis < von) { el.innerHTML = "<b style='color:#c0392b;'>Das Bis-Datum liegt vor dem Von-Datum.</b>"; return; }
+
+  const holidaysMap = feiertage(urlaubJahrWert(), config.bundesland);
+  const alle = urlaubTageImZeitraum(von, bis);
+  const zaehlend = alle.filter((iso) => urlaubZaehltTag(iso, holidaysMap));
+  const feiertagsTage = alle.filter((iso) => holidaysMap[iso]);
+  const fmt = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+
+  const label = status === "normal" ? "wieder normale Arbeitstage" : (URLAUB_FARBEN[status] || {}).label || status;
+  el.innerHTML =
+    `<b>${alle.length === 1 ? fmt(alle[0]) : fmt(alle[0]) + " bis " + fmt(alle[alle.length - 1])}</b> · ${label}<br>` +
+    `${alle.length} Kalendertage, davon <b>${zaehlend.length} ${zaehlend.length === 1 ? "Arbeitstag" : "Arbeitstage"}</b>` +
+    (status === "urlaub" ? " – so viel wird vom Urlaub abgezogen." : ".") +
+    (feiertagsTage.length ? `<br><span style="color:#666;">Feiertag${feiertagsTage.length > 1 ? "e" : ""} im Zeitraum: ${feiertagsTage.map((i) => holidaysMap[i]).join(", ")} – zählen nicht mit.</span>` : "");
+}
+
+function urlaubEintragen() {
+  const von = document.getElementById("urlaubVon").value;
+  const bis = document.getElementById("urlaubBis").value;
+  const status = document.getElementById("urlaubStatus").value;
+  if (!von) { alert("Bitte mindestens ein Von-Datum wählen."); return; }
+  if (bis && bis < von) { alert("Das Bis-Datum liegt vor dem Von-Datum."); return; }
+
+  // Wochenenden und Feiertage werden NICHT ueberschrieben. Sonst stuenden
+  // im Tool zwei verschiedene Urlaubszahlen (der Kalender zaehlt sie nicht,
+  // die Spesen-Jahresuebersicht schon), und ein Feiertag waere in der
+  // Abrechnung faelschlich als Urlaubstag markiert.
+  // Beim Zuruecksetzen auf "normal" wird dagegen alles geleert - damit sich
+  // auch versehentlich gesetzte Tage wieder saeubern lassen.
+  const holidaysMap = feiertage(urlaubJahrWert(), config.bundesland);
+  const tage = urlaubTageImZeitraum(von, bis);
+  const betroffen = status === "normal" ? tage : tage.filter((iso) => urlaubZaehltTag(iso, holidaysMap));
+  betroffen.forEach((iso) => {
+    overrides[iso] = overrides[iso] || {};
+    if (status === "normal") delete overrides[iso].status;
+    else overrides[iso].status = status;
+  });
+  saveOverrides();
+  renderFormular();            // Abrechnung sofort mitziehen
+  document.getElementById("urlaubBis").value = "";
+  urlaubRender();
+  urlaubVorschau();
+}
+
+/* Klick auf einen Tag im Kalender: setzt den gerade gewaehlten Status,
+   nochmal klicken macht ihn wieder zum normalen Arbeitstag. */
+function urlaubTagKlick(iso) {
+  const status = document.getElementById("urlaubStatus").value;
+  const holidaysMap = feiertage(urlaubJahrWert(), config.bundesland);
+  const zaehlt = urlaubZaehltTag(iso, holidaysMap);
+
+  // Aus demselben Grund wie beim Zeitraum: Wochenenden und Feiertage
+  // bekommen keinen Abwesenheitsstatus. Loeschen bleibt immer erlaubt.
+  if (!zaehlt && status !== "normal" && !(overrides[iso] && overrides[iso].status)) {
+    const el = document.getElementById("urlaubVorschau");
+    const d = new Date(iso + "T12:00:00");
+    el.innerHTML = `<b>${d.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</b> ist ` +
+      (holidaysMap[iso] ? `ein Feiertag (${holidaysMap[iso]})` : "ein Wochenendtag") +
+      ` – dafür wird kein Urlaub verbraucht, deshalb lässt er sich auch nicht eintragen.`;
+    return;
+  }
+
+  overrides[iso] = overrides[iso] || {};
+  if (status === "normal" || overrides[iso].status === status) delete overrides[iso].status;
+  else overrides[iso].status = status;
+  saveOverrides();
+  renderFormular();
+  urlaubRender();
+}
+
+function urlaubRender() {
+  const panel = document.getElementById("urlaubPanel");
+  if (!panel) return;
+
+  // Jahresauswahl
+  const sel = document.getElementById("urlaubJahr");
+  const jetzt = new Date().getFullYear();
+  const jahre = Array.from(new Set([config.jahr, jetzt, jetzt + 1])).sort();
+  const vorher = sel.value;
+  sel.innerHTML = jahre.map((j) => `<option value="${j}">${j}</option>`).join("");
+  sel.value = jahre.includes(parseInt(vorher, 10)) ? vorher : String(config.jahr);
+
+  document.getElementById("urlaubAnspruch").value = config.urlaubsanspruch ?? 30;
+  document.getElementById("urlaubUebertrag").value = config.urlaubUebertrag ?? 0;
+
+  const jahr = urlaubJahrWert();
+  const holidaysMap = feiertage(jahr, config.bundesland);
+
+  // Alle gesetzten Abwesenheiten des Jahres einsammeln
+  const zaehler = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
+  Object.keys(overrides).forEach((iso) => {
+    const st = overrides[iso] && overrides[iso].status;
+    if (!st || zaehler[st] === undefined) return;
+    if (!iso.startsWith(String(jahr))) return;
+    if (urlaubZaehltTag(iso, holidaysMap)) zaehler[st]++;
+  });
+
+  // Bilanz
+  const anspruch = (config.urlaubsanspruch ?? 30) + (config.urlaubUebertrag ?? 0);
+  const rest = anspruch - zaehler.urlaub;
+  const kachel = (label, wert, farbe) => `
+    <div style="flex:1; min-width:120px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fff;">
+      <div style="font-size:0.75rem; color:#666;">${label}</div>
+      <div style="font-size:1.4rem; font-weight:700; color:${farbe || "var(--brand-dark)"};">${String(wert).replace(".", ",")}</div>
+    </div>`;
+  document.getElementById("urlaubBilanz").innerHTML = `
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      ${kachel("Anspruch " + jahr, anspruch)}
+      ${kachel("Eingetragen", zaehler.urlaub)}
+      ${kachel("Rest", rest, rest < 0 ? "#c0392b" : "#1a7f37")}
+    </div>
+    ${rest < 0 ? `<p class="hinweis-text" style="color:#c0392b; margin-bottom:0;"><b>Achtung:</b> Sie haben ${String(Math.abs(rest)).replace(".", ",")} Tage mehr eingetragen, als Ihnen zustehen.</p>` : ""}
+    <p class="hinweis-text" style="margin-bottom:0;">
+      Weitere Abwesenheiten ${jahr}: ${zaehler.krank} Krank · ${zaehler.frei} Frei ·
+      ${zaehler.sonderurlaub} Sonderurlaub · ${zaehler.elternzeit} Elternzeit.
+      Gezählt werden nur Montag bis Freitag ohne gesetzliche Feiertage (${config.bundesland}).
+    </p>`;
+
+  // Legende
+  document.getElementById("urlaubKalenderLegende").innerHTML =
+    Object.keys(URLAUB_FARBEN).map((k) =>
+      `<span style="display:inline-block; margin-right:12px; font-size:0.8rem;">
+         <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:${URLAUB_FARBEN[k].bg}; vertical-align:-2px;"></span>
+         ${URLAUB_FARBEN[k].label}</span>`).join("") +
+    `<span style="display:inline-block; margin-right:12px; font-size:0.8rem;">
+       <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#FDE9DC; border:1px solid var(--accent); vertical-align:-2px;"></span>
+       Feiertag</span>
+     <span style="display:inline-block; font-size:0.8rem; color:#666;">
+       <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#eee; vertical-align:-2px;"></span>
+       Wochenende</span>`;
+
+  // Kalender: 12 Monate nebeneinander
+  const heuteIso = new Date().toISOString().slice(0, 10);
+  let html = `<div style="display:flex; flex-wrap:wrap; gap:14px;">`;
+  for (let m = 1; m <= 12; m++) {
+    const ersterTag = new Date(jahr, m - 1, 1);
+    const tageImMonat = new Date(jahr, m, 0).getDate();
+    // Montag = 0 ... Sonntag = 6
+    const versatz = (ersterTag.getDay() + 6) % 7;
+
+    html += `<div style="flex:0 0 auto; border:1px solid #ddd; border-radius:8px; padding:8px; background:#fff;">
+      <div style="font-weight:600; font-size:0.85rem; text-align:center; margin-bottom:4px; color:var(--brand-dark);">${MONTH_NAMES[m - 1]}</div>
+      <table style="border-collapse:collapse;"><thead><tr>
+        ${["Mo","Di","Mi","Do","Fr","Sa","So"].map((t) => `<th style="width:24px; font-size:0.65rem; color:#999; font-weight:normal; padding:1px;">${t}</th>`).join("")}
+      </tr></thead><tbody><tr>`;
+
+    for (let i = 0; i < versatz; i++) html += `<td></td>`;
+    for (let tag = 1; tag <= tageImMonat; tag++) {
+      const iso = `${jahr}-${String(m).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+      const wd = new Date(jahr, m - 1, tag).getDay();
+      const st = overrides[iso] && overrides[iso].status;
+      const feiertag = holidaysMap[iso];
+      const farbe = URLAUB_FARBEN[st];
+
+      let bg = "#fff", txt = "#333", rand = "transparent", titel = "";
+      if (wd === 0 || wd === 6) { bg = "#eee"; txt = "#aaa"; }
+      if (feiertag) { bg = "#FDE9DC"; txt = "var(--brand-dark)"; titel = feiertag; }
+      if (farbe) { bg = farbe.bg; txt = farbe.txt; titel = farbe.label + (feiertag ? " (" + feiertag + ")" : ""); }
+      if (iso === heuteIso) rand = "var(--accent)";
+
+      html += `<td style="padding:1px;">
+        <div onclick="urlaubTagKlick('${iso}')" title="${escapeHtml(titel || iso)}"
+             style="width:24px; height:22px; line-height:22px; text-align:center; font-size:0.72rem;
+                    border-radius:4px; cursor:pointer; background:${bg}; color:${txt};
+                    box-shadow:inset 0 0 0 2px ${rand};">${tag}</div></td>`;
+      if ((versatz + tag) % 7 === 0) html += `</tr><tr>`;
+    }
+    html += `</tr></tbody></table></div>`;
+  }
+  html += `</div>`;
+  document.getElementById("urlaubKalender").innerHTML = html;
+}
+
 applyI18n();
 // Chef-Modus: nur ueber den geheimen Link (…/#chef) sichtbar. Mitarbeiter, die
   // die normale Adresse oeffnen, sehen keine Chef-Funktionen (Auswertung, CSV).
@@ -2904,6 +3919,10 @@ initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
 renderAbsenceRangesList();
+azInit();
+["urlaubVon", "urlaubBis", "urlaubStatus"].forEach((id) =>
+  document.getElementById(id).addEventListener("input", urlaubVorschau));
+urlaubVorschau();
 maybeShowSetupWizard();
 </script>
 
@@ -2914,7 +3933,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-03-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-11-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
