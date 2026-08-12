@@ -3983,7 +3983,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-12-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-12-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
@@ -3997,6 +3997,31 @@ maybeShowSetupWizard();
     } catch (e) { /* offline o.ä. - einfach weiterlaufen */ }
   }
   checkForUpdate(); // nur beim Öffnen prüfen - kein Dauer-Intervall
+})();
+
+/* ===================== Offline-Faehigkeit =====================
+   Meldet den Service Worker an. Danach funktioniert der Spesen-Rechner
+   auch ohne Empfang - im Lager, im Lkw, im Funkloch.
+
+   WICHTIG: Das macht die Seite NICHT zur App. Dafuer braeuchte sie ein
+   verlinktes Manifest, das sie bewusst nicht hat. Es gibt also kein
+   "App installieren"-Fenster. Fuer die Kollegen aendert sich sichtbar
+   nichts - das Tool funktioniert nur zusaetzlich ohne Empfang.
+
+   Derselbe Worker bedient auch die Arbeitszeit-App unter /app/.
+
+   Faellt die Anmeldung aus (altes Geraet, privater Modus, kein HTTPS),
+   laeuft alles normal weiter - nur eben ohne Offline. */
+(function () {
+  if (!("serviceWorker" in navigator)) return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js", { scope: "/" }).then(function (reg) {
+      reg.update().catch(function () {});
+    }).catch(function (e) {
+      console.warn("Service Worker konnte nicht angemeldet werden:", e && e.message);
+    });
+  });
 })();
 </script>
 </body>

@@ -200,7 +200,7 @@
    Die Spesen-Abrechnung selbst wird hier nicht angefasst.
    =================================================================== */
 
-const APP_VERSION = "2026-08-12-1";
+const APP_VERSION = "2026-08-12-4";
 
 const MONATE = ["Januar","Februar","März","April","Mai","Juni",
                 "Juli","August","September","Oktober","November","Dezember"];
@@ -715,17 +715,68 @@ if (azTimer) clearInterval(azTimer);
 azTimer = setInterval(azTick, 1000);
 
 /* Service Worker: macht die App installierbar und offline nutzbar.
+   Er liegt im STAMMORDNER, nicht hier - dadurch bedient er auch den
+   Spesen-Rechner. Ein Worker in /app/ duerfte nur /app/ bedienen, und
+   dann waere das Spesenblatt in der App ohne Empfang tot.
    Faellt die Anmeldung aus, laeuft alles normal weiter - nur ohne Offline. */
 (function () {
   if (!("serviceWorker" in navigator)) return;
   if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js").then(function (reg) {
+    /* Alten Worker aus /app/ abmelden.
+
+       Frueher lag hier ein eigener Worker (app/sw.js). Wer die App damals
+       geoeffnet hat, traegt dessen Anmeldung noch im Browser - und weil sie
+       die engere Reichweite hat, gewinnt sie gegen den neuen im Stammordner.
+       Ergebnis waere: Die App liefe weiter mit dem alten Worker, der nur
+       /app/ kennt, und das Spesenblatt waere dort NICHT offline verfuegbar.
+       Browser raeumen das irgendwann selbst auf - aber eben irgendwann. */
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      return Promise.all(regs.map(function (r) {
+        if (r.scope.replace(/\/+$/, "").endsWith("/app")) {
+          console.info("Alten Service Worker aus /app/ abgemeldet");
+          return r.unregister();
+        }
+      }));
+    }).then(function () {
+      /* Und seinen Cache gleich mit. Der neue Worker raeumt zwar beim
+         Aktivieren auf, aber solange der alte noch lief, hat er ihn
+         danach wieder befuellt - er bliebe also verwaist liegen. */
+      if (!window.caches) return;
+      return caches.keys().then(function (namen) {
+        return Promise.all(namen
+          .filter(function (n) { return n.indexOf("hall-arbeitszeit-") === 0; })
+          .map(function (n) { console.info("Alten Cache entfernt: " + n); return caches.delete(n); }));
+      });
+    }).catch(function () {}).then(function () {
+      return navigator.serviceWorker.register("../sw.js", { scope: "/" });
+    }).then(function (reg) {
       reg.update().catch(function () {});
     }).catch(function (e) {
       console.warn("Service Worker konnte nicht angemeldet werden:", e && e.message);
     });
   });
+})();
+
+/* Speicher-Schutz anfordern.
+
+   Ohne diese Bitte darf das Betriebssystem den Browser-Speicher aufraeumen,
+   wenn das Telefon knapp wird - dann waeren Monate an Ueberstunden weg, ohne
+   dass jemand etwas falsch gemacht haette. Bei einer echten App passiert das
+   nicht; bei einer installierten Web-App wird die Bitte in aller Regel
+   gewaehrt.
+
+   Der Schutz gilt fuer die ganze Domain, also auch fuer die Spesen-Daten.
+   Wird die Bitte abgelehnt, laeuft alles normal weiter - nur eben ohne
+   Zusicherung. Deshalb bleibt das Backup im Spesen-Rechner wichtig. */
+(function () {
+  if (!navigator.storage || !navigator.storage.persist) return;
+  navigator.storage.persisted().then(function (schonGeschuetzt) {
+    if (schonGeschuetzt) return;
+    return navigator.storage.persist().then(function (gewaehrt) {
+      console.info("Speicher-Schutz " + (gewaehrt ? "gewährt" : "nicht gewährt"));
+    });
+  }).catch(function () { /* Browser kennt das nicht - egal */ });
 })();
 
 /* Eigener Installations-Hinweis statt des unauffaelligen Browser-Menues */
