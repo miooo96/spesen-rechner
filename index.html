@@ -1456,6 +1456,13 @@ function toggleJahresuebersicht() {
   p.style.display = showing ? "none" : "block";
 }
 
+/* Beim ALLERERSTEN Aufbau (Seitenaufruf) soll der laufende Monat
+   vorausgewaehlt sein - vorher landete jeder immer im Januar und musste
+   erst umstellen. Danach gilt: was der Nutzer selbst waehlt, bleibt
+   stehen (auch wenn spaeter Einstellungen geaendert werden und diese
+   Funktion erneut laeuft). */
+let monatspickerErstAufbau = true;
+
 function rebuildMonthPicker() {
   const picker = document.getElementById("monthPicker");
   const opts = [];
@@ -1464,6 +1471,23 @@ function rebuildMonthPicker() {
   }
   const prevValue = picker.value;
   picker.innerHTML = opts.join("");
+
+  if (monatspickerErstAufbau) {
+    monatspickerErstAufbau = false;
+    const heute = new Date();
+    // Nur wenn das eingestellte Jahr auch das laufende ist - sonst waere
+    // "aktueller Monat" im falschen Jahr eine Falle.
+    if (heute.getFullYear() === config.jahr) {
+      let m = heute.getMonth() + 1;
+      // Liegt der laufende Monat ausserhalb des eingestellten Zeitraums,
+      // auf den naechstgelegenen Rand setzen statt danebenzugreifen.
+      if (m < config.startMonat) m = config.startMonat;
+      if (m > config.endMonat) m = config.endMonat;
+      picker.value = String(m);
+      return;
+    }
+  }
+
   if (prevValue && prevValue >= config.startMonat && prevValue <= config.endMonat) picker.value = prevValue;
 }
 
@@ -3933,7 +3957,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-11-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-12-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
