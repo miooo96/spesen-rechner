@@ -1284,11 +1284,44 @@ function initSettingsUI() {
     `<option value="alle" ${config.nlTag === "alle" ? "selected" : ""}>Alle Wochentage (Mo-Fr, z.B. Monteure)</option>`;
 }
 
+/* ===================== Eine Ansicht zur Zeit =====================
+   Frueher kannte jeder Knopf nur sein eigenes Panel. Dadurch konnte man
+   den Urlaubskalender oeffnen (der das Spesenblatt ausblendet) und
+   danach die Einstellungen anklicken - und stand vor den Einstellungen
+   OHNE Spesenblatt, dafuer mit noch offenem Urlaubskalender. Genau
+   verkehrt, wenn man die Einstellungen benutzt, um das Spesenblatt zu
+   bearbeiten.
+
+   Jetzt laeuft jeder Knopf ueber diese eine Stelle:
+   - es ist immer nur EIN Panel offen
+   - Arbeitszeit und Urlaub ERSETZEN das Spesenblatt (eigene Vollansicht)
+   - Einstellungen, Jahresuebersicht und Archiv zeigen es WEITERHIN,
+     denn man arbeitet damit ja am Spesenblatt
+   - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
+
+const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
+                     "arbeitszeitPanel", "urlaubPanel"];
+/* Diese beiden treten an die Stelle des Spesenblatts statt darueber zu liegen */
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel"];
+
+function zeigeAnsicht(id) {
+  const ziel = document.getElementById(id);
+  const oeffnen = !!ziel && getComputedStyle(ziel).display === "none";
+
+  ALLE_PANELS.forEach((p) => {
+    const el = document.getElementById(p);
+    if (el) el.style.display = "none";
+  });
+
+  if (oeffnen) ziel.style.display = "block";
+
+  // Spesenblatt nur bei den beiden Vollansichten ausblenden
+  azSpesenAnsicht(!(oeffnen && VOLLANSICHT_PANELS.indexOf(id) > -1));
+  return oeffnen;
+}
+
 function toggleSettings() {
-  const p = document.getElementById("settingsPanel");
-  const opening = p.style.display === "none";
-  p.style.display = opening ? "block" : "none";
-  if (opening) renderAbsenceRangesList();
+  if (zeigeAnsicht("settingsPanel")) renderAbsenceRangesList();
 }
 
 /* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
@@ -1466,10 +1499,7 @@ function renderJahresuebersicht() {
 }
 
 function toggleJahresuebersicht() {
-  const p = document.getElementById("jahresuebersichtPanel");
-  const showing = p.style.display !== "none";
-  if (!showing) renderJahresuebersicht();
-  p.style.display = showing ? "none" : "block";
+  if (zeigeAnsicht("jahresuebersichtPanel")) renderJahresuebersicht();
 }
 
 /* Beim ALLERERSTEN Aufbau (Seitenaufruf) soll der laufende Monat
@@ -1624,10 +1654,7 @@ function computeArchivedMonths() {
 }
 
 function toggleArchivPanel() {
-  const p = document.getElementById("archivPanel");
-  const showing = p.style.display !== "none";
-  if (!showing) renderArchivPanel();
-  p.style.display = showing ? "none" : "block";
+  if (zeigeAnsicht("archivPanel")) renderArchivPanel();
 }
 
 function renderArchivPanel() {
@@ -3222,23 +3249,14 @@ function azSpesenAnsicht(sichtbar) {
 }
 
 function toggleArbeitszeitPanel() {
-  const p = document.getElementById("arbeitszeitPanel");
-  const showing = p.style.display !== "none";
-  p.style.display = showing ? "none" : "block";
-  azSpesenAnsicht(showing);
-  if (!showing) {
-    // Andere Panels schliessen - es soll immer nur eine Ansicht offen sein
-    ["settingsPanel", "jahresuebersichtPanel", "archivPanel", "urlaubPanel"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = "none";
-    });
+  if (zeigeAnsicht("arbeitszeitPanel")) {
     azRender();
     // Bewusst OHNE "behavior: smooth": waehrend einer Scroll-Animation
     // wandern alle Knoepfe mit. Ein zweiter, schnell nachgesetzter Tipp
     // landet dann auf dem falschen Knopf - beim Testen ist so ein
     // Null-Minuten-Arbeitstag entstanden, weil der Tipp statt auf
     // "Arbeitszeit" auf "Arbeitsbeginn" ging.
-    p.scrollIntoView({ block: "start" });
+    document.getElementById("arbeitszeitPanel").scrollIntoView({ block: "start" });
   }
 }
 
@@ -3741,17 +3759,9 @@ function urlaubSaveAnspruch() {
 }
 
 function toggleUrlaubPanel() {
-  const p = document.getElementById("urlaubPanel");
-  const showing = p.style.display !== "none";
-  p.style.display = showing ? "none" : "block";
-  azSpesenAnsicht(showing);
-  if (!showing) {
-    ["settingsPanel", "jahresuebersichtPanel", "archivPanel", "arbeitszeitPanel"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = "none";
-    });
+  if (zeigeAnsicht("urlaubPanel")) {
     urlaubRender();
-    p.scrollIntoView({ block: "start" });
+    document.getElementById("urlaubPanel").scrollIntoView({ block: "start" });
   }
 }
 
@@ -3973,7 +3983,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-12-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-12-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
