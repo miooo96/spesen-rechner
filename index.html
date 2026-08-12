@@ -375,9 +375,25 @@
   /* Sprachauswahl in der Werkzeugleiste */
   #langSwitch { padding: 9px 12px; }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Diese drei Bibliotheken lagen frueher auf einem fremden Server
+     (cdnjs.cloudflare.com) und wurden bei JEDEM Oeffnen von dort geladen.
+     Zwei Gruende, warum sie jetzt im Repo liegen:
+
+     1. Verlaesslichkeit: War cdnjs nicht erreichbar - Ausfall, Firewall in
+        der Niederlassung, schlechter Empfang unterwegs - waren PDF,
+        Drucken und QR-Code tot. Ohne Fehlermeldung, einfach so. Am
+        3. Werktag, wenn alle gleichzeitig abgeben, besonders aergerlich.
+
+     2. Ehrlichkeit: In der Fusszeile steht "laeuft komplett lokal in
+        deinem Browser". Das stimmt fuer eingegebene Daten - aber der
+        Browser jedes Kollegen meldete sich trotzdem bei jedem Oeffnen
+        bei Cloudflare. Jetzt nicht mehr.
+
+     Die Dateien sind unveraendert die Originale von cdnjs (html2canvas
+     1.4.1, jsPDF 2.5.1, qrcodejs 1.0.0). -->
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -3957,7 +3973,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-12-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-12-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
