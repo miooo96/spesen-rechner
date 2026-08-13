@@ -1,7 +1,7 @@
 {
-  "name": "Hall Arbeitszeit",
-  "short_name": "Arbeitszeit",
-  "description": "Arbeitszeit stempeln und Überstunden zählen. Alle Daten bleiben lokal auf dem Gerät.",
+  "name": "Hall Tabakwaren",
+  "short_name": "Hall",
+  "description": "Spesenabrechnung, Arbeitszeit und Urlaubskalender für Hall Tabakwaren. Alle Daten bleiben lokal auf dem Gerät.",
   "start_url": "/app/index.html",
   "scope": "/",
   "display": "standalone",

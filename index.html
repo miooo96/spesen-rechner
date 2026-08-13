@@ -3983,7 +3983,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-12-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-13-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
@@ -4022,6 +4022,32 @@ maybeShowSetupWizard();
       console.warn("Service Worker konnte nicht angemeldet werden:", e && e.message);
     });
   });
+})();
+
+/* ===================== Speicher-Schutz =====================
+   Ohne diese Bitte darf das System den Browser-Speicher aufraeumen, wenn
+   das Geraet knapp wird. Dann waeren Abrechnungen und Ueberstunden weg -
+   ohne dass jemand etwas falsch gemacht haette. Bei einer echten App
+   passiert das nicht, im Browser muss man darum bitten.
+
+   Chrome und Safari entscheiden still. FIREFOX zeigt dagegen eine
+   Rueckfrage - deshalb wird hier nur EINMAL gefragt und das Ergebnis
+   gemerkt. Sonst bekaeme ein Kollege bei jedem Oeffnen ein Fenster vor
+   die Nase, und beim dritten Mal klickt er es blind weg.
+
+   Wird die Bitte abgelehnt, laeuft alles normal weiter - nur eben ohne
+   Zusicherung. Deshalb bleibt die Datensicherung unter Einstellungen
+   wichtig (siehe Anleitung, Schritt 9). */
+(function () {
+  if (!navigator.storage || !navigator.storage.persist) return;
+  if (localStorage.getItem("spesen_speicherschutz_gefragt") === "ja") return;
+  navigator.storage.persisted().then(function (schonGeschuetzt) {
+    if (schonGeschuetzt) return;
+    return navigator.storage.persist().then(function (gewaehrt) {
+      localStorage.setItem("spesen_speicherschutz_gefragt", "ja");
+      console.info("Speicher-Schutz " + (gewaehrt ? "gewährt" : "nicht gewährt"));
+    });
+  }).catch(function () { /* Browser kennt das nicht - egal */ });
 })();
 </script>
 </body>
