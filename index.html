@@ -3,8 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <title>Spesen-Rechner</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" type="image/png" href="hall-logo.png">
+
+<!-- iPhone-Angaben fuer "Zum Home-Bildschirm"
+     ==========================================
+     Damit die App auf dem SPESENBLATT startet, muss diese Seite hier die
+     Angaben tragen - sonst oeffnet das iPhone sie mit Browserleiste wie
+     ein normales Lesezeichen.
+
+     BEWUSST KEIN <link rel="manifest"> an dieser Stelle:
+     Das Installations-Fenster unter Android haengt am Manifest, nicht an
+     diesen Zeilen hier. Die apple-* Angaben kennt nur Safari. Fuer die
+     Kollegen aendert sich dadurch NICHTS - kein Fenster, keine Abfrage,
+     kein neuer Knopf. Nur wer selbst "Zum Home-Bildschirm" waehlt,
+     bekommt statt eines Lesezeichens ein richtiges App-Fenster.
+
+     Das Manifest liegt weiterhin nur in /app/ und zeigt mit start_url
+     auf diese Seite. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hall">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root {
     --border: #333;
@@ -3983,7 +4003,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-13-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-13-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
