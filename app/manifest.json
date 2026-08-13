@@ -37,9 +37,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Arbeitszeit stempeln",
+      "name": "Arbeitszeit erfassen",
       "short_name": "Arbeitszeit",
-      "url": "/app/index.html",
+      "url": "/index.html#arbeitszeit",
       "icons": [
         {
           "src": "/icons/icon-192.png",
@@ -48,9 +48,9 @@
       ]
     },
     {
-      "name": "Spesen-Rechner",
-      "short_name": "Spesen",
-      "url": "/index.html",
+      "name": "Urlaubskalender",
+      "short_name": "Urlaub",
+      "url": "/index.html#urlaub",
       "icons": [
         {
           "src": "/icons/icon-192.png",

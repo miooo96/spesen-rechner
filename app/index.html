@@ -2,831 +2,90 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Hall Tabakwaren – Arbeitszeit</title>
+<title>Hall Tabakwaren</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-<!-- App zum Installieren -->
+<!-- ===================================================================
+     STILLGELEGT - diese Seite leitet nur noch weiter.
+
+     Hier lag bis zum 13.08.2026 eine eigene Arbeitszeit-App fuers Handy.
+     Gebaut wurde sie, weil das Spesenblatt am Handy unbrauchbar war:
+     896 px breite Tabelle auf 393 px Display, jede Zeile musste seitlich
+     geschoben werden.
+
+     Dieser Grund ist entfallen. Das Tool selbst hat jetzt eine
+     Kartenansicht fuer die App, und die Arbeitszeit steckt ohnehin als
+     Panel darin. Zwei Ansichten derselben Zahlen nebeneinander zu
+     pflegen waere nur eine Fehlerquelle gewesen.
+
+     WARUM DIE DATEI TROTZDEM EXISTIERT - drei Gruende:
+
+     1. Wer die App vor dem 13.08. zum Startbildschirm hinzugefuegt hat,
+        traegt "/app/index.html" fest im Symbol. Das iPhone schreibt die
+        Startadresse beim Hinzufuegen fest und aendert sie nie wieder.
+        Ohne diese Datei liefe so ein Symbol ins Leere - eine Fehlerseite
+        statt der Abrechnung, moeglicherweise mitten im Monat.
+
+     2. Im selben Ordner liegt manifest.json. Das ist der
+        Installations-Einstieg fuer Android. Der Ordner darf also ohnehin
+        nicht verschwinden.
+
+     3. Der Service Worker hat "/app/" im Zwischenspeicher. Eine
+        weiterleitende Seite raeumt sich damit von selbst auf.
+
+     Die alte Fassung ist ueber Git wiederherstellbar (Stand f04edd3).
+     =================================================================== -->
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FE5C01">
-<meta name="description" content="Spesenabrechnung, Arbeitszeit und Urlaubskalender für Hall Tabakwaren. Alle Daten bleiben lokal auf dem Gerät.">
 <link rel="icon" type="image/png" href="../icons/icon-192.png">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Hall">
 
+<!-- Weiterleitung auch ohne JavaScript, etwa wenn es abgeschaltet ist -->
+<meta http-equiv="refresh" content="0; url=../index.html">
+<link rel="canonical" href="../index.html">
+
 <style>
-  :root {
-    --accent: #FE5C01;      /* Hall Tabakwaren Orange */
-    --brand-dark: #370F06;  /* Hall Tabakwaren Dunkelbraun */
-    --gruen: #1a7f37;
-    --rot: #c0392b;
-    --linie: #e2e6ea;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
-    margin: 0; background: #e9edf1; color: #1a1a1a; font-size: 16px;
-    padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 16px);
+    font-family: -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    margin: 0; background: #e9edf1; color: #370F06;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 24px; text-align: center;
   }
-  .huelle { max-width: 720px; margin: 0 auto; padding: 0 14px; }
-
-  header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 14px 0 10px;
+  .kasten {
+    background: #fff; border-radius: 14px; padding: 28px 24px;
+    max-width: 380px; border-top: 3px solid #FE5C01;
   }
-  header img { height: 34px; }
-  header h1 { font-size: 1.05rem; margin: 0; color: var(--brand-dark); font-weight: 600; }
-
-  .karte {
-    background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
-    border-radius: 10px; padding: 14px; margin-bottom: 12px;
+  img { height: 40px; margin-bottom: 14px; }
+  h1 { font-size: 1.05rem; margin: 0 0 10px; }
+  p { font-size: 0.9rem; line-height: 1.5; color: #555; margin: 0 0 16px; }
+  a {
+    display: inline-block; background: #FE5C01; color: #fff; font-weight: 600;
+    text-decoration: none; padding: 12px 20px; border-radius: 999px;
+    font-size: 0.92rem;
   }
-  .karte h2 { font-size: 1rem; margin: 0 0 10px; color: var(--brand-dark); }
-
-  .uhr {
-    font-size: 2.8rem; font-weight: 700; text-align: center; letter-spacing: -1px;
-    font-variant-numeric: tabular-nums; margin: 4px 0; color: var(--brand-dark);
-  }
-  .status { text-align: center; color: #666; font-size: 0.88rem; margin-bottom: 12px; }
-
-  button {
-    font-family: inherit; font-size: 0.92rem; border-radius: 8px; cursor: pointer;
-    padding: 9px 14px; border: 1px solid var(--accent); background: var(--accent);
-    color: #fff; font-weight: 600;
-  }
-  button.gross { width: 100%; padding: 16px; font-size: 1.05rem; border-radius: 12px; }
-  button.hell { background: #fff; color: var(--brand-dark); }
-  button.rot { background: var(--rot); border-color: var(--rot); }
-  button:disabled { opacity: 0.45; cursor: default; }
-
-  .oder {
-    display: flex; align-items: center; gap: 10px;
-    margin: 12px 0 10px; color: #999; font-size: 0.78rem;
-  }
-  .oder span { flex: 1; height: 1px; background: var(--linie); }
-
-  label { display: block; font-size: 0.82rem; color: #555; margin-bottom: 3px; }
-  input[type=number], input[type=time], input[type=date], select {
-    width: 100%; padding: 9px; font-size: 1rem; font-family: inherit;
-    border: 1px solid #bbb; border-radius: 8px; background: #fff; color: #1a1a1a;
-  }
-  .reihe { display: flex; gap: 10px; flex-wrap: wrap; }
-  .reihe > div { flex: 1; min-width: 130px; }
-
-  .hinweis {
-    font-size: 0.8rem; color: #555; line-height: 1.45; margin: 8px 0 0;
-  }
-  .merk {
-    background: #FDE9DC; border: 1px solid var(--accent); border-radius: 8px;
-    padding: 9px 12px; font-size: 0.84rem; color: var(--brand-dark); line-height: 1.45;
-  }
-
-  table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
-  th { text-align: left; color: #666; font-size: 0.75rem; font-weight: normal; padding: 5px 3px; }
-  td { padding: 8px 3px; border-top: 1px solid #eee; }
-  .zahl { text-align: right; font-variant-numeric: tabular-nums; }
-  .plus { color: var(--gruen); font-weight: 600; }
-  .minus { color: var(--rot); font-weight: 600; }
-  .leer { color: #888; text-align: center; padding: 18px 0; }
-
-  .summe {
-    display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px;
-    border-top: 2px solid #ddd; font-weight: 600;
-  }
-  .summe.klein { border: 0; padding-top: 5px; margin-top: 0; font-weight: normal; color: #666; font-size: 0.85rem; }
-
-  input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
-
-  .modal-huelle {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999;
-    display: flex; align-items: center; justify-content: center; padding: 14px;
-  }
-  .modal {
-    background: #fff; border-radius: 12px; padding: 18px; width: 100%; max-width: 420px;
-    max-height: 90vh; overflow-y: auto;
-  }
-  .modal h2 { margin-top: 0; }
-
-  footer { text-align: center; color: #888; font-size: 0.75rem; padding: 6px 0 0; line-height: 1.6; }
-  footer a { color: #888; }
 </style>
 </head>
 <body>
-<div class="huelle">
-
-<header>
-  <img src="../hall-logo.png" alt="Hall Tabakwaren">
-  <h1>Arbeitszeit</h1>
-</header>
-
-<div id="erinnerungen"></div>
-
-<!-- ===== Stempeln ===== -->
-<div class="karte">
-  <div class="uhr" id="uhr">00:00:00</div>
-  <div class="status" id="status">Noch nicht gestartet</div>
-  <button id="stempelKnopf" class="gross" onclick="azStempeln()">Arbeitsbeginn</button>
-
-  <div class="oder"><span></span>oder<span></span></div>
-  <button class="hell" style="width:100%;" onclick="azNachtragenModal()">✍️ Zeiten von Hand eintragen &nbsp;<span style="color:#888; font-weight:normal;">z. B. 6:00 – 15:30</span></button>
-  <p class="hinweis">
-    Beide Wege führen in dieselbe Liste. Stempeln ist bequemer, wenn Sie das Handy
-    dabei haben – von Hand eintragen ist der Weg für vergessene Tage und für
-    nachträgliche Korrekturen.
-  </p>
-</div>
-
-<!-- ===== Vorgaben ===== -->
-<div class="karte">
-  <h2>⚙️ Vorgaben</h2>
-  <div class="reihe">
-    <div>
-      <label for="soll">Regulärer Arbeitstag (Std.)</label>
-      <input id="soll" type="number" step="0.25" min="0" value="8.5" oninput="azSaveCfg()">
-    </div>
-    <div style="display:flex; align-items:flex-end;">
-      <label style="display:flex; align-items:center; gap:9px; margin:0 0 9px;">
-        <input id="pauseVorgabe" type="checkbox" onchange="azSaveCfg()">
-        <span style="font-size:0.88rem; color:#1a1a1a;">Mache ich üblicherweise Pause?<br>
-          <span style="font-size:0.76rem; color:#666;">Nur die Vorgabe für neue Tage</span></span>
-      </label>
-    </div>
+  <div class="kasten">
+    <img src="../hall-logo.png" alt="Hall Tabakwaren">
+    <h1>Einen Moment …</h1>
+    <p>
+      Die Arbeitszeit steckt jetzt direkt im Spesen-Rechner –
+      als Knopf <b>⏱️ Arbeitszeit</b> in der Werkzeugleiste.
+      Sie werden dorthin weitergeleitet.
+    </p>
+    <a href="../index.html">Weiter zum Spesen-Rechner</a>
   </div>
-  <div id="pausenErklaerung" class="hinweis"></div>
-</div>
-
-<!-- ===== Monat ===== -->
-<div class="karte">
-  <h2>📅 Monatsübersicht</h2>
-  <div class="reihe" style="margin-bottom:10px;">
-    <div><select id="monatWahl" onchange="azRender()"></select></div>
-  </div>
-  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-    <button class="hell" onclick="azExport()">📋 Als Text kopieren</button>
-    <button class="rot" id="loeschKnopf" onclick="azLoescheAuswahl()" disabled>🗑️ Auswahl löschen</button>
-  </div>
-  <div id="liste"></div>
-</div>
-
-<!-- ===== Jahr ===== -->
-<div class="karte">
-  <h2>📊 Überstunden im Jahr</h2>
-  <div class="reihe" style="margin-bottom:10px;">
-    <div><select id="jahrWahl" onchange="azRenderJahr()"></select></div>
-  </div>
-  <div id="jahrInhalt"></div>
-</div>
-
-<footer>
-  Hall Tabakwaren <span id="fussVersion"></span> &middot; läuft komplett lokal auf Ihrem Gerät, keine Daten verlassen es<br>
-  <a href="../index.html">→ Zum Spesen-Rechner</a> &middot; Built by Rieb
-</footer>
-
-</div>
-<div id="modalRoot"></div>
 
 <script>
-/* ===================================================================
-   Hall Tabakwaren - eigenständige App (Startseite: Arbeitszeit)
-
-   BEWUSSTE ENTSCHEIDUNG ZUM SPEICHER:
-   Diese App benutzt exakt dieselben localStorage-Schluessel wie die
-   Arbeitszeit-Ansicht im Spesen-Rechner (spesen_az_tage / _lauf / _cfg).
-   Weil beide unter derselben Domain liegen, teilen sie sich damit den
-   Speicher: Was hier gestempelt wird, steht auch dort - und umgekehrt.
-   Es gibt also KEINEN zweiten, auseinanderlaufenden Datenbestand.
-
-   Die Spesen-Abrechnung selbst wird hier nicht angefasst.
-   =================================================================== */
-
-const APP_VERSION = "2026-08-13-3";
-
-const MONATE = ["Januar","Februar","März","April","Mai","Juni",
-                "Juli","August","September","Oktober","November","Dezember"];
-
-/* ---------- Speicher ----------
-   Jeder Schreibvorgang wird zurueckgelesen und geprueft. Faellt der
-   Browser-Speicher aus (voll, privater Modus), verschwaende ein stilles
-   Scheitern einen ganzen Arbeitstag - das wuerde erst Wochen spaeter beim
-   Zaehlen auffallen. Deshalb sofort laut Bescheid geben. */
-function azSchreibe(schluessel, wert) {
-  try {
-    if (wert === null) localStorage.removeItem(schluessel);
-    else localStorage.setItem(schluessel, wert);
-    if (wert !== null && localStorage.getItem(schluessel) !== wert) throw new Error("Rückgelesener Wert weicht ab");
-    return true;
-  } catch (e) {
-    alert("⚠️ Die Arbeitszeit konnte NICHT gespeichert werden.\n\n" +
-      "Grund: " + (e && e.message ? e.message : "unbekannt") + "\n\n" +
-      "Meist liegt es an einem vollen Browser-Speicher oder am privaten Modus. " +
-      "Bitte notieren Sie sich die Zeiten vorerst von Hand.");
-    return false;
-  }
-}
-
-const AZ = {
-  get lauf() { return localStorage.getItem("spesen_az_lauf"); },
-  set lauf(v) { azSchreibe("spesen_az_lauf", v ? v : null); },
-  get tage() { try { return JSON.parse(localStorage.getItem("spesen_az_tage") || "[]"); } catch (e) { return []; } },
-  set tage(v) { azSchreibe("spesen_az_tage", JSON.stringify(v)); },
-  get cfg() {
-    try { return Object.assign({ soll: 8.5 }, JSON.parse(localStorage.getItem("spesen_az_cfg") || "{}")); }
-    catch (e) { return { soll: 8.5 }; }
-  },
-  set cfg(v) { azSchreibe("spesen_az_cfg", JSON.stringify(v)); },
-};
-
-/* ---------- Pausenrechnung ----------
-   § 4 ArbZG: "Die Arbeit ist durch im voraus feststehende Ruhepausen von
-   mindestens 30 Minuten bei einer Arbeitszeit von mehr als sechs bis zu
-   neun Stunden und 45 Minuten bei einer Arbeitszeit von mehr als neun
-   Stunden insgesamt zu unterbrechen."
-   "mehr als" ist woertlich: exakt 6:00 loest nichts aus, exakt 9:00
-   bleibt bei 30 Minuten. */
-function azGesetzPause(bruttoMin) {
-  if (bruttoMin > 540) return 45;
-  if (bruttoMin > 360) return 30;
-  return 0;
-}
-
-/* Hat es an DIESEM Tag eine Pause gegeben? Der Tag ueberstimmt die
-   allgemeine Vorgabe - eine Pause, die nicht stattgefunden hat, darf
-   nicht abgezogen werden (§ 2 Abs. 1 ArbZG zieht nur genommene
-   Ruhepausen ab), und umgekehrt. */
-function azPauseAn() {
-  const c = AZ.cfg;
-  if (typeof c.gesetzlichePause === "boolean") return c.gesetzlichePause;
-  if (c.modus) return c.modus !== "keine";
-  return !!c.pause;
-}
-function azTagPause(e) { return typeof e.pause === "boolean" ? e.pause : azPauseAn(); }
-function azAbzugFuer(e) { return azTagPause(e) ? azGesetzPause(e.min) : 0; }
-function azNettoFuer(e) { return Math.max(0, e.min - azAbzugFuer(e)); }
-
-function azModusText() {
-  return azPauseAn()
-    ? "gesetzliche Pause abgezogen (30 Min. ab 6 Std., 45 Min. ab 9 Std. – § 4 ArbZG)"
-    : "ohne Pausenabzug – gestempelte Zeit zählt voll";
-}
-
-/* ---------- Hilfsmittel ---------- */
-function azHhmm(m) {
-  const v = Math.abs(Math.round(m));
-  return (m < 0 ? "-" : "") + Math.floor(v / 60) + ":" + String(v % 60).padStart(2, "0");
-}
-function azUhrzeit(iso) { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
-function azMonatsKey(iso) { const d = new Date(iso); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
-function azMonatsLabel(k) { const [j, m] = k.split("-"); return MONATE[parseInt(m, 10) - 1] + " " + j; }
-function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
-
-/* ---------- Stempeln ---------- */
-function azStempeln() {
-  if (AZ.lauf) {
-    const start = new Date(AZ.lauf);
-    const min = (Date.now() - start.getTime()) / 60000;
-    // Unter einer Minute ist immer ein Fehlgriff, kein Arbeitstag.
-    if (min < 1) {
-      AZ.lauf = null;
-      azRender();
-      alert("Nur " + Math.round(min * 60) + " Sekunden erfasst – das war offenbar ein Fehlgriff.\n\n" +
-        "Der Eintrag wurde verworfen. Über „✍️ Zeiten von Hand eintragen" + String.fromCharCode(34) + " lässt sich ein Tag von Hand eintragen.");
-      return;
-    }
-    const t = AZ.tage;
-    // "pause" wird sofort festgeschrieben, damit eine spaetere Aenderung
-    // der Vorgabe alte Tage nicht rueckwirkend umrechnet.
-    t.push({ start: AZ.lauf, ende: new Date().toISOString(), min: Math.round(min), pause: azPauseAn() });
-    AZ.tage = t;
-    AZ.lauf = null;
-  } else {
-    AZ.lauf = new Date().toISOString();
-  }
-  azRender();
-}
-
-let azTimer = null;
-function azTick() {
-  const el = document.getElementById("uhr");
-  if (!el) return;
-  const l = AZ.lauf;
-  if (!l) { el.textContent = "00:00:00"; return; }
-  const s = Math.max(0, Math.floor((Date.now() - new Date(l).getTime()) / 1000));
-  el.textContent = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60]
-    .map((v) => String(v).padStart(2, "0")).join(":");
-}
-
-/* ---------- Vorgaben ---------- */
-function azSaveCfg() {
-  AZ.cfg = Object.assign({}, AZ.cfg, {
-    soll: parseFloat(document.getElementById("soll").value) || 0,
-    gesetzlichePause: document.getElementById("pauseVorgabe").checked,
-  });
-  azRender();
-}
-
-function azPausenErklaerung() {
-  const el = document.getElementById("pausenErklaerung");
-  if (!el) return;
-  const an = azPauseAn();
-  const soll = AZ.cfg.soll * 60;
-  const zeile = (std) => {
-    const b = Math.round(std * 60);
-    const abzug = an ? azGesetzPause(b) : 0;
-    const netto = b - abzug, diff = netto - soll;
-    return `<tr>
-      <td style="padding:2px 10px 2px 0; color:#666; border:0;">${String(std).replace(".", ",")} Std. anwesend</td>
-      <td style="padding:2px 10px 2px 0; border:0;">${abzug ? "− " + abzug + " Min." : "kein Abzug"}</td>
-      <td style="padding:2px 10px 2px 0; border:0;"><b>${azHhmm(netto)}</b> gearbeitet</td>
-      <td style="padding:2px 0; border:0;" class="${diff >= 0 ? "plus" : "minus"}">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</td>
-    </tr>`;
-  };
-  el.innerHTML =
-    (an
-      ? `Neue Tage werden <b>mit Pause</b> angelegt: 30 Min. ab 6 Std., 45 Min. ab 9 Std. (§ 4 ArbZG).`
-      : `Neue Tage werden <b>ohne Pause</b> angelegt – die gestempelte Zeit zählt voll.
-         Richtig, solange Sie durcharbeiten: <b>eine Pause, die es nicht gab, darf nicht abgezogen werden.</b>`) +
-    `<table style="margin-top:6px; font-size:0.78rem;">${zeile(4)}${zeile(8.5)}${zeile(10)}</table>` +
-    `<span style="color:#666;">In der Monatsübersicht lässt sich für <b>jeden einzelnen Tag</b> ankreuzen,
-     ob es an dem Tag eine Pause gab.</span>`;
-}
-
-/* ---------- Auswahl & Löschen ---------- */
-function azGewaehlte() {
-  return [...document.querySelectorAll("#liste input.az-auswahl:checked")].map((c) => c.value);
-}
-function azAuswahlGeaendert() {
-  const n = azGewaehlte().length;
-  const btn = document.getElementById("loeschKnopf");
-  btn.disabled = n === 0;
-  btn.textContent = n === 0 ? "🗑️ Auswahl löschen" : `🗑️ ${n} ${n === 1 ? "Tag" : "Tage"} löschen`;
-  const alle = document.getElementById("alleWahl");
-  if (alle) {
-    const gesamt = document.querySelectorAll("#liste input.az-auswahl").length;
-    alle.checked = n > 0 && n === gesamt;
-    alle.indeterminate = n > 0 && n < gesamt;
-  }
-}
-function azAlleAuswaehlen(an) {
-  document.querySelectorAll("#liste input.az-auswahl").forEach((c) => { c.checked = an; });
-  azAuswahlGeaendert();
-}
-function azLoescheAuswahl() {
-  const ids = azGewaehlte();
-  if (!ids.length) return;
-  const tage = AZ.tage.filter((e) => ids.includes(e.start));
-  const liste = tage.map((e) => "• " + new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) +
-    "  " + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join("\n");
-  if (!confirm(ids.length + (ids.length === 1 ? " Tag" : " Tage") + " löschen?\n\n" + liste + "\n\nRückgängig machen geht nicht.")) return;
-  AZ.tage = AZ.tage.filter((e) => !ids.includes(e.start));
-  azRender();
-}
-function azLoescheTag(startIso) {
-  const t = AZ.tage;
-  const e = t.find((x) => x.start === startIso);
-  if (!e) return;
-  const d = new Date(e.start).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" });
-  if (!confirm(d + "\n" + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende) + "\n\nDiesen Tag wirklich löschen?")) return;
-  AZ.tage = t.filter((x) => x.start !== startIso);
-  azRender();
-}
-function azTagPauseUmschalten(startIso, an) {
-  const t = AZ.tage;
-  const e = t.find((x) => x.start === startIso);
-  if (!e) return;
-  e.pause = an;
-  AZ.tage = t;
-  azRender();
-}
-
-/* ---------- Von Hand eintragen ---------- */
-function azNachtragenModal(datumVorgabe) {
-  const c = AZ.cfg;
-  const heute = datumVorgabe || new Date().toISOString().slice(0, 10);
-  document.getElementById("modalRoot").innerHTML = `
-    <div class="modal-huelle" onclick="if(event.target===this) azSchliesseModal()">
-      <div class="modal">
-        <h2>✍️ Arbeitszeit von Hand eintragen</h2>
-        <p class="hinweis" style="margin-top:0;">Für vergessenes Stempeln, zum Berichtigen oder zum Nachpflegen mehrerer Tage.</p>
-        <div style="margin-bottom:10px;">
-          <label for="nachDatum">Datum</label>
-          <input id="nachDatum" type="date" value="${heute}">
-        </div>
-        <div class="reihe" style="margin-bottom:10px;">
-          <div><label for="nachVon">Arbeitsbeginn</label><input id="nachVon" type="time" value="${c.letzteVon || "06:00"}"></div>
-          <div><label for="nachBis">Feierabend</label><input id="nachBis" type="time" value="${c.letzteBis || "15:30"}"></div>
-        </div>
-        <label style="display:flex; align-items:center; gap:9px; margin-bottom:10px;">
-          <input id="nachPause" type="checkbox" ${azPauseAn() ? "checked" : ""}>
-          <span style="font-size:0.88rem; color:#1a1a1a;">An diesem Tag Pause gemacht</span>
-        </label>
-        <div id="nachVorschau" class="merk"></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap;">
-          <button class="hell" onclick="azSchliesseModal()">Abbrechen</button>
-          <button class="hell" onclick="azNachtragenSpeichern(true)">Eintragen &amp; nächster Tag</button>
-          <button onclick="azNachtragenSpeichern(false)">Eintragen</button>
-        </div>
-      </div>
-    </div>`;
-  ["nachDatum", "nachVon", "nachBis"].forEach((id) =>
-    document.getElementById(id).addEventListener("input", azNachVorschau));
-  document.getElementById("nachPause").addEventListener("change", azNachVorschau);
-  azNachVorschau();
-}
-function azSchliesseModal() { document.getElementById("modalRoot").innerHTML = ""; }
-
-/* Zeigt schon vor dem Speichern, was der Eintrag bedeutet - damit ein
-   Zahlendreher auffaellt, bevor er in der Liste steht. */
-function azNachVorschau() {
-  const el = document.getElementById("nachVorschau");
-  if (!el) return;
-  const d = document.getElementById("nachDatum").value;
-  const von = document.getElementById("nachVon").value;
-  const bis = document.getElementById("nachBis").value;
-  if (!d || !von || !bis) { el.textContent = "Bitte Datum und beide Zeiten ausfüllen."; return; }
-  const s = new Date(d + "T" + von);
-  let e = new Date(d + "T" + bis);
-  let nacht = false;
-  if (e <= s) { e = new Date(e.getTime() + 864e5); nacht = true; }
-  const brutto = Math.round((e - s) / 60000);
-  const pauseAn = document.getElementById("nachPause").checked;
-  const abzug = pauseAn ? azGesetzPause(brutto) : 0;
-  const netto = Math.max(0, brutto - abzug);
-  const diff = netto - AZ.cfg.soll * 60;
-  el.innerHTML = `<b>${s.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</b>` +
-    (nacht ? ` <span class="minus">(über Mitternacht)</span>` : "") + `<br>` +
-    `Arbeitszeit <b>${azHhmm(netto)} Std.</b>` +
-    (abzug ? ` <span style="color:#666;">(${azHhmm(brutto)} minus ${abzug} Min. Pause)</span>` : "") +
-    ` &nbsp;·&nbsp; <b class="${diff >= 0 ? "plus" : "minus"}">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</b> gegenüber ${String(AZ.cfg.soll).replace(".", ",")} Std.` +
-    (!pauseAn && brutto > 360
-      ? `<br><span class="minus">⚠️ Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen, der Tag wird nur gekennzeichnet.</span>`
-      : "");
-}
-
-function azNachtragenSpeichern(weiter) {
-  const datum = document.getElementById("nachDatum").value;
-  const von = document.getElementById("nachVon").value;
-  const bis = document.getElementById("nachBis").value;
-  if (!datum || !von || !bis) { alert("Bitte Datum, Arbeitsbeginn und Feierabend ausfüllen."); return; }
-  const start = new Date(datum + "T" + von);
-  let ende = new Date(datum + "T" + bis);
-  if (ende <= start) ende = new Date(ende.getTime() + 864e5);  // Nachtschicht
-  const min = Math.round((ende - start) / 60000);
-  if (min > 16 * 60 && !confirm("Das sind " + azHhmm(min) + " Stunden. Wirklich eintragen?")) return;
-
-  // Doppelt erfasste Tage sind der haeufigste Weg zu falschen Ueberstunden
-  const schonDa = AZ.tage.filter((e) => e.start.slice(0, 10) === start.toISOString().slice(0, 10));
-  if (schonDa.length) {
-    const liste = schonDa.map((e) => azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join(", ");
-    if (!confirm("Für diesen Tag ist bereits etwas erfasst:\n" + liste +
-      "\n\nDer neue Eintrag kommt zusätzlich dazu und wird mitgezählt. Trotzdem eintragen?")) return;
-  }
-
-  const t = AZ.tage;
-  t.push({ start: start.toISOString(), ende: ende.toISOString(), min: min,
-           pause: document.getElementById("nachPause").checked });
-  t.sort((a, b) => new Date(a.start) - new Date(b.start));
-  AZ.tage = t;
-  AZ.cfg = Object.assign(AZ.cfg, { letzteVon: von, letzteBis: bis });
-  azRender();
-
-  if (weiter) {
-    azNachtragenModal(new Date(start.getTime() + 864e5).toISOString().slice(0, 10));
-  } else {
-    azSchliesseModal();
-  }
-}
-
-/* ---------- Export ---------- */
-function azExport() {
-  const key = document.getElementById("monatWahl").value;
-  const soll = AZ.cfg.soll * 60;
-  const tage = AZ.tage.filter((e) => azMonatsKey(e.start) === key);
-  if (!tage.length) { alert("Für diesen Monat sind keine Zeiten erfasst."); return; }
-  const zeilen = tage.map((e) => {
-    const n = azNettoFuer(e), d = n - soll, abzug = azAbzugFuer(e);
-    return new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) +
-      "  " + azUhrzeit(e.start) + "-" + azUhrzeit(e.ende) +
-      "  Pause " + (abzug ? abzug + " Min." : "keine") +
-      "  " + azHhmm(n) + " Std.  " + (d >= 0 ? "+" : "") + azHhmm(d) +
-      (!azTagPause(e) && e.min > 360 ? "  (!) ueber 6 Std. ohne Pause" : "");
-  }).join("\n");
-  const summe = tage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
-  const txt = "Arbeitszeit " + azMonatsLabel(key) +
-    "\nSoll " + String(AZ.cfg.soll).replace(".", ",") + " Std./Tag, " + azModusText() +
-    "\n\n" + zeilen +
-    "\n\nÜberstunden im Monat: " + (summe >= 0 ? "+" : "") + azHhmm(summe);
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => alert("In die Zwischenablage kopiert."), () => prompt("Kopieren:", txt));
-  } else { prompt("Kopieren:", txt); }
-}
-
-/* ---------- Monatsansicht ---------- */
-function azRender() {
-  const c = AZ.cfg;
-  document.getElementById("soll").value = c.soll;
-  document.getElementById("pauseVorgabe").checked = azPauseAn();
-  azPausenErklaerung();
-
-  const l = AZ.lauf;
-  const btn = document.getElementById("stempelKnopf");
-  btn.textContent = l ? "Feierabend" : "Arbeitsbeginn";
-  btn.className = "gross" + (l ? " rot" : "");
-  document.getElementById("status").innerHTML = l
-    ? "Läuft seit <b>" + azUhrzeit(l) + "</b>"
-    : "Noch nicht gestartet";
-  azTick();
-
-  const alle = AZ.tage;
-  const keys = Array.from(new Set(alle.map((e) => azMonatsKey(e.start))));
-  const jetzt = azMonatsKey(new Date().toISOString());
-  if (!keys.includes(jetzt)) keys.push(jetzt);
-  keys.sort().reverse();
-
-  const sel = document.getElementById("monatWahl");
-  const vorher = sel.value;
-  sel.innerHTML = keys.map((k) => `<option value="${k}">${azMonatsLabel(k)}</option>`).join("");
-  sel.value = keys.includes(vorher) ? vorher : jetzt;
-
-  const soll = c.soll * 60;
-  const monatTage = alle.filter((e) => azMonatsKey(e.start) === sel.value)
-    .sort((a, b) => new Date(b.start) - new Date(a.start));
-
-  let html;
-  if (!monatTage.length) {
-    html = `<p class="leer">Für ${azMonatsLabel(sel.value)} ist noch nichts erfasst.</p>`;
-  } else {
-    html = `<table><thead><tr>
-      <th style="width:26px;"><input type="checkbox" id="alleWahl" onchange="azAlleAuswaehlen(this.checked)"></th>
-      <th>Tag</th><th>Von–Bis</th><th style="text-align:center;">Pause</th>
-      <th class="zahl">Zeit</th><th class="zahl">+/−</th><th></th>
-    </tr></thead><tbody>`;
-    monatTage.forEach((e) => {
-      const n = azNettoFuer(e), diff = n - soll;
-      const pauseAn = azTagPause(e), abzug = azAbzugFuer(e);
-      // Ueber 6 Std. ohne Pause ist nach § 4 Satz 2 ArbZG unzulaessig.
-      // Abgezogen wird trotzdem nichts - der Tag wird nur belegbar gemacht.
-      const verstoss = !pauseAn && e.min > 360;
-      html += `<tr>
-        <td><input type="checkbox" class="az-auswahl" value="${esc(e.start)}" onchange="azAuswahlGeaendert()"></td>
-        <td>${new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
-        <td style="color:#666;">${azUhrzeit(e.start)}–${azUhrzeit(e.ende)}</td>
-        <td style="text-align:center; white-space:nowrap;">
-          <input type="checkbox" ${pauseAn ? "checked" : ""} onchange="azTagPauseUmschalten('${esc(e.start)}', this.checked)"
-                 title="${pauseAn ? "Pause gemacht – wird abgezogen" : "Keine Pause gemacht – nichts wird abgezogen"}">
-          <span style="font-size:0.7rem; color:#888;">${abzug ? "−" + abzug + "′" : "–"}</span>
-          ${verstoss ? `<span title="Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen; der Tag ist nur gekennzeichnet." style="cursor:help;">⚠️</span>` : ""}
-        </td>
-        <td class="zahl">${azHhmm(n)}</td>
-        <td class="zahl ${diff >= 0 ? "plus" : "minus"}">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</td>
-        <td style="text-align:right;"><button class="hell" style="padding:2px 7px; font-size:0.78rem;" onclick="azLoescheTag('${esc(e.start)}')" title="Diesen Tag löschen">🗑️</button></td>
-      </tr>`;
-    });
-    const summeMonat = monatTage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
-    const summeAlle = alle.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
-    html += `</tbody></table>
-      <div class="summe">
-        <span>Überstunden ${azMonatsLabel(sel.value)} (${monatTage.length} ${monatTage.length === 1 ? "Tag" : "Tage"})</span>
-        <span class="${summeMonat >= 0 ? "plus" : "minus"}">${summeMonat >= 0 ? "+" : ""}${azHhmm(summeMonat)}</span>
-      </div>
-      <div class="summe klein">
-        <span>Überstunden insgesamt (alle Monate)</span>
-        <span>${summeAlle >= 0 ? "+" : ""}${azHhmm(summeAlle)}</span>
-      </div>`;
-  }
-  document.getElementById("liste").innerHTML = html;
-  azAuswahlGeaendert();
-  azRenderJahr();
-  azErinnerungen();
-}
-
-/* ---------- Jahresansicht ----------
-   Ueberstunden koennen negativ sein, deshalb eine Nulllinie:
-   Plus waechst gruen nach oben, Minus rot nach unten. */
-function azJahrBalken(monate) {
-  const maxAbs = Math.max(30, ...monate.map((m) => Math.abs(m.diff)));
-  const bw = 20, luecke = 9, halbe = 46, linksPad = 26, hoehe = halbe * 2 + 24;
-  const breite = monate.length * (bw + luecke) + linksPad;
-  const nullY = halbe + 3;
-  const balken = monate.map((m, i) => {
-    const h = Math.round((Math.abs(m.diff) / maxAbs) * (halbe - 12));
-    const x = linksPad + i * (bw + luecke);
-    const y = m.diff >= 0 ? nullY - h : nullY;
-    const farbe = m.diff >= 0 ? "#1a7f37" : "#c0392b";
-    const txt = m.tage ? (m.diff >= 0 ? "+" : "") + azHhmm(m.diff) : "";
-    const ty = m.diff >= 0 ? y - 3 : y + h + 9;
-    return `<rect x="${x}" y="${y}" width="${bw}" height="${m.tage ? Math.max(h, 1) : 0}" rx="3" fill="${farbe}"></rect>
-      <text x="${x + bw / 2}" y="${ty}" font-size="8" text-anchor="middle" fill="#370F06">${txt}</text>
-      <text x="${x + bw / 2}" y="${hoehe - 3}" font-size="9" text-anchor="middle" fill="#666">${MONATE[m.monat - 1].slice(0, 3)}</text>`;
-  }).join("");
-  return `<svg width="${breite}" height="${hoehe}" viewBox="0 0 ${breite} ${hoehe}" style="max-width:100%; display:block; margin:0 auto 10px;">
-    <line x1="${linksPad - 5}" y1="${nullY}" x2="${breite}" y2="${nullY}" stroke="#bbb"></line>
-    <text x="0" y="${nullY + 3}" font-size="8" fill="#999">0</text>${balken}</svg>`;
-}
-
-function azRenderJahr() {
-  const sel = document.getElementById("jahrWahl");
-  if (!sel) return;
-  const alle = AZ.tage;
-  const jahre = Array.from(new Set(alle.map((e) => new Date(e.start).getFullYear())));
-  const aktuell = new Date().getFullYear();
-  if (!jahre.includes(aktuell)) jahre.push(aktuell);
-  jahre.sort().reverse();
-  const vorher = sel.value;
-  sel.innerHTML = jahre.map((j) => `<option value="${j}">${j}</option>`).join("");
-  sel.value = jahre.includes(parseInt(vorher, 10)) ? vorher : String(aktuell);
-
-  const jahr = parseInt(sel.value, 10);
-  const soll = AZ.cfg.soll * 60;
-  const monate = [];
-  for (let m = 1; m <= 12; m++) {
-    const tage = alle.filter((e) => {
-      const d = new Date(e.start);
-      return d.getFullYear() === jahr && d.getMonth() + 1 === m;
-    });
-    const arbeit = tage.reduce((s, e) => s + azNettoFuer(e), 0);
-    monate.push({ monat: m, tage: tage.length, arbeit, diff: arbeit - tage.length * soll });
-  }
-  const gesamtTage = monate.reduce((s, m) => s + m.tage, 0);
-  if (!gesamtTage) {
-    document.getElementById("jahrInhalt").innerHTML = `<p class="leer">Für ${jahr} ist noch nichts erfasst.</p>`;
-    return;
-  }
-  const gesamtArbeit = monate.reduce((s, m) => s + m.arbeit, 0);
-  const gesamtDiff = monate.reduce((s, m) => s + m.diff, 0);
-  const zeilen = monate.map((m) => m.tage
-    ? `<tr><td>${MONATE[m.monat - 1]}</td><td class="zahl">${m.tage}</td><td class="zahl">${azHhmm(m.arbeit)}</td>
-       <td class="zahl ${m.diff >= 0 ? "plus" : "minus"}">${m.diff >= 0 ? "+" : ""}${azHhmm(m.diff)}</td></tr>`
-    : `<tr style="color:#bbb;"><td>${MONATE[m.monat - 1]}</td><td class="zahl">–</td><td class="zahl">–</td><td class="zahl">–</td></tr>`
-  ).join("");
-
-  document.getElementById("jahrInhalt").innerHTML = `
-    ${azJahrBalken(monate)}
-    <table><thead><tr><th>Monat</th><th class="zahl">Tage</th><th class="zahl">Arbeitszeit</th><th class="zahl">+/−</th></tr></thead>
-    <tbody>${zeilen}
-      <tr style="font-weight:bold; border-top:2px solid #ddd;">
-        <td>Gesamt ${jahr}</td><td class="zahl">${gesamtTage}</td><td class="zahl">${azHhmm(gesamtArbeit)}</td>
-        <td class="zahl ${gesamtDiff >= 0 ? "plus" : "minus"}">${gesamtDiff >= 0 ? "+" : ""}${azHhmm(gesamtDiff)}</td>
-      </tr></tbody></table>
-    <p class="hinweis">Gerechnet mit <b>${String(AZ.cfg.soll).replace(".", ",")} Std./Tag</b> Soll,
-      <b>${azModusText()}</b>. Nur Tage mit erfasster Zeit zählen – nicht gestempelte Tage ergeben kein Minus.</p>`;
-}
-
-/* ---------- Erinnerung beim Öffnen ----------
-   Eine App, die rein lokal laeuft, kann keine zeitgesteuerten
-   Benachrichtigungen verschicken - dafuer braeuchte es einen Server.
-   Deshalb der ehrliche Weg: erinnern, wenn die App geoeffnet wird, und
-   nur dann, wenn es wirklich zutrifft. */
-function azErinnerungen() {
-  const box = document.getElementById("erinnerungen");
-  if (!box) return;
-  box.innerHTML = "";
-  if (!AZ.lauf) return;
-  const stunden = (Date.now() - new Date(AZ.lauf).getTime()) / 3600000;
-  if (stunden < 11) return;
-
-  // Kennung enthaelt den Startzeitpunkt: sonst wuerde ein einmal
-  // weggeklickter Hinweis auch beim NAECHSTEN vergessenen Feierabend
-  // nie wieder erscheinen - und genau dann wird er gebraucht.
-  const id = "feierabend-" + AZ.lauf;
-  const weg = JSON.parse(localStorage.getItem("spesen_hinweise_weg") || "[]");
-  if (weg.indexOf(id) > -1) return;
-
-  const seit = new Date(AZ.lauf).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit" }) +
-    " um " + azUhrzeit(AZ.lauf);
-  box.innerHTML = `<div class="merk" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
-    <span style="flex:1; min-width:200px;">⏱️ <b>Ihre Uhr läuft seit ${Math.floor(stunden)} Stunden</b> – gestartet ${seit}.<br>
-      <span style="color:#666;">Vermutlich wurde der Feierabend vergessen. Sie können jetzt ausstempeln und den Tag anschließend von Hand berichtigen.</span></span>
-    <button class="hell" style="padding:6px 10px; font-size:0.8rem;" onclick="azHinweisWeg('${esc(id)}')">Erledigt</button>
-  </div>`;
-}
-function azHinweisWeg(id) {
-  let weg = JSON.parse(localStorage.getItem("spesen_hinweise_weg") || "[]");
-  if (weg.indexOf(id) === -1) weg.push(id);
-  if (weg.length > 30) weg = weg.slice(-30);
-  localStorage.setItem("spesen_hinweise_weg", JSON.stringify(weg));
-  azErinnerungen();
-}
-
-/* ---------- Start ---------- */
-document.getElementById("fussVersion").textContent = "v" + APP_VERSION;
-azRender();
-if (azTimer) clearInterval(azTimer);
-azTimer = setInterval(azTick, 1000);
-
-/* Service Worker: macht die App installierbar und offline nutzbar.
-   Er liegt im STAMMORDNER, nicht hier - dadurch bedient er auch den
-   Spesen-Rechner. Ein Worker in /app/ duerfte nur /app/ bedienen, und
-   dann waere das Spesenblatt in der App ohne Empfang tot.
-   Faellt die Anmeldung aus, laeuft alles normal weiter - nur ohne Offline. */
-(function () {
-  if (!("serviceWorker" in navigator)) return;
-  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
-  window.addEventListener("load", function () {
-    /* Alten Worker aus /app/ abmelden.
-
-       Frueher lag hier ein eigener Worker (app/sw.js). Wer die App damals
-       geoeffnet hat, traegt dessen Anmeldung noch im Browser - und weil sie
-       die engere Reichweite hat, gewinnt sie gegen den neuen im Stammordner.
-       Ergebnis waere: Die App liefe weiter mit dem alten Worker, der nur
-       /app/ kennt, und das Spesenblatt waere dort NICHT offline verfuegbar.
-       Browser raeumen das irgendwann selbst auf - aber eben irgendwann. */
-    navigator.serviceWorker.getRegistrations().then(function (regs) {
-      return Promise.all(regs.map(function (r) {
-        if (r.scope.replace(/\/+$/, "").endsWith("/app")) {
-          console.info("Alten Service Worker aus /app/ abgemeldet");
-          return r.unregister();
-        }
-      }));
-    }).then(function () {
-      /* Und seinen Cache gleich mit. Der neue Worker raeumt zwar beim
-         Aktivieren auf, aber solange der alte noch lief, hat er ihn
-         danach wieder befuellt - er bliebe also verwaist liegen. */
-      if (!window.caches) return;
-      return caches.keys().then(function (namen) {
-        return Promise.all(namen
-          .filter(function (n) { return n.indexOf("hall-arbeitszeit-") === 0; })
-          .map(function (n) { console.info("Alten Cache entfernt: " + n); return caches.delete(n); }));
-      });
-    }).catch(function () {}).then(function () {
-      return navigator.serviceWorker.register("../sw.js", { scope: "/" });
-    }).then(function (reg) {
-      reg.update().catch(function () {});
-    }).catch(function (e) {
-      console.warn("Service Worker konnte nicht angemeldet werden:", e && e.message);
-    });
-  });
-})();
-
-/* Speicher-Schutz anfordern.
-
-   Ohne diese Bitte darf das Betriebssystem den Browser-Speicher aufraeumen,
-   wenn das Telefon knapp wird - dann waeren Monate an Ueberstunden weg, ohne
-   dass jemand etwas falsch gemacht haette. Bei einer echten App passiert das
-   nicht; bei einer installierten Web-App wird die Bitte in aller Regel
-   gewaehrt.
-
-   Der Schutz gilt fuer die ganze Domain, also auch fuer die Spesen-Daten.
-   Wird die Bitte abgelehnt, laeuft alles normal weiter - nur eben ohne
-   Zusicherung. Deshalb bleibt das Backup im Spesen-Rechner wichtig. */
-(function () {
-  if (!navigator.storage || !navigator.storage.persist) return;
-  navigator.storage.persisted().then(function (schonGeschuetzt) {
-    if (schonGeschuetzt) return;
-    return navigator.storage.persist().then(function (gewaehrt) {
-      console.info("Speicher-Schutz " + (gewaehrt ? "gewährt" : "nicht gewährt"));
-    });
-  }).catch(function () { /* Browser kennt das nicht - egal */ });
-})();
-
-/* Eigener Installations-Hinweis statt des unauffaelligen Browser-Menues */
-let __installPrompt = null;
-window.addEventListener("beforeinstallprompt", function (e) {
-  e.preventDefault();
-  __installPrompt = e;
-  if (localStorage.getItem("az_install_weggeklickt") === "ja") return;
-  const leiste = document.createElement("div");
-  leiste.id = "installLeiste";
-  leiste.style.cssText = "position:fixed; left:12px; right:12px; bottom:12px; z-index:9998; background:#fff; border:1px solid var(--accent); border-top:3px solid var(--accent); border-radius:10px; padding:12px 14px; box-shadow:0 4px 16px rgba(0,0,0,0.18); display:flex; gap:10px; align-items:center; flex-wrap:wrap; max-width:640px; margin:0 auto; font-size:0.88rem;";
-  leiste.innerHTML =
-    '<span style="flex:1; min-width:190px;">📲 <b>Als App installieren?</b><br>' +
-    '<span style="color:#666; font-size:0.8rem;">Eigenes Symbol, kein Browser-Rahmen, funktioniert ohne Empfang.</span></span>' +
-    '<button class="hell" onclick="installAblehnen()">Nein danke</button>' +
-    '<button onclick="installStarten()">Installieren</button>';
-  document.body.appendChild(leiste);
-});
-function installStarten() {
-  const l = document.getElementById("installLeiste"); if (l) l.remove();
-  if (!__installPrompt) return;
-  __installPrompt.prompt();
-  __installPrompt = null;
-}
-function installAblehnen() {
-  localStorage.setItem("az_install_weggeklickt", "ja");
-  const l = document.getElementById("installLeiste"); if (l) l.remove();
-}
-window.addEventListener("appinstalled", function () {
-  localStorage.setItem("az_install_weggeklickt", "ja");
-  const l = document.getElementById("installLeiste"); if (l) l.remove();
-});
-
-/* Automatisches Update: prueft eine kleine version.txt am Cache vorbei.
-   Weicht sie ab, laedt die App einmal frisch nach. Daten bleiben lokal
-   und gehen dabei NICHT verloren. */
-(function () {
-  async function pruefe() {
-    try {
-      const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
-      if (!r.ok) return;
-      const neu = (await r.text()).trim();
-      if (!neu || neu === APP_VERSION) return;
-      if (sessionStorage.getItem("az_reloaded_for") === neu) return;  // Schutz vor Schleife
-      sessionStorage.setItem("az_reloaded_for", neu);
-      location.replace(location.pathname.replace(/\?.*$/, "") + "?v=" + encodeURIComponent(neu));
-    } catch (e) { /* offline - einfach weiterlaufen */ }
-  }
-  pruefe();
-})();
+/* Sofort weiterleiten. "replace" statt "href", damit der Zurueck-Knopf
+   nicht wieder auf dieser Zwischenseite landet und man in einer Schleife
+   festhaengt. Ein vorhandener Anker (#arbeitszeit) wird mitgenommen,
+   damit die Schnellzugriffe weiterhin das richtige Panel oeffnen. */
+location.replace("../index.html" + (location.hash || ""));
 </script>
 </body>
 </html>

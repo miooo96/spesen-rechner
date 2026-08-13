@@ -4220,6 +4220,30 @@ applyI18n();
 // Muss VOR renderFormular() stehen: entscheidet, ob die Kartenansicht
 // ueberhaupt sichtbar wird (nur in der installierten App).
 setzeAppKennung();
+
+/* ===================== Schnellzugriffe ueber den Anker =====================
+   Haelt man das App-Symbol gedrueckt, bietet das Betriebssystem
+   "Arbeitszeit" und "Spesen" an. Diese Eintraege zeigen auf
+   /index.html#arbeitszeit bzw. /index.html - ohne die Auswertung hier
+   wuerde der erste einfach die normale Seite oeffnen und nichts tun.
+
+   Zweimal noetig: einmal beim Laden, und einmal ueber "hashchange".
+   Denn laeuft die App bereits, aendert ein Schnellzugriff nur die
+   Adresse - die Seite wird NICHT neu geladen, das Skript liefe also
+   kein zweites Mal. Genau das ist beim Testen schon einmal aufgefallen. */
+function oeffneAusAnker() {
+  const ziel = (location.hash || "").toLowerCase();
+  if (ziel.indexOf("arbeitszeit") > -1) {
+    if (getComputedStyle(document.getElementById("arbeitszeitPanel")).display === "none") {
+      toggleArbeitszeitPanel();
+    }
+  } else if (ziel.indexOf("urlaub") > -1) {
+    if (getComputedStyle(document.getElementById("urlaubPanel")).display === "none") {
+      toggleUrlaubPanel();
+    }
+  }
+}
+window.addEventListener("hashchange", oeffneAusAnker);
 // Chef-Modus: nur ueber den geheimen Link (…/#chef) sichtbar. Mitarbeiter, die
   // die normale Adresse oeffnen, sehen keine Chef-Funktionen (Auswertung, CSV).
   // Die Auswertung selbst bleibt zusaetzlich per PIN geschuetzt.
@@ -4236,6 +4260,8 @@ azInit();
   document.getElementById(id).addEventListener("input", urlaubVorschau));
 urlaubVorschau();
 maybeShowSetupWizard();
+// Ganz zum Schluss: erst jetzt stehen alle Panels bereit
+oeffneAusAnker();
 </script>
 
 <script>
@@ -4245,7 +4271,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-13-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-13-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
@@ -4270,7 +4296,7 @@ maybeShowSetupWizard();
    "App installieren"-Fenster. Fuer die Kollegen aendert sich sichtbar
    nichts - das Tool funktioniert nur zusaetzlich ohne Empfang.
 
-   Derselbe Worker bedient auch die Arbeitszeit-App unter /app/.
+   Derselbe Worker bedient auch die Weiterleitung unter /app/.
 
    Faellt die Anmeldung aus (altes Geraet, privater Modus, kein HTTPS),
    laeuft alles normal weiter - nur eben ohne Offline. */
