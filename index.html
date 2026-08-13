@@ -54,9 +54,96 @@
     width: 1px; align-self: stretch; background: #e3e6eb; margin: 2px 2px;
     flex-shrink: 0;
   }
-  @media (max-width: 700px) {
+  /* Der "Mehr"-Knopf existiert nur am Handy - am Rechner ist Platz genug. */
+  #mehrKnopf { display: none; }
+
+  /* ===== Handy-Ansicht des Spesenblatts (eine Karte je Tag) =====
+     Am Rechner komplett aus - dort ist der Vordruck bequem bedienbar. */
+  #handyBlatt { display: none; }
+  .handy-hinweis {
+    font-size: 0.74rem; color: #777; margin: 0 0 8px; padding: 0 2px;
+    line-height: 1.4;
+  }
+  .tageskarte {
+    background: #fff; border: 1px solid #d8dde3; border-left: 4px solid var(--accent);
+    border-radius: 12px; padding: 12px 13px; margin-bottom: 10px;
+  }
+  .tageskarte.tk-offen { border-left-color: #d8dde3; }   /* noch nichts eingetragen */
+  .tk-kopf {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 8px; margin-bottom: 10px;
+  }
+  .tk-tag { font-weight: 700; color: var(--brand-dark); font-size: 1rem; }
+  .tk-pauschale { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .tk-lage { color: #666; font-size: 0.85rem; text-align: right; }
+  .tk-zeiten { display: flex; gap: 10px; margin-bottom: 10px; }
+  .tk-zeiten > div { flex: 1; }
+  .tageskarte label {
+    display: block; font-size: 0.72rem; color: #666; margin-bottom: 3px;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  /* Grosse Tippflaechen: Uhrzeit und Orte sollen sich mit dem Daumen treffen
+     lassen, nicht mit der Maus. */
+  .tageskarte .time-picker-field {
+    display: block; width: 100%; padding: 12px 10px; text-align: center;
+    font-size: 1.15rem; font-weight: 600; border: 1px solid #bbb;
+    border-radius: 9px; background: #fff; font-variant-numeric: tabular-nums;
+  }
+  .tageskarte .time-picker-field.empty { color: #aaa; font-weight: 400; }
+  .tk-feld { margin-bottom: 10px; }
+  .tageskarte .cell-input {
+    width: 100%; padding: 11px 10px; font-size: 0.95rem; font-family: inherit;
+    border: 1px solid #bbb; border-radius: 9px; background: #fff;
+  }
+  .tk-fuss {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    border-top: 1px solid #eef1f4; padding-top: 9px;
+    font-variant-numeric: tabular-nums; color: #333; font-size: 0.9rem;
+  }
+  .tk-nl { color: #666; font-size: 0.8rem; }
+  .tk-fuss .tk-status { margin-left: auto; }
+  .tageskarte .tk-status {
+    padding: 9px 10px; font-size: 0.85rem; border: 1px solid #bbb;
+    border-radius: 9px; background: #fff; max-width: 55%;
+  }
+
+  @media screen and (max-width: 700px) {
     .toolbar-divider { display: none; }
     .toolbar-group { width: 100%; }
+
+    /* Am Handy fraß die Werkzeugleiste den kompletten ersten Bildschirm:
+       13 Knoepfe untereinander, und das Spesenblatt war erst danach zu
+       sehen. Jetzt bleiben nur die vier stehen, die man taeglich braucht -
+       alles Weitere klappt der Knopf "Mehr" auf. Am Rechner aendert sich
+       dadurch nichts, dort steht weiterhin alles nebeneinander. */
+    .toolbar .handy-mehr { display: none; }
+    body.mehr-offen .toolbar .handy-mehr { display: inline-flex; }
+    #mehrKnopf { display: inline-flex; }
+
+    /* Fingergroessen statt Mausgroessen */
+    .toolbar button, .toolbar .btn { padding: 12px 16px; font-size: 0.9rem; }
+    .toolbar select { padding: 11px 12px; font-size: 0.95rem; width: 100%; }
+
+    /* ===== Kartenansicht - NUR in der installierten App =====
+       Ausdrueckliche Vorgabe: Die WEBSEITE soll unveraendert aussehen.
+       Wer hall-spesen-rechner.de im Browser oeffnet - egal ob am Rechner
+       oder am Handy - sieht weiterhin genau den Vordruck wie bisher.
+
+       Die Karten erscheinen deshalb nur, wenn die Seite als installierte
+       App laeuft (body.als-app, gesetzt in setzeAppKennung()). Nur die
+       aufgeraeumte Werkzeugleiste oben gilt ueberall - die war
+       ausdruecklich freigegeben.
+
+       WICHTIG zum Vordruck: Er wird hier nur AUF DEM BILDSCHIRM
+       ausgeblendet, niemals entfernt. html2canvas fotografiert beim PDF
+       das lebende Element - waere es weg, kaeme ein leeres PDF beim
+       Arbeitgeber an. buildPdf() setzt vorher body.pdf-export, und die
+       Regel darunter blendet ihn fuer die Aufnahme wieder ein. Die ganze
+       Abfrage gilt ausserdem nur fuer "screen", damit Drucken unberuehrt
+       bleibt. */
+    body.als-app #formular-scroll { display: none; }
+    body.als-app.pdf-export #formular-scroll { display: block; }
+    body.als-app #handyBlatt { display: block; }
   }
   button, .btn {
     padding: 9px 16px; border: 1px solid transparent; background: #f1f3f6;
@@ -422,34 +509,39 @@
 <div class="toolbar no-print">
   <div class="toolbar-group">
     <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
-    <button onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
-    <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
-    <button onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-    <button class="ghost" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
+    <button class="handy-mehr" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
+    <button class="handy-mehr" onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
+    <button class="ghost handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
     <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
-    <button onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
+    <button class="handy-mehr" onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
     <button onclick="toggleArbeitszeitPanel()" data-i18n="btnArbeitszeit">⏱️ Arbeitszeit</button>
     <button onclick="toggleUrlaubPanel()" data-i18n="btnUrlaub">🌴 Urlaubskalender</button>
-    <button class="ghost" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-    <button class="ghost" onclick="toggleArchivPanel()" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+    <button class="ghost handy-mehr" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button class="ghost handy-mehr" onclick="toggleArchivPanel()" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
-    <a class="btn ghost" href="Anleitung.html" style="text-decoration:none; display:inline-flex; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
-    <button class="ghost" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
-    <button class="ghost" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
+    <a class="btn ghost handy-mehr" href="Anleitung.html" style="text-decoration:none; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
+    <button class="ghost handy-mehr" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
+    <button class="ghost handy-mehr" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
-    <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll()" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+    <button class="danger handy-mehr" onclick="if(confirm(t('confirmReset'))) resetAll()" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <!-- Nur am Handy sichtbar: klappt alle uebrigen Knoepfe auf und zu -->
+  <div class="toolbar-group">
+    <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
     <select id="monthPicker" onchange="renderFormular()"></select>
-    <select id="langSwitch" onchange="setLang(this.value)">
+    <select id="langSwitch" class="handy-mehr" onchange="setLang(this.value)">
       <option value="de">🇩🇪 Deutsch</option>
       <option value="en">🇬🇧 English</option>
     </select>
@@ -824,6 +916,10 @@
   ℹ️ <b>Zur Info:</b> Eine Pauschale gibt es nur, wenn an einem Tag <b>8,5 Std</b> erreicht werden – kürzere Tage bringen keine Pauschale.
   &nbsp;·&nbsp; Tage über <b>10 Std</b> werden <b>nicht genehmigt</b>.
 </div>
+<!-- Handy-Ansicht zum Eintragen. Steht VOR dem Vordruck, damit man am Handy
+     sofort bei seinen Tagen ist. Traegt no-print: gedruckt wird der Vordruck. -->
+<div id="handyBlatt" class="no-print"></div>
+
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">
@@ -1338,6 +1434,51 @@ function zeigeAnsicht(id) {
   // Spesenblatt nur bei den beiden Vollansichten ausblenden
   azSpesenAnsicht(!(oeffnen && VOLLANSICHT_PANELS.indexOf(id) > -1));
   return oeffnen;
+}
+
+/* ===================== Laeuft das hier als App? =====================
+   Setzt body.als-app, wenn die Seite als installierte App geoeffnet wurde
+   (eigenes Fenster, keine Browserleiste) statt als normale Webseite.
+
+   Wozu: Die Kartenansicht des Spesenblatts soll AUSSCHLIESSLICH in der App
+   erscheinen. Die Webseite bleibt fuer alle Kollegen exakt so, wie sie sie
+   kennen - auch wenn sie sie am Handy oeffnen.
+
+   Warum zwei Abfragen: Chrome und die neueren Safari-Fassungen melden
+   (display-mode: standalone). Aeltere iPhones kennen das nicht und haben
+   stattdessen navigator.standalone. Wer nur das eine abfragt, laesst je
+   nach Geraet die halbe Belegschaft aussen vor.
+
+   Der Zustand kann sich waehrend des Betriebs aendern (App-Fenster wird
+   zum Browser-Tab und umgekehrt), deshalb wird zusaetzlich zugehoert. */
+function setzeAppKennung() {
+  let alsApp = false;
+  try {
+    alsApp = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+             || window.navigator.standalone === true;
+  } catch (e) { alsApp = false; }
+  document.body.classList.toggle("als-app", !!alsApp);
+  return alsApp;
+}
+
+(function () {
+  if (!window.matchMedia) return;
+  try {
+    const mq = window.matchMedia("(display-mode: standalone)");
+    const reagiere = () => { setzeAppKennung(); if (window.renderFormular) renderFormular(); };
+    if (mq.addEventListener) mq.addEventListener("change", reagiere);
+    else if (mq.addListener) mq.addListener(reagiere);
+  } catch (e) { /* aeltere Browser - dann eben nur beim Start */ }
+})();
+
+/* Klappt am Handy die uebrigen Werkzeugleisten-Knoepfe auf und zu.
+   Am Rechner ist der Knopf per CSS ausgeblendet - dort steht ohnehin alles
+   nebeneinander. Der Zustand wird bewusst NICHT gespeichert: Beim naechsten
+   Oeffnen soll wieder die kurze Leiste dastehen, sonst waere der Gewinn weg. */
+function toggleMehr() {
+  const offen = document.body.classList.toggle("mehr-offen");
+  const k = document.getElementById("mehrKnopf");
+  if (k) k.textContent = offen ? "⋯ Weniger" : "⋯ Mehr";
 }
 
 function toggleSettings() {
@@ -2488,7 +2629,105 @@ function renderFormular() {
     </table>
   `;
   document.getElementById("formular").innerHTML = html;
+  renderHandyBlatt(entries, submittedAt, startLabel, endLabel);
   setupSignatureFields();
+}
+
+/* ===================== Handy-Ansicht des Spesenblatts =====================
+   Der Vordruck oben ist 896 px breit, weil er das Original-Papierformular
+   nachbildet - Spaltenraster, Kopfzeilen, Pufferzeilen. Am Handy (393 px)
+   muesste man jede Zeile seitlich schieben, um von "Tag" bis "Pauschale" zu
+   kommen. Zum Ausfuellen ist das unbrauchbar.
+
+   Deshalb GIBT ES BEIDES: zum Eintragen eine Karte je Tag, zum Abgeben
+   weiterhin exakt den Vordruck. Beide zeigen dieselben Daten - hier wird
+   nichts doppelt gespeichert, nur doppelt dargestellt.
+
+   Warum das nicht auseinanderlaufen kann: Jede Aenderung laeuft durch
+   updateOverride(), und das baut ueber renderFormular() BEIDE Ansichten neu
+   auf. Eine veraltete Karte ist damit ausgeschlossen.
+
+   IDs bewusst mit "h"-Vorsatz (hstd-cell-...), damit sie sich nicht mit denen
+   des Vordrucks doppeln - doppelte IDs sind ungueltig, und getElementById
+   faende nur noch die erste. */
+function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
+  const ziel = document.getElementById("handyBlatt");
+  if (!ziel) return;
+
+  const gesperrt = !!submittedAt;
+  const karten = entries.map((e) => {
+    const [y, m, d] = e.iso.split("-");
+    const datum = `${WEEKDAY_NAMES[e.wd]}, ${d}.${m}.`;
+
+    if (e.status !== "normal") {
+      // Urlaub, Krank, Feiertag ... - kurze Karte, nur der Status ist aenderbar
+      const label = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status]);
+      return `
+        <div class="tageskarte status-${e.status}">
+          <div class="tk-kopf">
+            <span class="tk-tag">${datum}</span>
+            <span class="tk-lage">${escapeHtml(label || "")}</span>
+          </div>
+          <select class="status-select tk-status"${gesperrt ? " disabled" : ""}
+                  onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
+            ${statusOptionsHTML(e.status)}
+          </select>
+        </div>`;
+    }
+
+    const stunden = e.hours === null ? "–" : e.hours.toFixed(2).replace(".", ",") + " Std.";
+    const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
+    const langerTag = e.warnLongHours
+      ? ` <span class="warn-icon" title="Über 10 Std. - bitte Uhrzeiten prüfen">⚠️</span>` : "";
+    const leer = e.warnEmpty
+      ? ` <span class="warn-icon" title="Noch kein Eintrag an diesem Werktag">⚠️</span>` : "";
+
+    return `
+      <div class="tageskarte${e.hours === null ? " tk-offen" : ""}">
+        <div class="tk-kopf">
+          <span class="tk-tag">${datum}${leer}</span>
+          <span class="tk-pauschale">${pauschale}</span>
+        </div>
+
+        <div class="tk-zeiten">
+          <div>
+            <label>${escapeHtml(startLabel)}</label>
+            <span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}"
+                  data-field="${e.startField}" data-value="${e.abfahrt}"
+                  onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>
+          </div>
+          <div>
+            <label>${escapeHtml(endLabel)}</label>
+            <span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}"
+                  data-field="${e.endField}" data-value="${e.ankunft}"
+                  onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span>
+          </div>
+        </div>
+
+        <div class="tk-feld">
+          <label>Orte</label>
+          <input class="cell-input" value="${escapeHtml(e.orte)}"
+                 onchange="updateOverride('${e.iso}','orte',this.value)">
+        </div>
+
+        <div class="tk-fuss">
+          <span id="hstd-cell-${e.iso}"${e.warnLongHours ? ' class="warn-hours"' : ""}>${stunden}${langerTag}</span>
+          ${e.nl ? `<span class="tk-nl">NL: ${escapeHtml(String(e.nl))}</span>` : ""}
+          <select class="status-select tk-status"${gesperrt ? " disabled" : ""}
+                  onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
+            ${statusOptionsHTML("normal")}
+          </select>
+        </div>
+      </div>`;
+  }).join("");
+
+  /* Bewusst EINZEILIG: Auf dem Handy standen hier drei Hinweisfelder
+     uebereinander, bevor der erste Tag kam. Der Hinweis ist wichtig
+     (sonst denkt man, die Abgabe sehe jetzt anders aus), aber er darf
+     nicht den halben Bildschirm kosten. */
+  ziel.innerHTML = `
+    <p class="handy-hinweis">📱 Eingabe-Ansicht · Abgabe erfolgt weiter im gewohnten Vordruck</p>
+    ${karten || '<p class="small" style="text-align:center; color:#666;">Für diesen Monat gibt es keine Tage.</p>'}`;
 }
 
 /* ===================== Unterschriften (Canvas: Mitarbeiter + NLL) ===================== */
@@ -3978,6 +4217,9 @@ function urlaubRender() {
 }
 
 applyI18n();
+// Muss VOR renderFormular() stehen: entscheidet, ob die Kartenansicht
+// ueberhaupt sichtbar wird (nur in der installierten App).
+setzeAppKennung();
 // Chef-Modus: nur ueber den geheimen Link (…/#chef) sichtbar. Mitarbeiter, die
   // die normale Adresse oeffnen, sehen keine Chef-Funktionen (Auswertung, CSV).
   // Die Auswertung selbst bleibt zusaetzlich per PIN geschuetzt.
@@ -4003,7 +4245,7 @@ maybeShowSetupWizard();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-13-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-13-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
