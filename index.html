@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Spesen-Rechner</title>
+<title>Hall Tabakwaren</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" type="image/png" href="hall-logo.png">
 
@@ -23,7 +23,12 @@
      auf diese Seite. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Hall">
+<!-- Der Name unter dem App-Symbol. Achtung: Das iPhone schreibt ihn beim
+     "Zum Home-Bildschirm hinzufuegen" FEST - ein spaeteres Update aendert
+     ihn nie wieder. Wer die App vorher hinzugefuegt hat, muss das Symbol
+     einmal entfernen und neu hinzufuegen. Android zieht den Namen selbst
+     nach (WebAPK-Update, dauert einige Tage). -->
+<meta name="apple-mobile-web-app-title" content="Hall Tabakwaren">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root {
@@ -56,6 +61,24 @@
   }
   /* Der "Mehr"-Knopf existiert nur am Handy - am Rechner ist Platz genug. */
   #mehrKnopf { display: none; }
+
+  /* ===== Fenster "Als App einrichten" ===== */
+  .install-weg {
+    border: 1px solid var(--linie, #e3e6eb); border-radius: 10px;
+    padding: 12px 14px; margin: 12px 0;
+  }
+  .install-weg h3 { margin: 0 0 8px; font-size: 0.95rem; color: var(--brand-dark); }
+  .install-weg ol { margin: 0; padding-left: 20px; }
+  .install-weg li { margin-bottom: 6px; line-height: 1.5; font-size: 0.88rem; }
+  .install-fertig {
+    background: #e8f5ea; border: 1px solid #1a7f37; border-radius: 10px;
+    padding: 11px 13px; font-size: 0.9rem; line-height: 1.5; margin: 0 0 6px;
+  }
+  .hinweis-box {
+    background: #FDE9DC; border: 1px solid var(--accent); border-radius: 10px;
+    padding: 11px 13px; font-size: 0.85rem; line-height: 1.5;
+    color: var(--brand-dark); margin-top: 12px;
+  }
 
   /* ===== Handy-Ansicht des Spesenblatts (eine Karte je Tag) =====
      Am Rechner komplett aus - dort ist der Vordruck bequem bedienbar. */
@@ -144,6 +167,13 @@
     body.als-app #formular-scroll { display: none; }
     body.als-app.pdf-export #formular-scroll { display: block; }
     body.als-app #handyBlatt { display: block; }
+
+    /* "Als App einrichten" IN der App ist sinnlos - sie ist ja schon
+       eingerichtet. Der Platz gehoert dem Knopf "Zeiten fuer alle Tage",
+       der am Handy der erste Handgriff im Monat ist. Auf der Webseite
+       bleibt der Knopf natuerlich stehen, dort soll er ja gefunden werden.
+       "!important", weil "⋯ Mehr" (body.mehr-offen) sonst wieder einblendet. */
+    body.als-app .nur-webseite { display: none !important; }
   }
   button, .btn {
     padding: 9px 16px; border: 1px solid transparent; background: #f1f3f6;
@@ -437,6 +467,46 @@
   .modal-box h2 { margin-top: 0; }
   .modal-close-row { display: flex; justify-content: flex-end; margin-top: 1.25rem; }
 
+  /* ===================== Stechuhr-Kalender =====================
+     Ersetzt die frühere Tagesliste. Feste Tabellenbreite mit 7 gleichen
+     Spalten: dadurch passt der Monat auch auf 393 px, ohne seitlich zu
+     schieben. Die Zellen sind bewusst mindestens 44 px hoch - kleiner ist
+     mit dem Daumen nicht sicher zu treffen. */
+  /* max-width: Am Rechner waere die Tabelle sonst 1150 px breit und jeder
+     Tag ein 160 px langer Balken - ein Kalender soll quadratisch wirken. */
+  .az-kal { width: 100%; max-width: 460px; margin: 0 auto; table-layout: fixed; border-collapse: separate; border-spacing: 3px; }
+  .az-kal th { font-size: 0.68rem; color: #999; font-weight: normal; padding: 2px 0; }
+  .az-zelle {
+    min-height: 44px; border-radius: 8px; background: #fff; border: 1px solid #e3e6eb;
+    cursor: pointer; padding: 3px 2px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; line-height: 1.1;
+  }
+  .az-zelle:hover { border-color: var(--accent); }
+  .az-nr { font-size: 0.72rem; color: #666; }
+  .az-wert { font-size: 0.74rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .az-we { background: #f2f3f5; }
+  .az-we .az-nr { color: #b0b4ba; }
+  .az-feiertag { background: #FDE9DC; }
+  .az-plus { background: #e8f6ec; border-color: #1a7f37; }
+  .az-plus .az-wert, .az-plus .az-nr { color: #1a7f37; }
+  .az-minus { background: #fdecea; border-color: #c0392b; }
+  .az-minus .az-wert, .az-minus .az-nr { color: #c0392b; }
+  .az-heute { box-shadow: inset 0 0 0 2px var(--accent); }
+  .az-legende { font-size: 0.78rem; color: #666; margin: 0.6rem 0 0; }
+  /* Am Handy bleiben von 393 px nur 266 px im Karteninneren uebrig - das
+     ergaebe 33 px breite Tage. Der Kalender (und NUR er) darf deshalb aus
+     der Karte herausragen und ruecken enger zusammen. */
+  @media (max-width: 480px) {
+    .az-kal { margin: 0 -13px; width: calc(100% + 26px); border-spacing: 2px; }
+  }
+  .az-tagliste { margin: 0 0 0.9rem; }
+  .az-tagzeile {
+    display: flex; align-items: center; gap: 0.5rem; padding: 6px 8px; margin-bottom: 4px;
+    border: 1px solid #e3e6eb; border-radius: 8px; font-size: 0.85rem; background: #fafbfc;
+  }
+  .az-tagzeile.aktiv { border-color: var(--accent); background: #FDE9DC; }
+  .az-tagzeile .az-zeit { flex: 1; font-variant-numeric: tabular-nums; }
+
   /* Changelog */
   .changelog-entry { margin-bottom: 1rem; }
   .changelog-entry .version { font-weight: bold; color: var(--brand-dark); }
@@ -516,6 +586,10 @@
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
+    <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
+         Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
+         vorher die Einstellungen zu suchen und dort zu scrollen. -->
+    <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
     <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
     <button class="handy-mehr" onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
     <button onclick="toggleArbeitszeitPanel()" data-i18n="btnArbeitszeit">⏱️ Arbeitszeit</button>
@@ -525,6 +599,9 @@
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group">
+    <!-- Bewusst NICHT unter "Mehr" versteckt: Der Knopf soll ausgerechnet am
+         Handy gefunden werden, dort wird die App ja eingerichtet. -->
+    <button class="ghost nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
     <a class="btn ghost handy-mehr" href="Anleitung.html" style="text-decoration:none; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
     <button class="ghost handy-mehr" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
     <button class="ghost handy-mehr" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
@@ -827,9 +904,10 @@
   <div class="settings-card neutral">
     <h3>📅 Monatsübersicht</h3>
     <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:0.75rem;">
-      <select id="azMonat" onchange="azRender()" style="min-width:180px;"></select>
+      <button class="ghost" onclick="azMonatWechseln(-1)" title="Vorheriger Monat" style="padding:0.4rem 0.7rem;">‹</button>
+      <select id="azMonat" onchange="azRender()" style="min-width:150px;"></select>
+      <button class="ghost" onclick="azMonatWechseln(1)" title="Nächster Monat" style="padding:0.4rem 0.7rem;">›</button>
       <button class="ghost" onclick="azExport()">📋 Als Text kopieren</button>
-      <button class="danger" id="azLoeschAuswahl" onclick="azLoescheAuswahl()" disabled>🗑️ Auswahl löschen</button>
     </div>
     <div id="azListe"></div>
   </div>
@@ -937,7 +1015,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "1.9";
+const APP_VERSION = "2.1";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -961,11 +1039,13 @@ let STATUS_LABELS = STATUS_LABELS_DE;
 
 const I18N = {
   de: {
-    pageTitle: "Spesen-Rechner", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
+    pageTitle: "Hall Tabakwaren", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
+    btnZeitenAlle: "⏰ Zeiten für alle Tage",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
+    btnInstall: "📱 Als App einrichten",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
@@ -979,11 +1059,13 @@ const I18N = {
     unlockBtn: "🔓 Wieder öffnen", lockBtn: "🔒 Monat abschließen",
   },
   en: {
-    pageTitle: "Expense Calculator", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
+    pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
+    btnZeitenAlle: "⏰ Times for all days",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
+    btnInstall: "📱 Install as app",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
@@ -3113,7 +3195,48 @@ function closeModal() {
 }
 
 /* ===================== Changelog Modal ===================== */
+/* Die Eintraege 1.7 bis 1.9 wurden am 13.08.2026 nachgetragen. Sie waren
+   nie geschrieben worden, obwohl die Fussleiste laengst "1.9" anzeigte -
+   wer also in die Aenderungshistorie sah, fand den Stand vom 20. Juli.
+   Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
+   Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.1", date: "14.08.2026", changes: [
+    "⏰ Neuer Knopf „Zeiten für alle Tage“ direkt in der Werkzeugleiste: Abfahrt WP und Ankunft WP einmal setzen, sie gelten für jeden Werktag – ohne den Umweg über die Einstellungen",
+    "⏱️ Stechuhr: Monatskalender statt langer Tagesliste – jeder Tag antippbar zum Eintragen, Ändern oder Löschen, mit Pfeilen von Monat zu Monat",
+    "⏱️ Ein bereits erfasster Tag wird beim Antippen zum Ändern geladen, statt einen zweiten Eintrag anzulegen (das ergab bisher doppelte Überstunden)",
+    "🌴 Behoben: In der App klebten unter dem Urlaubskalender und der Arbeitszeit noch die Tageskarten des Spesenblatts",
+    "Die App heißt auf dem Startbildschirm jetzt „Hall Tabakwaren“ statt „Hall“",
+  ]},
+  { version: "2.0", date: "13.08.2026", changes: [
+    "⏱️ Arbeitszeit-Erfassung mit Überstunden-Konto: stempeln oder von Hand eintragen, Pause pro Tag ankreuzbar (§ 4 ArbZG), Monats- und Jahresübersicht",
+    "🌴 Urlaubskalender: Jahreskalender mit eigenem Urlaubsanspruch, Resttagen und Eintragen über Zeiträume – Feiertage und Wochenenden bleiben verschont",
+    "📱 Als App installierbar (iPhone und Android): eigenes Symbol, eigenes Fenster, funktioniert ohne Empfang",
+    "📱 In der App auf dem Handy: eine Karte je Tag statt der breiten Tabelle – für die Abgabe bleibt der Vordruck unverändert",
+    "Werkzeugleiste auf dem Handy aufgeräumt: vier Knöpfe, der Rest hinter „⋯ Mehr“",
+    "Das Monatsfeld steht beim Öffnen auf dem laufenden Monat statt auf Januar",
+    "Immer nur eine Ansicht offen – das Spesenblatt bleibt bei den Einstellungen sichtbar",
+    "PDF-, Druck- und QR-Funktion laufen ohne fremde Server: kein Ausfall mehr bei schlechtem Empfang oder gesperrter Verbindung",
+  ]},
+  { version: "1.9", date: "03.08.2026", changes: [
+    "CSV-Export für die Steuer für alle sichtbar (speichern, drucken oder an sich selbst senden)",
+    "Drucken liefert jetzt die fertige 1-Seiten-Fassung – nie wieder zwei Seiten oder abgeschnittene Ränder",
+  ]},
+  { version: "1.8", date: "31.07.2026", changes: [
+    "Unterschrift per Foto oder Scan der echten, handschriftlichen Unterschrift statt Zeichnen mit der Maus",
+    "30-Minuten-Pause für Fahrer und Monteure; Anwesenheit NL für beide ankreuzbar",
+    "Zeiten beim automatischen Ausfüllen leicht variieren statt immer gleiche Uhrzeiten",
+    "Hinweis auf die Original-Unterschrift vor Speichern, Drucken und E-Mail",
+    "Auto-Update prüft nur noch beim Öffnen statt alle fünf Minuten",
+  ]},
+  { version: "1.7", date: "22.07.2026", changes: [
+    "Spesenblatt-PDF 1:1 an die Original-Vorlage angeglichen (Kopfzeile, Spalten, Fußzeile)",
+    "PDF-Vorschau: erst ansehen, dann speichern oder drucken",
+    "Tage über 10 Std. werden blockiert – Speichern, Drucken und Mailen erst nach Korrektur",
+    "Samstag als eigene Tages-Zeile wählbar",
+    "Abgeschlossene Monate mit eingebauter Datensicherung; Wiederöffnen nur per PIN",
+    "Video-Anleitung für Kollegen",
+  ]},
   { version: "1.6", date: "20.07.2026", changes: [
     "Mehrsprachigkeit (Deutsch/Englisch)",
     "Einrichtungsassistent beim ersten Öffnen",
@@ -3140,6 +3263,77 @@ const CHANGELOG = [
     "Digitale Unterschrift, PDF-Export",
   ]},
 ];
+
+/* ===================== "App installieren" erklaeren =====================
+   Bewusst ein KNOPF und kein Fenster, das von selbst aufgeht: Ein
+   Installations-Hinweis, der ungefragt erscheint, wird beim zweiten Mal
+   weggeklickt und beim dritten Mal nicht mehr gelesen.
+
+   Der Text unterscheidet drei Faelle, damit niemand eine Anleitung liest,
+   die nicht zu seinem Geraet passt:
+   - laeuft bereits als App  -> nichts zu tun, das sagen wir auch
+   - iPhone/iPad             -> Safari-Weg, denn nur Safari kann das
+   - alles andere            -> Chrome-Weg
+   Erkannt wird nur grob ueber die Geraetekennung; deshalb stehen beide
+   Wege immer da und der passende nur oben. Wer ein Geraet hat, das ich
+   falsch einschaetze, findet seinen Weg trotzdem. */
+function openInstallModal() {
+  const root = document.getElementById("modalRoot");
+  const alsApp = document.body.classList.contains("als-app");
+  const kennung = navigator.userAgent || "";
+  const istApple = /iPhone|iPad|iPod/i.test(kennung)
+    || (/Macintosh/.test(kennung) && navigator.maxTouchPoints > 1); // iPad ab iOS 13
+
+  const apple = `
+    <div class="install-weg">
+      <h3>📱 iPhone und iPad</h3>
+      <ol>
+        <li><b>Safari</b> öffnen – andere Browser können das auf dem iPhone nicht</li>
+        <li>Diese Seite aufrufen: <b>hall-spesen-rechner.de</b></li>
+        <li>Unten auf das <b>Teilen-Symbol</b> tippen (Quadrat mit Pfeil nach oben)</li>
+        <li>Nach unten wischen und <b>„Zum Home-Bildschirm"</b> wählen</li>
+        <li>Mit <b>„Hinzufügen"</b> bestätigen</li>
+      </ol>
+    </div>`;
+
+  const android = `
+    <div class="install-weg">
+      <h3>🤖 Android</h3>
+      <ol>
+        <li><b>Chrome</b> öffnen und <b>hall-spesen-rechner.de</b> aufrufen</li>
+        <li>Meist meldet sich der Browser von selbst mit <b>„App installieren"</b> – einfach bestätigen</li>
+        <li>Falls nicht: Menü <b>⋮</b> oben rechts → <b>„App installieren"</b>
+            oder <b>„Zum Startbildschirm hinzufügen"</b></li>
+      </ol>
+    </div>`;
+
+  const inhalt = alsApp
+    ? `<p class="install-fertig">✅ <b>Läuft bereits als App.</b> Sie haben den Spesen-Rechner
+         schon auf dem Startbildschirm – hier ist nichts weiter zu tun.</p>
+       <p class="small">Die Anleitung unten steht für den Fall, dass Sie ihn auf einem
+         weiteren Gerät einrichten möchten.</p>
+       ${istApple ? apple + android : android + apple}`
+    : (istApple ? apple + android : android + apple);
+
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <h2>📱 Als App einrichten</h2>
+        <p>Danach liegt der Spesen-Rechner als eigenes Symbol auf dem Startbildschirm,
+           öffnet <b>ohne Browserleiste</b> und funktioniert auch <b>ohne Empfang</b> –
+           im Lager, im Lkw, im Funkloch.</p>
+        ${inhalt}
+        <div class="hinweis-box">
+          <b>Es entsteht kein zweiter Datenstand.</b> Die App ist dieselbe Seite:
+          Ihre Abrechnung, Arbeitszeiten und Urlaubstage sind darin dieselben wie im
+          Browser. Sie können jederzeit wechseln.
+        </div>
+        <div class="modal-close-row">
+          <button class="primary" onclick="closeModal()">Schließen</button>
+        </div>
+      </div>
+    </div>`;
+}
 
 function openChangelogModal() {
   const root = document.getElementById("modalRoot");
@@ -3358,6 +3552,113 @@ function openTimeWheelForSetting(el) {
   });
 }
 
+/* ===================== Zeiten fuer alle Tage (Schnellzugriff) =====================
+   Fachlich passiert hier NICHTS Neues: Es sind exakt dieselben zwei Werte
+   wie in den Einstellungen (config.abfahrtDefault/ankunftDefault bzw.
+   arbeitsbeginnDefault/arbeitsendeDefault). Der Knopf existiert nur, weil
+   der Weg dorthin am Handy zu lang war - Einstellungen oeffnen, an
+   Stammdaten vorbeiscrollen, dann erst die Zeiten.
+
+   Bewusst KEIN eigener Speicher und KEIN Schreiben in einzelne Tage:
+   computeDay() zieht die Standardzeit ohnehin fuer jeden Werktag heran, an
+   dem nichts Eigenes eingetragen ist. Wuerde man hier alle Tage hart
+   ueberschreiben, waeren von Hand korrigierte Tage weg - und der Wert liesse
+   sich spaeter nicht mehr in einem Rutsch aendern. */
+function szFelder() {
+  const isMonteur = config.mitarbeitertyp === "monteur";
+  return {
+    vonId: isMonteur ? "cfgArbeitsbeginnDefault" : "cfgAbfahrtDefault",
+    bisId: isMonteur ? "cfgArbeitsendeDefault" : "cfgAnkunftDefault",
+  };
+}
+
+function openStandardZeitenModal() {
+  const f = szFelder();
+  const von = document.getElementById(f.vonId).value || "";
+  const bis = document.getElementById(f.bisId).value || "";
+  const feld = (id, label, wert) => `
+    <div>
+      <label>${label}</label>
+      <input id="${id}" type="time" style="display:none;" value="${wert}">
+      <span class="time-picker-field${wert ? "" : " empty"}" data-target="${id}"
+            onclick="openTimeWheelForSetting(this)">${wert || "--:--"}</span>
+    </div>`;
+
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) azSchliesseModal()">
+      <div class="modal-box">
+        <h2 style="margin-top:0;">⏰ Zeiten für alle Tage</h2>
+        <p class="hinweis-text">
+          Einmal eintragen – die Zeiten stehen dann automatisch auf
+          <b>jedem Werktag</b> des Monats. Einzelne Tage lassen sich danach
+          weiterhin abweichend ändern; die werden hier <b>nicht</b> überschrieben.
+        </p>
+        <div class="grid">
+          ${feld("szVon", "Abfahrt WP (Standard)", von)}
+          ${feld("szBis", "Ankunft WP (Standard)", bis)}
+        </div>
+        <div id="szVorschau" style="margin-top:0.75rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.85rem; color:var(--brand-dark);"></div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem; flex-wrap:wrap;">
+          <button class="ghost" onclick="azSchliesseModal()">Abbrechen</button>
+          <button class="ghost" onclick="szLeeren()">Zeiten leeren</button>
+          <button class="primary" onclick="szSpeichern()">Übernehmen</button>
+        </div>
+      </div>
+    </div>`;
+  ["szVon", "szBis"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", szVorschau));
+  szVorschau();
+}
+
+/* Zeigt vor dem Übernehmen, was die Zeiten pro Tag bedeuten - inklusive der
+   30 Minuten Pause, die computeDay() abzieht. Sonst wundert man sich, warum
+   06:00-15:30 nicht 9,5 sondern 9,0 Std. ergibt. */
+function szVorschau() {
+  const el = document.getElementById("szVorschau");
+  if (!el) return;
+  const von = document.getElementById("szVon").value;
+  const bis = document.getElementById("szBis").value;
+  if (!von || !bis) {
+    el.innerHTML = "Beide Zeiten setzen – oder mit „Zeiten leeren“ wieder jeden Tag von Hand eintragen.";
+    return;
+  }
+  let diff = timeToMinutes(bis) - timeToMinutes(von);
+  if (diff < 0) diff += 24 * 60;
+  const std = Math.round(Math.max(0, diff / 60 - 0.5) * 100) / 100;
+  const pauschale = std > 24 ? config.pauschale24 : (std > 8 ? config.pauschale8 : 0);
+  el.innerHTML =
+    `<b>${von} – ${bis}</b> an jedem Werktag<br>` +
+    `ergibt <b>${std.toFixed(2).replace(".", ",")} Std.</b> ` +
+    `<span style="color:#666;">(abzüglich 30 Min. Pause)</span> · ` +
+    (pauschale > 0
+      ? `Pauschale <b>${pauschale.toFixed(2).replace(".", ",")} €</b> pro Tag`
+      : `<b style="color:#c0392b;">keine Pauschale</b> – erst ab über 8 Std.`) +
+    (std > 10 ? `<br><span style="color:#c0392b;">⚠️ Über 10 Std. – solche Tage werden nicht genehmigt.</span>` : "");
+}
+
+function szUebernehmen(von, bis) {
+  const f = szFelder();
+  document.getElementById(f.vonId).value = von;
+  document.getElementById(f.bisId).value = bis;
+  azSchliesseModal();                 // erst schliessen: sonst faende
+  syncTimePickerDisplay(f.vonId);     // syncTimePickerDisplay() per
+  syncTimePickerDisplay(f.bisId);     // querySelector das Modal-Feld zuerst
+  saveConfig();
+  renderFormular();
+}
+
+function szSpeichern() {
+  const von = document.getElementById("szVon").value;
+  const bis = document.getElementById("szBis").value;
+  if (!von || !bis) { alert("Bitte beide Zeiten setzen – oder „Zeiten leeren“ wählen."); return; }
+  szUebernehmen(von, bis);
+}
+
+function szLeeren() {
+  if (!confirm("Die Standardzeiten entfernen?\n\nAbfahrt WP und Ankunft WP bleiben dann leer und werden pro Tag von Hand eingetragen. Bereits von Hand eingetragene Tage bleiben unverändert.")) return;
+  szUebernehmen("", "");
+}
+
 /* ===================== Init ===================== */
 currentLang = config.lang === "en" ? "en" : "de";
 WEEKDAY_NAMES = currentLang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
@@ -3497,8 +3798,14 @@ function azMonatsLabel(key) {
    Hinweise. Sonst scrollt man unter den Ueberstunden noch durch eine
    Monatsabrechnung, die gerade niemanden interessiert - und die Gefahr,
    versehentlich in der Abrechnung zu tippen, faellt weg. */
+/* "handyBlatt" MUSS mit in dieser Liste stehen. Sonst passiert genau das,
+   was Mirko am 14.08. gemeldet hat: In der installierten App blendet
+   #formular-scroll zwar den Vordruck aus - die Kartenansicht darunter ist
+   aber ein EIGENES Element (CSS: body.als-app #handyBlatt { display:block })
+   und blieb stehen. Unter dem Urlaubskalender bzw. der Stechuhr klebte
+   dadurch die komplette Tagesliste des Spesenblatts. */
 function azSpesenAnsicht(sichtbar) {
-  ["formular-scroll", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
+  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = sichtbar ? "" : "none";
   });
@@ -3603,92 +3910,121 @@ function azTick() {
     .map((v) => String(v).padStart(2, "0")).join(":");
 }
 
-/* Einzelnen Tag loeschen - identifiziert ueber den Start-Zeitstempel,
-   der pro Eintrag eindeutig ist. */
-function azLoescheTag(startIso) {
+/* Einzelnen Eintrag loeschen - identifiziert ueber den Start-Zeitstempel,
+   der pro Eintrag eindeutig ist.
+
+   "zurueckZuTag" wird gesetzt, wenn aus dem Tages-Dialog heraus geloescht
+   wurde: dann bleibt der Dialog offen, falls der Tag noch weitere Eintraege
+   hat - sonst stuende man nach dem Loeschen wieder vor dem Kalender und
+   muesste den Tag erneut suchen. */
+function azLoescheTag(startIso, zurueckZuTag) {
   const t = AZ.tage;
   const e = t.find((x) => x.start === startIso);
   if (!e) return;
   const d = new Date(e.start).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" });
-  if (!confirm(d + "\n" + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende) + "\n\nDiesen Tag wirklich löschen?")) return;
+  if (!confirm(d + "\n" + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende) + "\n\nDiesen Eintrag wirklich löschen?\n\nRückgängig machen geht nicht.")) return;
   AZ.tage = t.filter((x) => x.start !== startIso);
   azRender();
+  if (!zurueckZuTag) return;
+  const rest = azEintraegeAmTag(zurueckZuTag);
+  if (rest.length) azNachtragenModal(zurueckZuTag, rest[0].start);
+  else azSchliesseModal();
 }
 
-/* Mehrere Tage auf einmal loeschen - bewusst ANSTELLE eines
-   "alles loeschen"-Knopfes. Ein einziger Fehlgriff darf nicht die
-   Ueberstunden von Monaten vernichten; es laesst sich immer nur das
-   loeschen, was vorher sichtbar angehakt wurde. */
-function azGewaehlte() {
-  return [...document.querySelectorAll("#azListe input.az-auswahl:checked")].map((c) => c.value);
+/* ---------- Tag <-> Eintraege ----------
+   Bewusst NICHT toISOString().slice(0,10): das rechnet nach UTC um. Eine
+   Fruehschicht, die im Sommer um 01:30 beginnt, laege dann im Kalender
+   einen Tag zu frueh. Deshalb ueberall die oertlichen Datumsteile. */
+function azTagIso(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+         "-" + String(d.getDate()).padStart(2, "0");
 }
 
-function azAuswahlGeaendert() {
-  const n = azGewaehlte().length;
-  const btn = document.getElementById("azLoeschAuswahl");
-  btn.disabled = n === 0;
-  btn.textContent = n === 0 ? "🗑️ Auswahl löschen" : `🗑️ ${n} ${n === 1 ? "Tag" : "Tage"} löschen`;
-  const alle = document.getElementById("azAlle");
-  if (alle) {
-    const gesamt = document.querySelectorAll("#azListe input.az-auswahl").length;
-    alle.checked = n > 0 && n === gesamt;
-    alle.indeterminate = n > 0 && n < gesamt;
-  }
+function azEintraegeAmTag(tagIso) {
+  return AZ.tage.filter((e) => azTagIso(e.start) === tagIso)
+                .sort((a, b) => new Date(a.start) - new Date(b.start));
 }
 
-function azAlleAuswaehlen(an) {
-  document.querySelectorAll("#azListe input.az-auswahl").forEach((c) => { c.checked = an; });
-  azAuswahlGeaendert();
-}
+/* Das Ankreuzfeld "Pause" pro Tag und das Loeschen mehrerer Tage auf
+   einmal sassen frueher in der Tagesliste. Die Liste ist dem Kalender
+   gewichen; beides steckt jetzt im Tages-Dialog (azNachtragenModal) -
+   dort mit dem Vorteil, dass man die Auswirkung sofort in der Vorschau
+   sieht, bevor gespeichert wird. */
 
-/* Pause fuer einen einzelnen Tag an- oder abschalten. Der Wert wird am
-   Tag selbst gespeichert und ueberstimmt damit dauerhaft die allgemeine
-   Vorgabe - auch wenn diese spaeter geaendert wird. */
-function azTagPauseUmschalten(startIso, an) {
-  const t = AZ.tage;
-  const e = t.find((x) => x.start === startIso);
-  if (!e) return;
-  e.pause = an;
-  AZ.tage = t;
-  azRender();
-}
+/* Merkt sich, welcher vorhandene Eintrag gerade bearbeitet wird
+   (Start-Zeitstempel, pro Eintrag eindeutig). null = neuer Eintrag.
+   Ohne das wuerde ein korrigierter Tag ZUSAETZLICH gespeichert - und die
+   Ueberstunden waeren doppelt gezaehlt. */
+let azBearbeiteStart = null;
 
-function azLoescheAuswahl() {
-  const ids = azGewaehlte();
-  if (!ids.length) return;
-  const tage = AZ.tage.filter((e) => ids.includes(e.start));
-  const liste = tage.map((e) => "• " + new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) +
-    "  " + azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join("\n");
-  if (!confirm(ids.length + (ids.length === 1 ? " Tag" : " Tage") + " löschen?\n\n" + liste + "\n\nRückgängig machen geht nicht.")) return;
-  AZ.tage = AZ.tage.filter((e) => !ids.includes(e.start));
-  azRender();
+/* Ein Klick auf einen Kalendertag landet hier.
+   Leerer Tag -> direkt eintragen. Genau ein Eintrag -> direkt zum Aendern
+   oeffnen. Mehrere -> der erste wird geoeffnet, die uebrigen stehen im
+   Dialog zum Umschalten bereit. */
+function azTagModal(tagIso) {
+  const eintraege = azEintraegeAmTag(tagIso);
+  azNachtragenModal(tagIso, eintraege.length ? eintraege[0].start : null);
 }
 
 /* Die zuletzt eingetragenen Zeiten werden als Vorgabe gemerkt. Wer eine
    Woche nachpflegt, tippt sonst zehnmal dieselben 6:00 und 15:30. */
-function azNachtragenModal(datumVorgabe) {
+function azNachtragenModal(datumVorgabe, bearbeiteStart) {
   const c = AZ.cfg;
-  const heute = datumVorgabe || new Date().toISOString().slice(0, 10);
+  const tag = datumVorgabe || azTagIso(new Date().toISOString());
+  azBearbeiteStart = bearbeiteStart || null;
+
+  const eintraege = azEintraegeAmTag(tag);
+  const bearbeitet = azBearbeiteStart ? eintraege.find((e) => e.start === azBearbeiteStart) : null;
+  if (azBearbeiteStart && !bearbeitet) azBearbeiteStart = null;   // inzwischen geloescht
+
+  const von = bearbeitet ? azUhrzeit(bearbeitet.start) : (c.letzteVon || "06:00");
+  const bis = bearbeitet ? azUhrzeit(bearbeitet.ende) : (c.letzteBis || "15:30");
+  const pauseAn = bearbeitet ? azTagPause(bearbeitet) : azPauseAn();
+
+  // Vorhandene Eintraege des Tages zum Umschalten/Loeschen. Bei genau einem
+  // Eintrag im Aendern-Modus waere die Zeile nur Wiederholung des Formulars -
+  // dann wird sie weggelassen.
+  const zeigeListe = eintraege.length > 1 || (eintraege.length === 1 && !bearbeitet);
+  const liste = zeigeListe ? `
+    <div class="az-tagliste">
+      ${eintraege.map((e) => `
+        <div class="az-tagzeile${e.start === azBearbeiteStart ? " aktiv" : ""}">
+          <span class="az-zeit">${azUhrzeit(e.start)}–${azUhrzeit(e.ende)} · ${azHhmm(azNettoFuer(e))} Std.${azAbzugFuer(e) ? ` <span style="color:#888;">(−${azAbzugFuer(e)}′)</span>` : ""}</span>
+          <button class="ghost" style="padding:2px 8px; font-size:0.8rem;" onclick="azNachtragenModal('${tag}','${e.start}')">✏️</button>
+          <button class="ghost" style="padding:2px 8px; font-size:0.8rem;" onclick="azLoescheTag('${e.start}','${tag}')">🗑️</button>
+        </div>`).join("")}
+    </div>` : "";
+
+  const datumText = new Date(tag + "T12:00:00").toLocaleDateString("de-DE",
+    { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+
   const root = document.getElementById("modalRoot");
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) azSchliesseModal()">
       <div class="modal-box">
-        <h2 style="margin-top:0;">✍️ Arbeitszeit von Hand eintragen</h2>
-        <p class="hinweis-text">Für vergessenes Stempeln, zum Berichtigen oder zum Nachpflegen mehrerer Tage.</p>
+        <h2 style="margin-top:0;">${bearbeitet ? "✍️ Arbeitszeit ändern" : "✍️ Arbeitszeit eintragen"}</h2>
+        <p class="hinweis-text" style="margin-top:0;"><b>${datumText}</b><br>
+          ${bearbeitet ? "Die Zeiten dieses Eintrags werden überschrieben – es entsteht kein zweiter Eintrag." : "Für vergessenes Stempeln, zum Berichtigen oder zum Nachpflegen mehrerer Tage."}</p>
+        ${liste}
         <div class="grid">
-          <label>Datum <input id="azNachDatum" type="date" value="${heute}"></label>
-          <label>Arbeitsbeginn <input id="azNachVon" type="time" value="${c.letzteVon || "06:00"}"></label>
-          <label>Feierabend <input id="azNachBis" type="time" value="${c.letzteBis || "15:30"}"></label>
+          <label>Datum <input id="azNachDatum" type="date" value="${tag}"></label>
+          <label>Arbeitsbeginn <input id="azNachVon" type="time" value="${von}"></label>
+          <label>Feierabend <input id="azNachBis" type="time" value="${bis}"></label>
           <label style="display:flex; align-items:center; gap:0.5rem;">
-            <input id="azNachPause" type="checkbox" ${azPauseAn() ? "checked" : ""} style="width:auto; flex:none;">
+            <input id="azNachPause" type="checkbox" ${pauseAn ? "checked" : ""} style="width:auto; flex:none;">
             An diesem Tag Pause gemacht
           </label>
         </div>
         <div id="azNachVorschau" style="margin-top:0.75rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.85rem; color:var(--brand-dark);"></div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem; flex-wrap:wrap;">
           <button class="ghost" onclick="azSchliesseModal()">Abbrechen</button>
-          <button class="ghost" onclick="azNachtragenSpeichern(true)">Eintragen &amp; nächster Tag</button>
-          <button class="primary" onclick="azNachtragenSpeichern(false)">Eintragen</button>
+          ${bearbeitet
+            ? `<button class="danger" onclick="azLoescheTag('${bearbeitet.start}','${tag}')">🗑️ Löschen</button>
+               <button class="ghost" onclick="azNachtragenModal('${tag}', null)">+ Weiterer Eintrag</button>
+               <button class="primary" onclick="azNachtragenSpeichern(false)">Speichern</button>`
+            : `<button class="ghost" onclick="azNachtragenSpeichern(true)">Eintragen &amp; nächster Tag</button>
+               <button class="primary" onclick="azNachtragenSpeichern(false)">Eintragen</button>`}
         </div>
       </div>
     </div>`;
@@ -3725,7 +4061,10 @@ function azNachVorschau() {
       ? `<br><span style="color:#c0392b;">⚠️ Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen, der Tag wird nur gekennzeichnet.</span>`
       : "");
 }
-function azSchliesseModal() { document.getElementById("modalRoot").innerHTML = ""; }
+function azSchliesseModal() {
+  azBearbeiteStart = null;
+  document.getElementById("modalRoot").innerHTML = "";
+}
 
 function azNachtragenSpeichern(weiter) {
   const datum = document.getElementById("azNachDatum").value;
@@ -3739,20 +4078,27 @@ function azNachtragenSpeichern(weiter) {
   const min = Math.round((ende - start) / 60000);
   if (min > 16 * 60 && !confirm("Das sind " + azHhmm(min) + " Stunden. Wirklich eintragen?")) return;
 
+  // Im Aendern-Modus faellt der alte Eintrag weg - sonst stuende der Tag
+  // doppelt in der Liste und die Ueberstunden waeren doppelt gezaehlt.
+  let t = AZ.tage;
+  const aendert = azBearbeiteStart && t.some((e) => e.start === azBearbeiteStart);
+  if (aendert) t = t.filter((e) => e.start !== azBearbeiteStart);
+
   // Doppelt erfasste Tage sind der haeufigste Weg zu falschen Ueberstunden -
-  // deshalb vorher warnen statt stillschweigend addieren.
-  const schonDa = AZ.tage.filter((e) => e.start.slice(0, 10) === start.toISOString().slice(0, 10));
+  // deshalb vorher warnen statt stillschweigend addieren. Beim Aendern
+  // entfaellt die Warnung fuer den Eintrag, der gerade ersetzt wird.
+  const schonDa = t.filter((e) => azTagIso(e.start) === azTagIso(start.toISOString()));
   if (schonDa.length) {
     const liste = schonDa.map((e) => azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join(", ");
     if (!confirm("Für diesen Tag ist bereits etwas erfasst:\n" + liste +
       "\n\nDer neue Eintrag kommt zusätzlich dazu und wird mitgezählt. Trotzdem eintragen?")) return;
   }
 
-  const t = AZ.tage;
   t.push({ start: start.toISOString(), ende: ende.toISOString(), min: min,
            pause: document.getElementById("azNachPause").checked });
   t.sort((a, b) => new Date(a.start) - new Date(b.start));
   AZ.tage = t;
+  azBearbeiteStart = null;
 
   // Zeiten als Vorgabe fuer den naechsten Eintrag merken
   AZ.cfg = Object.assign(AZ.cfg, { letzteVon: von, letzteBis: bis });
@@ -3761,8 +4107,8 @@ function azNachtragenSpeichern(weiter) {
 
   if (weiter) {
     // Direkt mit dem Folgetag weitermachen - fuer eine ganze Woche am Stueck
-    const naechster = new Date(start.getTime() + 864e5).toISOString().slice(0, 10);
-    azNachtragenModal(naechster);
+    const naechster = azTagIso(new Date(start.getTime() + 864e5).toISOString());
+    azNachtragenModal(naechster, null);
   } else {
     azSchliesseModal();
   }
@@ -3811,74 +4157,108 @@ function azRender() {
     : "Noch nicht gestartet";
   azTick();
 
-  // Monatsauswahl: alle Monate mit Einträgen, plus der laufende Monat
+  // Monatsauswahl: alle Monate mit Eintraegen, der laufende Monat und die
+  // zwoelf davor. Die zurueckliegenden Monate MUESSEN dabei sein, auch wenn
+  // dort noch nichts erfasst ist - sonst laesst sich ein vergessener Monat
+  // im Kalender gar nicht ansteuern.
   const alle = AZ.tage;
-  const keys = Array.from(new Set(alle.map((e) => azMonatsKey(e.start))));
-  const jetzt = azMonatsKey(new Date().toISOString());
-  if (!keys.includes(jetzt)) keys.push(jetzt);
-  keys.sort().reverse();
+  const keys = new Set(alle.map((e) => azMonatsKey(e.start)));
+  const heuteD = new Date();
+  for (let i = 0; i <= 12; i++) {
+    const d = new Date(heuteD.getFullYear(), heuteD.getMonth() - i, 1);
+    keys.add(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  }
+  const jetzt = azMonatsKey(heuteD.toISOString());
+  const liste = Array.from(keys).sort().reverse();
 
   const sel = document.getElementById("azMonat");
   const vorher = sel.value;
-  sel.innerHTML = keys.map((k) => `<option value="${k}">${azMonatsLabel(k)}</option>`).join("");
-  sel.value = keys.includes(vorher) ? vorher : jetzt;
+  sel.innerHTML = liste.map((k) => `<option value="${k}">${azMonatsLabel(k)}</option>`).join("");
+  sel.value = liste.includes(vorher) ? vorher : jetzt;
 
-  // Liste des gewaehlten Monats
   const soll = c.soll * 60;
-  const monatTage = alle.filter((e) => azMonatsKey(e.start) === sel.value)
-    .sort((a, b) => new Date(b.start) - new Date(a.start));
+  const monatTage = alle.filter((e) => azMonatsKey(e.start) === sel.value);
+  const summeMonat = monatTage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
+  const summeAlle = alle.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
 
-  let html;
-  if (!monatTage.length) {
-    html = `<p style="color:#666; text-align:center; padding:1.2rem 0; margin:0;">Für ${azMonatsLabel(sel.value)} ist noch nichts erfasst.</p>`;
-  } else {
-    html = `<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-      <thead><tr style="text-align:left; color:#666; font-size:0.8rem;">
-        <th style="padding:6px 4px; width:28px;"><input type="checkbox" id="azAlle" onchange="azAlleAuswaehlen(this.checked)" title="Alle Tage dieses Monats auswählen"></th>
-        <th style="padding:6px 4px;">Tag</th><th style="padding:6px 4px;">Von–Bis</th>
-        <th style="padding:6px 4px; text-align:center;">Pause</th>
-        <th style="padding:6px 4px; text-align:right;">Arbeitszeit</th>
-        <th style="padding:6px 4px; text-align:right;">Über/Unter</th>
-        <th style="padding:6px 4px;"></th></tr></thead><tbody>`;
-    monatTage.forEach((e) => {
-      const n = azNettoFuer(e), diff = n - soll;
-      const farbe = diff >= 0 ? "#1a7f37" : "#c0392b";
-      const pauseAn = azTagPause(e);
-      const abzug = azAbzugFuer(e);
-      // Ein Tag ueber 6 Std. ohne Pause ist nach § 4 Satz 2 ArbZG nicht
-      // zulaessig - wir ziehen trotzdem nichts ab (es hat ja keine Pause
-      // gegeben), kennzeichnen es aber, damit es belegbar ist.
-      const verstoss = !pauseAn && e.min > 360;
-      html += `<tr style="border-top:1px solid #eee;">
-        <td style="padding:8px 4px;"><input type="checkbox" class="az-auswahl" value="${e.start}" onchange="azAuswahlGeaendert()"></td>
-        <td style="padding:8px 4px;">${new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
-        <td style="padding:8px 4px; color:#666;">${azUhrzeit(e.start)}–${azUhrzeit(e.ende)}</td>
-        <td style="padding:8px 4px; text-align:center; white-space:nowrap;">
-          <input type="checkbox" ${pauseAn ? "checked" : ""} onchange="azTagPauseUmschalten('${e.start}', this.checked)"
-                 title="${pauseAn ? "Pause gemacht – wird abgezogen" : "Keine Pause gemacht – nichts wird abgezogen"}">
-          <span style="font-size:0.75rem; color:#888;">${abzug ? "−" + abzug + "′" : "–"}</span>
-          ${verstoss ? `<span title="Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen; der Tag ist nur gekennzeichnet." style="cursor:help;">⚠️</span>` : ""}
-        </td>
-        <td style="padding:8px 4px; text-align:right; font-variant-numeric:tabular-nums;">${azHhmm(n)}</td>
-        <td style="padding:8px 4px; text-align:right; font-weight:600; font-variant-numeric:tabular-nums; color:${farbe};">${diff >= 0 ? "+" : ""}${azHhmm(diff)}</td>
-        <td style="padding:8px 4px; text-align:right;"><button class="ghost" style="padding:2px 8px; font-size:0.8rem;" onclick="azLoescheTag('${e.start}')" title="Diesen Tag löschen">🗑️</button></td>
-      </tr>`;
-    });
-    const summeMonat = monatTage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
-    const summeAlle = alle.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
-    html += `</tbody></table>
-      <div style="display:flex; justify-content:space-between; padding-top:10px; margin-top:8px; border-top:2px solid #ddd; font-weight:600;">
-        <span>Überstunden ${azMonatsLabel(sel.value)} (${monatTage.length} ${monatTage.length === 1 ? "Tag" : "Tage"})</span>
-        <span style="color:${summeMonat >= 0 ? "#1a7f37" : "#c0392b"}; font-variant-numeric:tabular-nums;">${summeMonat >= 0 ? "+" : ""}${azHhmm(summeMonat)}</span>
-      </div>
-      <div style="display:flex; justify-content:space-between; padding-top:6px; color:#666; font-size:0.85rem;">
-        <span>Überstunden insgesamt (alle Monate)</span>
-        <span style="font-variant-numeric:tabular-nums;">${summeAlle >= 0 ? "+" : ""}${azHhmm(summeAlle)}</span>
-      </div>`;
-  }
-  document.getElementById("azListe").innerHTML = html;
-  azAuswahlGeaendert();
+  document.getElementById("azListe").innerHTML =
+    azKalenderHtml(sel.value) +
+    `<p class="az-legende">
+       Tag antippen zum Eintragen oder Ändern. Grün = über dem Soll, rot = darunter.
+       <b>✱</b> = mehrere Einträge an einem Tag, <b>⚠️</b> = über 6 Std. ohne Pause
+       (nach § 4 Satz 2 ArbZG unzulässig – es wird nichts abgezogen, der Tag ist nur gekennzeichnet).
+     </p>
+     <div style="display:flex; justify-content:space-between; padding-top:10px; margin-top:8px; border-top:2px solid #ddd; font-weight:600;">
+       <span>Überstunden ${azMonatsLabel(sel.value)} (${monatTage.length} ${monatTage.length === 1 ? "Tag" : "Tage"})</span>
+       <span style="color:${summeMonat >= 0 ? "#1a7f37" : "#c0392b"}; font-variant-numeric:tabular-nums;">${monatTage.length ? (summeMonat >= 0 ? "+" : "") + azHhmm(summeMonat) : "–"}</span>
+     </div>
+     <div style="display:flex; justify-content:space-between; padding-top:6px; color:#666; font-size:0.85rem;">
+       <span>Überstunden insgesamt (alle Monate)</span>
+       <span style="font-variant-numeric:tabular-nums;">${summeAlle >= 0 ? "+" : ""}${azHhmm(summeAlle)}</span>
+     </div>`;
   azRenderJahr();
+}
+
+/* Einen Monat vor oder zurueck. Der Kalender ersetzt die alte Liste - ohne
+   diese Pfeile muesste man fuer jeden Monatswechsel das Auswahlfeld
+   aufklappen, was am Handy zwei zusaetzliche Tipps kostet. */
+function azMonatWechseln(richtung) {
+  const sel = document.getElementById("azMonat");
+  const i = sel.selectedIndex;
+  // Die Liste ist absteigend sortiert: ein Monat "vor" ist der Eintrag darueber.
+  const neu = i - richtung;
+  if (neu < 0 || neu >= sel.options.length) return;
+  sel.selectedIndex = neu;
+  azRender();
+}
+
+/* ---------- Monatskalender der Stechuhr ----------
+   Loest die frueher seitenlange Tagesliste ab: ein Monat auf einen Blick,
+   jeder Tag antippbar. Feiertage werden nur EINGEFAERBT - gelesen wird
+   dafuer die Bundesland-Einstellung der Abrechnung. Das ist bewusst rein
+   lesend; die Stechuhr schreibt weiterhin nichts in "config". */
+function azKalenderHtml(key) {
+  const [jS, mS] = key.split("-");
+  const jahr = parseInt(jS, 10), monat = parseInt(mS, 10);
+  const soll = AZ.cfg.soll * 60;
+  const tageImMonat = new Date(jahr, monat, 0).getDate();
+  const versatz = (new Date(jahr, monat - 1, 1).getDay() + 6) % 7;  // Mo = 0
+  const heute = azTagIso(new Date().toISOString());
+  let holidaysMap = {};
+  try { holidaysMap = feiertage(jahr, config.bundesland) || {}; } catch (e) { holidaysMap = {}; }
+
+  let html = `<table class="az-kal"><thead><tr>` +
+    ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((t) => `<th>${t}</th>`).join("") +
+    `</tr></thead><tbody><tr>`;
+  for (let i = 0; i < versatz; i++) html += `<td></td>`;
+
+  for (let tag = 1; tag <= tageImMonat; tag++) {
+    const iso = `${jahr}-${String(monat).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+    const wd = new Date(jahr, monat - 1, tag).getDay();
+    const eintraege = azEintraegeAmTag(iso);
+    const netto = eintraege.reduce((s, e) => s + azNettoFuer(e), 0);
+    const diff = netto - soll;
+    const feiertag = holidaysMap[iso];
+
+    let klasse = "az-zelle";
+    if (wd === 0 || wd === 6) klasse += " az-we";
+    if (feiertag) klasse += " az-feiertag";
+    if (eintraege.length) klasse += diff >= 0 ? " az-plus" : " az-minus";
+    if (iso === heute) klasse += " az-heute";
+
+    const ohnePause = eintraege.some((e) => !azTagPause(e) && e.min > 360);
+    const titel = eintraege.length
+      ? eintraege.map((e) => azUhrzeit(e.start) + "–" + azUhrzeit(e.ende)).join(", ") +
+        " · " + azHhmm(netto) + " Std. · " + (diff >= 0 ? "+" : "") + azHhmm(diff)
+      : (feiertag ? feiertag + " – " : "") + "nichts erfasst, antippen zum Eintragen";
+
+    html += `<td><div class="${klasse}" onclick="azTagModal('${iso}')" title="${escapeHtml(titel)}">
+        <span class="az-nr">${tag}${eintraege.length > 1 ? " ✱" : ""}${ohnePause ? " ⚠️" : ""}</span>
+        <span class="az-wert">${eintraege.length ? azHhmm(netto) : ""}</span>
+      </div></td>`;
+    if ((versatz + tag) % 7 === 0) html += `</tr><tr>`;
+  }
+  return html + `</tr></tbody></table>`;
 }
 
 /* ---------- Jahresuebersicht der Ueberstunden ----------
@@ -4271,7 +4651,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-13-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-14-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });

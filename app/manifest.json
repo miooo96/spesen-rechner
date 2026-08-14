@@ -1,6 +1,6 @@
 {
   "name": "Hall Tabakwaren",
-  "short_name": "Hall",
+  "short_name": "Hall Tabakwaren",
   "description": "Spesenabrechnung, Arbeitszeit und Urlaubskalender für Hall Tabakwaren. Alle Daten bleiben lokal auf dem Gerät.",
   "start_url": "/index.html",
   "scope": "/",
