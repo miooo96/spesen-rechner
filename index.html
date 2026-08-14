@@ -4845,7 +4845,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-14-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-14-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
@@ -4865,10 +4865,14 @@ oeffneAusAnker();
    Meldet den Service Worker an. Danach funktioniert der Spesen-Rechner
    auch ohne Empfang - im Lager, im Lkw, im Funkloch.
 
-   WICHTIG: Das macht die Seite NICHT zur App. Dafuer braeuchte sie ein
-   verlinktes Manifest, das sie bewusst nicht hat. Es gibt also kein
-   "App installieren"-Fenster. Fuer die Kollegen aendert sich sichtbar
-   nichts - das Tool funktioniert nur zusaetzlich ohne Empfang.
+   Stand 14.08.2026: Die Seite hat wieder ein verlinktes Manifest
+   (app/manifest.json, siehe Kopf dieser Datei). Vorher stand hier bewusst
+   keines, um den Kollegen das Installations-Fenster zu ersparen - das hat
+   unter Android aber drei Dinge gleichzeitig gekostet: graues Platzhalter-
+   Symbol, kein eigenes Fenster und damit KEINE Kartenansicht (die haengt an
+   "display-mode: standalone", das ohne Manifest nie eintritt). Die
+   Android-Kollegen sahen deshalb weiter die breite Tabelle. Manifest also
+   nicht wieder entfernen.
 
    Derselbe Worker bedient auch die Weiterleitung unter /app/.
 
