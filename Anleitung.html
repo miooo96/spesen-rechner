@@ -2,7 +2,12 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Spesen-Rechner – Anleitung</title>
+<title>Hall Tabakwaren – Anleitung</title>
+<!-- Ohne diese Zeile suchte der Browser eine favicon.ico, fand keine (404)
+     und zeigte im Reiter ein leeres Blatt. Jetzt steht auch hier das
+     Hall-Logo, wie im Tool selbst. -->
+<link rel="icon" type="image/png" href="hall-logo.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root {
@@ -43,6 +48,7 @@
     background: #fafbfc;
   }
   .video-box h3 { color: var(--brand-dark); font-size: 1.05rem; margin: 0 0 0.5rem; }
+  .step h3 { color: var(--brand-dark); font-size: 1.05rem; margin: 1.4rem 0 0.5rem; }
   .video-box video { width: 100%; border-radius: 6px; background: #000; display: block; }
   .video-box p { font-size: 0.88rem; color: #666; margin: 0.6rem 0 0; }
   footer { text-align: center; font-size: 0.8rem; color: #888; margin: 2.5rem 0 1rem; }
@@ -86,6 +92,10 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     <li><b>🔒 Monat abschließen</b> – markiert den Monat manuell als eingereicht/gesperrt und <b>speichert dabei
         automatisch die fertige PDF als Datei ab</b> (für die eigene Steuer-/Jahresablage) - auch ohne E-Mail-Versand
         (z.B. wer stattdessen ausdruckt und persönlich abgibt) - siehe Schritt 10</li>
+    <li><b>⏰ Zeiten für alle Tage</b> – setzt Abfahrt WP und Ankunft WP in einem Rutsch für <b>jeden Werktag</b>
+        des Monats, statt jeden Tag einzeln auszufüllen. Vor dem Übernehmen wird angezeigt, wie viele Stunden
+        und welche Pauschale sich daraus je Tag ergeben. <b>Von Hand eingetragene Tage bleiben unangetastet</b> –
+        wer einzelne Tage schon korrigiert hat, verliert diese Korrekturen nicht (siehe Schritt 3)</li>
     <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten, Anwesenheit NL, Abwesenheiten, Datensicherung (siehe Schritt 2, 5, 6 und 9)</li>
     <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick, inkl. Balkendiagramm (siehe Schritt 8)</li>
     <li><b>⏱️ Arbeitszeit</b> – eigene Stechuhr mit Überstunden-Konto, völlig getrennt von der Abrechnung
@@ -102,9 +112,11 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   </ul>
 
   <div class="hinweis"><b>Auf dem Handy ist die Leiste kürzer.</b> Dort stehen nur „Als PDF speichern",
-    „Einstellungen", „Arbeitszeit" und „Urlaubskalender" – alles andere aus dieser Liste steckt hinter
-    dem Knopf <b>„⋯ Mehr"</b>. Es fehlt also nichts, es ist nur eingeklappt, damit das Spesenblatt
-    nicht erst nach langem Scrollen erscheint. Am Rechner bleibt alles direkt sichtbar.</div>
+    „Zeiten für alle Tage", „Einstellungen", „Arbeitszeit" und „Urlaubskalender" – alles andere aus dieser
+    Liste steckt hinter dem Knopf <b>„⋯ Mehr"</b>. Es fehlt also nichts, es ist nur eingeklappt, damit das
+    Spesenblatt nicht erst nach langem Scrollen erscheint. Am Rechner bleibt alles direkt sichtbar.
+    <br><br>In der <b>installierten App</b> fehlt zusätzlich „📱 Als App einrichten" – die App ist ja
+    bereits eingerichtet.</div>
 </div>
 
 <h2>2. Einstellungen (einmalig ausfüllen)</h2>
@@ -129,6 +141,13 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>3. Tageszeiten eintragen</h2>
 <div class="step">
+  <div class="hinweis"><b>⏰ Der schnelle Weg zuerst:</b> Wer fast jeden Tag zur selben Zeit losfährt und
+    zurückkommt, muss das nicht zwanzig Mal eintippen. Der Knopf <b>⏰ Zeiten für alle Tage</b> oben in der
+    Werkzeugleiste setzt Abfahrt WP und Ankunft WP für <b>jeden Werktag</b> auf einmal. Vor dem Übernehmen
+    wird angezeigt, wie viele Stunden und welche Pauschale daraus je Tag werden. Einzelne Tage lassen sich
+    danach wie unten beschrieben trotzdem abweichend ändern – <b>diese Änderungen bleiben erhalten</b>, auch
+    wenn die Standardzeiten später noch einmal geändert werden.</div>
+
   <p>Zurück zur Tabelle (Einstellungen einfach nochmal anklicken zum Schließen). Für jeden Arbeitstag auf das
      Uhrzeit-Feld in der Zeile <b>Abfahrt WP</b> (bzw. Arbeitsbeginn) bzw. <b>Ankunft WP</b> (bzw. Arbeitsende)
      tippen/klicken. Es öffnet sich ein Dreh-Rad zur Uhrzeit-Auswahl – wie bei einer iPhone-Uhr:</p>
@@ -270,7 +289,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
   <img src="anleitung-bilder/arbeitszeit.png" alt="Arbeitszeit-Erfassung mit Monats- und Jahresübersicht">
 
-  <p><b>Zeit erfassen – zwei Wege, beide führen in dieselbe Liste:</b></p>
+  <p><b>Zeit erfassen – drei Wege, alle führen in denselben Kalender:</b></p>
   <ul>
     <li><b>Stempeln</b> – auf <b>Arbeitsbeginn</b> tippen, die Uhr läuft; am Ende auf <b>Feierabend</b>.
         Die Uhr läuft auch weiter, wenn man das Tool zwischendurch schließt.</li>
@@ -279,39 +298,70 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
         wie viele Stunden das ergibt und wie viel über oder unter dem Soll. Mit
         <b>„Eintragen &amp; nächster Tag"</b> springt die Maske gleich auf den Folgetag weiter und
         behält die Zeiten – so ist eine ganze Woche in wenigen Klicks nachgetragen.</li>
+    <li><b>⏰ Zeiten für alle Tage</b> – füllt einen <b>ganzen Monat auf einmal</b> mit denselben Zeiten.
+        Gedacht für alle, die fast täglich gleich anfangen und aufhören (vor allem Monteure): einmal
+        06:00–15:30 eintragen statt zwanzig Mal. Danach im Kalender nur noch die Ausnahmen antippen.
+        Siehe unten <b>„Ganzen Monat auf einmal füllen"</b>.</li>
   </ul>
+  <div class="hinweis">Keiner dieser Wege ist Pflicht. Wer lieber jeden Tag einzeln einträgt, macht
+    genau das weiter – die drei Wege stehen nebeneinander und lassen sich beliebig mischen.</div>
   <div class="hinweis">Stempelungen unter einer Minute werden verworfen – das ist immer ein Fehlgriff.
     Ein wirklich kurzer Tag lässt sich über „Zeiten von Hand eintragen" erfassen; eine Untergrenze gibt es
     dabei nicht.</div>
 
-  <p><b>Pause:</b> In der Spalte <b>Pause</b> wird für <b>jeden einzelnen Tag</b> angehakt, ob es an
-     dem Tag eine Pause gab.</p>
+  <p><b>Pause:</b> Im Fenster eines Tages wird angehakt, ob es an <b>diesem einen Tag</b> eine Pause gab
+     (Tag im Kalender antippen).</p>
   <ul>
     <li><b>Haken gesetzt</b> – die gesetzliche Pause wird abgezogen: 30 Minuten ab mehr als 6 Stunden,
         45 Minuten ab mehr als 9 Stunden (§ 4 Arbeitszeitgesetz). Daneben steht, wie viel abgezogen wurde.</li>
     <li><b>Haken leer</b> – es wird <b>nichts</b> abgezogen. Richtig, wenn tatsächlich durchgearbeitet
         wurde: eine Pause, die es nicht gab, darf nicht abgezogen werden.</li>
-    <li>Ein <b>⚠️</b> erscheint bei Tagen über 6 Stunden ohne Pause. Es wird trotzdem nichts abgezogen –
-        das Zeichen hält nur fest, dass an dem Tag keine Pause möglich war. Nach § 4 Satz 2 ArbZG darf
-        länger als sechs Stunden nicht ohne Ruhepause gearbeitet werden.</li>
+    <li>Ein <b>⚠️</b> erscheint am Tag im Kalender, wenn über 6 Stunden ohne Pause gearbeitet wurde. Es wird
+        trotzdem nichts abgezogen – das Zeichen hält nur fest, dass an dem Tag keine Pause möglich war.
+        Nach § 4 Satz 2 ArbZG darf länger als sechs Stunden nicht ohne Ruhepause gearbeitet werden.</li>
   </ul>
   <p>Unter <b>⚙️ Vorgaben</b> wird eingestellt, wie lang ein regulärer Arbeitstag ist (Vorgabe 8,5 Stunden)
      und ob neue Tage mit oder ohne Pause angelegt werden. Das ist nur die Voreinstellung – jeder einzelne
-     Tag lässt sich in der Liste davon abweichend umstellen.</p>
+     Tag lässt sich beim Antippen davon abweichend umstellen.</p>
 
-  <p><b>Übersicht und Korrekturen:</b></p>
+  <p><b>Der Monatskalender:</b></p>
   <ul>
-    <li>Die <b>Monatsübersicht</b> zeigt jeden Tag mit Arbeitszeit und Plus/Minus, darunter die Monatssumme
-        und die Gesamtsumme über alle Monate</li>
+    <li>Jeder Tag zeigt seine Arbeitszeit. <b>Grün</b> heißt über dem Soll, <b>rot</b> darunter, leer heißt
+        nichts erfasst. Wochenenden sind grau, Feiertage orange hinterlegt.</li>
+    <li><b>Tag antippen</b> öffnet ihn: eintragen, ändern oder löschen. Ist der Tag schon erfasst, wird er
+        zum <b>Ändern</b> geladen – es entsteht kein zweiter Eintrag, der doppelt zählen würde.</li>
+    <li>Mit <b>‹ ›</b> geht es einen Monat vor oder zurück; über das Auswahlfeld sind die letzten
+        zwölf Monate direkt erreichbar – auch solche, in denen noch nichts erfasst ist.</li>
+    <li>Ein <b>✱</b> am Tag bedeutet: an diesem Tag gibt es <b>mehrere</b> Einträge (z.B. geteilter Dienst).
+        Beim Antippen stehen sie alle zur Auswahl.</li>
+    <li>Unter dem Kalender stehen die <b>Monatssumme</b> und die <b>Gesamtsumme</b> über alle Monate</li>
     <li>Die <b>Jahresübersicht</b> zeigt alle zwölf Monate mit Balkendiagramm – grün nach oben für
         Überstunden, rot nach unten für Minusstunden</li>
-    <li><b>Einzelne Tage löschen:</b> das 🗑️ am Zeilenende, oder mehrere Tage anhaken und
-        <b>„Auswahl löschen"</b>. Vor dem Löschen werden die betroffenen Tage noch einmal aufgelistet.</li>
     <li><b>📋 Als Text kopieren</b> legt den ganzen Monat in die Zwischenablage – praktisch zum
         Weiterleiten oder als Beleg</li>
   </ul>
   <div class="hinweis">Nur Tage mit erfasster Zeit zählen. Ein Tag, an dem nicht gestempelt wurde,
     erzeugt <b>kein</b> Minus.</div>
+
+  <h3>⏰ Ganzen Monat auf einmal füllen</h3>
+  <p>Wer fast jeden Tag dieselben Zeiten hat, muss sie nicht zwanzig Mal eintippen. Der Knopf
+     <b>⏰ Zeiten für alle Tage</b> in der Arbeitszeit-Ansicht fragt nach Monat, Arbeitsbeginn, Feierabend
+     und Pause – und legt für jeden Werktag einen Eintrag an.</p>
+  <p>Vor dem Eintragen steht genau da, was passieren wird, zum Beispiel:</p>
+  <div class="hinweis" style="font-family:inherit;">Es werden <b>9 Tage</b> eingetragen (03.08. bis 14.08.),
+    je <b>06:00–15:30</b> = <b>8:45 Std.</b> (9:30 minus 45 Min. Pause) pro Tag · <b>+2:15</b> Überstunden
+    gesamt.<br>Übersprungen: <b>1 bereits erfasst</b> · 10 Wochenende · 11 noch in der Zukunft.</div>
+  <p><b>Drei Dinge werden bewusst übersprungen:</b></p>
+  <ul>
+    <li><b>Tage, die schon erfasst sind</b> – egal ob gestempelt oder von Hand. Eine echte gestempelte
+        Zeit wird nie von einer Vorgabe überschrieben.</li>
+    <li><b>Wochenenden und Feiertage</b> – Feiertage richten sich nach dem Bundesland aus den Einstellungen</li>
+    <li><b>Tage in der Zukunft.</b> Die Arbeitszeiterfassung ist ein Nachweis über <b>geleistete</b> Arbeit
+        (§ 16 Abs. 2 Arbeitszeitgesetz), kein Dienstplan. Beim laufenden Monat wird deshalb nur bis heute
+        gefüllt, bei zurückliegenden Monaten der ganze Monat.</li>
+  </ul>
+  <div class="hinweis">Danach lässt sich jeder Tag im Kalender ganz normal antippen und ändern oder löschen.
+    Ein zweiter Durchlauf legt nichts doppelt an – was schon dasteht, bleibt stehen.</div>
 </div>
 
 <h2>Extra: 🌴 Urlaubskalender (optional)</h2>
@@ -333,7 +383,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
         eingetragen als zusteht, erscheint eine Warnung.</li>
   </ul>
 
-  <p><b>Eintragen – auf zwei Wegen:</b></p>
+  <p><b>Eintragen – auf drei Wegen:</b></p>
   <ul>
     <li><b>Als Zeitraum</b> – Von und Bis wählen, dann auf <b>Eintragen</b>. Vorher wird angezeigt,
         wie viele Arbeitstage das sind.</li>
@@ -404,9 +454,9 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     Vordruck.</div>
 
   <p><b>Die Werkzeugleiste ist auf dem Handy kürzer:</b> Sichtbar bleiben „Als PDF speichern",
-     „Einstellungen", „Arbeitszeit" und „Urlaubskalender". Alles Weitere – Drucken, E-Mail, CSV,
-     Jahresübersicht, Monat abschließen und so fort – steht hinter dem Knopf <b>„⋯ Mehr"</b>.
-     Am Rechner ist wie bisher alles direkt sichtbar.</p>
+     „Zeiten für alle Tage", „Einstellungen", „Arbeitszeit" und „Urlaubskalender". Alles Weitere –
+     Drucken, E-Mail, CSV, Jahresübersicht, Monat abschließen und so fort – steht hinter dem Knopf
+     <b>„⋯ Mehr"</b>. Am Rechner ist wie bisher alles direkt sichtbar.</p>
 </div>
 
 <h2>9. Datensicherung</h2>
