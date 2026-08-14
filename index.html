@@ -879,11 +879,14 @@
       <span style="flex:1; height:1px; background:#ddd;"></span>oder<span style="flex:1; height:1px; background:#ddd;"></span>
     </div>
     <button class="ghost" style="width:100%; padding:0.7rem;" onclick="azNachtragenModal()">✍️ Zeiten von Hand eintragen &nbsp;<span style="color:#888; font-weight:normal;">z. B. 6:00 – 15:30</span></button>
+    <button class="ghost" style="width:100%; padding:0.7rem; margin-top:0.5rem;" onclick="azMonatFuellenModal()">⏰ Zeiten für alle Tage &nbsp;<span style="color:#888; font-weight:normal;">ganzer Monat auf einmal</span></button>
     <p class="hinweis-text" style="margin-bottom:0;">
-      Beide Wege führen in dieselbe Liste. Stempeln ist bequemer, wenn Sie das
-      Handy dabei haben – von Hand eintragen ist der Weg für vergessene Tage,
-      für nachträgliche Korrekturen oder wenn Sie mehrere Tage auf einmal
-      nachpflegen wollen.
+      Alle drei Wege führen in denselben Kalender. Stempeln ist bequemer, wenn Sie
+      das Handy dabei haben – von Hand eintragen ist der Weg für vergessene Tage
+      und für Korrekturen. „Zeiten für alle Tage“ füllt einen ganzen Monat auf
+      einmal, wenn Sie ohnehin fast immer dieselben Zeiten haben; danach tippen
+      Sie im Kalender nur noch die Ausnahmen an. <b>Nichts davon ist Pflicht</b> –
+      jeder Tag lässt sich weiterhin einzeln eintragen.
     </p>
   </div>
 
@@ -1015,7 +1018,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -3201,6 +3204,13 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.2", date: "14.08.2026", changes: [
+    "⏱️ Arbeitszeit: „Zeiten für alle Tage“ füllt einen ganzen Monat auf einmal – für alle, die fast täglich dieselben Zeiten haben (vor allem Monteure). Danach im Kalender nur noch die Ausnahmen antippen",
+    "Dabei werden Wochenenden, Feiertage und bereits erfasste Tage übersprungen – eine gestempelte Zeit wird nie überschrieben",
+    "Tage in der Zukunft bleiben leer: die Arbeitszeit ist ein Nachweis über geleistete Arbeit, kein Dienstplan",
+    "Die Vorschau zeigt vor dem Eintragen, wie viele Tage betroffen sind und welche warum übersprungen werden",
+    "Tag für Tag eintragen und Stempeln funktionieren unverändert weiter – der neue Weg ist ein Angebot, keine Pflicht",
+  ]},
   { version: "2.1", date: "14.08.2026", changes: [
     "⏰ Neuer Knopf „Zeiten für alle Tage“ direkt in der Werkzeugleiste: Abfahrt WP und Ankunft WP einmal setzen, sie gelten für jeden Werktag – ohne den Umweg über die Einstellungen",
     "⏱️ Stechuhr: Monatskalender statt langer Tagesliste – jeder Tag antippbar zum Eintragen, Ändern oder Löschen, mit Pfeilen von Monat zu Monat",
@@ -4114,6 +4124,164 @@ function azNachtragenSpeichern(weiter) {
   }
 }
 
+/* ===================== Ganzen Monat auf einmal fuellen =====================
+   Wunsch von Mirko (14.08.): "Zeiten fuer alle Tage" ist vor allem in der
+   Stechuhr wichtig - Monteure haben fast jeden Tag dieselben Zeiten und
+   wollen nicht 21 Mal einzeln tippen.
+
+   Drei bewusste Entscheidungen:
+
+   1) EIGENE Zeiten, keine Kopplung ans Spesenblatt. Die Arbeitszeit ist
+      absichtlich vollstaendig von der Abrechnung getrennt, damit eine
+      geprueft eingereichte Abrechnung sich nie nachtraeglich durchs
+      Stempeln veraendern kann. Ein gemeinsames Feld waere genau so ein
+      Durchgriff.
+
+   2) Vorhandene Tage werden UEBERSPRUNGEN, nie ueberschrieben. Eine echte
+      gestempelte Zeit darf nicht von einer Annahme verdraengt werden.
+
+   3) KEINE Tage in der Zukunft. Die Arbeitszeit ist ein Nachweis ueber
+      geleistete Arbeit (§ 16 Abs. 2 ArbZG), kein Dienstplan. Wer am 14.
+      den ganzen Monat fuellt, haette sonst 12 Tage Arbeit stehen, die noch
+      niemand geleistet hat. Bei zurueckliegenden Monaten wird deshalb der
+      ganze Monat gefuellt, beim laufenden nur bis heute. */
+
+/* Alle fuellbaren Tage eines Monats: Montag bis Freitag, ohne Feiertage,
+   ohne Zukunft, ohne bereits erfasste Tage. */
+function azFuellbareTage(key) {
+  const [jS, mS] = key.split("-");
+  const jahr = parseInt(jS, 10), monat = parseInt(mS, 10);
+  const tageImMonat = new Date(jahr, monat, 0).getDate();
+  const heute = azTagIso(new Date().toISOString());
+  let holidaysMap = {};
+  try { holidaysMap = feiertage(jahr, config.bundesland) || {}; } catch (e) { holidaysMap = {}; }
+
+  const erg = { fuellbar: [], wochenende: 0, feiertage: [], zukunft: 0, schonDa: [] };
+  for (let tag = 1; tag <= tageImMonat; tag++) {
+    const iso = `${jahr}-${String(monat).padStart(2, "0")}-${String(tag).padStart(2, "0")}`;
+    const wd = new Date(jahr, monat - 1, tag).getDay();
+    if (wd === 0 || wd === 6) { erg.wochenende++; continue; }
+    if (holidaysMap[iso]) { erg.feiertage.push(holidaysMap[iso]); continue; }
+    if (iso > heute) { erg.zukunft++; continue; }
+    if (azEintraegeAmTag(iso).length) { erg.schonDa.push(iso); continue; }
+    erg.fuellbar.push(iso);
+  }
+  return erg;
+}
+
+function azMonatFuellenModal() {
+  const c = AZ.cfg;
+  const sel = document.getElementById("azMonat");
+  const monate = [...sel.options].map((o) => `<option value="${o.value}"${o.value === sel.value ? " selected" : ""}>${o.textContent}</option>`).join("");
+
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) azSchliesseModal()">
+      <div class="modal-box">
+        <h2 style="margin-top:0;">⏰ Zeiten für alle Tage</h2>
+        <p class="hinweis-text" style="margin-top:0;">
+          Füllt einen ganzen Monat mit denselben Zeiten – für alle, die fast
+          jeden Tag gleich anfangen und aufhören. Danach im Kalender nur noch
+          die Ausnahmen antippen.
+        </p>
+        <div class="grid">
+          <label>Monat <select id="azFuellMonat">${monate}</select></label>
+          <label>Arbeitsbeginn <input id="azFuellVon" type="time" value="${c.letzteVon || "06:00"}"></label>
+          <label>Feierabend <input id="azFuellBis" type="time" value="${c.letzteBis || "15:30"}"></label>
+          <label style="display:flex; align-items:center; gap:0.5rem;">
+            <input id="azFuellPause" type="checkbox" ${azPauseAn() ? "checked" : ""} style="width:auto; flex:none;">
+            An diesen Tagen Pause gemacht
+          </label>
+        </div>
+        <div id="azFuellVorschau" style="margin-top:0.75rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.85rem; color:var(--brand-dark);"></div>
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem; flex-wrap:wrap;">
+          <button class="ghost" onclick="azSchliesseModal()">Abbrechen</button>
+          <button class="primary" id="azFuellKnopf" onclick="azMonatFuellen()">Eintragen</button>
+        </div>
+      </div>
+    </div>`;
+  ["azFuellMonat", "azFuellVon", "azFuellBis"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", azFuellVorschau));
+  document.getElementById("azFuellMonat").addEventListener("change", azFuellVorschau);
+  document.getElementById("azFuellPause").addEventListener("change", azFuellVorschau);
+  azFuellVorschau();
+}
+
+/* Zeigt VOR dem Eintragen genau, was passiert - und vor allem, was NICHT
+   passiert. Ohne diese Aufstellung waere nach dem Klick unklar, warum
+   manche Tage leer geblieben sind. */
+function azFuellVorschau() {
+  const el = document.getElementById("azFuellVorschau");
+  if (!el) return;
+  const key = document.getElementById("azFuellMonat").value;
+  const von = document.getElementById("azFuellVon").value;
+  const bis = document.getElementById("azFuellBis").value;
+  const knopf = document.getElementById("azFuellKnopf");
+  if (!von || !bis) { el.textContent = "Bitte beide Zeiten ausfüllen."; knopf.disabled = true; return; }
+
+  const t = azFuellbareTage(key);
+  let brutto = timeToMinutes(bis) - timeToMinutes(von);
+  if (brutto <= 0) brutto += 24 * 60;
+  const pauseAn = document.getElementById("azFuellPause").checked;
+  const abzug = pauseAn ? azGesetzPause(brutto) : 0;
+  const netto = Math.max(0, brutto - abzug);
+  const diff = netto - AZ.cfg.soll * 60;
+
+  knopf.disabled = t.fuellbar.length === 0;
+  const fmt = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+
+  const uebersprungen = [];
+  if (t.schonDa.length) uebersprungen.push(`<b>${t.schonDa.length}</b> bereits erfasst`);
+  if (t.wochenende) uebersprungen.push(`${t.wochenende} Wochenende`);
+  if (t.feiertage.length) uebersprungen.push(`${t.feiertage.length} Feiertag${t.feiertage.length > 1 ? "e" : ""} (${t.feiertage.join(", ")})`);
+  if (t.zukunft) uebersprungen.push(`${t.zukunft} noch in der Zukunft`);
+
+  el.innerHTML = t.fuellbar.length
+    ? `Es werden <b>${t.fuellbar.length} ${t.fuellbar.length === 1 ? "Tag" : "Tage"}</b> eingetragen ` +
+      `(${fmt(t.fuellbar[0])} bis ${fmt(t.fuellbar[t.fuellbar.length - 1])}), je <b>${von}–${bis}</b><br>` +
+      `= <b>${azHhmm(netto)} Std.</b>${abzug ? ` <span style="color:#666;">(${azHhmm(brutto)} minus ${abzug} Min. Pause)</span>` : ""} pro Tag · ` +
+      `<b style="color:${diff >= 0 ? "#1a7f37" : "#c0392b"};">${diff >= 0 ? "+" : ""}${azHhmm(diff * t.fuellbar.length)}</b> Überstunden gesamt` +
+      (uebersprungen.length ? `<br><span style="color:#666;">Übersprungen: ${uebersprungen.join(" · ")}.</span>` : "") +
+      (!pauseAn && brutto > 360
+        ? `<br><span style="color:#c0392b;">⚠️ Über 6 Std. ohne Pause – nach § 4 Satz 2 ArbZG unzulässig. Es wird nichts abgezogen, die Tage werden nur gekennzeichnet.</span>`
+        : "")
+    : `<b>Für diesen Monat gibt es nichts zu füllen.</b>` +
+      (uebersprungen.length ? `<br><span style="color:#666;">Alle Tage übersprungen: ${uebersprungen.join(" · ")}.</span>` : "");
+}
+
+function azMonatFuellen() {
+  const key = document.getElementById("azFuellMonat").value;
+  const von = document.getElementById("azFuellVon").value;
+  const bis = document.getElementById("azFuellBis").value;
+  const pause = document.getElementById("azFuellPause").checked;
+  if (!von || !bis) { alert("Bitte Arbeitsbeginn und Feierabend ausfüllen."); return; }
+
+  const t = azFuellbareTage(key);
+  if (!t.fuellbar.length) { alert("Für diesen Monat gibt es keine Tage zu füllen."); return; }
+
+  const label = azMonatsLabel(key);
+  if (!confirm(`${t.fuellbar.length} ${t.fuellbar.length === 1 ? "Tag" : "Tage"} in ${label} mit ${von}–${bis} eintragen?\n\n` +
+    (t.schonDa.length ? `${t.schonDa.length} bereits erfasste ${t.schonDa.length === 1 ? "Tag bleibt" : "Tage bleiben"} unverändert.\n` : "") +
+    `\nJeder Tag lässt sich danach im Kalender einzeln ändern oder löschen.`)) return;
+
+  const alle = AZ.tage;
+  t.fuellbar.forEach((iso) => {
+    const start = new Date(iso + "T" + von);
+    let ende = new Date(iso + "T" + bis);
+    if (ende <= start) ende = new Date(ende.getTime() + 24 * 60 * 60 * 1000);  // ueber Mitternacht
+    alle.push({ start: start.toISOString(), ende: ende.toISOString(),
+                min: Math.round((ende - start) / 60000), pause: pause });
+  });
+  alle.sort((a, b) => new Date(a.start) - new Date(b.start));
+  AZ.tage = alle;
+  AZ.cfg = Object.assign(AZ.cfg, { letzteVon: von, letzteBis: bis });
+
+  // Auf den gefuellten Monat springen, sonst sieht man das Ergebnis nicht
+  const sel = document.getElementById("azMonat");
+  if ([...sel.options].some((o) => o.value === key)) sel.value = key;
+  azSchliesseModal();
+  azRender();
+}
+
 function azExport() {
   const key = document.getElementById("azMonat").value;
   const soll = AZ.cfg.soll * 60;
@@ -4651,7 +4819,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-14-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-14-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
