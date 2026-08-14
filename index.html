@@ -4,23 +4,43 @@
 <meta charset="UTF-8">
 <title>Hall Tabakwaren</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Symbole
+     =======
+     hall-logo.png ist 500x309 - also NICHT quadratisch. Android braucht
+     fuer ein Startbildschirm-Symbol ein quadratisches Bild ab 192 px.
+     Solange hier nur das Logo stand, fand Chrome keines und erzeugte einen
+     GRAUEN PLATZHALTER. Genau so ist es am 14.08. bei einem Kollegen
+     angekommen. Deshalb stehen die quadratischen Fassungen zuerst; das
+     Logo bleibt als Reiter-Symbol fuer den Rechner. -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 <link rel="icon" type="image/png" href="hall-logo.png">
+<meta name="theme-color" content="#FE5C01">
 
-<!-- iPhone-Angaben fuer "Zum Home-Bildschirm"
-     ==========================================
-     Damit die App auf dem SPESENBLATT startet, muss diese Seite hier die
-     Angaben tragen - sonst oeffnet das iPhone sie mit Browserleiste wie
-     ein normales Lesezeichen.
+<!-- Manifest
+     ========
+     Bis zum 14.08. stand hier BEWUSST keines, um den Kollegen das
+     Installations-Fenster von Chrome zu ersparen. Der Preis war groesser
+     als gedacht - ohne Manifest bekam Android:
 
-     BEWUSST KEIN <link rel="manifest"> an dieser Stelle:
-     Das Installations-Fenster unter Android haengt am Manifest, nicht an
-     diesen Zeilen hier. Die apple-* Angaben kennt nur Safari. Fuer die
-     Kollegen aendert sich dadurch NICHTS - kein Fenster, keine Abfrage,
-     kein neuer Knopf. Nur wer selbst "Zum Home-Bildschirm" waehlt,
-     bekommt statt eines Lesezeichens ein richtiges App-Fenster.
+       - ein graues Symbol statt des Hall-Logos
+       - kein eigenes Fenster, sondern einen normalen Browser-Tab
+       - und damit KEINE Kartenansicht: die haengt an
+         (display-mode: standalone), das ohne Manifest nie eintritt
 
-     Das Manifest liegt weiterhin nur in /app/ und zeigt mit start_url
-     auf diese Seite. -->
+     Die Android-Kollegen schoben also weiter die 896 px breite Tabelle
+     ueber ein 393-px-Display - die ganze Handy-Arbeit kam bei ihnen nicht
+     an. Die Anleitung versprach ihnen ausserdem ein "App installieren",
+     das gar nicht erscheinen konnte.
+
+     Bewusst die BESTEHENDE Adresse /app/manifest.json und kein neues
+     /manifest.json: Android bindet eine Installation an die Manifest-
+     Adresse. Eine neue Adresse haette bei bereits installierten Kollegen
+     ein ZWEITES Symbol erzeugt.
+
+     Die apple-* Angaben darunter kennt nur Safari - iPhone braucht sie
+     zusaetzlich, damit die App auf dem Spesenblatt startet. -->
+<link rel="manifest" href="app/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <!-- Der Name unter dem App-Symbol. Achtung: Das iPhone schreibt ihn beim
@@ -1018,7 +1038,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.3";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -3204,6 +3224,12 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.3", date: "14.08.2026", changes: [
+    "📱 Android behoben: Auf dem Startbildschirm erschien nur ein graues Feld statt des Hall-Logos",
+    "📱 Android bekommt jetzt auch das eigene App-Fenster ohne Browserleiste – und damit die Kartenansicht mit einer Karte je Tag, die es dort bisher nie gab",
+    "📱 Das „App installieren“-Fenster von Chrome erscheint jetzt tatsächlich, wie in der Anleitung beschrieben",
+    "Das App-Symbol wurde so angepasst, dass Android beim runden Zuschneiden nichts mehr abschneidet",
+  ]},
   { version: "2.2", date: "14.08.2026", changes: [
     "⏱️ Arbeitszeit: „Zeiten für alle Tage“ füllt einen ganzen Monat auf einmal – für alle, die fast täglich dieselben Zeiten haben (vor allem Monteure). Danach im Kalender nur noch die Ausnahmen antippen",
     "Dabei werden Wochenenden, Feiertage und bereits erfasste Tage übersprungen – eine gestempelte Zeit wird nie überschrieben",
@@ -4819,7 +4845,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-14-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-14-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
