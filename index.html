@@ -76,14 +76,19 @@
   :root {
     --border: #333;
     --bg-light: #f5f5f5;
-    --accent: #FE5C01;      /* Hall Tabakwaren Orange */
-    --brand-dark: #370F06;  /* Hall Tabakwaren Dunkelbraun */
+    /* Werte am 24.08.2026 direkt von halltabakwaren.de ausgelesen
+       (CSS-Variablen der echten Firmenwebseite), nicht mehr nur aus dem
+       Logo geschaetzt. Betrifft NICHT #formular/den PDF-Export - siehe
+       Implementierungsplan, Task 2/3. */
+    --accent: #de7008;      /* Hall Tabakwaren Orange (Webseite) */
+    --brand-dark: #612a00;  /* Hall Tabakwaren Dunkelbraun (Webseite) */
+    --bg: #f0e7d8;          /* Hall Tabakwaren Creme-Hintergrund (Webseite) */
   }
   * { box-sizing: border-box; }
   body {
     font-family: 'Montserrat', -apple-system, Helvetica, Arial, sans-serif;
     margin: 0; padding: 1.5rem;
-    background: #e9edf1; color: #1a1a1a;
+    background: var(--bg); color: #1a1a1a;
     overflow-x: hidden;
   }
   /* WICHTIG: #formular wird per html2canvas fuers PDF gerastert (buildPdf()).
