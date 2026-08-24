@@ -64,6 +64,12 @@
     background: #e9edf1; color: #1a1a1a;
     overflow-x: hidden;
   }
+  /* WICHTIG: #formular wird per html2canvas fuers PDF gerastert (buildPdf()).
+     Ohne diese explizite Regel wuerde die Tabelle ihre Schrift vom <body>
+     erben - aendert sich dort spaeter die Schrift (Montserrat), wuerde sich
+     also unbemerkt auch das PDF aendern. Deshalb hier fest auf die
+     bisherige Schrift gepinnt, unabhaengig davon was <body> tut. */
+  #formular { font-family: -apple-system, Helvetica, Arial, sans-serif; }
   h1 { font-size: 1.4rem; margin: 0 0 1rem; color: var(--brand-dark); }
   h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--brand-dark); }
   .toolbar {
