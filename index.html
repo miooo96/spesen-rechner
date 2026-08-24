@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 <link rel="icon" type="image/png" href="hall-logo.png">
-<meta name="theme-color" content="#FE5C01">
+<meta name="theme-color" content="#de7008">
 
 <!-- Manifest
      ========
@@ -51,19 +51,52 @@
 <meta name="apple-mobile-web-app-title" content="Hall Tabakwaren">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
+  /* Montserrat lokal eingebunden (vendor/fonts/), damit die App auch
+     offline die Firmenschrift von halltabakwaren.de zeigt - kein Nachladen
+     von Google Fonts zur Laufzeit. Eine Variable-Font-Datei deckt Regular
+     UND Bold ab (Google liefert bei wght@400;700 dieselbe Datei fuer beide
+     Gewichte aus - das ist normales Verhalten des Variable-Font-Formats,
+     kein Fehler). */
+  @font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('vendor/fonts/montserrat-var.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Montserrat';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('vendor/fonts/montserrat-var.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
   :root {
     --border: #333;
     --bg-light: #f5f5f5;
-    --accent: #FE5C01;      /* Hall Tabakwaren Orange */
-    --brand-dark: #370F06;  /* Hall Tabakwaren Dunkelbraun */
+    /* Werte am 24.08.2026 direkt von halltabakwaren.de ausgelesen
+       (CSS-Variablen der echten Firmenwebseite), nicht mehr nur aus dem
+       Logo geschaetzt. Betrifft NICHT #formular/den PDF-Export - siehe
+       Implementierungsplan, Task 2/3. */
+    --accent: #de7008;      /* Hall Tabakwaren Orange (Webseite) */
+    --brand-dark: #612a00;  /* Hall Tabakwaren Dunkelbraun (Webseite) */
+    --bg: #f0e7d8;          /* Hall Tabakwaren Creme-Hintergrund (Webseite) */
   }
   * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    font-family: 'Montserrat', -apple-system, Helvetica, Arial, sans-serif;
     margin: 0; padding: 1.5rem;
-    background: #e9edf1; color: #1a1a1a;
+    background: var(--bg); color: #1a1a1a;
     overflow-x: hidden;
   }
+  /* WICHTIG: #formular wird per html2canvas fuers PDF gerastert (buildPdf()).
+     Ohne diese explizite Regel wuerde die Tabelle ihre Schrift vom <body>
+     erben - aendert sich dort spaeter die Schrift (Montserrat), wuerde sich
+     also unbemerkt auch das PDF aendern. Deshalb hier fest auf die
+     bisherige Schrift gepinnt, unabhaengig davon was <body> tut. */
+  #formular { font-family: -apple-system, Helvetica, Arial, sans-serif; }
   h1 { font-size: 1.4rem; margin: 0 0 1rem; color: var(--brand-dark); }
   h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--brand-dark); }
   .toolbar {
@@ -394,6 +427,32 @@
     font-size: 0.95rem;
   }
 
+  /* ===== Startbildschirm =====
+     Erscheint bei JEDEM Oeffnen der App (kein "nur beim ersten Mal", kein
+     Auto-Skip nach Timer) - bewusst so entschieden, siehe Design-Spec.
+     no-print, damit er nie im Druck/PDF auftaucht (zusaetzliche
+     Absicherung - er liegt ohnehin ausserhalb von #formular). */
+  #splashScreen {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    background: linear-gradient(160deg, var(--accent) 0%, var(--brand-dark) 100%);
+    padding: 24px; text-align: center;
+  }
+  #splashScreen img { width: 150px; max-width: 60vw; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+  #splashScreen h2 { margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff; }
+  #splashScreen .splash-subtitle { font-size: 0.95rem; color: #fff; opacity: .9; margin-top: 2px; }
+  #splashScreen .splash-month { font-size: 0.85rem; color: #fff; opacity: .75; margin-top: 6px; }
+  #splashScreen button {
+    margin-top: 14px; background: #fff; color: var(--brand-dark); border: none;
+    padding: 13px 38px; border-radius: 9px; font-size: 1rem; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+  #splashScreen button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+  .splash-credit {
+    position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+    font-size: 0.7rem; color: #fff; opacity: .55; letter-spacing: .3px;
+  }
+
   @media print {
     @page { size: A4 portrait; margin: 8mm; }
     body { background: #fff; padding: 0; margin: 0; font-size: 0.7rem; }
@@ -593,6 +652,17 @@
 <script src="vendor/qrcode.min.js"></script>
 </head>
 <body>
+
+<div id="splashScreen" class="no-print">
+  <img src="hall-logo.png" alt="Hall Tabakwaren">
+  <div>
+    <h2 data-i18n="pageTitle">Hall Tabakwaren</h2>
+    <div class="splash-subtitle" data-i18n="splashSubtitle">Spesen-Rechner</div>
+    <div class="splash-month" id="splashMonth"></div>
+  </div>
+  <button type="button" id="splashContinueBtn" data-i18n="splashContinue">Weiter →</button>
+  <div class="splash-credit">built by Mirko Rieb</div>
+</div>
 
 <h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
@@ -1038,7 +1108,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -1063,6 +1133,7 @@ let STATUS_LABELS = STATUS_LABELS_DE;
 const I18N = {
   de: {
     pageTitle: "Hall Tabakwaren", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
+    splashSubtitle: "Spesen-Rechner", splashContinue: "Weiter →",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
@@ -1083,6 +1154,7 @@ const I18N = {
   },
   en: {
     pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
+    splashSubtitle: "Expense Calculator", splashContinue: "Continue →",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
     btnZeitenAlle: "⏰ Times for all days",
@@ -1109,6 +1181,23 @@ function applyI18n() {
   document.title = t("pageTitle");
   const langSel = document.getElementById("langSwitch");
   if (langSel) langSel.value = currentLang;
+}
+/* Startbildschirm: zeigt den echten aktuellen Kalendermonat (nicht den in
+   der App gerade ausgewaehlten Abrechnungsmonat) und haengt den
+   "Weiter"-Klick ein. Wird einmal beim Laden aufgerufen (siehe ganz unten
+   im Skript, direkt nach applyI18n()). */
+function initSplash() {
+  const monthEl = document.getElementById("splashMonth");
+  if (monthEl) {
+    const heute = new Date();
+    monthEl.textContent = MONTH_NAMES[heute.getMonth()] + " " + heute.getFullYear();
+  }
+  const btn = document.getElementById("splashContinueBtn");
+  if (btn) {
+    btn.addEventListener("click", function () {
+      document.getElementById("splashScreen").style.display = "none";
+    });
+  }
 }
 function setLang(lang) {
   currentLang = lang;
@@ -1718,7 +1807,7 @@ function buildPauschaleBarChart(rows) {
     const y = chartHeight - h - 22;
     const label = MONTH_NAMES[r.monat - 1].slice(0, 3);
     return `
-      <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(h,1)}" rx="4" fill="#FE5C01"></rect>
+      <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(h,1)}" rx="4" style="fill:var(--accent)"></rect>
       <text x="${x + barWidth / 2}" y="${y - 5}" font-size="10" text-anchor="middle" fill="#370F06">${r.total > 0 ? Math.round(r.total) : ""}</text>
       <text x="${x + barWidth / 2}" y="${chartHeight - 6}" font-size="10" text-anchor="middle" fill="#666">${label}</text>
     `;
@@ -3224,6 +3313,11 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.4", date: "24.08.2026", changes: [
+    "🎨 Neuer Startbildschirm beim Öffnen der App – mit Logo und aktuellem Monat",
+    "🎨 Farben und Schrift an den echten Auftritt von halltabakwaren.de angeglichen",
+    "Der PDF-Export sieht dabei genau so aus wie bisher – bewusst unverändert",
+  ]},
   { version: "2.3", date: "14.08.2026", changes: [
     "📱 Android behoben: Auf dem Startbildschirm erschien nur ein graues Feld statt des Hall-Logos",
     "📱 Android bekommt jetzt auch das eigene App-Fenster ohne Browserleiste – und damit die Kartenansicht mit einer Karte je Tag, die es dort bisher nie gab",
@@ -4791,6 +4885,7 @@ function urlaubRender() {
 }
 
 applyI18n();
+initSplash();
 // Muss VOR renderFormular() stehen: entscheidet, ob die Kartenansicht
 // ueberhaupt sichtbar wird (nur in der installierten App).
 setzeAppKennung();
@@ -4845,7 +4940,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-14-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-24-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
