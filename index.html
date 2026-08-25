@@ -4052,7 +4052,7 @@ function azMonatsLabel(key) {
    und blieb stehen. Unter dem Urlaubskalender bzw. der Stechuhr klebte
    dadurch die komplette Tagesliste des Spesenblatts. */
 function azSpesenAnsicht(sichtbar) {
-  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
+  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis", "spesenKopfzeile"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = sichtbar ? "" : "none";
   });
