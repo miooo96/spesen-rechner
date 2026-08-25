@@ -486,12 +486,7 @@
   #splashScreen h2 { margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff; }
   #splashScreen .splash-subtitle { font-size: 0.95rem; color: #fff; opacity: .9; margin-top: 2px; }
   #splashScreen .splash-month { font-size: 0.85rem; color: #fff; opacity: .75; margin-top: 6px; }
-  #splashScreen button {
-    margin-top: 14px; background: #fff; color: var(--brand-dark); border: none;
-    padding: 13px 38px; border-radius: 9px; font-size: 1rem; font-weight: 700;
-    cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25);
-  }
-  #splashScreen button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+  #splashScreen .splash-greeting { font-size: 1.05rem; color: #fff; font-weight: 700; margin-top: 8px; }
   .splash-credit {
     position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
     font-size: 0.7rem; color: #fff; opacity: .55; letter-spacing: .3px;
@@ -702,9 +697,9 @@
   <div>
     <h2 data-i18n="pageTitle">Hall Tabakwaren</h2>
     <div class="splash-subtitle" data-i18n="splashSubtitle">Spesen-Rechner</div>
+    <div class="splash-greeting" id="splashGreeting"></div>
     <div class="splash-month" id="splashMonth"></div>
   </div>
-  <button type="button" id="splashContinueBtn" data-i18n="splashContinue">Weiter →</button>
   <div class="splash-credit">built by Mirko Rieb</div>
 </div>
 
@@ -1190,6 +1185,7 @@ const I18N = {
   de: {
     pageTitle: "Hall Tabakwaren", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     splashSubtitle: "Spesen-Rechner", splashContinue: "Weiter →",
+    splashGreetingKnown: "Hallo, {name}!", splashGreetingUnknown: "Willkommen!",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
@@ -1213,6 +1209,7 @@ const I18N = {
   en: {
     pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     splashSubtitle: "Expense Calculator", splashContinue: "Continue →",
+    splashGreetingKnown: "Hello, {name}!", splashGreetingUnknown: "Welcome!",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
     btnZeitenAlle: "⏰ Times for all days",
@@ -1252,12 +1249,27 @@ function initSplash() {
     const heute = new Date();
     monthEl.textContent = MONTH_NAMES[heute.getMonth()] + " " + heute.getFullYear();
   }
-  const btn = document.getElementById("splashContinueBtn");
-  if (btn) {
-    btn.addEventListener("click", function () {
-      document.getElementById("splashScreen").style.display = "none";
-    });
+  // config ist zu diesem Zeitpunkt bereits aus localStorage geladen (Zeile
+  // ~1324, ein Top-Level-Statement, laeuft lange vor diesem Bootstrap-
+  // Aufruf). Beim allerersten Start (vor dem Einrichtungsassistenten) ist
+  // config.name noch leer - dann generische Begruessung ohne Namen.
+  const greetEl = document.getElementById("splashGreeting");
+  if (greetEl) {
+    greetEl.textContent = config.name
+      ? t("splashGreetingKnown").replace("{name}", config.name)
+      : t("splashGreetingUnknown");
   }
+  // Kein Klick mehr noetig (Entscheidung 26.08.2026): der Splash blendet
+  // sich nach 1,5 Sekunden von selbst aus. Der Einrichtungsassistent
+  // (maybeShowSetupWizard(), spaeter im Bootstrap-Ablauf aufgerufen) wird
+  // bereits VOR Ablauf dieses Timers synchron ins DOM gerendert (liegt mit
+  // z-index:1100 unter dem Splash mit z-index:9999, siehe .modal-overlay-
+  // Regel) - sobald sich der Splash ausblendet, wird ein bereits
+  // vorhandener Assistent einfach sichtbar, kein Wettlauf noetig.
+  setTimeout(function () {
+    const el = document.getElementById("splashScreen");
+    if (el) el.style.display = "none";
+  }, 1500);
 }
 function setLang(lang) {
   currentLang = lang;
