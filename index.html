@@ -1240,9 +1240,10 @@ function applyI18n() {
   if (langSel) langSel.value = currentLang;
 }
 /* Startbildschirm: zeigt den echten aktuellen Kalendermonat (nicht den in
-   der App gerade ausgewaehlten Abrechnungsmonat) und haengt den
-   "Weiter"-Klick ein. Wird einmal beim Laden aufgerufen (siehe ganz unten
-   im Skript, direkt nach applyI18n()). */
+   der App gerade ausgewaehlten Abrechnungsmonat) und eine personalisierte
+   Begruessung (mit Namen oder "Willkommen!"). Der Splash blendet sich nach
+   1,5 Sekunden automatisch aus, kein Klick noetig. Wird einmal beim Laden
+   aufgerufen (siehe ganz unten im Skript, direkt nach applyI18n()). */
 function initSplash() {
   const monthEl = document.getElementById("splashMonth");
   if (monthEl) {
