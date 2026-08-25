@@ -298,6 +298,12 @@
   }
   body.als-app { padding-bottom: 76px; }
 
+  #spesenKopfzeile {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    max-width: 1000px; margin: 0 auto 0.6rem; padding: 6px 2px;
+  }
+  .spesen-kopfzeile-titel { font-weight: 700; color: var(--brand-dark); font-size: 0.95rem; }
+
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
     border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
@@ -742,10 +748,6 @@
       <button class="danger" onclick="closeMehrMenu(); if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
     </div>
   </div>
-  <span class="toolbar-divider"></span>
-  <div class="toolbar-group">
-    <select id="monthPicker" onchange="renderFormular()"></select>
-  </div>
 </div>
 
 <nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
@@ -1131,6 +1133,20 @@
      sofort bei seinen Tagen ist. Traegt no-print: gedruckt wird der Vordruck. -->
 <div id="handyBlatt" class="no-print"></div>
 
+<!-- ===================== Spesenabrechnung-Kopfzeile =====================
+     Liegt bewusst AUSSERHALB von #formular: html2canvas rastert in
+     buildPdf() ausschliesslich document.getElementById("formular")
+     (Zeile ~3070), diese Kopfzeile kann also strukturell nie im PDF
+     auftauchen. "no-print" ist trotzdem gesetzt, fuer den Fall eines
+     echten Browser-Ausdrucks (Ctrl+P / printSpesen()).
+     monthPicker zieht hierher um (vorher eigene Toolbar-Gruppe) - er
+     zeigt als Auswahltext selbst schon "<Monat> <Jahr>" an (siehe
+     rebuildMonthPicker()), das deckt "Bereichsname + Monat" in einem ab. -->
+<div id="spesenKopfzeile" class="no-print">
+  <span class="spesen-kopfzeile-titel" data-i18n="spesenKopfzeileTitel">📋 Spesenabrechnung</span>
+  <select id="monthPicker" onchange="renderFormular()"></select>
+</div>
+
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">
@@ -1178,6 +1194,7 @@ const I18N = {
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahr",
+    spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Als App einrichten",
@@ -1200,6 +1217,7 @@ const I18N = {
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
     btnZeitenAlle: "⏰ Times for all days",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year",
+    spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Install as app",
