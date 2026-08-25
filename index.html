@@ -1618,15 +1618,17 @@ function initSettingsUI() {
 
    Jetzt laeuft jeder Knopf ueber diese eine Stelle:
    - es ist immer nur EIN Panel offen
-   - Arbeitszeit und Urlaub ERSETZEN das Spesenblatt (eigene Vollansicht)
-   - Einstellungen, Jahresuebersicht und Archiv zeigen es WEITERHIN,
-     denn man arbeitet damit ja am Spesenblatt
+   - Arbeitszeit, Urlaub und Jahresuebersicht ERSETZEN das Spesenblatt
+     (eigene Vollansicht - seit dem Navigations-Umbau sind das die drei
+     "Tabs" neben Spesenabrechnung, siehe zeigeTab())
+   - Einstellungen und Archiv zeigen es WEITERHIN, denn man arbeitet
+     damit ja am Spesenblatt
    - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
                      "arbeitszeitPanel", "urlaubPanel"];
-/* Diese beiden treten an die Stelle des Spesenblatts statt darueber zu liegen */
-const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel"];
+/* Diese drei treten an die Stelle des Spesenblatts statt darueber zu liegen */
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -1639,7 +1641,7 @@ function zeigeAnsicht(id) {
 
   if (oeffnen) ziel.style.display = "block";
 
-  // Spesenblatt nur bei den beiden Vollansichten ausblenden
+  // Spesenblatt nur bei den drei Vollansichten ausblenden
   azSpesenAnsicht(!(oeffnen && VOLLANSICHT_PANELS.indexOf(id) > -1));
   return oeffnen;
 }
