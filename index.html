@@ -274,6 +274,30 @@
   }
   .toolbar select:hover { box-shadow: 0 3px 8px rgba(24,26,32,0.1); }
 
+  /* ===== Bereichs-Tableiste (Spesen/Zeit/Urlaub/Jahr) =====
+     Browser: feste Reihe oben, wie Reiter. Installierte App (body.als-app,
+     siehe setzeAppKennung()): feste Leiste unten, wie eine Handy-App -
+     siehe Design-Spec "Navigation & Hauptbereiche Redesign". */
+  #mainTabs {
+    display: flex; gap: 0.5rem; background: #fff; padding: 0.5rem;
+    border-radius: 14px; box-shadow: 0 2px 12px rgba(24,26,32,0.08);
+    margin-bottom: 1.25rem;
+  }
+  #mainTabs .tab-btn {
+    flex: 1; text-align: center; background: transparent; color: var(--brand-dark);
+    box-shadow: none; border-radius: 10px; padding: 10px 6px;
+  }
+  #mainTabs .tab-btn.active {
+    background: linear-gradient(135deg, var(--accent), #ff8a3d); color: #fff;
+    box-shadow: 0 3px 10px rgba(222,112,8,0.35);
+  }
+  body.als-app #mainTabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 500;
+    margin-bottom: 0; border-radius: 0; box-shadow: 0 -2px 12px rgba(24,26,32,0.12);
+    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  }
+  body.als-app { padding-bottom: 76px; }
+
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
     border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
@@ -692,12 +716,9 @@
   <div class="toolbar-group">
     <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
          Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
-         vorher die Einstellungen zu suchen und dort zu scrollen. -->
+         vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
     <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
     <button onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
-    <button class="handy-mehr" onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
-    <button onclick="toggleArbeitszeitPanel()" data-i18n="btnArbeitszeit">⏱️ Arbeitszeit</button>
-    <button onclick="toggleUrlaubPanel()" data-i18n="btnUrlaub">🌴 Urlaubskalender</button>
     <button class="ghost handy-mehr" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
     <button class="ghost handy-mehr" onclick="toggleArchivPanel()" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
   </div>
@@ -728,6 +749,13 @@
     <select id="monthPicker" onchange="renderFormular()"></select>
   </div>
 </div>
+
+<nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
+  <button type="button" class="tab-btn active" data-tab="spesen" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
+  <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
+  <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
+  <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+</nav>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
   <h2 style="margin-top:0;" data-i18n="settingsTitle">✏️ Spesen bearbeiten</h2>
@@ -1151,6 +1179,7 @@ const I18N = {
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
+    tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahr",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Als App einrichten",
@@ -1172,6 +1201,7 @@ const I18N = {
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
     btnZeitenAlle: "⏰ Times for all days",
+    tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Install as app",
@@ -1644,6 +1674,38 @@ function zeigeAnsicht(id) {
   // Spesenblatt nur bei den drei Vollansichten ausblenden
   azSpesenAnsicht(!(oeffnen && VOLLANSICHT_PANELS.indexOf(id) > -1));
   return oeffnen;
+}
+
+/* ===== Bereichs-Tableiste: Spesen / Zeit / Urlaub / Jahr =====
+   Ersetzt die frueheren einzelnen Umschalt-Knoepfe in der Werkzeugleiste
+   durch eine echte Tab-Auswahl: im Unterschied zu zeigeAnsicht() (das beim
+   Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
+   zeigeTab() immer deterministisch genau den angeklickten Bereich -
+   klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht };
+
+function zeigeTab(tab) {
+  document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === tab);
+  });
+  if (tab === "spesen") {
+    ALLE_PANELS.forEach((p) => {
+      const el = document.getElementById(p);
+      if (el) el.style.display = "none";
+    });
+    azSpesenAnsicht(true);
+    return;
+  }
+  const panelId = TAB_PANEL_MAP[tab];
+  const el = document.getElementById(panelId);
+  // Die bestehenden toggle*()-Funktionen OEFFNEN nur, wenn das Panel gerade
+  // "none" ist (derselbe Schutz wie in oeffneAusAnker()) - so bleiben deren
+  // Render-Aufrufe (azRender/urlaubRender/renderJahresuebersicht) und
+  // scrollIntoView-Effekte unveraendert erhalten, statt sie zu duplizieren.
+  if (el && getComputedStyle(el).display === "none") {
+    TAB_OPEN_FN[tab]();
+  }
 }
 
 /* ===================== Laeuft das hier als App? =====================
@@ -4942,13 +5004,9 @@ setzeAppKennung();
 function oeffneAusAnker() {
   const ziel = (location.hash || "").toLowerCase();
   if (ziel.indexOf("arbeitszeit") > -1) {
-    if (getComputedStyle(document.getElementById("arbeitszeitPanel")).display === "none") {
-      toggleArbeitszeitPanel();
-    }
+    zeigeTab("zeit");
   } else if (ziel.indexOf("urlaub") > -1) {
-    if (getComputedStyle(document.getElementById("urlaubPanel")).display === "none") {
-      toggleUrlaubPanel();
-    }
+    zeigeTab("urlaub");
   }
 }
 window.addEventListener("hashchange", oeffneAusAnker);
