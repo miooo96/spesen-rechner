@@ -286,6 +286,15 @@
   #mainTabs .tab-btn {
     flex: 1; text-align: center; background: transparent; color: var(--brand-dark);
     box-shadow: none; border-radius: 10px; padding: 10px 6px;
+    /* min-width:0 hebt die automatische Mindestbreite von Flex-Items auf
+       (sonst blockiert das im Content laengste unteilbare Stueck jedes
+       Schrumpfen) - erst dadurch koennen die Buttons auf schmalen
+       Handy-Breiten (z.B. 393px, siehe Ergaenzung 26.08.2026 zu Task 8)
+       tatsaechlich enger werden statt seitlich aus #mainTabs
+       herauszulaufen. overflow/text-overflow faengt den Rest sauber mit
+       "…" ab, statt Text zu umbrechen (das wuerde wieder die Zeile hoeher
+       machen, siehe .pdf-check/diff-task8-highlight.png). */
+    min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   }
   #mainTabs .tab-btn.active {
     background: linear-gradient(135deg, var(--accent), #ff8a3d); color: #fff;
@@ -307,13 +316,33 @@
   /* ===== Zurueck-Button in der Tab-Leiste (Entscheidung 26.08.2026) =====
      Kein data-tab, kein flex:1 wie die echten Tabs - eigene Spalte ganz
      links, die sich am vollen Label (I18N-Key btnZurueck: "← Zurueck zur
-     Auswahl") ausrichtet statt an einem reinen Pfeil-Icon: flex:0 0 auto
-     plus white-space:nowrap verhindert Umbruch/Zeilenumbruch, der sonst
-     die ganze #mainTabs-Zeile (und damit #formular) nach unten schieben
-     wuerde (siehe .pdf-check/diff-task8-highlight.png). Kleinere
-     Schriftgroesse als die 4 echten Tabs, damit der Button trotz laengerem
-     Text klar als "Ausgang", nicht als 5. Tab, erkennbar bleibt. */
-  #mainTabs .tab-back { flex: 0 0 auto; font-size: 0.85rem; font-weight: 700; padding: 10px 12px; white-space: nowrap; }
+     Auswahl") ausrichtet statt an einem reinen Pfeil-Icon. flex:0 1 auto
+     (statt 0 0 auto): auf breiten Bildschirmen bleibt die volle Textbreite
+     erhalten (kein flex-grow, also kein Wachstum ueber den Inhalt hinaus),
+     aber auf schmalen Handy-Breiten darf der Button - genau wie die 4
+     echten Tabs via min-width:0/ellipsis oben - mitschrumpfen, statt die
+     4 Tabs seitlich aus #mainTabs zu draengen (Ergaenzung 26.08.2026,
+     Handy-Regressionstest bei 393px deckte das ohne diese Zeile auf:
+     "Jahr" lief komplett aus dem Viewport heraus). Kleinere Schriftgroesse
+     als die 4 echten Tabs, damit der Button trotz laengerem Text klar als
+     "Ausgang", nicht als 5. Tab, erkennbar bleibt. */
+  #mainTabs .tab-back { flex: 0 1 auto; font-size: 0.85rem; font-weight: 700; padding: 10px 12px; }
+
+  /* Schmale Handy-Breiten (z.B. 393px, Referenz-Geraetebreite dieses
+     Projekts - siehe "Kartenansicht (Handy) erzwingen"): ohne diese Regel
+     behaelt der Zurueck-Button seine volle Wunschbreite (~172px) und
+     draengt die 4 echten Tabs auf reine Icons ohne lesbaren Text
+     zusammen - das ist die falsche Prioritaet, die 4 Tabs sind die
+     Haupt-Navigation, der Zurueck-Button nur der Ausgang. Feste,
+     kleinere Basis-Breite fuer den Zurueck-Button (statt "auto") gibt den
+     4 Tabs den noetigen Platz zurueck; er zeigt dann ggf. nur noch einen
+     abgeschnittenen Teil des Labels (Ellipsis, siehe overflow-Regel oben)
+     statt des vollen Satzes - okay fuer einen sekundaeren Ausgang-Knopf. */
+  @media (max-width: 480px) {
+    #mainTabs { gap: 0.3rem; }
+    #mainTabs .tab-btn { padding: 11px 4px; font-size: 0.8rem; }
+    #mainTabs .tab-back { flex: 0 1 84px; font-size: 0.66rem; padding: 11px 6px; }
+  }
 
   /* ===== Kachel-Startseite =====
      Landing-Screen zwischen Splash und den 4 Funktionsbereichen - siehe
