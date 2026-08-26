@@ -1229,7 +1229,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -3548,6 +3548,13 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.5", date: "26.08.2026", changes: [
+    "🧭 Neue Kachel-Startseite: Spesen · Zeit · Urlaub · Jahr zum Antippen, direkt nach dem Start",
+    "🧹 Werkzeugleiste aufgeräumt – Nebenfunktionen jetzt diskret im „⋮"-Menü",
+    "👋 Der Startbildschirm begrüßt Sie jetzt mit Namen und blendet sich von selbst aus",
+    "← Von jedem Bereich mit einem Klick zurück zur Kachel-Auswahl",
+    "✏️ „Einstellungen" heißt jetzt „Spesen bearbeiten"",
+  ]},
   { version: "2.4", date: "24.08.2026", changes: [
     "🎨 Neuer Startbildschirm beim Öffnen der App – mit Logo und aktuellem Monat",
     "🎨 Farben und Schrift an den echten Auftritt von halltabakwaren.de angeglichen",
@@ -5175,7 +5182,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-24-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-24-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
