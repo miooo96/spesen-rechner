@@ -1247,7 +1247,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.5";
+const APP_VERSION = "2.6";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -3597,6 +3597,9 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.6", date: "26.08.2026", changes: [
+    "🎨 App-Icons: weißer Kasten um das Hall-Logo entfernt – Logo jetzt freigestellt auf der Creme-Fläche",
+  ]},
   { version: "2.5", date: "26.08.2026", changes: [
     "🧭 Neue Kachel-Startseite: Spesen · Zeit · Urlaub · Jahr zum Antippen, direkt nach dem Start",
     "🧹 Werkzeugleiste aufgeräumt – Nebenfunktionen jetzt diskret im „⋮“-Menü",
@@ -5231,7 +5234,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-26-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-26-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
