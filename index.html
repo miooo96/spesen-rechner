@@ -355,8 +355,21 @@
     font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
     box-shadow: 0 4px 16px rgba(24,26,32,0.12); cursor: pointer;
     transition: transform .15s, box-shadow .15s;
+    /* Ohne dies erbt der Button die globale "button { white-space: nowrap }"
+       -Regel und laesst Labels wie "🌴 Urlaub" bei ~320px Breite (iPhone SE
+       1. Generation, guenstige Android-Handys) ueber den weissen Kachelrand
+       hinauslaufen. Das Padding (2rem oben/unten) laesst umgebrochenen Text
+       trotzdem gut aussehen. Bugfix 26.08.2026, siehe Whole-Branch-Review. */
+    white-space: normal;
   }
   .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
+  /* "Als App einrichten" auf der Kachel-Startseite: Erstbesucher landen
+     sonst auf 4 Kacheln ohne jeden Weg zur Installation (das "⋮"-Menue mit
+     diesem Punkt ist von hier bewusst nicht erreichbar). Nutzt dieselbe
+     nur-webseite-Klasse wie das Pendant im "⋮"-Menue - blendet sich also
+     automatisch aus, sobald die App bereits installiert laeuft.
+     Bugfix 26.08.2026, siehe Whole-Branch-Review. */
+  .kachel-install-btn { display: block; margin: 1.25rem auto 0; }
 
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
@@ -812,6 +825,11 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   </div>
+  <!-- "Als App einrichten" gehoert bewusst hierher (nicht nur ins "⋮"-Menue):
+       Erstbesucher landen sofort nach dem Splash hier, bevor sie ueberhaupt
+       in einer Funktion sind, in der das Rand-Menue sichtbar waere. Gleicher
+       Grund/gleiche nur-webseite-Klasse wie das Pendant im "⋮"-Menue oben. -->
+  <button type="button" class="ghost kachel-install-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
 </div>
 
 <nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
@@ -1786,18 +1804,29 @@ function zeigeAnsicht(id) {
 const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel" };
 const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht };
 
+/* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
+   die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
+   Spesenblatt oeffnen (Bugfix 26.08.2026: sonst blieb z.B. "Urlaub"
+   hervorgehoben, obwohl laengst "Spesen bearbeiten" ueber dem Spesenblatt
+   offen war). */
+function markiereTab(tab) {
+  document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === tab);
+  });
+}
+
 function zeigeTab(tab) {
   // Kachel-Startseite verlassen, sobald eine Funktion gewaehlt wird
   // (Entscheidung 26.08.2026) - mainTabs/Werkzeugleiste werden erst HIER
   // wieder eingeblendet, nicht schon auf der Kachel-Seite.
-  document.getElementById("kachelStartseite").style.display = "none";
-  document.getElementById("mainTabs").style.display = "";
+  const kachelEl = document.getElementById("kachelStartseite");
+  if (kachelEl) kachelEl.style.display = "none";
+  const mainTabsEl = document.getElementById("mainTabs");
+  if (mainTabsEl) mainTabsEl.style.display = "";
   const toolbar = document.querySelector(".toolbar");
   if (toolbar) toolbar.style.display = "";
 
-  document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.tab === tab);
-  });
+  markiereTab(tab);
   if (tab === "spesen") {
     ALLE_PANELS.forEach((p) => {
       const el = document.getElementById(p);
@@ -1824,8 +1853,10 @@ function zeigeTab(tab) {
    hier - sonst haette man zwei Wege zur selben Auswahl gleichzeitig auf
    dem Schirm. */
 function zeigeKachelStartseite() {
-  document.getElementById("kachelStartseite").style.display = "";
-  document.getElementById("mainTabs").style.display = "none";
+  const kachelEl = document.getElementById("kachelStartseite");
+  if (kachelEl) kachelEl.style.display = "";
+  const mainTabsEl = document.getElementById("mainTabs");
+  if (mainTabsEl) mainTabsEl.style.display = "none";
   const toolbar = document.querySelector(".toolbar");
   if (toolbar) toolbar.style.display = "none";
   ALLE_PANELS.forEach((p) => {
@@ -1840,6 +1871,12 @@ function zeigeKachelStartseite() {
    Absicht im Markup lesbar bleibt. */
 function zurueckZurAuswahl() {
   zeigeKachelStartseite();
+  // #arbeitszeit/#urlaub-Anker (Homescreen-Schnellzugriffe, siehe
+  // oeffneAusAnker()) leeren: bleibt der Hash stehen, feuert beim erneuten
+  // Antippen desselben Schnellzugriffs kein "hashchange" (der Hash aendert
+  // sich ja nicht) - man landet dann tatenlos wieder auf der Kachel-Seite.
+  // Bugfix 26.08.2026, siehe Whole-Branch-Review.
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 }
 
 /* ===================== Laeuft das hier als App? =====================
@@ -1911,7 +1948,14 @@ document.addEventListener("click", function (e) {
 });
 
 function toggleSettings() {
-  if (zeigeAnsicht("settingsPanel")) renderAbsenceRangesList();
+  // "Spesen bearbeiten" liegt ueber dem Spesenblatt (nicht ueber Zeit/Urlaub/
+  // Jahr - zeigeAnsicht() blendet #formular-scroll dafuer wieder ein) - die
+  // Tab-Leiste muss das nachziehen, auch wenn man z.B. gerade auf "Urlaub"
+  // war (Bugfix 26.08.2026, sonst blieb der falsche Tab hervorgehoben).
+  if (zeigeAnsicht("settingsPanel")) {
+    renderAbsenceRangesList();
+    markiereTab("spesen");
+  }
 }
 
 /* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
@@ -2244,7 +2288,12 @@ function computeArchivedMonths() {
 }
 
 function toggleArchivPanel() {
-  if (zeigeAnsicht("archivPanel")) renderArchivPanel();
+  // Gleicher Grund wie bei toggleSettings(): "Abgeschlossene Monate" liegt
+  // ueber dem Spesenblatt, unabhaengig davon, welcher Tab zuletzt aktiv war.
+  if (zeigeAnsicht("archivPanel")) {
+    renderArchivPanel();
+    markiereTab("spesen");
+  }
 }
 
 function renderArchivPanel() {
@@ -5182,7 +5231,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-24-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-26-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
