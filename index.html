@@ -304,6 +304,25 @@
   }
   .spesen-kopfzeile-titel { font-weight: 700; color: var(--brand-dark); font-size: 0.95rem; }
 
+  /* ===== Zurueck-Button in der Tab-Leiste (Entscheidung 26.08.2026) =====
+     Kein data-tab, kein flex:1 wie die echten Tabs - eigene, schmalere
+     Spalte ganz links. */
+  #mainTabs .tab-back { flex: 0 0 44px; font-size: 1.2rem; font-weight: 700; }
+
+  /* ===== Kachel-Startseite =====
+     Landing-Screen zwischen Splash und den 4 Funktionsbereichen - siehe
+     Design-Spec "Navigation & Hauptbereiche Redesign", Abschnitt
+     "Entscheidung 26.08.2026 im Detail". */
+  #kachelStartseite { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  .kachel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .kachel-btn {
+    background: #fff; border: none; border-radius: 16px; padding: 2rem 1rem;
+    font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
+    box-shadow: 0 4px 16px rgba(24,26,32,0.12); cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
+
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
     border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
@@ -745,7 +764,23 @@
   </div>
 </div>
 
+<!-- ===================== Kachel-Startseite =====================
+     Neuer Landing-Screen nach dem Splash (Entscheidung 26.08.2026): 4
+     grosse Kacheln statt direktem Einstieg in die Spesenabrechnung. Nutzt
+     dieselben data-i18n-Keys wie #mainTabs (tabSpesen/tabZeit/tabUrlaub/
+     tabJahr) - ein Label, zwei Darstellungen, keine Duplikate im
+     I18N-Dictionary. -->
+<div id="kachelStartseite" class="no-print">
+  <div class="kachel-grid">
+    <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+  </div>
+</div>
+
 <nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
+  <button type="button" class="tab-btn tab-back" onclick="zurueckZurAuswahl()" title="Zurück zur Auswahl" data-i18n="btnZurueck">←</button>
   <button type="button" class="tab-btn active" data-tab="spesen" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
   <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
@@ -1190,6 +1225,7 @@ const I18N = {
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahr",
+    btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
@@ -1214,6 +1250,7 @@ const I18N = {
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
     btnZeitenAlle: "⏰ Times for all days",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year",
+    btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
@@ -1715,6 +1752,14 @@ const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "
 const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht };
 
 function zeigeTab(tab) {
+  // Kachel-Startseite verlassen, sobald eine Funktion gewaehlt wird
+  // (Entscheidung 26.08.2026) - mainTabs/Werkzeugleiste werden erst HIER
+  // wieder eingeblendet, nicht schon auf der Kachel-Seite.
+  document.getElementById("kachelStartseite").style.display = "none";
+  document.getElementById("mainTabs").style.display = "";
+  const toolbar = document.querySelector(".toolbar");
+  if (toolbar) toolbar.style.display = "";
+
   document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.tab === tab);
   });
@@ -1735,6 +1780,31 @@ function zeigeTab(tab) {
   if (el && getComputedStyle(el).display === "none") {
     TAB_OPEN_FN[tab]();
   }
+}
+
+/* ===== Kachel-Startseite: Landing-Screen vor der eigentlichen Funktion =====
+   Entscheidung 26.08.2026: nach dem Splash kommt IMMER erst diese Auswahl,
+   keine Funktion wird automatisch vorausgewaehlt. #mainTabs und die
+   Werkzeugleiste sind bewusst nur INNERHALB einer Funktion sichtbar, nicht
+   hier - sonst haette man zwei Wege zur selben Auswahl gleichzeitig auf
+   dem Schirm. */
+function zeigeKachelStartseite() {
+  document.getElementById("kachelStartseite").style.display = "";
+  document.getElementById("mainTabs").style.display = "none";
+  const toolbar = document.querySelector(".toolbar");
+  if (toolbar) toolbar.style.display = "none";
+  ALLE_PANELS.forEach((p) => {
+    const el = document.getElementById(p);
+    if (el) el.style.display = "none";
+  });
+  azSpesenAnsicht(false);
+}
+
+/* Klick-Handler des "← Zurück zur Auswahl"-Buttons in #mainTabs. Eigener
+   Name statt direktem zeigeKachelStartseite()-Aufruf im onclick, damit die
+   Absicht im Markup lesbar bleibt. */
+function zurueckZurAuswahl() {
+  zeigeKachelStartseite();
 }
 
 /* ===================== Laeuft das hier als App? =====================
@@ -5055,6 +5125,10 @@ azInit();
   document.getElementById(id).addEventListener("input", urlaubVorschau));
 urlaubVorschau();
 maybeShowSetupWizard();
+// Kachel-Startseite ist die neue Standardansicht (Entscheidung 26.08.2026) -
+// oeffneAusAnker() ueberschreibt das nur, wenn ein App-Kurzbefehl
+// (#arbeitszeit/#urlaub) aktiv ist, siehe dortige zeigeTab()-Aufrufe.
+zeigeKachelStartseite();
 // Ganz zum Schluss: erst jetzt stehen alle Panels bereit
 oeffneAusAnker();
 </script>
