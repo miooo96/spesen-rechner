@@ -305,9 +305,15 @@
   .spesen-kopfzeile-titel { font-weight: 700; color: var(--brand-dark); font-size: 0.95rem; }
 
   /* ===== Zurueck-Button in der Tab-Leiste (Entscheidung 26.08.2026) =====
-     Kein data-tab, kein flex:1 wie die echten Tabs - eigene, schmalere
-     Spalte ganz links. */
-  #mainTabs .tab-back { flex: 0 0 44px; font-size: 1.2rem; font-weight: 700; }
+     Kein data-tab, kein flex:1 wie die echten Tabs - eigene Spalte ganz
+     links, die sich am vollen Label (I18N-Key btnZurueck: "← Zurueck zur
+     Auswahl") ausrichtet statt an einem reinen Pfeil-Icon: flex:0 0 auto
+     plus white-space:nowrap verhindert Umbruch/Zeilenumbruch, der sonst
+     die ganze #mainTabs-Zeile (und damit #formular) nach unten schieben
+     wuerde (siehe .pdf-check/diff-task8-highlight.png). Kleinere
+     Schriftgroesse als die 4 echten Tabs, damit der Button trotz laengerem
+     Text klar als "Ausgang", nicht als 5. Tab, erkennbar bleibt. */
+  #mainTabs .tab-back { flex: 0 0 auto; font-size: 0.85rem; font-weight: 700; padding: 10px 12px; white-space: nowrap; }
 
   /* ===== Kachel-Startseite =====
      Landing-Screen zwischen Splash und den 4 Funktionsbereichen - siehe
