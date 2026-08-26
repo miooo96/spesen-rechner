@@ -253,12 +253,123 @@
     background: transparent; color: var(--brand-dark); box-shadow: none;
   }
   button.ghost:hover, .btn.ghost:hover { background: #f1f3f6; box-shadow: none; }
+  /* ===== "⋯"-Rand-Menue (Nebenfunktionen) =====
+     Bewusst ein eigenes Symbol ("⋮", hochkant) statt des bestehenden
+     "⋯ Mehr"-Knopfs (der klappt am Handy weiterhin nur die PDF-Knopfgruppe
+     auf/zu, siehe #mehrKnopf/.handy-mehr) - zwei "..." mit unterschiedlicher
+     Bedeutung waeren verwirrend. */
+  #mehrMenuBtn { font-size: 1.1rem; font-weight: 700; padding: 9px 14px; }
+  .mehr-menu-dropdown {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 600;
+    background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,26,32,0.18);
+    padding: 8px; display: flex; flex-direction: column; gap: 4px; min-width: 240px;
+  }
+  .mehr-menu-dropdown button, .mehr-menu-dropdown .btn, .mehr-menu-dropdown select {
+    width: 100%; text-align: left; justify-content: flex-start;
+  }
   .toolbar select {
     padding: 9px 14px; border-radius: 999px; border: 1px solid #d8dce2; background: #fff;
     font-size: 0.86rem; font-weight: 600; color: var(--brand-dark); cursor: pointer;
     transition: box-shadow 0.15s ease;
   }
   .toolbar select:hover { box-shadow: 0 3px 8px rgba(24,26,32,0.1); }
+
+  /* ===== Bereichs-Tableiste (Spesen/Zeit/Urlaub/Jahr) =====
+     Browser: feste Reihe oben, wie Reiter. Installierte App (body.als-app,
+     siehe setzeAppKennung()): feste Leiste unten, wie eine Handy-App -
+     siehe Design-Spec "Navigation & Hauptbereiche Redesign". */
+  #mainTabs {
+    display: flex; gap: 0.5rem; background: #fff; padding: 0.5rem;
+    border-radius: 14px; box-shadow: 0 2px 12px rgba(24,26,32,0.08);
+    margin-bottom: 1.25rem;
+  }
+  #mainTabs .tab-btn {
+    flex: 1; text-align: center; background: transparent; color: var(--brand-dark);
+    box-shadow: none; border-radius: 10px; padding: 10px 6px;
+    /* min-width:0 hebt die automatische Mindestbreite von Flex-Items auf
+       (sonst blockiert das im Content laengste unteilbare Stueck jedes
+       Schrumpfen) - erst dadurch koennen die Buttons auf schmalen
+       Handy-Breiten (z.B. 393px, siehe Ergaenzung 26.08.2026 zu Task 8)
+       tatsaechlich enger werden statt seitlich aus #mainTabs
+       herauszulaufen. overflow/text-overflow faengt den Rest sauber mit
+       "…" ab, statt Text zu umbrechen (das wuerde wieder die Zeile hoeher
+       machen, siehe .pdf-check/diff-task8-highlight.png). */
+    min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  #mainTabs .tab-btn.active {
+    background: linear-gradient(135deg, var(--accent), #ff8a3d); color: #fff;
+    box-shadow: 0 3px 10px rgba(222,112,8,0.35);
+  }
+  body.als-app #mainTabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 500;
+    margin-bottom: 0; border-radius: 0; box-shadow: 0 -2px 12px rgba(24,26,32,0.12);
+    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  }
+  body.als-app { padding-bottom: 76px; }
+
+  #spesenKopfzeile {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    max-width: 1000px; margin: 0 auto 0.6rem; padding: 6px 2px;
+  }
+  .spesen-kopfzeile-titel { font-weight: 700; color: var(--brand-dark); font-size: 0.95rem; }
+
+  /* ===== Zurueck-Button in der Tab-Leiste (Entscheidung 26.08.2026) =====
+     Kein data-tab, kein flex:1 wie die echten Tabs - eigene Spalte ganz
+     links, die sich am vollen Label (I18N-Key btnZurueck: "← Zurueck zur
+     Auswahl") ausrichtet statt an einem reinen Pfeil-Icon. flex:0 1 auto
+     (statt 0 0 auto): auf breiten Bildschirmen bleibt die volle Textbreite
+     erhalten (kein flex-grow, also kein Wachstum ueber den Inhalt hinaus),
+     aber auf schmalen Handy-Breiten darf der Button - genau wie die 4
+     echten Tabs via min-width:0/ellipsis oben - mitschrumpfen, statt die
+     4 Tabs seitlich aus #mainTabs zu draengen (Ergaenzung 26.08.2026,
+     Handy-Regressionstest bei 393px deckte das ohne diese Zeile auf:
+     "Jahr" lief komplett aus dem Viewport heraus). Kleinere Schriftgroesse
+     als die 4 echten Tabs, damit der Button trotz laengerem Text klar als
+     "Ausgang", nicht als 5. Tab, erkennbar bleibt. */
+  #mainTabs .tab-back { flex: 0 1 auto; font-size: 0.85rem; font-weight: 700; padding: 10px 12px; }
+
+  /* Schmale Handy-Breiten (z.B. 393px, Referenz-Geraetebreite dieses
+     Projekts - siehe "Kartenansicht (Handy) erzwingen"): ohne diese Regel
+     behaelt der Zurueck-Button seine volle Wunschbreite (~172px) und
+     draengt die 4 echten Tabs auf reine Icons ohne lesbaren Text
+     zusammen - das ist die falsche Prioritaet, die 4 Tabs sind die
+     Haupt-Navigation, der Zurueck-Button nur der Ausgang. Feste,
+     kleinere Basis-Breite fuer den Zurueck-Button (statt "auto") gibt den
+     4 Tabs den noetigen Platz zurueck; er zeigt dann ggf. nur noch einen
+     abgeschnittenen Teil des Labels (Ellipsis, siehe overflow-Regel oben)
+     statt des vollen Satzes - okay fuer einen sekundaeren Ausgang-Knopf. */
+  @media (max-width: 480px) {
+    #mainTabs { gap: 0.3rem; }
+    #mainTabs .tab-btn { padding: 11px 4px; font-size: 0.8rem; }
+    #mainTabs .tab-back { flex: 0 1 84px; font-size: 0.66rem; padding: 11px 6px; }
+  }
+
+  /* ===== Kachel-Startseite =====
+     Landing-Screen zwischen Splash und den 4 Funktionsbereichen - siehe
+     Design-Spec "Navigation & Hauptbereiche Redesign", Abschnitt
+     "Entscheidung 26.08.2026 im Detail". */
+  #kachelStartseite { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  .kachel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .kachel-btn {
+    background: #fff; border: none; border-radius: 16px; padding: 2rem 1rem;
+    font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
+    box-shadow: 0 4px 16px rgba(24,26,32,0.12); cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    /* Ohne dies erbt der Button die globale "button { white-space: nowrap }"
+       -Regel und laesst Labels wie "🌴 Urlaub" bei ~320px Breite (iPhone SE
+       1. Generation, guenstige Android-Handys) ueber den weissen Kachelrand
+       hinauslaufen. Das Padding (2rem oben/unten) laesst umgebrochenen Text
+       trotzdem gut aussehen. Bugfix 26.08.2026, siehe Whole-Branch-Review. */
+    white-space: normal;
+  }
+  .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
+  /* "Als App einrichten" auf der Kachel-Startseite: Erstbesucher landen
+     sonst auf 4 Kacheln ohne jeden Weg zur Installation (das "⋮"-Menue mit
+     diesem Punkt ist von hier bewusst nicht erreichbar). Nutzt dieselbe
+     nur-webseite-Klasse wie das Pendant im "⋮"-Menue - blendet sich also
+     automatisch aus, sobald die App bereits installiert laeuft.
+     Bugfix 26.08.2026, siehe Whole-Branch-Review. */
+  .kachel-install-btn { display: block; margin: 1.25rem auto 0; }
 
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
@@ -442,12 +553,7 @@
   #splashScreen h2 { margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff; }
   #splashScreen .splash-subtitle { font-size: 0.95rem; color: #fff; opacity: .9; margin-top: 2px; }
   #splashScreen .splash-month { font-size: 0.85rem; color: #fff; opacity: .75; margin-top: 6px; }
-  #splashScreen button {
-    margin-top: 14px; background: #fff; color: var(--brand-dark); border: none;
-    padding: 13px 38px; border-radius: 9px; font-size: 1rem; font-weight: 700;
-    cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25);
-  }
-  #splashScreen button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+  #splashScreen .splash-greeting { font-size: 1.05rem; color: #fff; font-weight: 700; margin-top: 8px; }
   .splash-credit {
     position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
     font-size: 0.7rem; color: #fff; opacity: .55; letter-spacing: .3px;
@@ -658,9 +764,9 @@
   <div>
     <h2 data-i18n="pageTitle">Hall Tabakwaren</h2>
     <div class="splash-subtitle" data-i18n="splashSubtitle">Spesen-Rechner</div>
+    <div class="splash-greeting" id="splashGreeting"></div>
     <div class="splash-month" id="splashMonth"></div>
   </div>
-  <button type="button" id="splashContinueBtn" data-i18n="splashContinue">Weiter →</button>
   <div class="splash-credit">built by Mirko Rieb</div>
 </div>
 
@@ -678,45 +784,64 @@
   <div class="toolbar-group">
     <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
          Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
-         vorher die Einstellungen zu suchen und dort zu scrollen. -->
+         vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
     <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
-    <button onclick="toggleSettings()" data-i18n="btnSettings">⚙️ Einstellungen</button>
-    <button class="handy-mehr" onclick="toggleJahresuebersicht()" data-i18n="btnYear">📊 Jahresübersicht</button>
-    <button onclick="toggleArbeitszeitPanel()" data-i18n="btnArbeitszeit">⏱️ Arbeitszeit</button>
-    <button onclick="toggleUrlaubPanel()" data-i18n="btnUrlaub">🌴 Urlaubskalender</button>
-    <button class="ghost handy-mehr" onclick="submitCurrentMonth()" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-    <button class="ghost handy-mehr" onclick="toggleArchivPanel()" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+    <button onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
   </div>
   <span class="toolbar-divider"></span>
-  <div class="toolbar-group">
-    <!-- Bewusst NICHT unter "Mehr" versteckt: Der Knopf soll ausgerechnet am
-         Handy gefunden werden, dort wird die App ja eingerichtet. -->
-    <button class="ghost nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
-    <a class="btn ghost handy-mehr" href="Anleitung.html" style="text-decoration:none; align-items:center;" data-i18n="btnHelp">❓ Anleitung</a>
-    <button class="ghost handy-mehr" onclick="sendFeedback()" data-i18n="btnFeedback">💬 Feedback</button>
-    <button class="ghost handy-mehr" onclick="openQrModal()" data-i18n="btnQr">📱 QR-Code</button>
-  </div>
-  <span class="toolbar-divider"></span>
-  <div class="toolbar-group">
-    <button class="danger handy-mehr" onclick="if(confirm(t('confirmReset'))) resetAll()" data-i18n="btnReset">🗑️ Zurücksetzen</button>
-  </div>
-  <span class="toolbar-divider"></span>
-  <!-- Nur am Handy sichtbar: klappt alle uebrigen Knoepfe auf und zu -->
+  <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
   <div class="toolbar-group">
     <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
   </div>
   <span class="toolbar-divider"></span>
-  <div class="toolbar-group">
-    <select id="monthPicker" onchange="renderFormular()"></select>
-    <select id="langSwitch" class="handy-mehr" onchange="setLang(this.value)">
-      <option value="de">🇩🇪 Deutsch</option>
-      <option value="en">🇬🇧 English</option>
-    </select>
+  <div class="toolbar-group" id="mehrMenu" style="margin-left:auto; position:relative;">
+    <button type="button" id="mehrMenuBtn" class="ghost" onclick="toggleMehrMenu()" aria-haspopup="true" aria-expanded="false">⋮</button>
+    <div id="mehrMenuDropdown" class="mehr-menu-dropdown" style="display:none;">
+      <button class="ghost nur-webseite" onclick="closeMehrMenu(); openInstallModal();" data-i18n="btnInstall">📱 Als App einrichten</button>
+      <a class="btn ghost" href="Anleitung.html" style="text-decoration:none;" data-i18n="btnHelp">❓ Anleitung</a>
+      <button class="ghost" onclick="closeMehrMenu(); sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
+      <button class="ghost" onclick="closeMehrMenu(); openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
+      <button class="ghost" onclick="closeMehrMenu(); submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+      <button class="ghost" onclick="closeMehrMenu(); toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+      <select id="langSwitch" onchange="setLang(this.value)">
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="en">🇬🇧 English</option>
+      </select>
+      <button class="danger" onclick="closeMehrMenu(); if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+    </div>
   </div>
 </div>
 
+<!-- ===================== Kachel-Startseite =====================
+     Neuer Landing-Screen nach dem Splash (Entscheidung 26.08.2026): 4
+     grosse Kacheln statt direktem Einstieg in die Spesenabrechnung. Nutzt
+     dieselben data-i18n-Keys wie #mainTabs (tabSpesen/tabZeit/tabUrlaub/
+     tabJahr) - ein Label, zwei Darstellungen, keine Duplikate im
+     I18N-Dictionary. -->
+<div id="kachelStartseite" class="no-print">
+  <div class="kachel-grid">
+    <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+  </div>
+  <!-- "Als App einrichten" gehoert bewusst hierher (nicht nur ins "⋮"-Menue):
+       Erstbesucher landen sofort nach dem Splash hier, bevor sie ueberhaupt
+       in einer Funktion sind, in der das Rand-Menue sichtbar waere. Gleicher
+       Grund/gleiche nur-webseite-Klasse wie das Pendant im "⋮"-Menue oben. -->
+  <button type="button" class="ghost kachel-install-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+</div>
+
+<nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
+  <button type="button" class="tab-btn tab-back" onclick="zurueckZurAuswahl()" title="Zurück zur Auswahl" data-i18n="btnZurueck">←</button>
+  <button type="button" class="tab-btn active" data-tab="spesen" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
+  <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
+  <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
+  <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+</nav>
+
 <div class="panel no-print" id="settingsPanel" style="display:none;">
-  <h2 style="margin-top:0;" data-i18n="settingsTitle">Einstellungen</h2>
+  <h2 style="margin-top:0;" data-i18n="settingsTitle">✏️ Spesen bearbeiten</h2>
 
   <div class="settings-card neutral">
     <h3 data-i18n="stammdaten">👤 Stammdaten</h3>
@@ -1091,6 +1216,20 @@
      sofort bei seinen Tagen ist. Traegt no-print: gedruckt wird der Vordruck. -->
 <div id="handyBlatt" class="no-print"></div>
 
+<!-- ===================== Spesenabrechnung-Kopfzeile =====================
+     Liegt bewusst AUSSERHALB von #formular: html2canvas rastert in
+     buildPdf() ausschliesslich document.getElementById("formular")
+     (Zeile ~3070), diese Kopfzeile kann also strukturell nie im PDF
+     auftauchen. "no-print" ist trotzdem gesetzt, fuer den Fall eines
+     echten Browser-Ausdrucks (Ctrl+P / printSpesen()).
+     monthPicker zieht hierher um (vorher eigene Toolbar-Gruppe) - er
+     zeigt als Auswahltext selbst schon "<Monat> <Jahr>" an (siehe
+     rebuildMonthPicker()), das deckt "Bereichsname + Monat" in einem ab. -->
+<div id="spesenKopfzeile" class="no-print">
+  <span class="spesen-kopfzeile-titel" data-i18n="spesenKopfzeileTitel">📋 Spesenabrechnung</span>
+  <select id="monthPicker" onchange="renderFormular()"></select>
+</div>
+
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">
@@ -1108,7 +1247,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -1134,9 +1273,13 @@ const I18N = {
   de: {
     pageTitle: "Hall Tabakwaren", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     splashSubtitle: "Spesen-Rechner", splashContinue: "Weiter →",
+    splashGreetingKnown: "Hallo, {name}!", splashGreetingUnknown: "Willkommen!",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
-    btnCsv: "📄 CSV (für Steuer)", btnSettings: "⚙️ Einstellungen", btnYear: "📊 Jahresübersicht",
+    btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
+    tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahr",
+    btnZurueck: "← Zurück zur Auswahl",
+    spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Als App einrichten",
@@ -1145,7 +1288,7 @@ const I18N = {
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
     colStd: "Stunden", colPauschale: "Pauschale", colStatus: "Status",
     colWorkStart: "Arbeitsbeginn", colWorkEnd: "Arbeitsende", colDepart: "Abfahrt WP", colArrive: "Ankunft WP",
-    settingsTitle: "Einstellungen", yearTitle: "📊 Jahresübersicht",
+    settingsTitle: "✏️ Spesen bearbeiten", yearTitle: "📊 Jahresübersicht",
     stammdaten: "👤 Stammdaten", zeitraum: "📅 Zeitraum & Feiertage", pauschalenCard: "💶 Pauschalen & Standardwerte",
     nlCard: "🏢 Anwesenheit in der Niederlassung (NL)", absenceCard: "🗓️ Abwesenheiten am Stück eintragen",
     backupCard: "💾 Datensicherung",
@@ -1155,9 +1298,13 @@ const I18N = {
   en: {
     pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     splashSubtitle: "Expense Calculator", splashContinue: "Continue →",
+    splashGreetingKnown: "Hello, {name}!", splashGreetingUnknown: "Welcome!",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
-    btnCsv: "📄 CSV (for taxes)", btnSettings: "⚙️ Settings", btnYear: "📊 Yearly overview",
+    btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
     btnZeitenAlle: "⏰ Times for all days",
+    tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year",
+    btnZurueck: "← Back to overview",
+    spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Install as app",
@@ -1166,7 +1313,7 @@ const I18N = {
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
     colStd: "Hours", colPauschale: "Allowance", colStatus: "Status",
     colWorkStart: "Work start", colWorkEnd: "Work end", colDepart: "Departure (home)", colArrive: "Arrival (home)",
-    settingsTitle: "Settings", yearTitle: "📊 Yearly overview",
+    settingsTitle: "✏️ Edit expenses", yearTitle: "📊 Yearly overview",
     stammdaten: "👤 Basic data", zeitraum: "📅 Period & public holidays", pauschalenCard: "💶 Allowances & defaults",
     nlCard: "🏢 Presence at the branch office", absenceCard: "🗓️ Enter absences for a period",
     backupCard: "💾 Backup",
@@ -1183,21 +1330,37 @@ function applyI18n() {
   if (langSel) langSel.value = currentLang;
 }
 /* Startbildschirm: zeigt den echten aktuellen Kalendermonat (nicht den in
-   der App gerade ausgewaehlten Abrechnungsmonat) und haengt den
-   "Weiter"-Klick ein. Wird einmal beim Laden aufgerufen (siehe ganz unten
-   im Skript, direkt nach applyI18n()). */
+   der App gerade ausgewaehlten Abrechnungsmonat) und eine personalisierte
+   Begruessung (mit Namen oder "Willkommen!"). Der Splash blendet sich nach
+   1,5 Sekunden automatisch aus, kein Klick noetig. Wird einmal beim Laden
+   aufgerufen (siehe ganz unten im Skript, direkt nach applyI18n()). */
 function initSplash() {
   const monthEl = document.getElementById("splashMonth");
   if (monthEl) {
     const heute = new Date();
     monthEl.textContent = MONTH_NAMES[heute.getMonth()] + " " + heute.getFullYear();
   }
-  const btn = document.getElementById("splashContinueBtn");
-  if (btn) {
-    btn.addEventListener("click", function () {
-      document.getElementById("splashScreen").style.display = "none";
-    });
+  // config ist zu diesem Zeitpunkt bereits aus localStorage geladen (Zeile
+  // ~1324, ein Top-Level-Statement, laeuft lange vor diesem Bootstrap-
+  // Aufruf). Beim allerersten Start (vor dem Einrichtungsassistenten) ist
+  // config.name noch leer - dann generische Begruessung ohne Namen.
+  const greetEl = document.getElementById("splashGreeting");
+  if (greetEl) {
+    greetEl.textContent = config.name
+      ? t("splashGreetingKnown").replace("{name}", config.name)
+      : t("splashGreetingUnknown");
   }
+  // Kein Klick mehr noetig (Entscheidung 26.08.2026): der Splash blendet
+  // sich nach 1,5 Sekunden von selbst aus. Der Einrichtungsassistent
+  // (maybeShowSetupWizard(), spaeter im Bootstrap-Ablauf aufgerufen) wird
+  // bereits VOR Ablauf dieses Timers synchron ins DOM gerendert (liegt mit
+  // z-index:1100 unter dem Splash mit z-index:9999, siehe .modal-overlay-
+  // Regel) - sobald sich der Splash ausblendet, wird ein bereits
+  // vorhandener Assistent einfach sichtbar, kein Wettlauf noetig.
+  setTimeout(function () {
+    const el = document.getElementById("splashScreen");
+    if (el) el.style.display = "none";
+  }, 1500);
 }
 function setLang(lang) {
   currentLang = lang;
@@ -1604,15 +1767,17 @@ function initSettingsUI() {
 
    Jetzt laeuft jeder Knopf ueber diese eine Stelle:
    - es ist immer nur EIN Panel offen
-   - Arbeitszeit und Urlaub ERSETZEN das Spesenblatt (eigene Vollansicht)
-   - Einstellungen, Jahresuebersicht und Archiv zeigen es WEITERHIN,
-     denn man arbeitet damit ja am Spesenblatt
+   - Arbeitszeit, Urlaub und Jahresuebersicht ERSETZEN das Spesenblatt
+     (eigene Vollansicht - seit dem Navigations-Umbau sind das die drei
+     "Tabs" neben Spesenabrechnung, siehe zeigeTab())
+   - Einstellungen und Archiv zeigen es WEITERHIN, denn man arbeitet
+     damit ja am Spesenblatt
    - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
                      "arbeitszeitPanel", "urlaubPanel"];
-/* Diese beiden treten an die Stelle des Spesenblatts statt darueber zu liegen */
-const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel"];
+/* Diese drei treten an die Stelle des Spesenblatts statt darueber zu liegen */
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -1625,9 +1790,93 @@ function zeigeAnsicht(id) {
 
   if (oeffnen) ziel.style.display = "block";
 
-  // Spesenblatt nur bei den beiden Vollansichten ausblenden
+  // Spesenblatt nur bei den drei Vollansichten ausblenden
   azSpesenAnsicht(!(oeffnen && VOLLANSICHT_PANELS.indexOf(id) > -1));
   return oeffnen;
+}
+
+/* ===== Bereichs-Tableiste: Spesen / Zeit / Urlaub / Jahr =====
+   Ersetzt die frueheren einzelnen Umschalt-Knoepfe in der Werkzeugleiste
+   durch eine echte Tab-Auswahl: im Unterschied zu zeigeAnsicht() (das beim
+   Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
+   zeigeTab() immer deterministisch genau den angeklickten Bereich -
+   klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht };
+
+/* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
+   die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
+   Spesenblatt oeffnen (Bugfix 26.08.2026: sonst blieb z.B. "Urlaub"
+   hervorgehoben, obwohl laengst "Spesen bearbeiten" ueber dem Spesenblatt
+   offen war). */
+function markiereTab(tab) {
+  document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === tab);
+  });
+}
+
+function zeigeTab(tab) {
+  // Kachel-Startseite verlassen, sobald eine Funktion gewaehlt wird
+  // (Entscheidung 26.08.2026) - mainTabs/Werkzeugleiste werden erst HIER
+  // wieder eingeblendet, nicht schon auf der Kachel-Seite.
+  const kachelEl = document.getElementById("kachelStartseite");
+  if (kachelEl) kachelEl.style.display = "none";
+  const mainTabsEl = document.getElementById("mainTabs");
+  if (mainTabsEl) mainTabsEl.style.display = "";
+  const toolbar = document.querySelector(".toolbar");
+  if (toolbar) toolbar.style.display = "";
+
+  markiereTab(tab);
+  if (tab === "spesen") {
+    ALLE_PANELS.forEach((p) => {
+      const el = document.getElementById(p);
+      if (el) el.style.display = "none";
+    });
+    azSpesenAnsicht(true);
+    return;
+  }
+  const panelId = TAB_PANEL_MAP[tab];
+  const el = document.getElementById(panelId);
+  // Die bestehenden toggle*()-Funktionen OEFFNEN nur, wenn das Panel gerade
+  // "none" ist (derselbe Schutz wie in oeffneAusAnker()) - so bleiben deren
+  // Render-Aufrufe (azRender/urlaubRender/renderJahresuebersicht) und
+  // scrollIntoView-Effekte unveraendert erhalten, statt sie zu duplizieren.
+  if (el && getComputedStyle(el).display === "none") {
+    TAB_OPEN_FN[tab]();
+  }
+}
+
+/* ===== Kachel-Startseite: Landing-Screen vor der eigentlichen Funktion =====
+   Entscheidung 26.08.2026: nach dem Splash kommt IMMER erst diese Auswahl,
+   keine Funktion wird automatisch vorausgewaehlt. #mainTabs und die
+   Werkzeugleiste sind bewusst nur INNERHALB einer Funktion sichtbar, nicht
+   hier - sonst haette man zwei Wege zur selben Auswahl gleichzeitig auf
+   dem Schirm. */
+function zeigeKachelStartseite() {
+  const kachelEl = document.getElementById("kachelStartseite");
+  if (kachelEl) kachelEl.style.display = "";
+  const mainTabsEl = document.getElementById("mainTabs");
+  if (mainTabsEl) mainTabsEl.style.display = "none";
+  const toolbar = document.querySelector(".toolbar");
+  if (toolbar) toolbar.style.display = "none";
+  ALLE_PANELS.forEach((p) => {
+    const el = document.getElementById(p);
+    if (el) el.style.display = "none";
+  });
+  azSpesenAnsicht(false);
+}
+
+/* Klick-Handler des "← Zurück zur Auswahl"-Buttons in #mainTabs. Eigener
+   Name statt direktem zeigeKachelStartseite()-Aufruf im onclick, damit die
+   Absicht im Markup lesbar bleibt. */
+function zurueckZurAuswahl() {
+  zeigeKachelStartseite();
+  // #arbeitszeit/#urlaub-Anker (Homescreen-Schnellzugriffe, siehe
+  // oeffneAusAnker()) leeren: bleibt der Hash stehen, feuert beim erneuten
+  // Antippen desselben Schnellzugriffs kein "hashchange" (der Hash aendert
+  // sich ja nicht) - man landet dann tatenlos wieder auf der Kachel-Seite.
+  // Bugfix 26.08.2026, siehe Whole-Branch-Review.
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 }
 
 /* ===================== Laeuft das hier als App? =====================
@@ -1675,8 +1924,38 @@ function toggleMehr() {
   if (k) k.textContent = offen ? "⋯ Weniger" : "⋯ Mehr";
 }
 
+/* ===== "⋯"-Rand-Menue: oeffnen/schliessen =====
+   Eigenstaendig von toggleMehr() oben - das steuert weiterhin nur die
+   PDF-Knopfgruppe am Handy. Dieses Menu buendelt die Nebenfunktionen
+   (App einrichten, Anleitung, Feedback, QR-Code, Monat abschliessen,
+   Abgeschlossene Monate, Sprache, Zuruecksetzen) diskret an einer Stelle. */
+function toggleMehrMenu() {
+  const dd = document.getElementById("mehrMenuDropdown");
+  const btn = document.getElementById("mehrMenuBtn");
+  const offen = dd.style.display !== "none";
+  dd.style.display = offen ? "none" : "flex";
+  btn.setAttribute("aria-expanded", offen ? "false" : "true");
+}
+function closeMehrMenu() {
+  const dd = document.getElementById("mehrMenuDropdown");
+  const btn = document.getElementById("mehrMenuBtn");
+  dd.style.display = "none";
+  btn.setAttribute("aria-expanded", "false");
+}
+document.addEventListener("click", function (e) {
+  const menu = document.getElementById("mehrMenu");
+  if (menu && !menu.contains(e.target)) closeMehrMenu();
+});
+
 function toggleSettings() {
-  if (zeigeAnsicht("settingsPanel")) renderAbsenceRangesList();
+  // "Spesen bearbeiten" liegt ueber dem Spesenblatt (nicht ueber Zeit/Urlaub/
+  // Jahr - zeigeAnsicht() blendet #formular-scroll dafuer wieder ein) - die
+  // Tab-Leiste muss das nachziehen, auch wenn man z.B. gerade auf "Urlaub"
+  // war (Bugfix 26.08.2026, sonst blieb der falsche Tab hervorgehoben).
+  if (zeigeAnsicht("settingsPanel")) {
+    renderAbsenceRangesList();
+    markiereTab("spesen");
+  }
 }
 
 /* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
@@ -2009,7 +2288,12 @@ function computeArchivedMonths() {
 }
 
 function toggleArchivPanel() {
-  if (zeigeAnsicht("archivPanel")) renderArchivPanel();
+  // Gleicher Grund wie bei toggleSettings(): "Abgeschlossene Monate" liegt
+  // ueber dem Spesenblatt, unabhaengig davon, welcher Tab zuletzt aktiv war.
+  if (zeigeAnsicht("archivPanel")) {
+    renderArchivPanel();
+    markiereTab("spesen");
+  }
 }
 
 function renderArchivPanel() {
@@ -3313,6 +3597,13 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.5", date: "26.08.2026", changes: [
+    "🧭 Neue Kachel-Startseite: Spesen · Zeit · Urlaub · Jahr zum Antippen, direkt nach dem Start",
+    "🧹 Werkzeugleiste aufgeräumt – Nebenfunktionen jetzt diskret im „⋮“-Menü",
+    "👋 Der Startbildschirm begrüßt Sie jetzt mit Namen und blendet sich von selbst aus",
+    "← Von jedem Bereich mit einem Klick zurück zur Kachel-Auswahl",
+    "✏️ „Einstellungen“ heißt jetzt „Spesen bearbeiten“",
+  ]},
   { version: "2.4", date: "24.08.2026", changes: [
     "🎨 Neuer Startbildschirm beim Öffnen der App – mit Logo und aktuellem Monat",
     "🎨 Farben und Schrift an den echten Auftritt von halltabakwaren.de angeglichen",
@@ -3935,7 +4226,7 @@ function azMonatsLabel(key) {
    und blieb stehen. Unter dem Urlaubskalender bzw. der Stechuhr klebte
    dadurch die komplette Tagesliste des Spesenblatts. */
 function azSpesenAnsicht(sichtbar) {
-  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
+  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis", "spesenKopfzeile"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = sichtbar ? "" : "none";
   });
@@ -4903,13 +5194,9 @@ setzeAppKennung();
 function oeffneAusAnker() {
   const ziel = (location.hash || "").toLowerCase();
   if (ziel.indexOf("arbeitszeit") > -1) {
-    if (getComputedStyle(document.getElementById("arbeitszeitPanel")).display === "none") {
-      toggleArbeitszeitPanel();
-    }
+    zeigeTab("zeit");
   } else if (ziel.indexOf("urlaub") > -1) {
-    if (getComputedStyle(document.getElementById("urlaubPanel")).display === "none") {
-      toggleUrlaubPanel();
-    }
+    zeigeTab("urlaub");
   }
 }
 window.addEventListener("hashchange", oeffneAusAnker);
@@ -4929,6 +5216,10 @@ azInit();
   document.getElementById(id).addEventListener("input", urlaubVorschau));
 urlaubVorschau();
 maybeShowSetupWizard();
+// Kachel-Startseite ist die neue Standardansicht (Entscheidung 26.08.2026) -
+// oeffneAusAnker() ueberschreibt das nur, wenn ein App-Kurzbefehl
+// (#arbeitszeit/#urlaub) aktiv ist, siehe dortige zeigeTab()-Aufrufe.
+zeigeKachelStartseite();
 // Ganz zum Schluss: erst jetzt stehen alle Panels bereit
 oeffneAusAnker();
 </script>
@@ -4940,7 +5231,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-24-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-26-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
