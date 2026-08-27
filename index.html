@@ -4286,6 +4286,19 @@ function zeigeSpesenKopfUndPdf(sichtbar) {
    geoeffnet haben. */
 function zeigeSpesenUnteransicht(ansicht, fokusFeldId) {
   const stammdaten = ansicht === "stammdaten";
+  // Verteidigung unabhaengig davon, ob Task 7 (tab-abhaengige Sichtbarkeit
+  // der toolbarKontextGruppe) schon gelandet ist: "Spesen bearbeiten" ist
+  // HEUTE noch von jedem Tab aus klickbar, nicht nur vom Spesen-Tab. Ohne
+  // dieses Schliessen der uebrigen ALLE_PANELS-Mitglieder koennte z.B.
+  // urlaubPanel neben settingsPanel offen bleiben - beides normale
+  // Block-Elemente im Textfluss (kein Overlay), die sich dann sichtbar
+  // stapeln wuerden. Stellt dieselbe Exklusivitaet wieder her, die vorher
+  // zeigeAnsicht() ueber ALLE_PANELS garantiert hat (Bugfix nach Review).
+  ALLE_PANELS.forEach((p) => {
+    if (p === "settingsPanel") return;
+    const el = document.getElementById(p);
+    if (el) el.style.display = "none";
+  });
   document.getElementById("settingsPanel").style.display = stammdaten ? "block" : "none";
   azSpesenAnsicht(!stammdaten);
   if (stammdaten) renderAbsenceRangesList();
