@@ -880,7 +880,7 @@
       </div>
       <div>
         <label>Name</label>
-        <input id="cfgName" oninput="saveConfig(); renderFormular();">
+        <input id="cfgName" oninput="saveConfig(); renderFormular(); aktualisiereZeitSichtbarkeit();">
       </div>
       <div>
         <label>Straße</label>
@@ -1273,6 +1273,24 @@
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
 const APP_VERSION = "2.6";
+
+/* ===== Zeit-Tab nur fuer Mirko sichtbar =====
+   Kein Login-System vorhanden - jede/r Kollege/in nutzt die Seite im
+   eigenen Browser, Daten liegen ohnehin getrennt lokal (localStorage).
+   Rein kosmetisch/organisatorisch: Kollegen sollen die fuer sie irrelevante
+   Stechuhr-Funktion nicht angezeigt bekommen. KEIN echter Zugriffsschutz -
+   wer exakt denselben Namen eintraegt, sieht den Tab ebenfalls (siehe
+   Design-Spec, Punkt 8). */
+const MIRKO_NAME = "Mirko Rieb";
+function istMirko() {
+  return (config.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase();
+}
+function aktualisiereZeitSichtbarkeit() {
+  const sichtbar = istMirko();
+  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'zeit\')"], #mainTabs .tab-btn[data-tab="zeit"]').forEach((el) => {
+    el.style.display = sichtbar ? "" : "none";
+  });
+}
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -5327,6 +5345,7 @@ window.addEventListener("hashchange", oeffneAusAnker);
 initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
+aktualisiereZeitSichtbarkeit();
 renderAbsenceRangesList();
 azInit();
 ["urlaubVon", "urlaubBis", "urlaubStatus"].forEach((id) =>
