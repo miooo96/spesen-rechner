@@ -387,6 +387,7 @@
      Panel-Rand hinaus auf die Seite. Gleiches Muster wie #formular-scroll
      (Zeile ~460) fuer das Hauptformular. */
   .jahresuebersicht-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .anleitung-iframe { width: 100%; height: 75vh; border: none; border-radius: 8px; display: block; }
   label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 3px; }
   input, select {
     width: 100%; padding: 7px 10px; border: 1px solid #d8dce2; border-radius: 7px;
@@ -823,7 +824,6 @@
     <button type="button" id="mehrMenuBtn" class="ghost" onclick="toggleMehrMenu()" aria-haspopup="true" aria-expanded="false">⋮</button>
     <div id="mehrMenuDropdown" class="mehr-menu-dropdown" style="display:none;">
       <button class="ghost nur-webseite" onclick="closeMehrMenu(); openInstallModal();" data-i18n="btnInstall">📱 Als App einrichten</button>
-      <a class="btn ghost" href="Anleitung.html" style="text-decoration:none;" data-i18n="btnHelp">❓ Anleitung</a>
       <button class="ghost" onclick="closeMehrMenu(); sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
       <button class="ghost" onclick="closeMehrMenu(); openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
       <button class="ghost" onclick="closeMehrMenu(); submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
@@ -849,6 +849,7 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   </div>
   <!-- "Als App einrichten" gehoert bewusst hierher (nicht nur ins "⋮"-Menue):
        Erstbesucher landen sofort nach dem Splash hier, bevor sie ueberhaupt
@@ -863,6 +864,7 @@
   <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+  <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
 </nav>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
@@ -1079,6 +1081,15 @@
 <div class="panel no-print" id="jahresuebersichtPanel" style="display:none;">
   <h2 style="margin-top:0;" id="jahresuebersichtTitel">📊 Jahresübersicht</h2>
   <div class="jahresuebersicht-scroll"><div id="jahresuebersichtContent"></div></div>
+</div>
+
+<div class="panel no-print" id="anleitungPanel" style="display:none;">
+  <h2 style="margin-top:0;" data-i18n="tabAnleitung">❓ Anleitung</h2>
+  <!-- Bewusst per iframe eingebettet statt Inhalt zu duplizieren:
+       Anleitung.html bleibt die einzige Quelle (auch fuer den externen
+       QR-Code-Zugang), verhaelt sich aber innerhalb der App jetzt wie
+       ein normaler Tab (kein Verlassen der Seite mehr). -->
+  <iframe src="Anleitung.html" class="anleitung-iframe" title="Anleitung"></iframe>
 </div>
 
 <div class="panel no-print" id="archivPanel" style="display:none;">
@@ -1322,6 +1333,7 @@ const I18N = {
     btnTageTabelle: "📋 Tage-Tabelle",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
+    tabAnleitung: "❓ Anleitung",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1348,6 +1360,7 @@ const I18N = {
     btnTageTabelle: "📋 Daily entries",
     btnZeitenAlle: "⏰ Times for all days",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
+    tabAnleitung: "❓ Guide",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -1820,9 +1833,9 @@ function initSettingsUI() {
    - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
-                     "arbeitszeitPanel", "urlaubPanel"];
+                     "arbeitszeitPanel", "urlaubPanel", "anleitungPanel"];
 /* Diese drei treten an die Stelle des Spesenblatts statt darueber zu liegen */
-const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel"];
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -1846,8 +1859,8 @@ function zeigeAnsicht(id) {
    Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
    zeigeTab() immer deterministisch genau den angeklickten Bereich -
    klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
-const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel" };
-const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht };
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel };
 
 /* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
    die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
@@ -2187,6 +2200,10 @@ function renderJahresuebersicht() {
 
 function toggleJahresuebersicht() {
   if (zeigeAnsicht("jahresuebersichtPanel")) renderJahresuebersicht();
+}
+
+function toggleAnleitungPanel() {
+  zeigeAnsicht("anleitungPanel");
 }
 
 /* Beim ALLERERSTEN Aufbau (Seitenaufruf) soll der laufende Monat
