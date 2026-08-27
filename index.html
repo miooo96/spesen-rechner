@@ -773,20 +773,26 @@
 <h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
 <div class="toolbar no-print">
-  <div class="toolbar-group">
-    <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
-    <button class="handy-mehr" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
-    <button class="handy-mehr" onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
-    <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-    <button class="ghost handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
-  </div>
-  <span class="toolbar-divider"></span>
-  <div class="toolbar-group">
+  <!-- Reihenfolge getauscht (Werkzeugleiste & Hauptkategorien Redesign,
+       Punkt 1): Kontext-Buttons (was man auf dem jeweiligen Tab als
+       naechstes braucht) stehen jetzt VOR den PDF-Aktionen. Beide Gruppen
+       haben feste IDs statt sich auf ihre DOM-Position zu verlassen -
+       zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() (Task 6/7)
+       greifen direkt darauf zu. -->
+  <div class="toolbar-group" id="toolbarKontextGruppe">
     <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
          Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
          vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
     <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
     <button onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group" id="toolbarPdfGruppe">
+    <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
+    <button class="handy-mehr" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
+    <button class="handy-mehr" onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
+    <button class="handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
   </div>
   <span class="toolbar-divider"></span>
   <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
