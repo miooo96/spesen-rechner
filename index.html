@@ -791,7 +791,7 @@
          Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
          vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
     <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
-    <button onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
+    <button id="spesenUnteransichtBtn" onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
@@ -1289,6 +1289,7 @@ const I18N = {
     splashGreetingKnown: "Hallo, {name}!", splashGreetingUnknown: "Willkommen!",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
+    btnTageTabelle: "📋 Tage-Tabelle",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
     btnZurueck: "← Zurück zur Auswahl",
@@ -1314,6 +1315,7 @@ const I18N = {
     splashGreetingKnown: "Hello, {name}!", splashGreetingUnknown: "Welcome!",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
+    btnTageTabelle: "📋 Daily entries",
     btnZeitenAlle: "⏰ Times for all days",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
     btnZurueck: "← Back to overview",
@@ -1840,12 +1842,20 @@ function zeigeTab(tab) {
   if (toolbar) toolbar.style.display = "";
 
   markiereTab(tab);
+  // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
+  // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
+  // innerhalb des Tabs.
+  zeigeSpesenKopfUndPdf(tab === "spesen");
+
   if (tab === "spesen") {
     ALLE_PANELS.forEach((p) => {
       const el = document.getElementById(p);
       if (el) el.style.display = "none";
     });
-    azSpesenAnsicht(true);
+    // NEU (Task 6): Standard ist jetzt die Stammdaten-Maske, nicht mehr die
+    // Tage-Tabelle - keine doppelte Funktion mehr, "Spesen" zeigt direkt das,
+    // was bisher nur "Spesen bearbeiten" zeigte.
+    zeigeSpesenUnteransicht("stammdaten");
     return;
   }
   const panelId = TAB_PANEL_MAP[tab];
@@ -1960,15 +1970,12 @@ document.addEventListener("click", function (e) {
   if (menu && !menu.contains(e.target)) closeMehrMenu();
 });
 
+/* Umschalt-Knopf in der Werkzeugleiste (id="spesenUnteransichtBtn", siehe
+   Schritt 5) - toggelt zwischen Stammdaten und Tage-Tabelle. Bewusst NICHT
+   mehr ueber zeigeAnsicht()/ALLE_PANELS, siehe zeigeSpesenUnteransicht(). */
 function toggleSettings() {
-  // "Spesen bearbeiten" liegt ueber dem Spesenblatt (nicht ueber Zeit/Urlaub/
-  // Jahr - zeigeAnsicht() blendet #formular-scroll dafuer wieder ein) - die
-  // Tab-Leiste muss das nachziehen, auch wenn man z.B. gerade auf "Urlaub"
-  // war (Bugfix 26.08.2026, sonst blieb der falsche Tab hervorgehoben).
-  if (zeigeAnsicht("settingsPanel")) {
-    renderAbsenceRangesList();
-    markiereTab("spesen");
-  }
+  const stammdatenOffen = getComputedStyle(document.getElementById("settingsPanel")).display !== "none";
+  zeigeSpesenUnteransicht(stammdatenOffen ? "tage" : "stammdaten");
 }
 
 /* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
@@ -2049,11 +2056,13 @@ function wizardNext() {
     initSettingsUI();
     updateMitarbeitertypUI();
     renderFormular();
-    // Direkt in die Einstellungen springen, damit das Dokument (E-Mail-Adresse
+    // Direkt in die Stammdaten springen, damit das Dokument (E-Mail-Adresse
     // Arbeitgeber, Pauschalen, Standard-Zeiten etc.) gleich fertiggestellt
-    // werden kann, statt die Einstellungen erst manuell suchen zu muessen.
-    document.getElementById("settingsPanel").style.display = "block";
-    renderAbsenceRangesList();
+    // werden kann, statt sie erst manuell suchen zu muessen. zeigeTab()
+    // sorgt fuer Kopfzeile/PDF-Gruppe/Tab-Hervorhebung, zeigeSpesenUnteransicht()
+    // fuer die Stammdaten-Ansicht selbst (ersetzt die zwei direkten
+    // display-Zuweisungen von vorher).
+    zeigeTab("spesen");
     return;
   }
   wizardStep++;
@@ -3536,8 +3545,8 @@ function csvEmailSelf() {
   if (!self) {
     alert("Bitte zuerst in den Einstellungen Ihre eigene E-Mail-Adresse eintragen.\n\nDie CSV wird ausschließlich an diese Adresse (an Sie selbst) gesendet – nie an den Arbeitgeber.");
     closeModal();
-    document.getElementById("settingsPanel").style.display = "block";
-    const el = document.getElementById("cfgEigeneEmail"); if (el) el.focus();
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgEigeneEmail");
     return;
   }
   const { filename, monthName } = buildCsvData();
@@ -3808,8 +3817,8 @@ async function sendPerEmail() {
   if (!stundenLimitOk()) return;
   if (!config.arbeitgeberEmail) {
     alert('Bitte zuerst in den Einstellungen die E-Mail-Adresse des Arbeitgebers/der Niederlassung eintragen.');
-    document.getElementById("settingsPanel").style.display = "block";
-    document.getElementById("cfgArbeitgeberEmail").focus();
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgArbeitgeberEmail");
     return;
   }
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
@@ -4241,14 +4250,55 @@ function azMonatsLabel(key) {
    aber ein EIGENES Element (CSS: body.als-app #handyBlatt { display:block })
    und blieb stehen. Unter dem Urlaubskalender bzw. der Stechuhr klebte
    dadurch die komplette Tagesliste des Spesenblatts. */
+/* Steuert NUR noch die Tage-Tabelle (Vordruck bzw. Handy-Karten) - Kopfzeile
+   und PDF-Knopfgruppe sind seit dem Stammdaten/Tage-Umschalter (Task 6,
+   Werkzeugleiste & Hauptkategorien Redesign Punkt 7) davon entkoppelt: sie
+   sind IMMER sichtbar, solange man ueberhaupt auf dem Spesen-Tab ist,
+   siehe zeigeSpesenKopfUndPdf() weiter unten. */
 function azSpesenAnsicht(sichtbar) {
-  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis", "spesenKopfzeile"].forEach((id) => {
+  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = sichtbar ? "" : "none";
   });
-  // Die PDF-/E-Mail-Knopfgruppe gehoert zur Abrechnung, nicht zur Arbeitszeit.
-  const leiste = document.querySelector(".toolbar .toolbar-group");
-  if (leiste) leiste.style.display = sichtbar ? "" : "none";
+}
+
+/* Kopfzeile + PDF-Knopfgruppe: immer sichtbar, solange man auf dem
+   Spesen-Tab ist - unabhaengig davon, ob Stammdaten oder Tage-Tabelle
+   gerade offen sind. Wird aus zeigeTab() heraus gesteuert (true fuer
+   "spesen", false fuer jeden anderen Tab). */
+function zeigeSpesenKopfUndPdf(sichtbar) {
+  const kopf = document.getElementById("spesenKopfzeile");
+  if (kopf) kopf.style.display = sichtbar ? "" : "none";
+  const pdfGruppe = document.getElementById("toolbarPdfGruppe");
+  if (pdfGruppe) pdfGruppe.style.display = sichtbar ? "" : "none";
+}
+
+/* ===== Spesen-Tab: Stammdaten <-> Tage-Tabelle (exklusiv) =====
+   NEU (Werkzeugleiste & Hauptkategorien Redesign, Punkt 7): vorher konnten
+   Stammdaten (settingsPanel) und Tage-Tabelle gleichzeitig sichtbar sein -
+   settingsPanel gehoert nicht zu VOLLANSICHT_PANELS, zeigeAnsicht() kannte
+   also keine Exklusivitaet zwischen den beiden. Diese Funktion macht daraus
+   einen echten Umschalter, komplett unabhaengig von zeigeAnsicht()/
+   ALLE_PANELS. ansicht: "stammdaten" (Standard beim Reinklicken in den
+   Spesen-Tab) oder "tage". fokusFeldId (optional): Feld-ID, die nach dem
+   Umschalten fokussiert wird - genutzt von den drei Validierungs-Hinweisen
+   (fehlende eigene/Arbeitgeber-E-Mail), die bisher settingsPanel direkt
+   geoeffnet haben. */
+function zeigeSpesenUnteransicht(ansicht, fokusFeldId) {
+  const stammdaten = ansicht === "stammdaten";
+  document.getElementById("settingsPanel").style.display = stammdaten ? "block" : "none";
+  azSpesenAnsicht(!stammdaten);
+  if (stammdaten) renderAbsenceRangesList();
+  const btn = document.getElementById("spesenUnteransichtBtn");
+  if (btn) {
+    btn.setAttribute("data-i18n", stammdaten ? "btnTageTabelle" : "btnSettings");
+    btn.textContent = t(stammdaten ? "btnTageTabelle" : "btnSettings");
+  }
+  markiereTab("spesen");
+  if (fokusFeldId) {
+    const el = document.getElementById(fokusFeldId);
+    if (el) el.focus();
+  }
 }
 
 function toggleArbeitszeitPanel() {
