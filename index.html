@@ -254,20 +254,6 @@
     background: transparent; color: var(--brand-dark); box-shadow: none;
   }
   button.ghost:hover, .btn.ghost:hover { background: #f1f3f6; box-shadow: none; }
-  /* ===== "⋯"-Rand-Menue (Nebenfunktionen) =====
-     Bewusst ein eigenes Symbol ("⋮", hochkant) statt des bestehenden
-     "⋯ Mehr"-Knopfs (der klappt am Handy weiterhin nur die PDF-Knopfgruppe
-     auf/zu, siehe #mehrKnopf/.handy-mehr) - zwei "..." mit unterschiedlicher
-     Bedeutung waeren verwirrend. */
-  #mehrMenuBtn { font-size: 1.1rem; font-weight: 700; padding: 9px 14px; }
-  .mehr-menu-dropdown {
-    position: absolute; top: calc(100% + 6px); right: 0; z-index: 600;
-    background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,26,32,0.18);
-    padding: 8px; display: flex; flex-direction: column; gap: 4px; min-width: 240px;
-  }
-  .mehr-menu-dropdown button, .mehr-menu-dropdown .btn, .mehr-menu-dropdown select {
-    width: 100%; text-align: left; justify-content: flex-start;
-  }
   .toolbar select {
     padding: 9px 14px; border-radius: 999px; border: 1px solid #d8dce2; background: #fff;
     font-size: 0.86rem; font-weight: 600; color: var(--brand-dark); cursor: pointer;
@@ -381,6 +367,8 @@
      (Zeile ~460) fuer das Hauptformular. */
   .jahresuebersicht-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .anleitung-iframe { width: 100%; height: 75vh; border: none; border-radius: 8px; display: block; }
+  .mehr-werkzeuge-liste { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; max-width: 320px; }
+  .mehr-werkzeuge-liste select { width: 100%; }
   label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 3px; }
   input, select {
     width: 100%; padding: 7px 10px; border: 1px solid #d8dce2; border-radius: 7px;
@@ -812,21 +800,6 @@
   <div class="toolbar-group">
     <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
   </div>
-  <span class="toolbar-divider"></span>
-  <div class="toolbar-group" id="mehrMenu" style="margin-left:auto; position:relative;">
-    <button type="button" id="mehrMenuBtn" class="ghost" onclick="toggleMehrMenu()" aria-haspopup="true" aria-expanded="false">⋮</button>
-    <div id="mehrMenuDropdown" class="mehr-menu-dropdown" style="display:none;">
-      <button class="ghost" onclick="closeMehrMenu(); sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
-      <button class="ghost" onclick="closeMehrMenu(); openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
-      <button class="ghost" onclick="closeMehrMenu(); submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-      <button class="ghost" onclick="closeMehrMenu(); toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
-      <select id="langSwitch" onchange="setLang(this.value)">
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="en">🇬🇧 English</option>
-      </select>
-      <button class="danger" onclick="closeMehrMenu(); if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
-    </div>
-  </div>
 </div>
 
 <!-- ===================== Kachel-Startseite =====================
@@ -842,6 +815,7 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
   </div>
   <!-- "Als App einrichten" ist jetzt eine vollwertige Kachel wie die
        anderen (Werkzeugleiste & Hauptkategorien Redesign, Punkt 5) -
@@ -861,6 +835,7 @@
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
 </nav>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
@@ -1086,6 +1061,22 @@
        QR-Code-Zugang), verhaelt sich aber innerhalb der App jetzt wie
        ein normaler Tab (kein Verlassen der Seite mehr). -->
   <iframe src="Anleitung.html" class="anleitung-iframe" title="Anleitung"></iframe>
+</div>
+
+<div class="panel no-print" id="mehrPanel" style="display:none;">
+  <h2 style="margin-top:0;" data-i18n="tabMehr">☰ Mehr</h2>
+  <h3 data-i18n="mehrWerkzeuge">🛠️ Werkzeuge</h3>
+  <div class="mehr-werkzeuge-liste">
+    <button class="ghost" onclick="sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
+    <button class="ghost" onclick="openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
+    <button class="ghost" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button class="ghost" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+    <select id="langSwitch" onchange="setLang(this.value)">
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
+    <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+  </div>
 </div>
 
 <div class="panel no-print" id="archivPanel" style="display:none;">
@@ -1329,7 +1320,7 @@ const I18N = {
     btnTageTabelle: "📋 Tage-Tabelle",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
-    tabAnleitung: "❓ Anleitung",
+    tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1356,7 +1347,7 @@ const I18N = {
     btnTageTabelle: "📋 Daily entries",
     btnZeitenAlle: "⏰ Times for all days",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
-    tabAnleitung: "❓ Guide",
+    tabAnleitung: "❓ Guide", tabMehr: "☰ More", mehrWerkzeuge: "🛠️ Tools",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -1829,9 +1820,9 @@ function initSettingsUI() {
    - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
-                     "arbeitszeitPanel", "urlaubPanel", "anleitungPanel"];
+                     "arbeitszeitPanel", "urlaubPanel", "anleitungPanel", "mehrPanel"];
 /* Diese drei treten an die Stelle des Spesenblatts statt darueber zu liegen */
-const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel"];
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel", "mehrPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -1855,8 +1846,8 @@ function zeigeAnsicht(id) {
    Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
    zeigeTab() immer deterministisch genau den angeklickten Bereich -
    klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
-const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel" };
-const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel };
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel };
 
 /* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
    die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
@@ -1986,29 +1977,6 @@ function toggleMehr() {
   const k = document.getElementById("mehrKnopf");
   if (k) k.textContent = offen ? "⋯ Weniger" : "⋯ Mehr";
 }
-
-/* ===== "⋯"-Rand-Menue: oeffnen/schliessen =====
-   Eigenstaendig von toggleMehr() oben - das steuert weiterhin nur die
-   PDF-Knopfgruppe am Handy. Dieses Menu buendelt die Nebenfunktionen
-   (App einrichten, Anleitung, Feedback, QR-Code, Monat abschliessen,
-   Abgeschlossene Monate, Sprache, Zuruecksetzen) diskret an einer Stelle. */
-function toggleMehrMenu() {
-  const dd = document.getElementById("mehrMenuDropdown");
-  const btn = document.getElementById("mehrMenuBtn");
-  const offen = dd.style.display !== "none";
-  dd.style.display = offen ? "none" : "flex";
-  btn.setAttribute("aria-expanded", offen ? "false" : "true");
-}
-function closeMehrMenu() {
-  const dd = document.getElementById("mehrMenuDropdown");
-  const btn = document.getElementById("mehrMenuBtn");
-  dd.style.display = "none";
-  btn.setAttribute("aria-expanded", "false");
-}
-document.addEventListener("click", function (e) {
-  const menu = document.getElementById("mehrMenu");
-  if (menu && !menu.contains(e.target)) closeMehrMenu();
-});
 
 /* Umschalt-Knopf in der Werkzeugleiste (id="spesenUnteransichtBtn", siehe
    Schritt 5) - toggelt zwischen Stammdaten und Tage-Tabelle. Bewusst NICHT
@@ -2200,6 +2168,10 @@ function toggleJahresuebersicht() {
 
 function toggleAnleitungPanel() {
   zeigeAnsicht("anleitungPanel");
+}
+
+function toggleMehrPanel() {
+  zeigeAnsicht("mehrPanel");
 }
 
 /* Beim ALLERERSTEN Aufbau (Seitenaufruf) soll der laufende Monat
