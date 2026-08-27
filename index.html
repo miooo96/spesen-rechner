@@ -108,6 +108,7 @@
      Riskant / Auswahl), damit die Werkzeugleiste bei vielen Funktionen
      uebersichtlich bleibt statt einer einzigen langen Reihe. */
   .toolbar-group { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  #toolbarKontextSpesen, #toolbarKontextZeit { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
   .toolbar-divider {
     width: 1px; align-self: stretch; background: #e3e6eb; margin: 2px 2px;
     flex-shrink: 0;
@@ -787,11 +788,22 @@
        zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() (Task 6/7)
        greifen direkt darauf zu. -->
   <div class="toolbar-group" id="toolbarKontextGruppe">
-    <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
-         Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
-         vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
-    <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
-    <button id="spesenUnteransichtBtn" onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
+    <!-- Zwei Unter-Gruppen, nur eine ist zur Zeit sichtbar (gesteuert von
+         zeigeWerkzeugleisteGruppe2() in zeigeTab()) - Spesen zeigt Zeiten-
+         Knopf + Stammdaten/Tage-Umschalter, Zeit zeigt Start/Stopp, alle
+         anderen Tabs zeigen gar nichts hier (Punkt 1/4 der Spec: diese
+         Buttons ergaben bisher auf JEDEM Tab Sinn, obwohl sie nur zu
+         Spesen bzw. Zeit gehoeren). -->
+    <span id="toolbarKontextSpesen">
+      <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
+           Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
+           vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
+      <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
+      <button id="spesenUnteransichtBtn" onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
+    </span>
+    <span id="toolbarKontextZeit" style="display:none;">
+      <button id="toolbarStempelBtn" class="primary" onclick="azStempeln()">🟢 Start</button>
+    </span>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
@@ -1846,6 +1858,7 @@ function zeigeTab(tab) {
   // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
   // innerhalb des Tabs.
   zeigeSpesenKopfUndPdf(tab === "spesen");
+  zeigeWerkzeugleisteGruppe2(tab);
 
   if (tab === "spesen") {
     ALLE_PANELS.forEach((p) => {
@@ -4273,6 +4286,22 @@ function zeigeSpesenKopfUndPdf(sichtbar) {
   if (pdfGruppe) pdfGruppe.style.display = sichtbar ? "" : "none";
 }
 
+/* Gruppe 2 der Werkzeugleiste zeigt pro Tab unterschiedliche Kontext-Buttons
+   (Spesen: Zeiten-Knopf + Stammdaten/Tage-Umschalter; Zeit: Start/Stopp),
+   auf allen anderen Tabs (Urlaub/Jahresuebersicht/Anleitung/Mehr) ist die
+   ganze Gruppe ausgeblendet - vorher liefen diese Buttons unveraendert auf
+   jedem Tab mit, obwohl sie dort keinen Sinn ergaben (Bug, siehe Spec
+   Ausgangslage). */
+function zeigeWerkzeugleisteGruppe2(tab) {
+  const gruppe = document.getElementById("toolbarKontextGruppe");
+  const spesenTeil = document.getElementById("toolbarKontextSpesen");
+  const zeitTeil = document.getElementById("toolbarKontextZeit");
+  if (!gruppe || !spesenTeil || !zeitTeil) return;
+  gruppe.style.display = (tab === "spesen" || tab === "zeit") ? "" : "none";
+  spesenTeil.style.display = tab === "spesen" ? "" : "none";
+  zeitTeil.style.display = tab === "zeit" ? "" : "none";
+}
+
 /* ===== Spesen-Tab: Stammdaten <-> Tage-Tabelle (exklusiv) =====
    NEU (Werkzeugleiste & Hauptkategorien Redesign, Punkt 7): vorher konnten
    Stammdaten (settingsPanel) und Tage-Tabelle gleichzeitig sichtbar sein -
@@ -4805,11 +4834,20 @@ function azRender() {
   document.getElementById("azGesetzlichePause").checked = azPauseAn();
   azPausenErklaerung();
 
-  // Stempel-Knopf
+  // Stempel-Knopf (Arbeitszeit-Panel)
   const l = AZ.lauf;
   const btn = document.getElementById("azBtn");
   btn.textContent = l ? "Feierabend" : "Arbeitsbeginn";
   btn.className = l ? "danger" : "primary";
+  // Zweiter Stempel-Knopf in der Werkzeugleiste (Task 7, Werkzeugleiste &
+  // Hauptkategorien Redesign Punkt 3) - dieselbe Funktion (azStempeln()),
+  // eigenes, kuerzeres Label. Beide Knoepfe bleiben ueber diese eine
+  // Render-Funktion synchron, egal ueber welchen gestempelt wurde.
+  const toolbarBtn = document.getElementById("toolbarStempelBtn");
+  if (toolbarBtn) {
+    toolbarBtn.textContent = l ? "🔴 Stopp" : "🟢 Start";
+    toolbarBtn.className = l ? "danger" : "primary";
+  }
   document.getElementById("azStatus").innerHTML = l
     ? "Läuft seit <b>" + azUhrzeit(l) + "</b>"
     : "Noch nicht gestartet";
