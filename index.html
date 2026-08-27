@@ -379,6 +379,13 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.75rem 1.5rem;
   }
+  /* ===== Jahresuebersicht: horizontales Scrollen statt Ueberlaufen =====
+     Die Tabelle hat 8 Spalten und ist mit table-layout:auto (Standard)
+     breiter als ihr Container, sobald der verfuegbare Platz nicht reicht -
+     ohne Begrenzung lief sie auf schmalen Handybreiten ueber den weissen
+     Panel-Rand hinaus auf die Seite. Gleiches Muster wie #formular-scroll
+     (Zeile ~460) fuer das Hauptformular. */
+  .jahresuebersicht-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 3px; }
   input, select {
     width: 100%; padding: 7px 10px; border: 1px solid #d8dce2; border-radius: 7px;
@@ -1059,7 +1066,7 @@
 
 <div class="panel no-print" id="jahresuebersichtPanel" style="display:none;">
   <h2 style="margin-top:0;" id="jahresuebersichtTitel">📊 Jahresübersicht</h2>
-  <div id="jahresuebersichtContent"></div>
+  <div class="jahresuebersicht-scroll"><div id="jahresuebersichtContent"></div></div>
 </div>
 
 <div class="panel no-print" id="archivPanel" style="display:none;">
