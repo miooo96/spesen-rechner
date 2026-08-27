@@ -364,13 +364,6 @@
     white-space: normal;
   }
   .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
-  /* "Als App einrichten" auf der Kachel-Startseite: Erstbesucher landen
-     sonst auf 4 Kacheln ohne jeden Weg zur Installation (das "⋮"-Menue mit
-     diesem Punkt ist von hier bewusst nicht erreichbar). Nutzt dieselbe
-     nur-webseite-Klasse wie das Pendant im "⋮"-Menue - blendet sich also
-     automatisch aus, sobald die App bereits installiert laeuft.
-     Bugfix 26.08.2026, siehe Whole-Branch-Review. */
-  .kachel-install-btn { display: block; margin: 1.25rem auto 0; }
 
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
@@ -823,7 +816,6 @@
   <div class="toolbar-group" id="mehrMenu" style="margin-left:auto; position:relative;">
     <button type="button" id="mehrMenuBtn" class="ghost" onclick="toggleMehrMenu()" aria-haspopup="true" aria-expanded="false">⋮</button>
     <div id="mehrMenuDropdown" class="mehr-menu-dropdown" style="display:none;">
-      <button class="ghost nur-webseite" onclick="closeMehrMenu(); openInstallModal();" data-i18n="btnInstall">📱 Als App einrichten</button>
       <button class="ghost" onclick="closeMehrMenu(); sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
       <button class="ghost" onclick="closeMehrMenu(); openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
       <button class="ghost" onclick="closeMehrMenu(); submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
@@ -851,11 +843,14 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   </div>
-  <!-- "Als App einrichten" gehoert bewusst hierher (nicht nur ins "⋮"-Menue):
-       Erstbesucher landen sofort nach dem Splash hier, bevor sie ueberhaupt
-       in einer Funktion sind, in der das Rand-Menue sichtbar waere. Gleicher
-       Grund/gleiche nur-webseite-Klasse wie das Pendant im "⋮"-Menue oben. -->
-  <button type="button" class="ghost kachel-install-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  <!-- "Als App einrichten" ist jetzt eine vollwertige Kachel wie die
+       anderen (Werkzeugleiste & Hauptkategorien Redesign, Punkt 5) -
+       bleibt aber ein Modal, kein eigener Bereich: kein zeigeTab()-Aufruf,
+       keine Tab-Hervorhebung. "nur-webseite" unveraendert (in der
+       installierten App sinnlos, siehe Regel weiter unten). -->
+  <div class="kachel-grid">
+    <button type="button" class="kachel-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  </div>
 </div>
 
 <nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
@@ -865,6 +860,7 @@
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
+  <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
 </nav>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
