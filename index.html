@@ -815,15 +815,20 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
   </div>
-  <!-- "Als App einrichten" ist jetzt eine vollwertige Kachel wie die
-       anderen (Werkzeugleiste & Hauptkategorien Redesign, Punkt 5) -
-       bleibt aber ein Modal, kein eigener Bereich: kein zeigeTab()-Aufruf,
-       keine Tab-Hervorhebung. "nur-webseite" unveraendert (in der
-       installierten App sinnlos, siehe Regel weiter unten). -->
+  <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
+       kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
+       28.08.2026 - ersetzt die Task-10-Entscheidung, Install allein in
+       einer eigenen Zeile zu lassen). "Als App einrichten" bleibt
+       technisch ein Modal (kein zeigeTab()-Aufruf, keine Tab-
+       Hervorhebung, "nur-webseite" unveraendert - in der installierten
+       App sinnlos). "Mehr" ist dagegen ein echtes Panel wie im ersten
+       Grid, nur hier positioniert, damit es nie allein in einer Zeile
+       landet, wenn die Anzahl der Kacheln im ersten Grid (je nach
+       Zeit-Tab-Sichtbarkeit, Task 8) mal gerade, mal ungerade ist. -->
   <div class="kachel-grid">
     <button type="button" class="kachel-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
   </div>
 </div>
 
