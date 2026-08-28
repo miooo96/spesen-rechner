@@ -295,7 +295,15 @@
     margin-bottom: 0; border-radius: 0; box-shadow: 0 -2px 12px rgba(24,26,32,0.12);
     padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
   }
-  body.als-app { padding-bottom: 76px; }
+  /* Bugfix (finale Whole-Branch-Review, Befund 2): 76px war fuer GENAU eine
+     Zeile #mainTabs ausgelegt. Task 12 macht die Leiste umbruchfaehig (bis
+     zu 7 Kategorien + Zurueck-Button) - bei 2 Zeilen auf schmalen Breiten
+     wurde die feste 76px-Reserve zu klein, die fixierte Leiste verdeckte
+     dann dauerhaft unteren Seiteninhalt. --maintabs-hoehe wird per
+     ResizeObserver auf die tatsaechliche #mainTabs-Hoehe gesetzt (siehe
+     IIFE weiter unten im Skript); 76px bleibt nur der Fallback, bevor JS
+     einmal gelaufen ist bzw. falls ResizeObserver fehlt. */
+  body.als-app { padding-bottom: var(--maintabs-hoehe, 76px); }
 
   #spesenKopfzeile {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
@@ -1067,8 +1075,16 @@
   <!-- Bewusst per iframe eingebettet statt Inhalt zu duplizieren:
        Anleitung.html bleibt die einzige Quelle (auch fuer den externen
        QR-Code-Zugang), verhaelt sich aber innerhalb der App jetzt wie
-       ein normaler Tab (kein Verlassen der Seite mehr). -->
-  <iframe src="Anleitung.html" class="anleitung-iframe" title="Anleitung"></iframe>
+       ein normaler Tab (kein Verlassen der Seite mehr).
+       Bugfix (finale Whole-Branch-Review, Befund 7): src bewusst NICHT
+       fest im Markup, sondern in data-src - ein iframe mit festem src laedt
+       sofort bei jedem App-Start mit, auch wenn das Panel unsichtbar ist
+       (widerspricht dem Service-Worker-Kommentar "Anleitungsbilder bewusst
+       nicht vorgecacht, nur bei Bedarf"). loading="lazy" ist bei einem
+       verschachtelten display:none-Panel unzuverlaessig (bekannte Browser-
+       Eigenart) - stattdessen setzt toggleAnleitungPanel() src einmalig
+       beim ersten OEffnen. -->
+  <iframe data-src="Anleitung.html" class="anleitung-iframe" title="Anleitung"></iframe>
 </div>
 
 <div class="panel no-print" id="mehrPanel" style="display:none;">
@@ -1295,6 +1311,30 @@ function aktualisiereZeitSichtbarkeit() {
   const sichtbar = istMirko();
   document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'zeit\')"], #mainTabs .tab-btn[data-tab="zeit"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
+  });
+  aktualisiereKachelGridLayout();
+}
+
+/* Bugfix (finale Whole-Branch-Review, Befund 6): .kachel-grid ist fest auf
+   2 Spalten ausgelegt (siehe CSS ".kachel-grid"). Wird eine Kachel darin per
+   JS/CSS ausgeblendet (Zeit-Kachel fuer Nicht-Mirko-Nutzer oben, "Als App
+   einrichten" in der installierten App per CSS-Klasse), kann eine ungerade
+   Anzahl SICHTBARER Kacheln uebrig bleiben, deren letzte dann allein in der
+   letzten Zeile haengt (halbe statt volle Breite). Eine reine CSS-Loesung
+   ueber :nth-child() waere hier falsch: :nth-child zaehlt DOM-Position,
+   nicht sichtbare Position - die Zeit-Kachel bleibt fuer Nicht-Mirko-Nutzer
+   ja im DOM, nur versteckt, und wuerde die Zaehlung verfaelschen. Deshalb
+   hier tatsaechlich nachzaehlen, wie viele Kacheln PRO Grid gerade sichtbar
+   sind, und nur bei einer ungeraden Anzahl die zuletzt sichtbare auf volle
+   Breite setzen. Aufruf von hier UND aus setzeAppKennung() heraus, weil
+   beide Funktionen die Sichtbarkeit je einer Kachel toggeln koennen. */
+function aktualisiereKachelGridLayout() {
+  document.querySelectorAll(".kachel-grid").forEach((grid) => {
+    const kacheln = Array.from(grid.children).filter((el) => getComputedStyle(el).display !== "none");
+    kacheln.forEach((el) => { el.style.gridColumn = ""; });
+    if (kacheln.length % 2 === 1) {
+      kacheln[kacheln.length - 1].style.gridColumn = "1 / -1";
+    }
   });
 }
 
@@ -1876,8 +1916,14 @@ function zeigeTab(tab) {
   if (kachelEl) kachelEl.style.display = "none";
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "";
+  // Bugfix (finale Whole-Branch-Review, Befund 4): Auf Urlaub/Jahresuebersicht/
+  // Anleitung/Mehr haben weder #toolbarKontextGruppe noch #toolbarPdfGruppe
+  // Inhalt (siehe zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() unten)
+  // - die .toolbar selbst blieb trotzdem sichtbar und zeigte nur einen
+  // leeren weissen Balken mit Trennstrich. Nur auf Spesen/Zeit gibt es
+  // tatsaechlich Inhalt zum Anzeigen.
   const toolbar = document.querySelector(".toolbar");
-  if (toolbar) toolbar.style.display = "";
+  if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit") ? "" : "none";
 
   markiereTab(tab);
   // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
@@ -1963,8 +2009,37 @@ function setzeAppKennung() {
              || window.navigator.standalone === true;
   } catch (e) { alsApp = false; }
   document.body.classList.toggle("als-app", !!alsApp);
+  // Bugfix (finale Whole-Branch-Review, Befund 6): body.als-app blendet
+  // "Als App einrichten" per CSS aus (.nur-webseite) - siehe
+  // aktualisiereKachelGridLayout() weiter oben, warum das die verbleibende
+  // "Mehr"-Kachel sonst allein in der Zeile stehen laesst.
+  if (typeof aktualisiereKachelGridLayout === "function") aktualisiereKachelGridLayout();
   return alsApp;
 }
+
+/* Bugfix (finale Whole-Branch-Review, Befund 2): misst die tatsaechliche
+   Hoehe von #mainTabs (kann seit Task 12 ein- oder zweizeilig sein, je nach
+   Bildschirmbreite und Anzahl sichtbarer Tabs) und setzt sie als CSS-
+   Variable --maintabs-hoehe, damit body.als-app's padding-bottom (siehe
+   CSS weiter oben) die fixierte untere Leiste NIE zu klein bemisst.
+   ResizeObserver feuert automatisch bei Breitenaenderung, Zeilenumbruch
+   UND beim Wechsel von display:none auf sichtbar (z.B. beim Verlassen der
+   Kachel-Startseite) - kein manuelles Nachrufen an jeder Stelle noetig, die
+   die Tab-Anzahl oder Fensterbreite aendern koennte. */
+(function () {
+  const mainTabs = document.getElementById("mainTabs");
+  if (!mainTabs) return;
+  const setzeMainTabsHoehe = () => {
+    const hoehe = mainTabs.getBoundingClientRect().height;
+    if (hoehe > 0) document.documentElement.style.setProperty("--maintabs-hoehe", (hoehe + 8) + "px");
+  };
+  if (window.ResizeObserver) {
+    new ResizeObserver(setzeMainTabsHoehe).observe(mainTabs);
+  } else {
+    setzeMainTabsHoehe();
+    window.addEventListener("resize", setzeMainTabsHoehe);
+  }
+})();
 
 (function () {
   if (!window.matchMedia) return;
@@ -2072,6 +2147,12 @@ function wizardNext() {
     initSettingsUI();
     updateMitarbeitertypUI();
     renderFormular();
+    // Bugfix (finale Whole-Branch-Review, Befund 5): config.name wird oben
+    // gerade erst gesetzt - istMirko() (und damit die Sichtbarkeit des
+    // Zeit-Tabs) haengt davon ab. Ohne diesen Aufruf blieb der Zeit-Tab fuer
+    // Mirko nach dem Einrichtungsassistenten unsichtbar bis zum naechsten
+    // Laden der Seite.
+    aktualisiereZeitSichtbarkeit();
     // Direkt in die Stammdaten springen, damit das Dokument (E-Mail-Adresse
     // Arbeitgeber, Pauschalen, Standard-Zeiten etc.) gleich fertiggestellt
     // werden kann, statt sie erst manuell suchen zu muessen. zeigeTab()
@@ -2175,7 +2256,12 @@ function toggleJahresuebersicht() {
 }
 
 function toggleAnleitungPanel() {
-  zeigeAnsicht("anleitungPanel");
+  if (zeigeAnsicht("anleitungPanel")) {
+    // Bugfix (finale Whole-Branch-Review, Befund 7): src erst beim ersten
+    // OEffnen setzen, siehe Kommentar am iframe in #anleitungPanel.
+    const iframe = document.querySelector("#anleitungPanel iframe");
+    if (iframe && !iframe.getAttribute("src")) iframe.src = iframe.dataset.src;
+  }
 }
 
 function toggleMehrPanel() {
@@ -2339,6 +2425,19 @@ function toggleArchivPanel() {
   if (zeigeAnsicht("archivPanel")) {
     renderArchivPanel();
     markiereTab("spesen");
+    // Bugfix (finale Whole-Branch-Review, Befund 3): toggleArchivPanel()
+    // laeuft nicht ueber zeigeTab() und hat die dort seit Task 6/7
+    // eingefuehrte Kopplung von Kopfzeile/Werkzeugleiste an den aktiven Tab
+    // bisher umgangen - Aufruf vom "Mehr"-Panel aus liess Kopfzeile UND
+    // Werkzeugleiste leer, obwohl "Spesen" als Tab markiert war.
+    zeigeSpesenKopfUndPdf(true);
+    zeigeWerkzeugleisteGruppe2("spesen");
+    // Zusammenspiel mit Befund 4: kam man von einem Tab OHNE Werkzeugleiste
+    // (z.B. "Mehr") hierher, hat zeigeTab() die .toolbar selbst bereits auf
+    // "none" gesetzt - die obigen zwei Aufrufe fuellen zwar wieder Inhalt,
+    // blenden den Balken selbst aber nicht wieder ein.
+    const toolbar = document.querySelector(".toolbar");
+    if (toolbar) toolbar.style.display = "";
   }
 }
 
@@ -3401,6 +3500,20 @@ async function buildPdf() {
 
   // Waehrend des Screenshots die Klick-Optik der Zeit-Felder ausblenden.
   document.body.classList.add("pdf-export");
+  // Bugfix (finale Whole-Branch-Review, Befund 1): Seit Task 6 startet der
+  // Spesen-Tab standardmaessig in der Stammdaten-Ansicht - dort blendet
+  // azSpesenAnsicht() #formular-scroll per INLINE style="display:none" aus.
+  // Inline Styles gewinnen gegen jede CSS-Regel (auch gegen die
+  // "body.als-app.pdf-export"-Ausnahme weiter oben in der Stylesheet), das
+  // Formular haette also {width:0, height:0} und html2canvas wuerde ein
+  // leeres/kaputtes PNG erzeugen (Konsolenfehler "Incomplete or corrupt PNG
+  // file"). Deshalb hier den Inline-Wert sichern, fuer den Screenshot
+  // erzwingen und danach im bestehenden finally-Block wiederherstellen. In
+  // der "tage"-Unteransicht ist der Inline-Wert bereits "" (siehe
+  // azSpesenAnsicht) - dort ist dieser Eingriff ein reines No-op.
+  const formularScroll = document.getElementById("formular-scroll");
+  const formularScrollDisplayVorher = formularScroll ? formularScroll.style.display : "";
+  if (formularScroll) formularScroll.style.display = "block";
   let canvas;
   try {
     canvas = await html2canvas(el, {
@@ -3411,6 +3524,7 @@ async function buildPdf() {
     });
   } finally {
     document.body.classList.remove("pdf-export");
+    if (formularScroll) formularScroll.style.display = formularScrollDisplayVorher;
   }
   const imgData = canvas.toDataURL("image/png");
 
@@ -4304,6 +4418,15 @@ function zeigeSpesenKopfUndPdf(sichtbar) {
   if (kopf) kopf.style.display = sichtbar ? "" : "none";
   const pdfGruppe = document.getElementById("toolbarPdfGruppe");
   if (pdfGruppe) pdfGruppe.style.display = sichtbar ? "" : "none";
+  // Bugfix (finale Whole-Branch-Review, Befund 4): "⋯ Mehr" klappt am Handy
+  // ausschliesslich die ".handy-mehr"-Knoepfe INNERHALB von #toolbarPdfGruppe
+  // auf (siehe CSS "body.mehr-offen .toolbar .handy-mehr"). Ist die
+  // PDF-Gruppe ausgeblendet (jeder Tab ausser Spesen), gibt es nichts zum
+  // Aufklappen - der Knopf blieb trotzdem sichtbar und tat nichts.
+  // style.display="" statt "none" laesst bei sichtbar=true weiterhin die
+  // Handy-Media-Query entscheiden, ob der Knopf ueberhaupt Platz hat.
+  const mehrKnopf = document.getElementById("mehrKnopf");
+  if (mehrKnopf) mehrKnopf.style.display = sichtbar ? "" : "none";
 }
 
 /* Gruppe 2 der Werkzeugleiste zeigt pro Tab unterschiedliche Kontext-Buttons
