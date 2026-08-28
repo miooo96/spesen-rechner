@@ -266,22 +266,25 @@
      siehe setzeAppKennung()): feste Leiste unten, wie eine Handy-App -
      siehe Design-Spec "Navigation & Hauptbereiche Redesign". */
   #mainTabs {
-    display: flex; gap: 0.5rem; background: #fff; padding: 0.5rem;
+    display: flex; flex-wrap: wrap; gap: 0.5rem; background: #fff; padding: 0.5rem;
     border-radius: 14px; box-shadow: 0 2px 12px rgba(24,26,32,0.08);
     margin-bottom: 1.25rem;
   }
   #mainTabs .tab-btn {
-    flex: 1; text-align: center; background: transparent; color: var(--brand-dark);
+    /* Ergaenzung 28.08.2026 (Task 12): Nach Task 7-11 sind es bis zu 7
+       Kategorien + Zurueck-Button = 8 Tabs. Das bisherige min-width:0
+       liess Tabs bei 393px unbegrenzt schrumpfen (siehe Ergaenzung
+       26.08.2026 zu Task 8 unten) - bei 8 Tabs waere das bis zur
+       Unlesbarkeit gequetscht. Jetzt: min-width:84px zusammen mit
+       flex-wrap:wrap auf #mainTabs - ein Tab, der kleiner als 84px
+       wuerde, rutscht stattdessen in die naechste Zeile. Desktop bleibt
+       einzeilig (genug Platz), 393px wird i.d.R. zweizeilig. */
+    flex: 1 1 auto; min-width: 84px; text-align: center; background: transparent; color: var(--brand-dark);
     box-shadow: none; border-radius: 10px; padding: 10px 6px;
-    /* min-width:0 hebt die automatische Mindestbreite von Flex-Items auf
-       (sonst blockiert das im Content laengste unteilbare Stueck jedes
-       Schrumpfen) - erst dadurch koennen die Buttons auf schmalen
-       Handy-Breiten (z.B. 393px, siehe Ergaenzung 26.08.2026 zu Task 8)
-       tatsaechlich enger werden statt seitlich aus #mainTabs
-       herauszulaufen. overflow/text-overflow faengt den Rest sauber mit
-       "…" ab, statt Text zu umbrechen (das wuerde wieder die Zeile hoeher
-       machen, siehe .pdf-check/diff-task8-highlight.png). */
-    min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    /* overflow/text-overflow faengt den Rest sauber mit "…" ab, statt Text
+       zu umbrechen (das wuerde die Zeile hoeher machen, siehe
+       .pdf-check/diff-task8-highlight.png). */
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   }
   #mainTabs .tab-btn.active {
     background: linear-gradient(135deg, var(--accent), #ff8a3d); color: #fff;
