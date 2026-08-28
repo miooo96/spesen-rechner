@@ -348,6 +348,15 @@
      "Entscheidung 26.08.2026 im Detail". */
   #kachelStartseite { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
   .kachel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  /* Bugfix (Live-Feedback Mirko, 28.08.2026): #kachelStartseite besteht aus
+     mehreren separaten .kachel-grid-Elementen nebeneinander (Spesen-Gruppe,
+     Install/Mehr-Paar, Anleitung) - "gap:1rem" wirkt nur INNERHALB je eines
+     Grids, zwischen den Grid-Elementen selbst gab es 0px Abstand, obwohl es
+     optisch wie eine durchgehende Kachel-Liste wirken soll. Jedes Grid nach
+     einem anderen Grid bekommt denselben 1rem-Abstand wie die interne
+     Kachel-Zeile - dadurch wirkt der gesamte Abstand ueberall gleich, egal
+     ob zwei Kacheln im selben oder in getrennten Grids stehen. */
+  .kachel-grid + .kachel-grid { margin-top: 1rem; }
   .kachel-btn {
     background: #fff; border: none; border-radius: 16px; padding: 2rem 1rem;
     font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
@@ -792,7 +801,6 @@
            Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
            vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
       <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
-      <button id="spesenUnteransichtBtn" onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
     </span>
     <span id="toolbarKontextZeit" style="display:none;">
       <button id="toolbarStempelBtn" class="primary" onclick="azStempeln()">🟢 Start</button>
@@ -2077,14 +2085,6 @@ function toggleMehr() {
   if (k) k.textContent = offen ? "⋯ Weniger" : "⋯ Mehr";
 }
 
-/* Umschalt-Knopf in der Werkzeugleiste (id="spesenUnteransichtBtn", siehe
-   Schritt 5) - toggelt zwischen Stammdaten und Tage-Tabelle. Bewusst NICHT
-   mehr ueber zeigeAnsicht()/ALLE_PANELS, siehe zeigeSpesenUnteransicht(). */
-function toggleSettings() {
-  const stammdatenOffen = getComputedStyle(document.getElementById("settingsPanel")).display !== "none";
-  zeigeSpesenUnteransicht(stammdatenOffen ? "tage" : "stammdaten");
-}
-
 /* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
    Erkennungsmerkmal fuer "erster Besuch": spesen_config existiert noch gar
    nicht in localStorage (nicht nur "ist leer") - danach nie wieder automatisch. */
@@ -2169,13 +2169,11 @@ function wizardNext() {
     // Mirko nach dem Einrichtungsassistenten unsichtbar bis zum naechsten
     // Laden der Seite.
     aktualisiereZeitSichtbarkeit();
-    // Direkt in die Stammdaten springen, damit das Dokument (E-Mail-Adresse
-    // Arbeitgeber, Pauschalen, Standard-Zeiten etc.) gleich fertiggestellt
-    // werden kann, statt sie erst manuell suchen zu muessen. zeigeTab()
-    // sorgt fuer Kopfzeile/PDF-Gruppe/Tab-Hervorhebung, zeigeSpesenUnteransicht()
-    // fuer die Stammdaten-Ansicht selbst (ersetzt die zwei direkten
-    // display-Zuweisungen von vorher).
-    zeigeTab("spesen");
+    // GEAENDERT (Live-Feedback Mirko, 28.08.2026): nach dem Ausfuellen der
+    // Stammdaten geht es zurueck zur Kachel-Auswahl, nicht mehr automatisch
+    // in den Spesen-Tab hinein - der Assistent legt nur die Grunddaten an,
+    // waehlt aber keine Funktion fuer den Nutzer vor.
+    zeigeKachelStartseite();
     return;
   }
   wizardStep++;
@@ -4461,40 +4459,32 @@ function zeigeWerkzeugleisteGruppe2(tab) {
   zeitTeil.style.display = tab === "zeit" ? "" : "none";
 }
 
-/* ===== Spesen-Tab: Stammdaten <-> Tage-Tabelle (exklusiv) =====
-   NEU (Werkzeugleiste & Hauptkategorien Redesign, Punkt 7): vorher konnten
-   Stammdaten (settingsPanel) und Tage-Tabelle gleichzeitig sichtbar sein -
-   settingsPanel gehoert nicht zu VOLLANSICHT_PANELS, zeigeAnsicht() kannte
-   also keine Exklusivitaet zwischen den beiden. Diese Funktion macht daraus
-   einen echten Umschalter, komplett unabhaengig von zeigeAnsicht()/
-   ALLE_PANELS. ansicht: "stammdaten" (Standard beim Reinklicken in den
-   Spesen-Tab) oder "tage". fokusFeldId (optional): Feld-ID, die nach dem
-   Umschalten fokussiert wird - genutzt von den drei Validierungs-Hinweisen
-   (fehlende eigene/Arbeitgeber-E-Mail), die bisher settingsPanel direkt
-   geoeffnet haben. */
+/* ===== Spesen-Tab: Stammdaten UND Tage-Tabelle gemeinsam sichtbar =====
+   GEAENDERT (Live-Feedback Mirko, 28.08.2026): der in Task 6 gebaute
+   exklusive Umschalter zwischen Stammdaten und Tage-Tabelle wurde wieder
+   aufgehoben - "Spesen bearbeiten" (Stammdaten) und die Tage-Tabelle sind
+   jetzt IMMER gleichzeitig sichtbar (Stammdaten oben, Tage-Tabelle
+   darunter), ohne dass dafuer ein Werkzeugleisten-Knopf gedrueckt werden
+   muss. Der "ansicht"-Parameter bleibt als Funktionssignatur erhalten,
+   weil ihn zwei bestehende Aufrufstellen (csvEmailSelf(), sendPerEmail())
+   weiterhin mit fokusFeldId nutzen, um gezielt ein Stammdaten-Feld zu
+   fokussieren - er hat aber keinen Einfluss mehr darauf, was sichtbar ist. */
 function zeigeSpesenUnteransicht(ansicht, fokusFeldId) {
-  const stammdaten = ansicht === "stammdaten";
   // Verteidigung unabhaengig davon, ob Task 7 (tab-abhaengige Sichtbarkeit
   // der toolbarKontextGruppe) schon gelandet ist: "Spesen bearbeiten" ist
   // HEUTE noch von jedem Tab aus klickbar, nicht nur vom Spesen-Tab. Ohne
   // dieses Schliessen der uebrigen ALLE_PANELS-Mitglieder koennte z.B.
   // urlaubPanel neben settingsPanel offen bleiben - beides normale
   // Block-Elemente im Textfluss (kein Overlay), die sich dann sichtbar
-  // stapeln wuerden. Stellt dieselbe Exklusivitaet wieder her, die vorher
-  // zeigeAnsicht() ueber ALLE_PANELS garantiert hat (Bugfix nach Review).
+  // stapeln wuerden.
   ALLE_PANELS.forEach((p) => {
     if (p === "settingsPanel") return;
     const el = document.getElementById(p);
     if (el) el.style.display = "none";
   });
-  document.getElementById("settingsPanel").style.display = stammdaten ? "block" : "none";
-  azSpesenAnsicht(!stammdaten);
-  if (stammdaten) renderAbsenceRangesList();
-  const btn = document.getElementById("spesenUnteransichtBtn");
-  if (btn) {
-    btn.setAttribute("data-i18n", stammdaten ? "btnTageTabelle" : "btnSettings");
-    btn.textContent = t(stammdaten ? "btnTageTabelle" : "btnSettings");
-  }
+  document.getElementById("settingsPanel").style.display = "block";
+  azSpesenAnsicht(true);
+  renderAbsenceRangesList();
   markiereTab("spesen");
   if (fokusFeldId) {
     const el = document.getElementById(fokusFeldId);
