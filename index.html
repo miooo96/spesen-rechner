@@ -825,7 +825,6 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   </div>
   <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
        kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
@@ -840,6 +839,15 @@
   <div class="kachel-grid">
     <button type="button" class="kachel-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
+  </div>
+  <!-- "Anleitung" bewusst als eigenes, drittes kachel-grid mit nur einer
+       Kachel, ganz unten (Live-Feedback Mirko, 28.08.2026 - vorher stand
+       sie im ersten Grid, mal allein/halbbreit, mal per JS-Fix volle
+       Breite - inkonsistent). Als einziges Element in einem eigenen Grid
+       ist die Anzahl IMMER 1 (ungerade) - aktualisiereKachelGridLayout()
+       gibt ihr dadurch automatisch, ohne Sonderfall, immer volle Breite. -->
+  <div class="kachel-grid">
+    <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   </div>
 </div>
 
@@ -1972,6 +1980,14 @@ function zeigeKachelStartseite() {
     if (el) el.style.display = "none";
   });
   azSpesenAnsicht(false);
+  // Bugfix (Live-Feedback Mirko, 28.08.2026): #spesenKopfzeile (inkl.
+  // Monatsauswahl) hat KEIN display:none im Markup und wurde bisher nur
+  // ueber zeigeSpesenKopfUndPdf() aus zeigeTab() heraus gesteuert - auf der
+  // Kachel-Startseite (vor dem ersten Tab-Besuch bzw. nach "Zurueck zur
+  // Auswahl") blieb sie dadurch sichtbar unter den Kacheln stehen, obwohl
+  // hier keine Funktion aktiv ist. Muss hier explizit mit ausgeblendet
+  // werden, exakt wie die PDF-Knopfgruppe (dieselbe Funktion regelt beides).
+  zeigeSpesenKopfUndPdf(false);
 }
 
 /* Klick-Handler des "← Zurück zur Auswahl"-Buttons in #mainTabs. Eigener
