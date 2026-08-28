@@ -80,9 +80,9 @@
 Alles läuft im Browser, nichts muss installiert werden.</p>
 <div class="hinweis">
   <b>Beim allerersten Öffnen</b> erscheint automatisch ein kurzer 4-Schritte-Einrichtungsassistent
-  (Name, Straße/Ort/Niederlassung, Fahrer/Monteur, Bundesland) - alles darin lässt sich später in den
-  Einstellungen jederzeit ändern. Nach dem letzten Schritt öffnen sich automatisch die Einstellungen,
-  um das Dokument gleich fertigzustellen (z.B. E-Mail-Adresse des Arbeitgebers, Pauschalen, Standard-Zeiten).
+  (Name, Straße/Ort/Niederlassung, Fahrer/Monteur, Bundesland) - alles darin lässt sich später jederzeit
+  ändern (siehe Schritt 2). Nach dem letzten Schritt geht es zurück zur <b>Kachel-Startseite</b> (siehe
+  Schritt 1) - von dort aus wird dann der gewünschte Bereich angetippt.
 </div>
 
 <div class="video-box">
@@ -95,49 +95,63 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   Erkl&auml;rung. Wer lieber liest, findet darunter jeden Schritt einzeln mit Bild.</p>
 </div>
 
-<h2>1. Werkzeugleiste</h2>
+<h2>1. Loslegen: Kachel-Startseite &amp; Werkzeugleiste</h2>
 <div class="step">
-  <p>Oben im Tool gibt es die Werkzeugleiste mit Monats- und Sprachauswahl:</p>
-  <img src="anleitung-bilder/toolbar.png" alt="Werkzeugleiste mit Buttons">
+  <p>Nach dem Öffnen (bzw. nach dem Einrichtungsassistenten) landet man immer zuerst auf der
+     <b>Kachel-Startseite</b> mit den Hauptbereichen zur Auswahl:</p>
+  <img src="anleitung-bilder/kachel-startseite.png" alt="Kachel-Startseite mit allen Hauptbereichen">
   <ul>
+    <li><b>📋 Spesen</b> – der eigentliche Spesennachweis: Stammdaten und die Tage-Tabelle (siehe Schritt 2 und 3)</li>
+    <li><b>⏱️ Zeit</b> – eigene Stechuhr mit Überstunden-Konto (siehe „Extra: Arbeitszeit erfassen"). <b>Nur sichtbar,
+        wenn als Name exakt „Mirko Rieb" hinterlegt ist</b> – bei jedem anderen Namen erscheint diese Kachel nicht.</li>
+    <li><b>🌴 Urlaub</b> – Jahreskalender mit Urlaubsanspruch und Resttagen (siehe „Extra: Urlaubskalender")</li>
+    <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick, inkl. Balkendiagramm (siehe Schritt 8)</li>
+    <li><b>📱 Als App einrichten</b> – Anleitung zum Einrichten als App auf dem Handy (siehe „Extra: Auf dem Handy –
+        als App einrichten"). <b>Erscheint nur im Browser</b>, nicht mehr in der bereits installierten App –
+        dort ist ja nichts mehr einzurichten.</li>
+    <li><b>☰ Mehr</b> – bündelt die selteneren Werkzeuge: Feedback, QR-Code, Monat abschließen, Abgeschlossene
+        Monate, Sprachauswahl und Zurücksetzen (siehe Schritt 9 und 11)</li>
+    <li><b>❓ Anleitung</b> – diese Seite hier, direkt im Tool eingebettet</li>
+  </ul>
+  <p>Von jeder dieser Ansichten führt oben <b>„← Zurück zur Auswahl"</b> wieder zurück zur Kachel-Startseite.</p>
+
+  <p><b>Die Werkzeugleiste ändert sich je nach Tab</b> – oben auf <b>📋 Spesen</b> sieht sie zum Beispiel so aus:</p>
+  <img src="anleitung-bilder/toolbar.png" alt="Werkzeugleiste im Spesen-Tab">
+  <ul>
+    <li><b>⏰ Zeiten für alle Tage</b> – setzt Abfahrt WP und Ankunft WP in einem Rutsch für <b>jeden Werktag</b>
+        des Monats, statt jeden Tag einzeln auszufüllen. Vor dem Übernehmen wird angezeigt, wie viele Stunden
+        und welche Pauschale sich daraus je Tag ergeben. <b>Von Hand eingetragene Tage bleiben unangetastet</b> –
+        wer einzelne Tage schon korrigiert hat, verliert diese Korrekturen nicht (siehe Schritt 3)</li>
     <li><b>💾 Als PDF speichern</b> – lädt den fertigen Spesennachweis als PDF-Datei herunter</li>
     <li><b>👁️ PDF ansehen</b> – zeigt das PDF erst in einer Vorschau zum Anschauen (lädt nichts herunter); im Vorschau-Fenster kann man es bei Bedarf trotzdem <b>speichern</b> oder direkt <b>drucken</b></li>
     <li><b>🖨️ Drucken</b> – öffnet dieselbe PDF-Vorschau; dort auf <b>🖨️ Drucken</b> klicken, dann öffnet sich der Druckdialog. So wird immer genau die fertige 1-Seiten-Fassung gedruckt (nichts wird abgeschnitten)</li>
     <li><b>📧 Per E-Mail an Arbeitgeber weiterleiten</b> – speichert die PDF, öffnet eine vorausgefüllte E-Mail
         und markiert den Monat automatisch als eingereicht (siehe Schritt 10)</li>
-    <li><b>🔒 Monat abschließen</b> – markiert den Monat manuell als eingereicht/gesperrt und <b>speichert dabei
-        automatisch die fertige PDF als Datei ab</b> (für die eigene Steuer-/Jahresablage) - auch ohne E-Mail-Versand
-        (z.B. wer stattdessen ausdruckt und persönlich abgibt) - siehe Schritt 10</li>
-    <li><b>⏰ Zeiten für alle Tage</b> – setzt Abfahrt WP und Ankunft WP in einem Rutsch für <b>jeden Werktag</b>
-        des Monats, statt jeden Tag einzeln auszufüllen. Vor dem Übernehmen wird angezeigt, wie viele Stunden
-        und welche Pauschale sich daraus je Tag ergeben. <b>Von Hand eingetragene Tage bleiben unangetastet</b> –
-        wer einzelne Tage schon korrigiert hat, verliert diese Korrekturen nicht (siehe Schritt 3)</li>
-    <li><b>⚙️ Einstellungen</b> – Stammdaten, Mitarbeitertyp, Standardzeiten, Anwesenheit NL, Abwesenheiten, Datensicherung (siehe Schritt 2, 5, 6 und 9)</li>
-    <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick, inkl. Balkendiagramm (siehe Schritt 8)</li>
-    <li><b>⏱️ Arbeitszeit</b> – eigene Stechuhr mit Überstunden-Konto, völlig getrennt von der Abrechnung
-        (siehe „Extra: Arbeitszeit erfassen")</li>
-    <li><b>🌴 Urlaubskalender</b> – Jahreskalender mit Urlaubsanspruch und Resttagen
-        (siehe „Extra: Urlaubskalender")</li>
-    <li><b>📁 Abgeschlossene Monate</b> – Übersicht aller eingereichten Monate über alle Jahre hinweg, inkl. Backup-Funktion (siehe Schritt 11)</li>
-    <li><b>📱 QR-Code</b> – zeigt einen QR-Code zur Tool-Adresse an, z.B. praktisch zum Aushängen am Schwarzen Brett</li>
-    <li><b>🗑️ Zurücksetzen</b> – löscht alle Eingaben (Vorsicht, nicht rückgängig zu machen – vorher ggf. Backup speichern, Schritt 9)</li>
-    <li><b>❓ Anleitung</b> – diese Seite hier</li>
-    <li><b>💬 Feedback</b> – öffnet eine vorausgefüllte E-Mail für Verbesserungsvorschläge</li>
-    <li><b>Monats-Dropdown</b> – wechselt zwischen den Monaten des eingestellten Zeitraums</li>
-    <li><b>🇩🇪/🇬🇧 Sprachauswahl</b> – schaltet die Oberfläche zwischen Deutsch und Englisch um</li>
+    <li><b>📄 CSV (für Steuer)</b> – exportiert den Monat zusätzlich als CSV-Datei, praktisch für die eigene Steuerablage</li>
   </ul>
 
-  <div class="hinweis"><b>Auf dem Handy ist die Leiste kürzer.</b> Dort stehen nur „Als PDF speichern",
-    „Zeiten für alle Tage", „Einstellungen", „Arbeitszeit" und „Urlaubskalender" – alles andere aus dieser
-    Liste steckt hinter dem Knopf <b>„⋯ Mehr"</b>. Es fehlt also nichts, es ist nur eingeklappt, damit das
-    Spesenblatt nicht erst nach langem Scrollen erscheint. Am Rechner bleibt alles direkt sichtbar.
-    <br><br>In der <b>installierten App</b> fehlt zusätzlich „📱 Als App einrichten" – die App ist ja
-    bereits eingerichtet.</div>
+  <p>Auf <b>⏱️ Zeit</b> zeigt die Werkzeugleiste stattdessen nur einen einzigen Knopf – <b>Start/Stopp</b> der
+     Stechuhr, synchron mit dem Knopf weiter unten im Tab:</p>
+  <img src="anleitung-bilder/zeit-tab.png" alt="Werkzeugleiste im Zeit-Tab mit Start/Stopp-Knopf">
+
+  <p>Auf allen anderen Tabs (<b>Urlaub, Jahresübersicht, Anleitung, Als App einrichten, Mehr</b>) gibt es
+     <b>keine Werkzeugleiste</b> – dort braucht es keine zusätzlichen Knöpfe.</p>
+
+  <div class="hinweis"><b>Auf dem Handy ist die Werkzeugleiste kürzer.</b> Im Spesen-Tab bleiben dort nur
+    „⏰ Zeiten für alle Tage" und „💾 Als PDF speichern" direkt sichtbar – „👁️ PDF ansehen", „🖨️ Drucken",
+    „📧 Per E-Mail weiterleiten" und „📄 CSV" stecken hinter dem kleinen Knopf <b>„⋯ Mehr"</b> am rechten Rand
+    der Werkzeugleiste. Ein Antippen klappt sie auf (der Knopf wird dann zu „⋯ Weniger"). <b>Das ist nicht
+    dasselbe wie die Hauptkategorie „☰ Mehr"</b> weiter unten in der Tab-Leiste: „⋯ Mehr" ist nur ein
+    eingeklappter Rest der Werkzeugleiste auf schmalen Bildschirmen, „☰ Mehr" ist ein eigener vollwertiger
+    Bereich mit ganz anderen Werkzeugen (Feedback, QR-Code, Monat abschließen, Abgeschlossene Monate, Sprache,
+    Zurücksetzen – siehe Schritt 9 und 11). Am Rechner bleibt die Werkzeugleiste ohnehin komplett sichtbar,
+    „⋯ Mehr" erscheint dort gar nicht erst.</div>
 </div>
 
-<h2>2. Einstellungen (einmalig ausfüllen)</h2>
+<h2>2. Stammdaten (einmalig ausfüllen)</h2>
 <div class="step">
-  <p>Auf <b>⚙️ Einstellungen</b> klicken. Ganz oben zuerst den <b>Mitarbeitertyp</b> wählen:</p>
+  <p>Die Stammdaten stehen im <b>📋 Spesen</b>-Tab immer direkt oben – kein Knopf zum Anklicken mehr nötig.
+     Ganz oben zuerst den <b>Mitarbeitertyp</b> wählen:</p>
   <ul>
     <li><b>Fahrer</b> – trägt „Abfahrt WP" / „Ankunft WP" ein (Fahrten von/nach Hause); „besuchte Orte" steht standardmäßig auf „lt. Tourenplan"</li>
     <li><b>Monteur</b> – trägt stattdessen „Arbeitsbeginn" / „Arbeitsende" ein; „besuchte Orte" bleibt leer (ohne Tourenplan)</li>
@@ -146,12 +160,14 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     Am Bildschirm ist das mit „*" markiert – auf dem gedruckten/gespeicherten PDF erscheint das „*" bewusst nicht.</div>
   <p>Danach Name, Straße, Ort, Niederlassung und – falls gewünscht – die E-Mail-Adresse des Arbeitgebers eintragen
      (nur nötig für den „Per E-Mail weiterleiten"-Button). Bundesland auswählen, damit Feiertage automatisch stimmen.</p>
-  <img src="anleitung-bilder/einstellungen.png" alt="Einstellungen ausgefüllt">
   <div class="hinweis">
-    <b>Tipp:</b> Wer jeden Tag zur gleichen Zeit anfängt/aufhört, kann das oben bei „Abfahrt WP (Standard)" /
+    <b>Tipp:</b> Wer jeden Tag zur gleichen Zeit anfängt/aufhört, kann das bei „Abfahrt WP (Standard)" /
     „Ankunft WP (Standard)" (bzw. „Arbeitsbeginn/Arbeitsende" bei Monteuren) einmal eintragen – das füllt dann
     automatisch alle Wochentage aus. Einzelne Tage lassen sich unten in der Tabelle trotzdem jederzeit ändern.
   </div>
+  <p>Direkt unter den Stammdaten – einfach herunterscrollen, kein Umschalten mehr nötig – folgt die
+     Tage-Tabelle:</p>
+  <img src="anleitung-bilder/einstellungen.png" alt="Tage-Tabelle direkt unter den Stammdaten">
   <p>Alle Eingaben werden nur lokal im eigenen Browser gespeichert – nichts wird hochgeladen.</p>
 </div>
 
@@ -164,7 +180,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     danach wie unten beschrieben trotzdem abweichend ändern – <b>diese Änderungen bleiben erhalten</b>, auch
     wenn die Standardzeiten später noch einmal geändert werden.</div>
 
-  <p>Zurück zur Tabelle (Einstellungen einfach nochmal anklicken zum Schließen). Für jeden Arbeitstag auf das
+  <p>Einfach zur Tabelle unter den Stammdaten herunterscrollen (siehe Schritt 2). Für jeden Arbeitstag auf das
      Uhrzeit-Feld in der Zeile <b>Abfahrt WP</b> (bzw. Arbeitsbeginn) bzw. <b>Ankunft WP</b> (bzw. Arbeitsende)
      tippen/klicken. Es öffnet sich ein Dreh-Rad zur Uhrzeit-Auswahl – wie bei einer iPhone-Uhr:</p>
   <img src="anleitung-bilder/zeitrad-beispiel.png" alt="Dreh-Rad zur Uhrzeit-Auswahl">
@@ -215,7 +231,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>5. Anwesenheit in der Niederlassung (NL)</h2>
 <div class="step">
-  <p>Unter <b>⚙️ Einstellungen</b> im Abschnitt „🏢 Anwesenheit in der Niederlassung (NL)" lässt sich festlegen,
+  <p>In den Stammdaten (siehe Schritt 2), im Abschnitt „🏢 Anwesenheit in der Niederlassung (NL)", lässt sich festlegen,
      an welchem festen Wochentag automatisch eine Anwesenheitszeit in der Niederlassung eingetragen wird
      (z.B. jeden Montag zur Teambesprechung):</p>
   <img src="anleitung-bilder/nl-anwesenheit.png" alt="Anwesenheit in der Niederlassung einstellen">
@@ -234,13 +250,12 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 <div class="step">
   <p>Normalerweise erscheint auf dem Spesenblatt kein Samstag - unter jedem Freitag stehen stattdessen die zwei
      leeren Puffer-Felder (siehe Schritt 3). Wer trotzdem einen Samstag als eigene Tages-Zeile braucht,
-     aktiviert ihn <b>ausschließlich über das Einstellungs-Menü</b> - auf dem Spesenblatt selbst gibt es dafür
+     aktiviert ihn <b>ausschließlich über die Stammdaten</b> (siehe Schritt 2) - auf dem Spesenblatt selbst gibt es dafür
      bewusst keinen Knopf:</p>
   <ul>
-    <li>Auf <b>⚙️ Einstellungen</b> klicken</li>
-    <li>Im Abschnitt <b>„📅 Zeitraum &amp; Feiertage"</b> das Häkchen bei
+    <li>In den Stammdaten im Abschnitt <b>„📅 Zeitraum &amp; Feiertage"</b> das Häkchen bei
         <b>„Samstag als Tages-Zeile hinzufügen"</b> setzen</li>
-    <li>Einstellungen schließen - ab sofort erscheint der Samstag automatisch <b>direkt unter dem jeweiligen
+    <li>Ab sofort erscheint der Samstag automatisch <b>direkt unter dem jeweiligen
         Freitag</b> in einem eigenen, leeren Tages-Kästchen (mit „SA"), das sich wie jeder andere Tag ausfüllen lässt</li>
   </ul>
   <div class="hinweis">Häkchen wieder entfernen = der Samstag verschwindet wieder, und unter dem Freitag stehen
@@ -251,8 +266,8 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 <h2>6. Abwesenheiten am Stück eintragen</h2>
 <div class="step">
   <p>Statt Urlaub, Krankheit o.ä. Tag für Tag einzeln umzustellen (Schritt 4), lässt sich das auch für einen
-     ganzen Zeitraum auf einmal erledigen: unter <b>⚙️ Einstellungen</b> im Abschnitt „Abwesenheiten am Stück
-     eintragen" Status, Von- und Bis-Datum wählen und auf „Eintragen" klicken:</p>
+     ganzen Zeitraum auf einmal erledigen: in den Stammdaten (siehe Schritt 2), im Abschnitt „Abwesenheiten am Stück
+     eintragen", Status, Von- und Bis-Datum wählen und auf „Eintragen" klicken:</p>
   <img src="anleitung-bilder/abwesenheit-beispiel.png" alt="Abwesenheiten am Stück eintragen">
   <p>Der Zeitraum darf auch über mehrere Wochen oder Monate gehen. Einzelne Tage darin lassen sich in der Tabelle
      trotzdem noch abweichend ändern.</p>
@@ -285,7 +300,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>8. Jahresübersicht</h2>
 <div class="step">
-  <p>Über den Button <b>📊 Jahresübersicht</b> in der Werkzeugleiste lässt sich der komplette Jahresverlauf auf
+  <p>Über die Kachel/den Tab <b>📊 Jahresübersicht</b> lässt sich der komplette Jahresverlauf auf
      einen Blick einsehen: ein Balkendiagramm der Pauschale je Monat, dazu Arbeitstage und Pauschale-Summe je
      Monat sowie die Anzahl der Urlaubs-, Krankheits-, Sonderurlaubs- und Elternzeit-Tage – mit Gesamtzeile
      fürs ganze Jahr:</p>
@@ -294,9 +309,13 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>Extra: ⏱️ Arbeitszeit erfassen (optional)</h2>
 <div class="step">
-  <p>Über den Button <b>⏱️ Arbeitszeit</b> in der Werkzeugleiste öffnet sich eine eigene Stechuhr mit
-     Überstunden-Konto. Solange sie geöffnet ist, tritt das Spesenblatt in den Hintergrund – so kann man
+  <p>Über die Kachel/den Tab <b>⏱️ Zeit</b> öffnet sich eine eigene Stechuhr mit
+     Überstunden-Konto, mit einem eigenen Start/Stopp-Knopf in der Werkzeugleiste. Solange sie geöffnet ist, tritt das Spesenblatt in den Hintergrund – so kann man
      beim Stempeln nicht versehentlich in der Abrechnung tippen.</p>
+
+  <div class="hinweis"><b>Nur für Mirko sichtbar:</b> Die Kachel/der Tab „⏱️ Zeit" erscheint ausschließlich,
+    wenn als Name exakt „Mirko Rieb" hinterlegt ist (siehe Schritt 2) – bei jedem anderen Namen fehlt dieser
+    Bereich komplett, auch in der Kachel-Startseite.</div>
 
   <div class="hinweis"><b>Wichtig:</b> Diese Funktion ist <b>völlig getrennt</b> von der Spesen-Abrechnung.
     Gestempelte Zeiten werden <b>nicht</b> in die Spesen-Tabelle übernommen und erscheinen <b>nicht</b> im PDF.
@@ -382,7 +401,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>Extra: 🌴 Urlaubskalender (optional)</h2>
 <div class="step">
-  <p>Über den Button <b>🌴 Urlaubskalender</b> öffnet sich ein Jahreskalender mit Urlaubskonto.</p>
+  <p>Über die Kachel/den Tab <b>🌴 Urlaub</b> öffnet sich ein Jahreskalender mit Urlaubskonto.</p>
 
   <div class="hinweis"><b>Anders als die Arbeitszeit</b> arbeitet der Urlaubskalender mit
     <b>denselben Daten wie die Abrechnung</b>. Was hier eingetragen wird, steht sofort auch im
@@ -419,8 +438,10 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>Extra: 📱 Auf dem Handy – als App einrichten (optional)</h2>
 <div class="step">
-  <p>Der Spesen-Rechner lässt sich auf dem Handy wie eine App einrichten: eigenes Symbol auf dem
-     Startbildschirm, eigenes Fenster <b>ohne Browserleiste</b>, und er funktioniert dann auch
+  <p>Auf der Kachel-Startseite (siehe Schritt 1) gibt es dafür eine eigene Kachel/einen eigenen Tab
+     <b>📱 Als App einrichten</b> mit genau dieser Anleitung – <b>sie erscheint nur im Browser</b>, nicht mehr
+     in der bereits installierten App, da dort nichts mehr einzurichten ist. Kurz zusammengefasst: eigenes
+     Symbol auf dem Startbildschirm, eigenes Fenster <b>ohne Browserleiste</b>, und die App funktioniert dann auch
      <b>ohne Empfang</b> – im Lager, im Lkw, im Funkloch.</p>
 
   <p><b>iPhone (Safari):</b></p>
@@ -469,17 +490,15 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     Adresse ganz normal im Browser öffnet – auch auf dem Handy – sieht weiterhin den gewohnten
     Vordruck.</div>
 
-  <p><b>Die Werkzeugleiste ist auf dem Handy kürzer:</b> Sichtbar bleiben „Als PDF speichern",
-     „Zeiten für alle Tage", „Einstellungen", „Arbeitszeit" und „Urlaubskalender". Alles Weitere –
-     Drucken, E-Mail, CSV, Jahresübersicht, Monat abschließen und so fort – steht hinter dem Knopf
-     <b>„⋯ Mehr"</b>. Am Rechner ist wie bisher alles direkt sichtbar.</p>
+  <p>Zur Werkzeugleiste auf dem Handy siehe Schritt 1 – dort steht auch, warum das kleine „⋯ Mehr" am Rand
+     der Werkzeugleiste etwas anderes ist als die Hauptkategorie „☰ Mehr" in der Tab-Leiste.</p>
 </div>
 
 <h2>9. Datensicherung</h2>
 <div class="step">
   <p>Da alle Daten ausschließlich lokal im eigenen Browser gespeichert werden (siehe Datenschutz-Hinweis in
      Schritt 2), gehen sie beim Löschen des Browser-Verlaufs oder einem Gerätewechsel sonst unwiderruflich
-     verloren. Unter <b>⚙️ Einstellungen</b> im Abschnitt „💾 Datensicherung":</p>
+     verloren. In den Stammdaten (siehe Schritt 2), im Abschnitt „💾 Datensicherung":</p>
   <img src="anleitung-bilder/datensicherung.png" alt="Datensicherung: Backup speichern und wiederherstellen">
   <ul>
     <li><b>Backup als Datei speichern</b> – sichert alles (Einstellungen, alle Monate, beide Unterschriften) als Datei</li>
@@ -487,14 +506,15 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
         anderen Gerät oder Browser</li>
   </ul>
   <div class="hinweis"><b>Empfehlung:</b> regelmäßig ein Backup speichern, z. B. einmal im Monat – besonders
-    vor dem Klick auf „🗑️ Zurücksetzen".</div>
+    vor dem Klick auf „🗑️ Zurücksetzen" (zu finden im Bereich <b>☰ Mehr</b>, siehe Schritt 1 und 11).</div>
 </div>
 
 <h2>10. Monat abschließen</h2>
 <div class="step">
   <p>Sobald ein Monat fertig ausgefüllt und eingereicht ist, lässt er sich sperren - das verhindert versehentliches
-     Nachbearbeiten. Das passiert automatisch beim Klick auf <b>📧 Per E-Mail an Arbeitgeber weiterleiten</b>,
-     oder manuell über <b>🔒 Monat abschließen</b> (z.B. wer stattdessen ausdruckt und persönlich abgibt):</p>
+     Nachbearbeiten. Das passiert automatisch beim Klick auf <b>📧 Per E-Mail an Arbeitgeber weiterleiten</b>
+     im Spesen-Tab (siehe Schritt 1), oder manuell über <b>🔒 Monat abschließen</b> im Bereich <b>☰ Mehr</b>
+     (siehe Schritt 1 und 11 – z.B. wer stattdessen ausdruckt und persönlich abgibt):</p>
   <img src="anleitung-bilder/monat-gesperrt.png" alt="Banner: Monat eingereicht und gesperrt">
   <p>Ein grüner Banner zeigt Datum und Uhrzeit der Einreichung, alle Zeitfelder/Status/Orte-Eingaben in der
      Tabelle sind währenddessen gesperrt (leicht abgeblendet). Über <b>🔓 Wieder öffnen</b> im Banner lässt sich
@@ -506,8 +526,9 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 
 <h2>11. Abgeschlossene Monate</h2>
 <div class="step">
-  <p>Über <b>📁 Abgeschlossene Monate</b> in der Werkzeugleiste lässt sich jederzeit einsehen, welche Monate
+  <p>Über <b>📁 Abgeschlossene Monate</b> im Bereich <b>☰ Mehr</b> (siehe Schritt 1) lässt sich jederzeit einsehen, welche Monate
      bereits eingereicht wurden - über alle Jahre hinweg, nicht nur den aktuell eingestellten Zeitraum:</p>
+  <img src="anleitung-bilder/mehr-panel.png" alt="Bereich ☰ Mehr mit Abgeschlossene Monate, QR-Code, Feedback, Zurücksetzen">
   <img src="anleitung-bilder/abgeschlossene-monate.png" alt="Panel Abgeschlossene Monate mit Backup-Hinweis">
   <ul>
     <li>Jeder Monat zeigt die Gesamtpauschale und den genauen Einreichungs-Zeitpunkt</li>
