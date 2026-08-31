@@ -108,6 +108,7 @@
      Riskant / Auswahl), damit die Werkzeugleiste bei vielen Funktionen
      uebersichtlich bleibt statt einer einzigen langen Reihe. */
   .toolbar-group { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  #toolbarKontextSpesen, #toolbarKontextZeit { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
   .toolbar-divider {
     width: 1px; align-self: stretch; background: #e3e6eb; margin: 2px 2px;
     flex-shrink: 0;
@@ -253,20 +254,6 @@
     background: transparent; color: var(--brand-dark); box-shadow: none;
   }
   button.ghost:hover, .btn.ghost:hover { background: #f1f3f6; box-shadow: none; }
-  /* ===== "⋯"-Rand-Menue (Nebenfunktionen) =====
-     Bewusst ein eigenes Symbol ("⋮", hochkant) statt des bestehenden
-     "⋯ Mehr"-Knopfs (der klappt am Handy weiterhin nur die PDF-Knopfgruppe
-     auf/zu, siehe #mehrKnopf/.handy-mehr) - zwei "..." mit unterschiedlicher
-     Bedeutung waeren verwirrend. */
-  #mehrMenuBtn { font-size: 1.1rem; font-weight: 700; padding: 9px 14px; }
-  .mehr-menu-dropdown {
-    position: absolute; top: calc(100% + 6px); right: 0; z-index: 600;
-    background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(24,26,32,0.18);
-    padding: 8px; display: flex; flex-direction: column; gap: 4px; min-width: 240px;
-  }
-  .mehr-menu-dropdown button, .mehr-menu-dropdown .btn, .mehr-menu-dropdown select {
-    width: 100%; text-align: left; justify-content: flex-start;
-  }
   .toolbar select {
     padding: 9px 14px; border-radius: 999px; border: 1px solid #d8dce2; background: #fff;
     font-size: 0.86rem; font-weight: 600; color: var(--brand-dark); cursor: pointer;
@@ -279,22 +266,25 @@
      siehe setzeAppKennung()): feste Leiste unten, wie eine Handy-App -
      siehe Design-Spec "Navigation & Hauptbereiche Redesign". */
   #mainTabs {
-    display: flex; gap: 0.5rem; background: #fff; padding: 0.5rem;
+    display: flex; flex-wrap: wrap; gap: 0.5rem; background: #fff; padding: 0.5rem;
     border-radius: 14px; box-shadow: 0 2px 12px rgba(24,26,32,0.08);
     margin-bottom: 1.25rem;
   }
   #mainTabs .tab-btn {
-    flex: 1; text-align: center; background: transparent; color: var(--brand-dark);
+    /* Ergaenzung 28.08.2026 (Task 12): Nach Task 7-11 sind es bis zu 7
+       Kategorien + Zurueck-Button = 8 Tabs. Das bisherige min-width:0
+       liess Tabs bei 393px unbegrenzt schrumpfen (siehe Ergaenzung
+       26.08.2026 zu Task 8 unten) - bei 8 Tabs waere das bis zur
+       Unlesbarkeit gequetscht. Jetzt: min-width:84px zusammen mit
+       flex-wrap:wrap auf #mainTabs - ein Tab, der kleiner als 84px
+       wuerde, rutscht stattdessen in die naechste Zeile. Desktop bleibt
+       einzeilig (genug Platz), 393px wird i.d.R. zweizeilig. */
+    flex: 1 1 auto; min-width: 84px; text-align: center; background: transparent; color: var(--brand-dark);
     box-shadow: none; border-radius: 10px; padding: 10px 6px;
-    /* min-width:0 hebt die automatische Mindestbreite von Flex-Items auf
-       (sonst blockiert das im Content laengste unteilbare Stueck jedes
-       Schrumpfen) - erst dadurch koennen die Buttons auf schmalen
-       Handy-Breiten (z.B. 393px, siehe Ergaenzung 26.08.2026 zu Task 8)
-       tatsaechlich enger werden statt seitlich aus #mainTabs
-       herauszulaufen. overflow/text-overflow faengt den Rest sauber mit
-       "…" ab, statt Text zu umbrechen (das wuerde wieder die Zeile hoeher
-       machen, siehe .pdf-check/diff-task8-highlight.png). */
-    min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    /* overflow/text-overflow faengt den Rest sauber mit "…" ab, statt Text
+       zu umbrechen (das wuerde die Zeile hoeher machen, siehe
+       .pdf-check/diff-task8-highlight.png). */
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   }
   #mainTabs .tab-btn.active {
     background: linear-gradient(135deg, var(--accent), #ff8a3d); color: #fff;
@@ -305,7 +295,15 @@
     margin-bottom: 0; border-radius: 0; box-shadow: 0 -2px 12px rgba(24,26,32,0.12);
     padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
   }
-  body.als-app { padding-bottom: 76px; }
+  /* Bugfix (finale Whole-Branch-Review, Befund 2): 76px war fuer GENAU eine
+     Zeile #mainTabs ausgelegt. Task 12 macht die Leiste umbruchfaehig (bis
+     zu 7 Kategorien + Zurueck-Button) - bei 2 Zeilen auf schmalen Breiten
+     wurde die feste 76px-Reserve zu klein, die fixierte Leiste verdeckte
+     dann dauerhaft unteren Seiteninhalt. --maintabs-hoehe wird per
+     ResizeObserver auf die tatsaechliche #mainTabs-Hoehe gesetzt (siehe
+     IIFE weiter unten im Skript); 76px bleibt nur der Fallback, bevor JS
+     einmal gelaufen ist bzw. falls ResizeObserver fehlt. */
+  body.als-app { padding-bottom: var(--maintabs-hoehe, 76px); }
 
   #spesenKopfzeile {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
@@ -350,6 +348,15 @@
      "Entscheidung 26.08.2026 im Detail". */
   #kachelStartseite { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
   .kachel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  /* Bugfix (Live-Feedback Mirko, 28.08.2026): #kachelStartseite besteht aus
+     mehreren separaten .kachel-grid-Elementen nebeneinander (Spesen-Gruppe,
+     Install/Mehr-Paar, Anleitung) - "gap:1rem" wirkt nur INNERHALB je eines
+     Grids, zwischen den Grid-Elementen selbst gab es 0px Abstand, obwohl es
+     optisch wie eine durchgehende Kachel-Liste wirken soll. Jedes Grid nach
+     einem anderen Grid bekommt denselben 1rem-Abstand wie die interne
+     Kachel-Zeile - dadurch wirkt der gesamte Abstand ueberall gleich, egal
+     ob zwei Kacheln im selben oder in getrennten Grids stehen. */
+  .kachel-grid + .kachel-grid { margin-top: 1rem; }
   .kachel-btn {
     background: #fff; border: none; border-radius: 16px; padding: 2rem 1rem;
     font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
@@ -363,13 +370,6 @@
     white-space: normal;
   }
   .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
-  /* "Als App einrichten" auf der Kachel-Startseite: Erstbesucher landen
-     sonst auf 4 Kacheln ohne jeden Weg zur Installation (das "⋮"-Menue mit
-     diesem Punkt ist von hier bewusst nicht erreichbar). Nutzt dieselbe
-     nur-webseite-Klasse wie das Pendant im "⋮"-Menue - blendet sich also
-     automatisch aus, sobald die App bereits installiert laeuft.
-     Bugfix 26.08.2026, siehe Whole-Branch-Review. */
-  .kachel-install-btn { display: block; margin: 1.25rem auto 0; }
 
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
@@ -379,6 +379,16 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.75rem 1.5rem;
   }
+  /* ===== Jahresuebersicht: horizontales Scrollen statt Ueberlaufen =====
+     Die Tabelle hat 8 Spalten und ist mit table-layout:auto (Standard)
+     breiter als ihr Container, sobald der verfuegbare Platz nicht reicht -
+     ohne Begrenzung lief sie auf schmalen Handybreiten ueber den weissen
+     Panel-Rand hinaus auf die Seite. Gleiches Muster wie #formular-scroll
+     (Zeile ~460) fuer das Hauptformular. */
+  .jahresuebersicht-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .anleitung-iframe { width: 100%; height: 75vh; border: none; border-radius: 8px; display: block; }
+  .mehr-werkzeuge-liste { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; max-width: 320px; }
+  .mehr-werkzeuge-liste select { width: 100%; }
   label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 3px; }
   input, select {
     width: 100%; padding: 7px 10px; border: 1px solid #d8dce2; border-radius: 7px;
@@ -528,9 +538,9 @@
 
   footer { text-align: center; font-size: 0.75rem; color: #888; margin-top: 2rem; }
   .pdf-preview-box { max-width: 920px; width: 94vw; height: 90vh; display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
-  .pdf-preview-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .pdf-preview-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
   .pdf-preview-head h2 { margin: 0; font-size: 1.05rem; }
-  .pdf-preview-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .pdf-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .pdf-preview-frame { flex: 1; width: 100%; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
   .abgabe-hinweis {
     background: #FDE9DC; border: 1px solid var(--accent); border-left: 4px solid var(--accent);
@@ -773,42 +783,41 @@
 <h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
 <div class="toolbar no-print">
-  <div class="toolbar-group">
+  <!-- Reihenfolge getauscht (Werkzeugleiste & Hauptkategorien Redesign,
+       Punkt 1): Kontext-Buttons (was man auf dem jeweiligen Tab als
+       naechstes braucht) stehen jetzt VOR den PDF-Aktionen. Beide Gruppen
+       haben feste IDs statt sich auf ihre DOM-Position zu verlassen -
+       zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() (Task 6/7)
+       greifen direkt darauf zu. -->
+  <div class="toolbar-group" id="toolbarKontextGruppe">
+    <!-- Zwei Unter-Gruppen, nur eine ist zur Zeit sichtbar (gesteuert von
+         zeigeWerkzeugleisteGruppe2() in zeigeTab()) - Spesen zeigt Zeiten-
+         Knopf + Stammdaten/Tage-Umschalter, Zeit zeigt Start/Stopp, alle
+         anderen Tabs zeigen gar nichts hier (Punkt 1/4 der Spec: diese
+         Buttons ergaben bisher auf JEDEM Tab Sinn, obwohl sie nur zu
+         Spesen bzw. Zeit gehoeren). -->
+    <span id="toolbarKontextSpesen">
+      <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
+           Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
+           vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
+      <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
+    </span>
+    <span id="toolbarKontextZeit" style="display:none;">
+      <button id="toolbarStempelBtn" class="primary" onclick="azStempeln()">🟢 Start</button>
+    </span>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group" id="toolbarPdfGruppe">
     <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
     <button class="handy-mehr" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
     <button class="handy-mehr" onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-    <button class="ghost handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
-  </div>
-  <span class="toolbar-divider"></span>
-  <div class="toolbar-group">
-    <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
-         Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
-         vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
-    <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
-    <button onclick="toggleSettings()" data-i18n="btnSettings">✏️ Spesen bearbeiten</button>
+    <button class="handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
   </div>
   <span class="toolbar-divider"></span>
   <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
   <div class="toolbar-group">
     <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
-  </div>
-  <span class="toolbar-divider"></span>
-  <div class="toolbar-group" id="mehrMenu" style="margin-left:auto; position:relative;">
-    <button type="button" id="mehrMenuBtn" class="ghost" onclick="toggleMehrMenu()" aria-haspopup="true" aria-expanded="false">⋮</button>
-    <div id="mehrMenuDropdown" class="mehr-menu-dropdown" style="display:none;">
-      <button class="ghost nur-webseite" onclick="closeMehrMenu(); openInstallModal();" data-i18n="btnInstall">📱 Als App einrichten</button>
-      <a class="btn ghost" href="Anleitung.html" style="text-decoration:none;" data-i18n="btnHelp">❓ Anleitung</a>
-      <button class="ghost" onclick="closeMehrMenu(); sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
-      <button class="ghost" onclick="closeMehrMenu(); openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
-      <button class="ghost" onclick="closeMehrMenu(); submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-      <button class="ghost" onclick="closeMehrMenu(); toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
-      <select id="langSwitch" onchange="setLang(this.value)">
-        <option value="de">🇩🇪 Deutsch</option>
-        <option value="en">🇬🇧 English</option>
-      </select>
-      <button class="danger" onclick="closeMehrMenu(); if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
-    </div>
   </div>
 </div>
 
@@ -825,11 +834,29 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   </div>
-  <!-- "Als App einrichten" gehoert bewusst hierher (nicht nur ins "⋮"-Menue):
-       Erstbesucher landen sofort nach dem Splash hier, bevor sie ueberhaupt
-       in einer Funktion sind, in der das Rand-Menue sichtbar waere. Gleicher
-       Grund/gleiche nur-webseite-Klasse wie das Pendant im "⋮"-Menue oben. -->
-  <button type="button" class="ghost kachel-install-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
+       kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
+       28.08.2026 - ersetzt die Task-10-Entscheidung, Install allein in
+       einer eigenen Zeile zu lassen). "Als App einrichten" bleibt
+       technisch ein Modal (kein zeigeTab()-Aufruf, keine Tab-
+       Hervorhebung, "nur-webseite" unveraendert - in der installierten
+       App sinnlos). "Mehr" ist dagegen ein echtes Panel wie im ersten
+       Grid, nur hier positioniert, damit es nie allein in einer Zeile
+       landet, wenn die Anzahl der Kacheln im ersten Grid (je nach
+       Zeit-Tab-Sichtbarkeit, Task 8) mal gerade, mal ungerade ist. -->
+  <div class="kachel-grid">
+    <button type="button" class="kachel-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
+  </div>
+  <!-- "Anleitung" bewusst als eigenes, drittes kachel-grid mit nur einer
+       Kachel, ganz unten (Live-Feedback Mirko, 28.08.2026 - vorher stand
+       sie im ersten Grid, mal allein/halbbreit, mal per JS-Fix volle
+       Breite - inkonsistent). Als einziges Element in einem eigenen Grid
+       ist die Anzahl IMMER 1 (ungerade) - aktualisiereKachelGridLayout()
+       gibt ihr dadurch automatisch, ohne Sonderfall, immer volle Breite. -->
+  <div class="kachel-grid">
+    <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
+  </div>
 </div>
 
 <nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
@@ -838,6 +865,9 @@
   <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+  <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
+  <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
 </nav>
 
 <div class="panel no-print" id="settingsPanel" style="display:none;">
@@ -855,7 +885,7 @@
       </div>
       <div>
         <label>Name</label>
-        <input id="cfgName" oninput="saveConfig(); renderFormular();">
+        <input id="cfgName" oninput="saveConfig(); renderFormular(); aktualisiereZeitSichtbarkeit();">
       </div>
       <div>
         <label>Straße</label>
@@ -1053,7 +1083,40 @@
 
 <div class="panel no-print" id="jahresuebersichtPanel" style="display:none;">
   <h2 style="margin-top:0;" id="jahresuebersichtTitel">📊 Jahresübersicht</h2>
-  <div id="jahresuebersichtContent"></div>
+  <div class="jahresuebersicht-scroll"><div id="jahresuebersichtContent"></div></div>
+</div>
+
+<div class="panel no-print" id="anleitungPanel" style="display:none;">
+  <h2 style="margin-top:0;" data-i18n="tabAnleitung">❓ Anleitung</h2>
+  <!-- Bewusst per iframe eingebettet statt Inhalt zu duplizieren:
+       Anleitung.html bleibt die einzige Quelle (auch fuer den externen
+       QR-Code-Zugang), verhaelt sich aber innerhalb der App jetzt wie
+       ein normaler Tab (kein Verlassen der Seite mehr).
+       Bugfix (finale Whole-Branch-Review, Befund 7): src bewusst NICHT
+       fest im Markup, sondern in data-src - ein iframe mit festem src laedt
+       sofort bei jedem App-Start mit, auch wenn das Panel unsichtbar ist
+       (widerspricht dem Service-Worker-Kommentar "Anleitungsbilder bewusst
+       nicht vorgecacht, nur bei Bedarf"). loading="lazy" ist bei einem
+       verschachtelten display:none-Panel unzuverlaessig (bekannte Browser-
+       Eigenart) - stattdessen setzt toggleAnleitungPanel() src einmalig
+       beim ersten OEffnen. -->
+  <iframe data-src="Anleitung.html" class="anleitung-iframe" title="Anleitung"></iframe>
+</div>
+
+<div class="panel no-print" id="mehrPanel" style="display:none;">
+  <h2 style="margin-top:0;" data-i18n="tabMehr">☰ Mehr</h2>
+  <h3 data-i18n="mehrWerkzeuge">🛠️ Werkzeuge</h3>
+  <div class="mehr-werkzeuge-liste">
+    <button class="ghost" onclick="sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
+    <button class="ghost" onclick="openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
+    <button class="ghost" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button class="ghost" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+    <select id="langSwitch" onchange="setLang(this.value)">
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
+    <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+  </div>
 </div>
 
 <div class="panel no-print" id="archivPanel" style="display:none;">
@@ -1247,7 +1310,49 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
+
+/* ===== Zeit-Tab nur fuer Mirko sichtbar =====
+   Kein Login-System vorhanden - jede/r Kollege/in nutzt die Seite im
+   eigenen Browser, Daten liegen ohnehin getrennt lokal (localStorage).
+   Rein kosmetisch/organisatorisch: Kollegen sollen die fuer sie irrelevante
+   Stechuhr-Funktion nicht angezeigt bekommen. KEIN echter Zugriffsschutz -
+   wer exakt denselben Namen eintraegt, sieht den Tab ebenfalls (siehe
+   Design-Spec, Punkt 8). */
+const MIRKO_NAME = "Mirko Rieb";
+function istMirko() {
+  return (config.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase();
+}
+function aktualisiereZeitSichtbarkeit() {
+  const sichtbar = istMirko();
+  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'zeit\')"], #mainTabs .tab-btn[data-tab="zeit"]').forEach((el) => {
+    el.style.display = sichtbar ? "" : "none";
+  });
+  aktualisiereKachelGridLayout();
+}
+
+/* Bugfix (finale Whole-Branch-Review, Befund 6): .kachel-grid ist fest auf
+   2 Spalten ausgelegt (siehe CSS ".kachel-grid"). Wird eine Kachel darin per
+   JS/CSS ausgeblendet (Zeit-Kachel fuer Nicht-Mirko-Nutzer oben, "Als App
+   einrichten" in der installierten App per CSS-Klasse), kann eine ungerade
+   Anzahl SICHTBARER Kacheln uebrig bleiben, deren letzte dann allein in der
+   letzten Zeile haengt (halbe statt volle Breite). Eine reine CSS-Loesung
+   ueber :nth-child() waere hier falsch: :nth-child zaehlt DOM-Position,
+   nicht sichtbare Position - die Zeit-Kachel bleibt fuer Nicht-Mirko-Nutzer
+   ja im DOM, nur versteckt, und wuerde die Zaehlung verfaelschen. Deshalb
+   hier tatsaechlich nachzaehlen, wie viele Kacheln PRO Grid gerade sichtbar
+   sind, und nur bei einer ungeraden Anzahl die zuletzt sichtbare auf volle
+   Breite setzen. Aufruf von hier UND aus setzeAppKennung() heraus, weil
+   beide Funktionen die Sichtbarkeit je einer Kachel toggeln koennen. */
+function aktualisiereKachelGridLayout() {
+  document.querySelectorAll(".kachel-grid").forEach((grid) => {
+    const kacheln = Array.from(grid.children).filter((el) => getComputedStyle(el).display !== "none");
+    kacheln.forEach((el) => { el.style.gridColumn = ""; });
+    if (kacheln.length % 2 === 1) {
+      kacheln[kacheln.length - 1].style.gridColumn = "1 / -1";
+    }
+  });
+}
 
 /* ===================== Mehrsprachigkeit (Deutsch/Englisch) =====================
    WEEKDAY_NAMES/MONTH_NAMES/STATUS_LABELS sind bewusst "let" statt "const" und
@@ -1276,8 +1381,10 @@ const I18N = {
     splashGreetingKnown: "Hallo, {name}!", splashGreetingUnknown: "Willkommen!",
     btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
+    btnTageTabelle: "📋 Tage-Tabelle",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
-    tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahr",
+    tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
+    tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1301,8 +1408,10 @@ const I18N = {
     splashGreetingKnown: "Hello, {name}!", splashGreetingUnknown: "Welcome!",
     btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
+    btnTageTabelle: "📋 Daily entries",
     btnZeitenAlle: "⏰ Times for all days",
-    tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year",
+    tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
+    tabAnleitung: "❓ Guide", tabMehr: "☰ More", mehrWerkzeuge: "🛠️ Tools",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -1775,9 +1884,9 @@ function initSettingsUI() {
    - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
-                     "arbeitszeitPanel", "urlaubPanel"];
+                     "arbeitszeitPanel", "urlaubPanel", "anleitungPanel", "mehrPanel"];
 /* Diese drei treten an die Stelle des Spesenblatts statt darueber zu liegen */
-const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel"];
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel", "mehrPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -1801,8 +1910,8 @@ function zeigeAnsicht(id) {
    Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
    zeigeTab() immer deterministisch genau den angeklickten Bereich -
    klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
-const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel" };
-const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht };
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel };
 
 /* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
    die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
@@ -1823,16 +1932,31 @@ function zeigeTab(tab) {
   if (kachelEl) kachelEl.style.display = "none";
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "";
+  // Bugfix (finale Whole-Branch-Review, Befund 4): Auf Urlaub/Jahresuebersicht/
+  // Anleitung/Mehr haben weder #toolbarKontextGruppe noch #toolbarPdfGruppe
+  // Inhalt (siehe zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() unten)
+  // - die .toolbar selbst blieb trotzdem sichtbar und zeigte nur einen
+  // leeren weissen Balken mit Trennstrich. Nur auf Spesen/Zeit gibt es
+  // tatsaechlich Inhalt zum Anzeigen.
   const toolbar = document.querySelector(".toolbar");
-  if (toolbar) toolbar.style.display = "";
+  if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit") ? "" : "none";
 
   markiereTab(tab);
+  // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
+  // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
+  // innerhalb des Tabs.
+  zeigeSpesenKopfUndPdf(tab === "spesen");
+  zeigeWerkzeugleisteGruppe2(tab);
+
   if (tab === "spesen") {
     ALLE_PANELS.forEach((p) => {
       const el = document.getElementById(p);
       if (el) el.style.display = "none";
     });
-    azSpesenAnsicht(true);
+    // NEU (Task 6): Standard ist jetzt die Stammdaten-Maske, nicht mehr die
+    // Tage-Tabelle - keine doppelte Funktion mehr, "Spesen" zeigt direkt das,
+    // was bisher nur "Spesen bearbeiten" zeigte.
+    zeigeSpesenUnteransicht("stammdaten");
     return;
   }
   const panelId = TAB_PANEL_MAP[tab];
@@ -1864,6 +1988,14 @@ function zeigeKachelStartseite() {
     if (el) el.style.display = "none";
   });
   azSpesenAnsicht(false);
+  // Bugfix (Live-Feedback Mirko, 28.08.2026): #spesenKopfzeile (inkl.
+  // Monatsauswahl) hat KEIN display:none im Markup und wurde bisher nur
+  // ueber zeigeSpesenKopfUndPdf() aus zeigeTab() heraus gesteuert - auf der
+  // Kachel-Startseite (vor dem ersten Tab-Besuch bzw. nach "Zurueck zur
+  // Auswahl") blieb sie dadurch sichtbar unter den Kacheln stehen, obwohl
+  // hier keine Funktion aktiv ist. Muss hier explizit mit ausgeblendet
+  // werden, exakt wie die PDF-Knopfgruppe (dieselbe Funktion regelt beides).
+  zeigeSpesenKopfUndPdf(false);
 }
 
 /* Klick-Handler des "← Zurück zur Auswahl"-Buttons in #mainTabs. Eigener
@@ -1901,8 +2033,37 @@ function setzeAppKennung() {
              || window.navigator.standalone === true;
   } catch (e) { alsApp = false; }
   document.body.classList.toggle("als-app", !!alsApp);
+  // Bugfix (finale Whole-Branch-Review, Befund 6): body.als-app blendet
+  // "Als App einrichten" per CSS aus (.nur-webseite) - siehe
+  // aktualisiereKachelGridLayout() weiter oben, warum das die verbleibende
+  // "Mehr"-Kachel sonst allein in der Zeile stehen laesst.
+  if (typeof aktualisiereKachelGridLayout === "function") aktualisiereKachelGridLayout();
   return alsApp;
 }
+
+/* Bugfix (finale Whole-Branch-Review, Befund 2): misst die tatsaechliche
+   Hoehe von #mainTabs (kann seit Task 12 ein- oder zweizeilig sein, je nach
+   Bildschirmbreite und Anzahl sichtbarer Tabs) und setzt sie als CSS-
+   Variable --maintabs-hoehe, damit body.als-app's padding-bottom (siehe
+   CSS weiter oben) die fixierte untere Leiste NIE zu klein bemisst.
+   ResizeObserver feuert automatisch bei Breitenaenderung, Zeilenumbruch
+   UND beim Wechsel von display:none auf sichtbar (z.B. beim Verlassen der
+   Kachel-Startseite) - kein manuelles Nachrufen an jeder Stelle noetig, die
+   die Tab-Anzahl oder Fensterbreite aendern koennte. */
+(function () {
+  const mainTabs = document.getElementById("mainTabs");
+  if (!mainTabs) return;
+  const setzeMainTabsHoehe = () => {
+    const hoehe = mainTabs.getBoundingClientRect().height;
+    if (hoehe > 0) document.documentElement.style.setProperty("--maintabs-hoehe", (hoehe + 8) + "px");
+  };
+  if (window.ResizeObserver) {
+    new ResizeObserver(setzeMainTabsHoehe).observe(mainTabs);
+  } else {
+    setzeMainTabsHoehe();
+    window.addEventListener("resize", setzeMainTabsHoehe);
+  }
+})();
 
 (function () {
   if (!window.matchMedia) return;
@@ -1922,40 +2083,6 @@ function toggleMehr() {
   const offen = document.body.classList.toggle("mehr-offen");
   const k = document.getElementById("mehrKnopf");
   if (k) k.textContent = offen ? "⋯ Weniger" : "⋯ Mehr";
-}
-
-/* ===== "⋯"-Rand-Menue: oeffnen/schliessen =====
-   Eigenstaendig von toggleMehr() oben - das steuert weiterhin nur die
-   PDF-Knopfgruppe am Handy. Dieses Menu buendelt die Nebenfunktionen
-   (App einrichten, Anleitung, Feedback, QR-Code, Monat abschliessen,
-   Abgeschlossene Monate, Sprache, Zuruecksetzen) diskret an einer Stelle. */
-function toggleMehrMenu() {
-  const dd = document.getElementById("mehrMenuDropdown");
-  const btn = document.getElementById("mehrMenuBtn");
-  const offen = dd.style.display !== "none";
-  dd.style.display = offen ? "none" : "flex";
-  btn.setAttribute("aria-expanded", offen ? "false" : "true");
-}
-function closeMehrMenu() {
-  const dd = document.getElementById("mehrMenuDropdown");
-  const btn = document.getElementById("mehrMenuBtn");
-  dd.style.display = "none";
-  btn.setAttribute("aria-expanded", "false");
-}
-document.addEventListener("click", function (e) {
-  const menu = document.getElementById("mehrMenu");
-  if (menu && !menu.contains(e.target)) closeMehrMenu();
-});
-
-function toggleSettings() {
-  // "Spesen bearbeiten" liegt ueber dem Spesenblatt (nicht ueber Zeit/Urlaub/
-  // Jahr - zeigeAnsicht() blendet #formular-scroll dafuer wieder ein) - die
-  // Tab-Leiste muss das nachziehen, auch wenn man z.B. gerade auf "Urlaub"
-  // war (Bugfix 26.08.2026, sonst blieb der falsche Tab hervorgehoben).
-  if (zeigeAnsicht("settingsPanel")) {
-    renderAbsenceRangesList();
-    markiereTab("spesen");
-  }
 }
 
 /* ===================== Einrichtungsassistent (nur beim allerersten Oeffnen) =====================
@@ -2036,11 +2163,17 @@ function wizardNext() {
     initSettingsUI();
     updateMitarbeitertypUI();
     renderFormular();
-    // Direkt in die Einstellungen springen, damit das Dokument (E-Mail-Adresse
-    // Arbeitgeber, Pauschalen, Standard-Zeiten etc.) gleich fertiggestellt
-    // werden kann, statt die Einstellungen erst manuell suchen zu muessen.
-    document.getElementById("settingsPanel").style.display = "block";
-    renderAbsenceRangesList();
+    // Bugfix (finale Whole-Branch-Review, Befund 5): config.name wird oben
+    // gerade erst gesetzt - istMirko() (und damit die Sichtbarkeit des
+    // Zeit-Tabs) haengt davon ab. Ohne diesen Aufruf blieb der Zeit-Tab fuer
+    // Mirko nach dem Einrichtungsassistenten unsichtbar bis zum naechsten
+    // Laden der Seite.
+    aktualisiereZeitSichtbarkeit();
+    // GEAENDERT (Live-Feedback Mirko, 28.08.2026): nach dem Ausfuellen der
+    // Stammdaten geht es zurueck zur Kachel-Auswahl, nicht mehr automatisch
+    // in den Spesen-Tab hinein - der Assistent legt nur die Grunddaten an,
+    // waehlt aber keine Funktion fuer den Nutzer vor.
+    zeigeKachelStartseite();
     return;
   }
   wizardStep++;
@@ -2134,6 +2267,19 @@ function renderJahresuebersicht() {
 
 function toggleJahresuebersicht() {
   if (zeigeAnsicht("jahresuebersichtPanel")) renderJahresuebersicht();
+}
+
+function toggleAnleitungPanel() {
+  if (zeigeAnsicht("anleitungPanel")) {
+    // Bugfix (finale Whole-Branch-Review, Befund 7): src erst beim ersten
+    // OEffnen setzen, siehe Kommentar am iframe in #anleitungPanel.
+    const iframe = document.querySelector("#anleitungPanel iframe");
+    if (iframe && !iframe.getAttribute("src")) iframe.src = iframe.dataset.src;
+  }
+}
+
+function toggleMehrPanel() {
+  zeigeAnsicht("mehrPanel");
 }
 
 /* Beim ALLERERSTEN Aufbau (Seitenaufruf) soll der laufende Monat
@@ -2293,6 +2439,19 @@ function toggleArchivPanel() {
   if (zeigeAnsicht("archivPanel")) {
     renderArchivPanel();
     markiereTab("spesen");
+    // Bugfix (finale Whole-Branch-Review, Befund 3): toggleArchivPanel()
+    // laeuft nicht ueber zeigeTab() und hat die dort seit Task 6/7
+    // eingefuehrte Kopplung von Kopfzeile/Werkzeugleiste an den aktiven Tab
+    // bisher umgangen - Aufruf vom "Mehr"-Panel aus liess Kopfzeile UND
+    // Werkzeugleiste leer, obwohl "Spesen" als Tab markiert war.
+    zeigeSpesenKopfUndPdf(true);
+    zeigeWerkzeugleisteGruppe2("spesen");
+    // Zusammenspiel mit Befund 4: kam man von einem Tab OHNE Werkzeugleiste
+    // (z.B. "Mehr") hierher, hat zeigeTab() die .toolbar selbst bereits auf
+    // "none" gesetzt - die obigen zwei Aufrufe fuellen zwar wieder Inhalt,
+    // blenden den Balken selbst aber nicht wieder ein.
+    const toolbar = document.querySelector(".toolbar");
+    if (toolbar) toolbar.style.display = "";
   }
 }
 
@@ -3355,6 +3514,20 @@ async function buildPdf() {
 
   // Waehrend des Screenshots die Klick-Optik der Zeit-Felder ausblenden.
   document.body.classList.add("pdf-export");
+  // Bugfix (finale Whole-Branch-Review, Befund 1): Seit Task 6 startet der
+  // Spesen-Tab standardmaessig in der Stammdaten-Ansicht - dort blendet
+  // azSpesenAnsicht() #formular-scroll per INLINE style="display:none" aus.
+  // Inline Styles gewinnen gegen jede CSS-Regel (auch gegen die
+  // "body.als-app.pdf-export"-Ausnahme weiter oben in der Stylesheet), das
+  // Formular haette also {width:0, height:0} und html2canvas wuerde ein
+  // leeres/kaputtes PNG erzeugen (Konsolenfehler "Incomplete or corrupt PNG
+  // file"). Deshalb hier den Inline-Wert sichern, fuer den Screenshot
+  // erzwingen und danach im bestehenden finally-Block wiederherstellen. In
+  // der "tage"-Unteransicht ist der Inline-Wert bereits "" (siehe
+  // azSpesenAnsicht) - dort ist dieser Eingriff ein reines No-op.
+  const formularScroll = document.getElementById("formular-scroll");
+  const formularScrollDisplayVorher = formularScroll ? formularScroll.style.display : "";
+  if (formularScroll) formularScroll.style.display = "block";
   let canvas;
   try {
     canvas = await html2canvas(el, {
@@ -3365,6 +3538,7 @@ async function buildPdf() {
     });
   } finally {
     document.body.classList.remove("pdf-export");
+    if (formularScroll) formularScroll.style.display = formularScrollDisplayVorher;
   }
   const imgData = canvas.toDataURL("image/png");
 
@@ -3523,8 +3697,8 @@ function csvEmailSelf() {
   if (!self) {
     alert("Bitte zuerst in den Einstellungen Ihre eigene E-Mail-Adresse eintragen.\n\nDie CSV wird ausschließlich an diese Adresse (an Sie selbst) gesendet – nie an den Arbeitgeber.");
     closeModal();
-    document.getElementById("settingsPanel").style.display = "block";
-    const el = document.getElementById("cfgEigeneEmail"); if (el) el.focus();
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgEigeneEmail");
     return;
   }
   const { filename, monthName } = buildCsvData();
@@ -3597,6 +3771,15 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.7", date: "28.08.2026", changes: [
+    "📋 Spesen startet jetzt direkt mit den Stammdaten – kein Extra-Klick auf „Spesen bearbeiten“ mehr nötig",
+    "🟢 Neuer Start/Stopp-Knopf für die Stechuhr direkt in der Werkzeugleiste (nur für Mirko sichtbar)",
+    "❓ Anleitung und 📱 Als App einrichten sind jetzt vollwertige Hauptkategorien",
+    "☰ Neue Hauptkategorie „Mehr“ bündelt Feedback, QR-Code, Monat abschließen, Archiv, Sprache und Zurücksetzen",
+    "📊 „Jahr“ heißt jetzt „Jahresübersicht“ und läuft auf dem Handy nicht mehr über den Bildschirmrand",
+    "🧹 Werkzeugleiste zeigt nur noch die Buttons, die zum jeweiligen Bereich passen",
+    "🐞 „Schließen“ in der PDF-Vorschau war auf schmalen Bildschirmen abgeschnitten – behoben",
+  ]},
   { version: "2.6", date: "26.08.2026", changes: [
     "🎨 App-Icons: weißer Kasten um das Hall-Logo entfernt – Logo jetzt freigestellt auf der Creme-Fläche",
   ]},
@@ -3795,8 +3978,8 @@ async function sendPerEmail() {
   if (!stundenLimitOk()) return;
   if (!config.arbeitgeberEmail) {
     alert('Bitte zuerst in den Einstellungen die E-Mail-Adresse des Arbeitgebers/der Niederlassung eintragen.');
-    document.getElementById("settingsPanel").style.display = "block";
-    document.getElementById("cfgArbeitgeberEmail").focus();
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgArbeitgeberEmail");
     return;
   }
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
@@ -4228,14 +4411,85 @@ function azMonatsLabel(key) {
    aber ein EIGENES Element (CSS: body.als-app #handyBlatt { display:block })
    und blieb stehen. Unter dem Urlaubskalender bzw. der Stechuhr klebte
    dadurch die komplette Tagesliste des Spesenblatts. */
+/* Steuert NUR noch die Tage-Tabelle (Vordruck bzw. Handy-Karten) - Kopfzeile
+   und PDF-Knopfgruppe sind seit dem Stammdaten/Tage-Umschalter (Task 6,
+   Werkzeugleiste & Hauptkategorien Redesign Punkt 7) davon entkoppelt: sie
+   sind IMMER sichtbar, solange man ueberhaupt auf dem Spesen-Tab ist,
+   siehe zeigeSpesenKopfUndPdf() weiter unten. */
 function azSpesenAnsicht(sichtbar) {
-  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis", "spesenKopfzeile"].forEach((id) => {
+  ["formular-scroll", "handyBlatt", "abgabeHinweis", "pauschaleHinweis"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = sichtbar ? "" : "none";
   });
-  // Die PDF-/E-Mail-Knopfgruppe gehoert zur Abrechnung, nicht zur Arbeitszeit.
-  const leiste = document.querySelector(".toolbar .toolbar-group");
-  if (leiste) leiste.style.display = sichtbar ? "" : "none";
+}
+
+/* Kopfzeile + PDF-Knopfgruppe: immer sichtbar, solange man auf dem
+   Spesen-Tab ist - unabhaengig davon, ob Stammdaten oder Tage-Tabelle
+   gerade offen sind. Wird aus zeigeTab() heraus gesteuert (true fuer
+   "spesen", false fuer jeden anderen Tab). */
+function zeigeSpesenKopfUndPdf(sichtbar) {
+  const kopf = document.getElementById("spesenKopfzeile");
+  if (kopf) kopf.style.display = sichtbar ? "" : "none";
+  const pdfGruppe = document.getElementById("toolbarPdfGruppe");
+  if (pdfGruppe) pdfGruppe.style.display = sichtbar ? "" : "none";
+  // Bugfix (finale Whole-Branch-Review, Befund 4): "⋯ Mehr" klappt am Handy
+  // ausschliesslich die ".handy-mehr"-Knoepfe INNERHALB von #toolbarPdfGruppe
+  // auf (siehe CSS "body.mehr-offen .toolbar .handy-mehr"). Ist die
+  // PDF-Gruppe ausgeblendet (jeder Tab ausser Spesen), gibt es nichts zum
+  // Aufklappen - der Knopf blieb trotzdem sichtbar und tat nichts.
+  // style.display="" statt "none" laesst bei sichtbar=true weiterhin die
+  // Handy-Media-Query entscheiden, ob der Knopf ueberhaupt Platz hat.
+  const mehrKnopf = document.getElementById("mehrKnopf");
+  if (mehrKnopf) mehrKnopf.style.display = sichtbar ? "" : "none";
+}
+
+/* Gruppe 2 der Werkzeugleiste zeigt pro Tab unterschiedliche Kontext-Buttons
+   (Spesen: Zeiten-Knopf + Stammdaten/Tage-Umschalter; Zeit: Start/Stopp),
+   auf allen anderen Tabs (Urlaub/Jahresuebersicht/Anleitung/Mehr) ist die
+   ganze Gruppe ausgeblendet - vorher liefen diese Buttons unveraendert auf
+   jedem Tab mit, obwohl sie dort keinen Sinn ergaben (Bug, siehe Spec
+   Ausgangslage). */
+function zeigeWerkzeugleisteGruppe2(tab) {
+  const gruppe = document.getElementById("toolbarKontextGruppe");
+  const spesenTeil = document.getElementById("toolbarKontextSpesen");
+  const zeitTeil = document.getElementById("toolbarKontextZeit");
+  if (!gruppe || !spesenTeil || !zeitTeil) return;
+  gruppe.style.display = (tab === "spesen" || tab === "zeit") ? "" : "none";
+  spesenTeil.style.display = tab === "spesen" ? "" : "none";
+  zeitTeil.style.display = tab === "zeit" ? "" : "none";
+}
+
+/* ===== Spesen-Tab: Stammdaten UND Tage-Tabelle gemeinsam sichtbar =====
+   GEAENDERT (Live-Feedback Mirko, 28.08.2026): der in Task 6 gebaute
+   exklusive Umschalter zwischen Stammdaten und Tage-Tabelle wurde wieder
+   aufgehoben - "Spesen bearbeiten" (Stammdaten) und die Tage-Tabelle sind
+   jetzt IMMER gleichzeitig sichtbar (Stammdaten oben, Tage-Tabelle
+   darunter), ohne dass dafuer ein Werkzeugleisten-Knopf gedrueckt werden
+   muss. Der "ansicht"-Parameter bleibt als Funktionssignatur erhalten,
+   weil ihn zwei bestehende Aufrufstellen (csvEmailSelf(), sendPerEmail())
+   weiterhin mit fokusFeldId nutzen, um gezielt ein Stammdaten-Feld zu
+   fokussieren - er hat aber keinen Einfluss mehr darauf, was sichtbar ist. */
+function zeigeSpesenUnteransicht(ansicht, fokusFeldId) {
+  // Verteidigung unabhaengig davon, ob Task 7 (tab-abhaengige Sichtbarkeit
+  // der toolbarKontextGruppe) schon gelandet ist: "Spesen bearbeiten" ist
+  // HEUTE noch von jedem Tab aus klickbar, nicht nur vom Spesen-Tab. Ohne
+  // dieses Schliessen der uebrigen ALLE_PANELS-Mitglieder koennte z.B.
+  // urlaubPanel neben settingsPanel offen bleiben - beides normale
+  // Block-Elemente im Textfluss (kein Overlay), die sich dann sichtbar
+  // stapeln wuerden.
+  ALLE_PANELS.forEach((p) => {
+    if (p === "settingsPanel") return;
+    const el = document.getElementById(p);
+    if (el) el.style.display = "none";
+  });
+  document.getElementById("settingsPanel").style.display = "block";
+  azSpesenAnsicht(true);
+  renderAbsenceRangesList();
+  markiereTab("spesen");
+  if (fokusFeldId) {
+    const el = document.getElementById(fokusFeldId);
+    if (el) el.focus();
+  }
 }
 
 function toggleArbeitszeitPanel() {
@@ -4729,11 +4983,20 @@ function azRender() {
   document.getElementById("azGesetzlichePause").checked = azPauseAn();
   azPausenErklaerung();
 
-  // Stempel-Knopf
+  // Stempel-Knopf (Arbeitszeit-Panel)
   const l = AZ.lauf;
   const btn = document.getElementById("azBtn");
   btn.textContent = l ? "Feierabend" : "Arbeitsbeginn";
   btn.className = l ? "danger" : "primary";
+  // Zweiter Stempel-Knopf in der Werkzeugleiste (Task 7, Werkzeugleiste &
+  // Hauptkategorien Redesign Punkt 3) - dieselbe Funktion (azStempeln()),
+  // eigenes, kuerzeres Label. Beide Knoepfe bleiben ueber diese eine
+  // Render-Funktion synchron, egal ueber welchen gestempelt wurde.
+  const toolbarBtn = document.getElementById("toolbarStempelBtn");
+  if (toolbarBtn) {
+    toolbarBtn.textContent = l ? "🔴 Stopp" : "🟢 Start";
+    toolbarBtn.className = l ? "danger" : "primary";
+  }
   document.getElementById("azStatus").innerHTML = l
     ? "Läuft seit <b>" + azUhrzeit(l) + "</b>"
     : "Noch nicht gestartet";
@@ -5213,6 +5476,7 @@ window.addEventListener("hashchange", oeffneAusAnker);
 initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
+aktualisiereZeitSichtbarkeit();
 renderAbsenceRangesList();
 azInit();
 ["urlaubVon", "urlaubBis", "urlaubStatus"].forEach((id) =>
@@ -5234,7 +5498,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-26-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-28-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
