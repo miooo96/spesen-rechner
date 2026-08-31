@@ -777,7 +777,7 @@
     <div class="splash-greeting" id="splashGreeting"></div>
     <div class="splash-month" id="splashMonth"></div>
   </div>
-  <div class="splash-credit">built by Mirko Rieb</div>
+  <div class="splash-credit">built for Hall Tabakwaren</div>
 </div>
 
 <h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
@@ -952,9 +952,10 @@
       <input type="checkbox" id="cfgZeitenVariieren" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();">
       Aktivieren – nicht jeden Tag exakt dieselben Zeiten
     </label>
-    <p class="hinweis-text">Erzeugt beim automatischen Ausfüllen für jeden Wochentag leicht <b>unterschiedliche, realistische</b> Zeiten
+    <p class="hinweis-text">Erzeugt beim automatischen Ausfüllen für jeden Wochentag leicht <b>unterschiedliche</b> Zeiten
       bei Abfahrt WP / Ankunft WP – die Tagesstunden liegen dabei immer <b>über 8,5</b> und <b>nie über 10</b> (gelegentlich bis 10),
-      statt jeden Tag exakt dieselben „glatten" Werte. Freitags tendenziell etwas kürzer, wie im echten Alltag.
+      statt jeden Tag exakt dieselben Zeiten. Landet dabei immer auf glatten 5-Minuten-Marken (viertel vor/nach, halb, zehn vor
+      und Ähnliches) statt auf krummen Minutenzahlen. Freitags tendenziell etwas kürzer, wie im echten Alltag.
       Jeder Tag lässt sich weiterhin von Hand überschreiben. <b>Bitte prüfen, dass die Zeiten zu Ihrem tatsächlichen Arbeitstag passen.</b></p>
   </div>
 
@@ -1296,7 +1297,7 @@
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <footer class="no-print">
-  Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built by Rieb
+  Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built for Hall Tabakwaren
   <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
   <span class="footer-sep chef-only">&middot;</span><button class="footer-link chef-only" onclick="openAuswertungGate()">Auswertung</button>
 </footer>
@@ -1310,7 +1311,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 
 /* ===== Zeit-Tab nur fuer Mirko sichtbar =====
    Kein Login-System vorhanden - jede/r Kollege/in nutzt die Seite im
@@ -1669,14 +1670,17 @@ function stammLine(label, value, last) {
 }
 
 /* ===================== Zeiten automatisch variieren =====================
-   Erzeugt pro Wochentag leicht unterschiedliche, realistische Zeiten - immer
-   deterministisch aus dem Datum (gleiches Datum => gleiche Zeiten, aendern sich
-   nicht bei jedem Neu-Rendern), aber jeder Tag anders. Angezeigte Tagesstunden
-   liegen strikt ueber 8,5 und nie ueber 10 (gelegentlich bis 10). */
+   Erzeugt pro Wochentag leicht unterschiedliche Zeiten - immer deterministisch
+   aus dem Datum (gleiches Datum => gleiche Zeiten, aendern sich nicht bei jedem
+   Neu-Rendern), aber jeder Tag anders. Angezeigte Tagesstunden liegen strikt
+   ueber 8,5 und nie ueber 10 (gelegentlich bis 10).
+   Auf Wunsch (28.08.2026) landen Abfahrt/Ankunft dabei immer auf glatten
+   5-Minuten-Marken (viertel vor/nach, halb, zehn vor usw.), nie auf krummen
+   Minutenzahlen wie :07 oder :23. */
 function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
 function mulberry32(a){ return function(){ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
 function minToTime(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+":"+pad(m%60); }
-function deround(m, r){ const mm=((Math.round(m)%60)+60)%60; if(mm===0||mm===30) m += (r<0.5?-1:1)*(2+Math.floor(r*4)); return Math.round(m); }
+function roundToClean(m){ return Math.round(m / 5) * 5; }
 function variedTimes(iso, startDefault, isMonteur, wd){
   const rnd = mulberry32(hashStr(iso + "|" + (startDefault || "06:00")));
   let H;
@@ -1687,10 +1691,10 @@ function variedTimes(iso, startDefault, isMonteur, wd){
   const base = timeToMinutes(startDefault || "06:00");
   let dep = base + Math.round(rnd()*12 - 6);                 // Abfahrt +/- 6 Minuten
   let arr = dep + (H + 0.5) * 60;                            // 30 Min Pause immer eingerechnet (Fahrer & Monteur)
-  dep = deround(dep, rnd()); arr = deround(arr, rnd());      // "nicht glatt": weg von :00 / :30
+  dep = roundToClean(dep); arr = roundToClean(arr);          // auf glatte 5-Minuten-Marken runden
   let disp = (arr - dep) / 60 - 0.5;                         // angezeigte Stunden (nach Pausenabzug)
-  if (disp > 10)   arr -= Math.round((disp - 10) * 60);
-  if (disp <= 8.5) arr += Math.round((8.56 - disp) * 60);
+  if (disp > 10)   arr -= Math.ceil((disp - 10) * 60 / 5) * 5;   // in 5-Min-Schritten kappen, bleibt glatt
+  if (disp <= 8.5) arr += Math.ceil((8.6 - disp) * 60 / 5) * 5;  // in 5-Min-Schritten anheben, bleibt glatt
   return { abfahrt: minToTime(dep), ankunft: minToTime(arr) };
 }
 function minutesToTime(m) {
@@ -3771,9 +3775,12 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.8", date: "31.08.2026", changes: [
+    "🕐 „Zeiten automatisch variieren“ landet jetzt immer auf glatten 5-Minuten-Marken (viertel vor/nach, halb, zehn vor) statt auf krummen Minutenzahlen",
+  ]},
   { version: "2.7", date: "28.08.2026", changes: [
     "📋 Spesen startet jetzt direkt mit den Stammdaten – kein Extra-Klick auf „Spesen bearbeiten“ mehr nötig",
-    "🟢 Neuer Start/Stopp-Knopf für die Stechuhr direkt in der Werkzeugleiste (nur für Mirko sichtbar)",
+    "🟢 Neuer Start/Stopp-Knopf für die Stechuhr direkt in der Werkzeugleiste (nur für einen Mitarbeiter sichtbar)",
     "❓ Anleitung und 📱 Als App einrichten sind jetzt vollwertige Hauptkategorien",
     "☰ Neue Hauptkategorie „Mehr“ bündelt Feedback, QR-Code, Monat abschließen, Archiv, Sprache und Zurücksetzen",
     "📊 „Jahr“ heißt jetzt „Jahresübersicht“ und läuft auf dem Handy nicht mehr über den Bildschirmrand",
@@ -5498,7 +5505,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-28-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-08-31-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });

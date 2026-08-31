@@ -98,12 +98,11 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 <h2>1. Loslegen: Kachel-Startseite &amp; Werkzeugleiste</h2>
 <div class="step">
   <p>Nach dem Öffnen (bzw. nach dem Einrichtungsassistenten) landet man immer zuerst auf der
-     <b>Kachel-Startseite</b> mit den Hauptbereichen zur Auswahl:</p>
-  <img src="anleitung-bilder/kachel-startseite.png" alt="Kachel-Startseite mit allen Hauptbereichen">
+     <b>Kachel-Startseite</b> mit den Hauptbereichen zur Auswahl (Screenshots hier mit einem
+     Beispiel-Namen aufgenommen, nicht mit echten Mitarbeiterdaten):</p>
+  <img src="anleitung-bilder/kachel-startseite.png" alt="Kachel-Startseite mit den Hauptbereichen (Beispielansicht)">
   <ul>
     <li><b>📋 Spesen</b> – der eigentliche Spesennachweis: Stammdaten und die Tage-Tabelle (siehe Schritt 2 und 3)</li>
-    <li><b>⏱️ Zeit</b> – eigene Stechuhr mit Überstunden-Konto (siehe „Extra: Arbeitszeit erfassen"). <b>Nur sichtbar,
-        wenn als Name exakt „Mirko Rieb" hinterlegt ist</b> – bei jedem anderen Namen erscheint diese Kachel nicht.</li>
     <li><b>🌴 Urlaub</b> – Jahreskalender mit Urlaubsanspruch und Resttagen (siehe „Extra: Urlaubskalender")</li>
     <li><b>📊 Jahresübersicht</b> – Monats- und Jahressummen auf einen Blick, inkl. Balkendiagramm (siehe Schritt 8)</li>
     <li><b>📱 Als App einrichten</b> – Anleitung zum Einrichten als App auf dem Handy (siehe „Extra: Auf dem Handy –
@@ -129,10 +128,6 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
         und markiert den Monat automatisch als eingereicht (siehe Schritt 10)</li>
     <li><b>📄 CSV (für Steuer)</b> – exportiert den Monat zusätzlich als CSV-Datei, praktisch für die eigene Steuerablage</li>
   </ul>
-
-  <p>Auf <b>⏱️ Zeit</b> zeigt die Werkzeugleiste stattdessen nur einen einzigen Knopf – <b>Start/Stopp</b> der
-     Stechuhr, synchron mit dem Knopf weiter unten im Tab:</p>
-  <img src="anleitung-bilder/zeit-tab.png" alt="Werkzeugleiste im Zeit-Tab mit Start/Stopp-Knopf">
 
   <p>Auf allen anderen Tabs (<b>Urlaub, Jahresübersicht, Anleitung, Als App einrichten, Mehr</b>) gibt es
      <b>keine Werkzeugleiste</b> – dort braucht es keine zusätzlichen Knöpfe.</p>
@@ -307,98 +302,6 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <img src="anleitung-bilder/jahresuebersicht-beispiel.png" alt="Beispiel einer Jahresübersicht">
 </div>
 
-<h2>Extra: ⏱️ Arbeitszeit erfassen (optional)</h2>
-<div class="step">
-  <p>Über die Kachel/den Tab <b>⏱️ Zeit</b> öffnet sich eine eigene Stechuhr mit
-     Überstunden-Konto, mit einem eigenen Start/Stopp-Knopf in der Werkzeugleiste. Solange sie geöffnet ist, tritt das Spesenblatt in den Hintergrund – so kann man
-     beim Stempeln nicht versehentlich in der Abrechnung tippen.</p>
-
-  <div class="hinweis"><b>Nur für Mirko sichtbar:</b> Die Kachel/der Tab „⏱️ Zeit" erscheint ausschließlich,
-    wenn als Name exakt „Mirko Rieb" hinterlegt ist (siehe Schritt 2) – bei jedem anderen Namen fehlt dieser
-    Bereich komplett, auch in der Kachel-Startseite.</div>
-
-  <div class="hinweis"><b>Wichtig:</b> Diese Funktion ist <b>völlig getrennt</b> von der Spesen-Abrechnung.
-    Gestempelte Zeiten werden <b>nicht</b> in die Spesen-Tabelle übernommen und erscheinen <b>nicht</b> im PDF.
-    Die Abrechnung kann sich durch das Stempeln also nie verändern. Die Daten liegen wie alles andere lokal
-    im eigenen Browser und sind im normalen Backup (Schritt 9) enthalten.</div>
-
-  <img src="anleitung-bilder/arbeitszeit.png" alt="Arbeitszeit-Erfassung mit Monats- und Jahresübersicht">
-
-  <p><b>Zeit erfassen – drei Wege, alle führen in denselben Kalender:</b></p>
-  <ul>
-    <li><b>Stempeln</b> – auf <b>Arbeitsbeginn</b> tippen, die Uhr läuft; am Ende auf <b>Feierabend</b>.
-        Die Uhr läuft auch weiter, wenn man das Tool zwischendurch schließt.</li>
-    <li><b>✍️ Zeiten von Hand eintragen</b> – für vergessenes Stempeln oder zum Nachpflegen: Datum,
-        Arbeitsbeginn und Feierabend eingeben (z.B. 6:00 bis 15:30). Schon beim Tippen wird angezeigt,
-        wie viele Stunden das ergibt und wie viel über oder unter dem Soll. Mit
-        <b>„Eintragen &amp; nächster Tag"</b> springt die Maske gleich auf den Folgetag weiter und
-        behält die Zeiten – so ist eine ganze Woche in wenigen Klicks nachgetragen.</li>
-    <li><b>⏰ Zeiten für alle Tage</b> – füllt einen <b>ganzen Monat auf einmal</b> mit denselben Zeiten.
-        Gedacht für alle, die fast täglich gleich anfangen und aufhören (vor allem Monteure): einmal
-        06:00–15:30 eintragen statt zwanzig Mal. Danach im Kalender nur noch die Ausnahmen antippen.
-        Siehe unten <b>„Ganzen Monat auf einmal füllen"</b>.</li>
-  </ul>
-  <div class="hinweis">Keiner dieser Wege ist Pflicht. Wer lieber jeden Tag einzeln einträgt, macht
-    genau das weiter – die drei Wege stehen nebeneinander und lassen sich beliebig mischen.</div>
-  <div class="hinweis">Stempelungen unter einer Minute werden verworfen – das ist immer ein Fehlgriff.
-    Ein wirklich kurzer Tag lässt sich über „Zeiten von Hand eintragen" erfassen; eine Untergrenze gibt es
-    dabei nicht.</div>
-
-  <p><b>Pause:</b> Im Fenster eines Tages wird angehakt, ob es an <b>diesem einen Tag</b> eine Pause gab
-     (Tag im Kalender antippen).</p>
-  <ul>
-    <li><b>Haken gesetzt</b> – die gesetzliche Pause wird abgezogen: 30 Minuten ab mehr als 6 Stunden,
-        45 Minuten ab mehr als 9 Stunden (§ 4 Arbeitszeitgesetz). Daneben steht, wie viel abgezogen wurde.</li>
-    <li><b>Haken leer</b> – es wird <b>nichts</b> abgezogen. Richtig, wenn tatsächlich durchgearbeitet
-        wurde: eine Pause, die es nicht gab, darf nicht abgezogen werden.</li>
-    <li>Ein <b>⚠️</b> erscheint am Tag im Kalender, wenn über 6 Stunden ohne Pause gearbeitet wurde. Es wird
-        trotzdem nichts abgezogen – das Zeichen hält nur fest, dass an dem Tag keine Pause möglich war.
-        Nach § 4 Satz 2 ArbZG darf länger als sechs Stunden nicht ohne Ruhepause gearbeitet werden.</li>
-  </ul>
-  <p>Unter <b>⚙️ Vorgaben</b> wird eingestellt, wie lang ein regulärer Arbeitstag ist (Vorgabe 8,5 Stunden)
-     und ob neue Tage mit oder ohne Pause angelegt werden. Das ist nur die Voreinstellung – jeder einzelne
-     Tag lässt sich beim Antippen davon abweichend umstellen.</p>
-
-  <p><b>Der Monatskalender:</b></p>
-  <ul>
-    <li>Jeder Tag zeigt seine Arbeitszeit. <b>Grün</b> heißt über dem Soll, <b>rot</b> darunter, leer heißt
-        nichts erfasst. Wochenenden sind grau, Feiertage orange hinterlegt.</li>
-    <li><b>Tag antippen</b> öffnet ihn: eintragen, ändern oder löschen. Ist der Tag schon erfasst, wird er
-        zum <b>Ändern</b> geladen – es entsteht kein zweiter Eintrag, der doppelt zählen würde.</li>
-    <li>Mit <b>‹ ›</b> geht es einen Monat vor oder zurück; über das Auswahlfeld sind die letzten
-        zwölf Monate direkt erreichbar – auch solche, in denen noch nichts erfasst ist.</li>
-    <li>Ein <b>✱</b> am Tag bedeutet: an diesem Tag gibt es <b>mehrere</b> Einträge (z.B. geteilter Dienst).
-        Beim Antippen stehen sie alle zur Auswahl.</li>
-    <li>Unter dem Kalender stehen die <b>Monatssumme</b> und die <b>Gesamtsumme</b> über alle Monate</li>
-    <li>Die <b>Jahresübersicht</b> zeigt alle zwölf Monate mit Balkendiagramm – grün nach oben für
-        Überstunden, rot nach unten für Minusstunden</li>
-    <li><b>📋 Als Text kopieren</b> legt den ganzen Monat in die Zwischenablage – praktisch zum
-        Weiterleiten oder als Beleg</li>
-  </ul>
-  <div class="hinweis">Nur Tage mit erfasster Zeit zählen. Ein Tag, an dem nicht gestempelt wurde,
-    erzeugt <b>kein</b> Minus.</div>
-
-  <h3>⏰ Ganzen Monat auf einmal füllen</h3>
-  <p>Wer fast jeden Tag dieselben Zeiten hat, muss sie nicht zwanzig Mal eintippen. Der Knopf
-     <b>⏰ Zeiten für alle Tage</b> in der Arbeitszeit-Ansicht fragt nach Monat, Arbeitsbeginn, Feierabend
-     und Pause – und legt für jeden Werktag einen Eintrag an.</p>
-  <p>Vor dem Eintragen steht genau da, was passieren wird, zum Beispiel:</p>
-  <div class="hinweis" style="font-family:inherit;">Es werden <b>9 Tage</b> eingetragen (03.08. bis 14.08.),
-    je <b>06:00–15:30</b> = <b>8:45 Std.</b> (9:30 minus 45 Min. Pause) pro Tag · <b>+2:15</b> Überstunden
-    gesamt.<br>Übersprungen: <b>1 bereits erfasst</b> · 10 Wochenende · 11 noch in der Zukunft.</div>
-  <p><b>Drei Dinge werden bewusst übersprungen:</b></p>
-  <ul>
-    <li><b>Tage, die schon erfasst sind</b> – egal ob gestempelt oder von Hand. Eine echte gestempelte
-        Zeit wird nie von einer Vorgabe überschrieben.</li>
-    <li><b>Wochenenden und Feiertage</b> – Feiertage richten sich nach dem Bundesland aus den Einstellungen</li>
-    <li><b>Tage in der Zukunft.</b> Die Arbeitszeiterfassung ist ein Nachweis über <b>geleistete</b> Arbeit
-        (§ 16 Abs. 2 Arbeitszeitgesetz), kein Dienstplan. Beim laufenden Monat wird deshalb nur bis heute
-        gefüllt, bei zurückliegenden Monaten der ganze Monat.</li>
-  </ul>
-  <div class="hinweis">Danach lässt sich jeder Tag im Kalender ganz normal antippen und ändern oder löschen.
-    Ein zweiter Durchlauf legt nichts doppelt an – was schon dasteht, bleibt stehen.</div>
-</div>
-
 <h2>Extra: 🌴 Urlaubskalender (optional)</h2>
 <div class="step">
   <p>Über die Kachel/den Tab <b>🌴 Urlaub</b> öffnet sich ein Jahreskalender mit Urlaubskonto.</p>
@@ -560,7 +463,7 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
     sodass sie die vorherige eindeutig ersetzt.</div>
 </div>
 
-<footer>Spesen-Rechner &middot; Built by Rieb &middot; alle bisherigen Neuerungen: „Änderungshistorie" im Fußbereich des Tools</footer>
+<footer>Spesen-Rechner &middot; Built for Hall Tabakwaren &middot; alle bisherigen Neuerungen: „Änderungshistorie" im Fußbereich des Tools</footer>
 
 </body>
 </html>
