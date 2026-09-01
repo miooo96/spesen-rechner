@@ -513,6 +513,13 @@
   .hinweis-cell { vertical-align: middle; line-height: 1.35; }
   /* Leere Rasterzeilen behalten die Spaltenrahmen (beschreibbare Felder wie im Original). */
   tr.leerzeile td { height: 1.6em; }
+  /* Wochenweiser Samstag-Knopf in der Pufferzeile (siehe buildWochenPuffer) -
+     der Knopf selbst ist no-print, damit auf dem Ausdruck/PDF wieder nur das
+     leere Original-Kaestchen erscheint, exakt wie beim Original-Vordruck. */
+  tr.samstag-toggle-zeile td.orte-cell { height: auto; padding: 2px 4px; white-space: nowrap; }
+  button.samstag-toggle-btn {
+    font-size: 0.78rem; padding: 2px 10px; border: 1px dashed #d8dce2; border-radius: 999px;
+  }
   .gesamt-row td { font-weight: bold; background: #FDE9DC; }
   .bezahlt-cell { color: #c0392b; white-space: nowrap; }
   .bezahlt-cell input { width: 70px; display: inline-block; color: #c0392b; font-weight: bold; }
@@ -1311,7 +1318,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.8";
+const APP_VERSION = "2.9";
 
 /* ===== Zeit-Tab nur fuer Mirko sichtbar =====
    Kein Login-System vorhanden - jede/r Kollege/in nutzt die Seite im
@@ -1681,6 +1688,22 @@ function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.cha
 function mulberry32(a){ return function(){ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
 function minToTime(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+":"+pad(m%60); }
 function roundToClean(m){ return Math.round(m / 5) * 5; }
+/* Rein optische Rundung fuer die ANZEIGE (Tabelle/PDF/CSV): rundet immer auf
+   die naechste Viertelstunde AUF (z.B. 9,33 -> 9,5 / 8,42 -> 8,5), nie ab -
+   der Mitarbeiter bekommt so nie weniger Stunden angezeigt, als tatsaechlich
+   gearbeitet wurde. Betrifft NUR die Darstellung: die exakte Zeitdifferenz aus
+   e.hours bleibt unveraendert massgeblich fuer die 10-Std.-Genehmigungsgrenze
+   und die 8,5-Std.-Pauschalenschwelle (siehe computeDay/stundenLimitOk) - das
+   Runden hier darf daran nichts verschieben. -1e-9 Toleranz verhindert, dass
+   ein bereits glatter Wert (z.B. echte 9.5) durch Fliesskomma-Rauschen faelschlich
+   auf die naechste Viertelstunde hochspringt. */
+function roundHoursDisplay(hours) {
+  if (hours === null || hours === undefined) return hours;
+  return Math.ceil(hours * 4 - 1e-9) / 4;
+}
+function formatHoursDisplay(hours) {
+  return roundHoursDisplay(hours).toFixed(2).replace(".", ",");
+}
 function variedTimes(iso, startDefault, isMonteur, wd){
   const rnd = mulberry32(hashStr(iso + "|" + (startDefault || "06:00")));
   let H;
@@ -1736,11 +1759,14 @@ function computeDay(date, holidaysMap) {
     if (isHoliday) {
       return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
     }
-    // Sonntag erscheint nie automatisch. Samstag nur, wenn in den Einstellungen
-    // "Samstag als Tages-Zeile hinzufügen" aktiviert ist (oder als fixer NL-Tag) -
-    // so lässt sich ein Samstag ausschließlich über das Einstellungs-Menü zuschalten.
+    // Sonntag erscheint nie automatisch. Samstag nur, wenn entweder in den
+    // Stammdaten "Samstag als Tages-Zeile hinzufügen" GLOBAL aktiviert ist,
+    // ODER genau diese eine Woche das ueber ov.samstagEin einzeln dazugeschaltet
+    // hat (Knopf unten in der Tabelle, siehe buildWochenPuffer/renderFormular) -
+    // so lässt sich ein Samstag entweder fuer den ganzen Zeitraum oder gezielt
+    // fuer eine einzelne Woche zuschalten.
     if (wd === 6 && !isFixedNlWeekendDay) return null; // Sonntag
-    if (wd === 5 && !isFixedNlWeekendDay && !config.samstagAktiv) return null; // Samstag nur wenn aktiviert
+    if (wd === 5 && !isFixedNlWeekendDay && !config.samstagAktiv && !ov.samstagEin) return null; // Samstag nur wenn aktiviert (global oder pro Woche)
   }
 
   // Erst individuelle Eingabe an diesem Tag, sonst die Standardzeit aus den
@@ -3061,7 +3087,7 @@ function liveUpdate(iso, field, value) {
   const e = computeDay(new Date(iso), holidaysMap);
   const stundenEl = document.getElementById("std-cell-" + iso);
   const pauschaleEl = document.getElementById("pauschale-cell-" + iso);
-  if (stundenEl) stundenEl.innerHTML = (e && e.hours !== null) ? e.hours.toString().replace(".", ",") + (e.pauseAbgezogen ? '<span class="no-print">*</span>' : "") : "";
+  if (stundenEl) stundenEl.innerHTML = (e && e.hours !== null) ? formatHoursDisplay(e.hours) + (e.pauseAbgezogen ? '<span class="no-print">*</span>' : "") : "";
   if (pauschaleEl) pauschaleEl.textContent = (e && e.pauschale > 0) ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
 
   recomputeSummary(monat);
@@ -3071,6 +3097,31 @@ function liveUpdateBezahlt(bezahltKey, value) {
   localStorage.setItem(bezahltKey, value);
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   recomputeSummary(monat);
+}
+
+/* Baut die 2 Pufferzeilen nach einer Arbeitswoche (siehe renderFormular).
+   Normalerweise zwei leere Kaestchen wie im Original-Vordruck. Ist der
+   globale Samstag-Schalter (Stammdaten) AUS, wird eine der beiden Zeilen
+   durch einen kleinen Knopf ersetzt, mit dem sich genau fuer DIESE eine
+   Woche ein Samstag dazuschalten bzw. wieder entfernen laesst (ov.samstagEin,
+   siehe computeDay) - unabhaengig von allen anderen Wochen im Zeitraum.
+   fridayIso = ISO-Datum des Freitags der gerade zu Ende gegangenen Woche,
+   oder null vor der allerersten Woche (dann nur die einfache Pufferzeile). */
+function buildWochenPuffer(fridayIso) {
+  const leer = `<tr class="leerzeile"><td class="bold">&nbsp;</td><td></td><td></td><td></td><td class="orte-cell"></td><td></td><td></td><td class="pauschale-cell"></td><td class="status-cell"></td></tr>`;
+  if (!fridayIso || config.samstagAktiv) return leer + leer;
+  const satDate = new Date(fridayIso);
+  satDate.setDate(satDate.getDate() + 1);
+  const satIso = fmtISO(satDate);
+  const satAn = !!(overrides[satIso] && overrides[satIso].samstagEin);
+  // Knopf steckt IN der orte-cell-Zelle (dieselben 9 <td> wie "leer"), no-print
+  // sitzt am Knopf selbst statt an der Zelle/per colspan - so bleibt die Zeile
+  // beim Ausdruck/PDF exakt die leere 9-Spalten-Struktur wie im Original-Vordruck,
+  // ganz ohne Risiko einer verschobenen Spaltenzahl.
+  const btn = satAn
+    ? `<button type="button" class="ghost samstag-toggle-btn no-print" onclick="updateOverride('${satIso}','samstagEin','')">✕ Samstag entfernen</button>`
+    : `<button type="button" class="ghost samstag-toggle-btn no-print" onclick="updateOverride('${satIso}','samstagEin','1')">+ Samstag (diese Woche)</button>`;
+  return leer + `<tr class="leerzeile samstag-toggle-zeile"><td class="bold">&nbsp;</td><td></td><td></td><td></td><td class="orte-cell">${btn}</td><td></td><td></td><td class="pauschale-cell"></td><td class="status-cell"></td></tr>`;
 }
 
 function renderFormular() {
@@ -3091,24 +3142,23 @@ function renderFormular() {
       <button onclick="reopenMonth(${config.jahr}, ${monat})">${t("unlockBtn")}</button>
     </div>` : "";
 
-  // Leere Rasterzeile mit voller Spaltenstruktur (wie im Original-Vordruck):
-  // jede Spalte behält ihren Rahmen, dadurch entstehen leere, beschreibbare
-  // Felder - u.a. in der Wochentag-Spalte. Zwei je Wochenblock dienen als
-  // Puffer, z.B. um einen durch einen Feiertag unter der Woche ausgefallenen
-  // Tag am Samstag auszugleichen, ohne extra eine Samstagszeile anzulegen.
-  const leerzeile = `<tr class="leerzeile"><td class="bold">&nbsp;</td><td></td><td></td><td></td><td class="orte-cell"></td><td></td><td></td><td class="pauschale-cell"></td><td class="status-cell"></td></tr>`;
+  // Pufferzeilen zwischen den Wochen: siehe buildWochenPuffer() weiter oben -
+  // normalerweise zwei leere Kaestchen wie im Original-Vordruck, plus bei
+  // Bedarf der Knopf zum wochenweisen Samstag-Dazuschalten.
   const rows = [];
   let lastWeek = null;
+  let lastFridayIso = null;
   for (const e of entries) {
     const dateObj = new Date(e.iso);
     const week = Math.floor((dateObj.getDate() + new Date(config.jahr, monat - 1, 1).getDay() - 1) / 7);
-    if (lastWeek === null || week !== lastWeek) rows.push(leerzeile + leerzeile);
+    if (lastWeek === null || week !== lastWeek) rows.push(buildWochenPuffer(lastFridayIso));
     lastWeek = week;
+    if (e.wd === 4) lastFridayIso = e.iso; // Freitag merken - massgeblich fuer den Samstag-Knopf der Pufferzeile danach
 
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     if (e.status === "normal") {
-      const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? '<span class="no-print">*</span>' : "");
+      const stunden = e.hours === null ? "" : formatHoursDisplay(e.hours) + (e.pauseAbgezogen ? '<span class="no-print">*</span>' : "");
       const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
       const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
       const stdCellClass = e.warnLongHours ? "warn-hours" : "";
@@ -3150,8 +3200,9 @@ function renderFormular() {
         </tr>`);
     }
   }
-  // Wie im Original: zwei Leerzeilen zwischen dem letzten Tag und der Gesamtpauschale.
-  if (rows.length) rows.push(leerzeile + leerzeile);
+  // Wie im Original: zwei Leerzeilen zwischen dem letzten Tag und der Gesamtpauschale
+  // (bzw. der Samstag-Knopf fuer die letzte Woche des Monats, siehe buildWochenPuffer).
+  if (rows.length) rows.push(buildWochenPuffer(lastFridayIso));
 
   const html = `
     ${lockBanner}
@@ -3316,7 +3367,7 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
         </div>`;
     }
 
-    const stunden = e.hours === null ? "–" : e.hours.toFixed(2).replace(".", ",") + " Std.";
+    const stunden = e.hours === null ? "–" : formatHoursDisplay(e.hours) + " Std.";
     const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") + " €" : "";
     const langerTag = e.warnLongHours
       ? ` <span class="warn-icon" title="Über 10 Std. - bitte Uhrzeiten prüfen">⚠️</span>` : "";
@@ -3487,6 +3538,9 @@ function stundenLimitOk() {
   if (drueber.length === 0) return true;
   const liste = drueber.map(e => {
     const d = e.iso.split("-").reverse().join(".");
+    // Bewusst der EXAKTE Wert, nicht formatHoursDisplay(): dieser Hinweis erklaert,
+    // warum ein Tag ueber der 10-Std.-Grenze blockiert, da soll die ungerundete
+    // Wahrheit stehen statt der aufgerundeten Anzeige-Variante aus der Tabelle.
     const std = e.hours.toFixed(2).replace(".", ",");
     return `<li><b>${WEEKDAY_NAMES[e.wd]}, ${d}</b> - ${std} Std.</li>`;
   }).join("");
@@ -3652,7 +3706,7 @@ function buildCsvData() {
     const [y, m, d] = e.iso.split("-");
     const datumStr = `${d}.${m}.${y}`;
     const statusLabel = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status] || STATUS_LABELS.normal);
-    const stunden = e.hours === null ? "" : e.hours.toFixed(2).replace(".", ",") + (e.pauseAbgezogen ? "*" : "");
+    const stunden = e.hours === null ? "" : formatHoursDisplay(e.hours) + (e.pauseAbgezogen ? "*" : "");
     const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") : "";
     rows.push([WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "", e.ankunft || "", stunden, pauschale, statusLabel]);
   }
@@ -3775,6 +3829,10 @@ function closeModal() {
    Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
    Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
 const CHANGELOG = [
+  { version: "2.9", date: "01.09.2026", changes: [
+    "⏱️ Stunden werden jetzt auf Viertelstunden aufgerundet angezeigt (z.B. 9,5 oder 9,75 statt 9,33) – die 10-Std.-Grenze und die Pauschale-Schwelle rechnen weiterhin exakt",
+    "📅 Samstag lässt sich jetzt auch direkt in der Tabelle für eine einzelne Woche dazuschalten, nicht mehr nur global in den Stammdaten",
+  ]},
   { version: "2.8", date: "31.08.2026", changes: [
     "🕐 „Zeiten automatisch variieren“ landet jetzt immer auf glatten 5-Minuten-Marken (viertel vor/nach, halb, zehn vor) statt auf krummen Minutenzahlen",
   ]},
@@ -4231,7 +4289,7 @@ function szVorschau() {
   const pauschale = std > 24 ? config.pauschale24 : (std > 8 ? config.pauschale8 : 0);
   el.innerHTML =
     `<b>${von} – ${bis}</b> an jedem Werktag<br>` +
-    `ergibt <b>${std.toFixed(2).replace(".", ",")} Std.</b> ` +
+    `ergibt <b>${formatHoursDisplay(std)} Std.</b> ` +
     `<span style="color:#666;">(abzüglich 30 Min. Pause)</span> · ` +
     (pauschale > 0
       ? `Pauschale <b>${pauschale.toFixed(2).replace(".", ",")} €</b> pro Tag`
@@ -5494,7 +5552,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-08-31-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-01-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
