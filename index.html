@@ -647,6 +647,17 @@
   .inv-jn td { border:1.5px solid #000; text-align:center; font-size:12px; height:19px; width:52px; background:#e8e3a8; }
   .inv-sig { border:1.5px solid #000; height:24px; }
   .inv-sig.g { background:#e8e3a8; }
+  /* Unterschriftsfeld: Bild und Eingabefeld liegen uebereinander im selben
+     Kasten - ist ein Foto gesetzt, deckt es das leere Feld ab. */
+  .inv-sig-feld { position:relative; height:38px; overflow:hidden; }
+  .inv-sig-feld .inv-sig-img { position:absolute; inset:1px; margin:auto; max-height:34px; max-width:98%; object-fit:contain; }
+  .inv-sig-knoepfe { display:flex; gap:6px; align-items:center; margin-top:3px; flex-wrap:wrap; }
+  .inv-sig-knoepfe button { font-size:12px; padding:4px 9px; }
+  .inv-sig-ts { font-size:10px; color:#888; }
+  /* Waehrend der PDF-Aufnahme alles ausblenden, was nicht aufs Dokument
+     gehoert. Ersetzt das ignoreElements von html2canvas - das konnte hier
+     nicht verwendet werden, weil #inventurPanel selbst "no-print" traegt. */
+  .inv-pdf-export .no-print { display:none !important; }
   .inv-klein { font-size:9px; color:#333; margin-top:3px; }
   .inv-pdfzeile { margin-top:12px; }
   /* Am Handy ist das Blatt nur zur Kontrolle da - getippt wird in "Erfassen" */
@@ -1315,7 +1326,23 @@
         </table>
         <table class="inv-fz">
           <tr><td class="k">Datum:</td><td><div class="inv-sig"><input id="invFDatum"></div></td></tr>
-          <tr><td class="k">Verkaufsfahrer:</td><td><div class="inv-sig"><input id="invFFahrer" placeholder="Unterschrift"></div></td></tr>
+          <!-- Verkaufsfahrer: entweder Foto der echten Unterschrift (einmal
+               einfuegen, bleibt gespeichert) oder leer lassen und den
+               Ausdruck von Hand unterschreiben. Gleiche Mechanik wie beim
+               Spesennachweis, nur eigener Speicherschluessel. -->
+          <tr><td class="k">Verkaufsfahrer:</td>
+              <td>
+                <div class="inv-sig inv-sig-feld">
+                  <img id="sigImg-inventur_signature" class="inv-sig-img" alt="" style="display:none">
+                  <input id="invFFahrer" placeholder="Unterschrift">
+                </div>
+                <div class="no-print inv-sig-knoepfe">
+                  <input type="file" id="sigFile-inventur_signature" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'inventur_signature')">
+                  <button type="button" class="ghost" onclick="document.getElementById('sigFile-inventur_signature').click()" title="Foto/Scan der handschriftlichen Unterschrift einfügen">📷 Unterschrift einfügen</button>
+                  <button type="button" class="ghost" onclick="clearSignature('inventur_signature')" title="Unterschrift entfernen">✕</button>
+                  <span class="inv-sig-ts" id="sigTs-inventur_signature"></span>
+                </div>
+              </td></tr>
           <tr><td class="k">GVL/TB/VR/…:</td><td><div class="inv-sig"><input id="invFGvl"></div></td></tr>
           <tr><td class="k">Kontrolle:</td><td><div class="inv-sig g"><input id="invFKontrolle" placeholder="Unterschrift"></div></td></tr>
         </table>
@@ -2803,6 +2830,7 @@ async function invBuildPdf() {
   blattView.style.display = "";
   el.style.transform = "none";
   el.style.height = "auto";
+  el.classList.add("inv-pdf-export");   // Bedienknoepfe raus aus der Aufnahme
   let canvas;
   try {
     /* KEIN ignoreElements wie beim Spesenblatt: #inventurPanel traegt selbst
@@ -2817,6 +2845,7 @@ async function invBuildPdf() {
       windowWidth: 1300,
     });
   } finally {
+    el.classList.remove("inv-pdf-export");
     el.style.transform = vorherTransform;
     el.style.height = vorherHoehe;
     blattView.style.display = vorherView;
@@ -2875,6 +2904,9 @@ function toggleInventurPanel() {
       });
     });
     invFuelleKopfFelder();
+    // Gespeicherte Unterschrift (Foto) anzeigen, samt Zeitstempel
+    loadSignatureImageInto("sigImg-inventur_signature", "inventur_signature");
+    renderSignatureTimestamp("inventur_signature");
     invAufgebaut = true;
   }
   /* Reihenfolge ist Absicht (Mirko, 03.09.2026): erst die Kopfabfrage,
@@ -4004,6 +4036,10 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
 const SIGNATURE_PADS = [
   { imgId: "sigImg-spesen_signature", key: "spesen_signature" },
   { imgId: "sigImg-spesen_signature_nll", key: "spesen_signature_nll" },
+  // Fahrzeug-Inventur, Feld "Verkaufsfahrer". Eigener Schluessel, damit die
+  // Unterschrift unter dem Spesennachweis davon unberuehrt bleibt - es sind
+  // zwei verschiedene Dokumente.
+  { imgId: "sigImg-inventur_signature", key: "inventur_signature" },
 ];
 
 /* Zeigt "unterschrieben am TT.MM.JJJJ um HH:MM" unter der jeweiligen
@@ -6134,7 +6170,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-03-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-03-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
