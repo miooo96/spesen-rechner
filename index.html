@@ -939,7 +939,7 @@
          links, PDF-Aktion rechts in der eigenen Gruppe darunter. -->
     <span id="toolbarKontextInventur" style="display:none;">
       <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
-      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Blatt ansehen</button>
+      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Zettel</button>
       <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
     </span>
   </div>
@@ -947,7 +947,7 @@
   <!-- Ein Weg statt zwei: erst ansehen, im Ergebnisfenster dann speichern
        oder drucken. Kein Knopf, der ungesehen herunterlaedt. -->
   <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
-    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invFertig">📄 Fertiges Blatt ansehen</button>
+    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invPdf">💾 PDF erstellen</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
@@ -1298,7 +1298,10 @@
     <div class="inv-hint" id="invHint"></div>
     <div class="inv-fussleiste">
       <button type="button" class="ghost" onclick="invNaechsteGruppe()" data-i18n="invNaechste">Nächste Gruppe</button>
-      <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invFertig">Fertig → PDF</button>
+      <!-- Fuehrt bewusst NUR zum Zettel, erzeugt noch kein PDF (Mirko,
+           03.09.2026): der Zettel selbst ist das Ergebnis, das man sehen
+           will. Das PDF entsteht erst ueber die Werkzeugleiste. -->
+      <button type="button" class="primary" onclick="invSetAnsicht('blatt')" data-i18n="invFertig">Fertig → Zettel ansehen</button>
     </div>
   </div>
 
@@ -1659,9 +1662,10 @@ const I18N = {
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
     tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
     tabInventur: "🚚 Fahrzeug-Inventur",
-    invErfassen: "Erfassen", invBlatt: "Blatt ansehen", invKopf: "Kopfdaten",
+    invErfassen: "Erfassen", invBlatt: "Inventur Zettel", invKopf: "Kopfdaten",
     invStueck: "Stückzahl", invPreis: "Verkaufspreis", invIst: "Istbestand",
-    invNaechste: "Nächste Gruppe", invFertig: "Fertig → PDF",
+    invNaechste: "Nächste Gruppe", invFertig: "Fertig → Zettel ansehen",
+    invPdf: "💾 PDF erstellen",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1690,9 +1694,10 @@ const I18N = {
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
     tabAnleitung: "❓ Guide", tabMehr: "☰ More", mehrWerkzeuge: "🛠️ Tools",
     tabInventur: "🚚 Vehicle stocktake",
-    invErfassen: "Enter", invBlatt: "View sheet", invKopf: "Header",
+    invErfassen: "Enter", invBlatt: "Stocktake sheet", invKopf: "Header",
     invStueck: "Quantity", invPreis: "Retail price", invIst: "Actual stock",
-    invNaechste: "Next group", invFertig: "Done → PDF",
+    invNaechste: "Next group", invFertig: "Done → view sheet",
+    invPdf: "💾 Create PDF",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -6236,7 +6241,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-03-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-03-6"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
