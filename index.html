@@ -576,6 +576,84 @@
     font-size: 0.7rem; color: #fff; opacity: .55; letter-spacing: .3px;
   }
 
+  /* ===================== Fahrzeug-Inventur ===================== */
+  .inv-bar { display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .inv-status { margin-left:auto; font-size:13px; color:#555; font-variant-numeric:tabular-nums; }
+  .inv-gwahl { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:10px; scrollbar-width:none; }
+  .inv-gwahl::-webkit-scrollbar { display:none; }
+  .inv-gwahl button { flex:0 0 auto; font:inherit; font-size:14px; padding:9px 14px; border-radius:999px;
+                      border:1px solid #ccc; background:#fff; color:#333; cursor:pointer; white-space:nowrap; }
+  .inv-gwahl button[aria-selected="true"] { background:#1e5aa8; border-color:#1e5aa8; color:#fff; font-weight:600; }
+  .inv-summe { background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:11px 14px; margin-bottom:10px;
+               display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
+  .inv-l { font-size:11px; color:#777; text-transform:uppercase; letter-spacing:.04em; }
+  .inv-v { font-size:22px; font-weight:650; font-variant-numeric:tabular-nums; }
+  .inv-r { margin-left:auto; text-align:right; }
+  .inv-r .inv-v { font-size:16px; }
+  .inv-row { background:#fff; border:1px solid #e0e0e0; border-radius:10px; padding:9px 11px; margin-bottom:7px;
+             display:flex; gap:8px; align-items:flex-end; }
+  .inv-row.voll { border-left:4px solid #0ca30c; }
+  .inv-row .nr { flex:0 0 24px; font-size:12px; color:#777; padding-bottom:13px; font-variant-numeric:tabular-nums; }
+  .inv-f { flex:1 1 0; min-width:0; }
+  .inv-f label { display:block; font-size:10.5px; color:#777; text-transform:uppercase; letter-spacing:.03em; margin-bottom:3px; }
+  .inv-f input { width:100%; padding:12px 8px; font:inherit; font-size:18px; text-align:center;
+                 font-variant-numeric:tabular-nums; border:1px solid #bbb; border-radius:8px; background:#f4f4f2; }
+  .inv-row .ms { flex:0 0 auto; min-width:88px; text-align:right; padding-bottom:12px;
+                 font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .inv-trenner { display:flex; align-items:center; gap:8px; margin:14px 2px 8px; color:#888; font-size:11.5px;
+                 text-transform:uppercase; letter-spacing:.05em; }
+  .inv-trenner::before, .inv-trenner::after { content:""; flex:1; height:1px; background:#ddd; }
+  .inv-hint { text-align:center; color:#888; font-size:13px; padding:10px 0 2px; }
+  .inv-fussleiste { display:flex; gap:8px; justify-content:center; margin-top:14px; }
+  .inv-fussleiste button { flex:1; max-width:240px; }
+
+  .inv-blatt { width:297mm; background:#fff; padding:6mm 5mm; color:#000;
+               font-family:Arial,Helvetica,sans-serif; border:1px solid #ddd; }
+  .inv-blatt table { border-collapse:collapse; }
+  .inv-kopf { width:100%; margin-bottom:3px; }
+  .inv-kopf td { padding:1px 3px; vertical-align:bottom; }
+  .inv-titel { font-size:20px; font-weight:700; white-space:nowrap; }
+  .inv-zwi { font-size:15px; font-weight:700; margin-left:10px; }
+  .inv-grau { display:inline-block; width:60px; height:16px; background:#bfbfbf; border:1.5px solid #000; vertical-align:middle; }
+  .inv-nl { font-size:17px; font-weight:700; text-align:center; border:1.5px solid #000; padding:2px 10px; }
+  .inv-kf { border:1.5px solid #000; background:#e8e3a8; }
+  .inv-kf input { width:100%; border:none; background:transparent; font:inherit; font-size:14px; padding:2px 4px; }
+  .inv-lbl { font-size:14px; font-weight:700; white-space:nowrap; }
+  .inv-raster { display:grid; grid-template-columns:repeat(6,1fr); border:1.5px solid #000; }
+  .inv-spalte { border-right:1.5px solid #000; display:flex; flex-direction:column; }
+  .inv-spalte:last-child { border-right:none; }
+  .inv-gtitel { text-align:center; font-weight:700; font-size:13px; border-bottom:1px solid #000;
+                border-top:1px solid #000; padding:1px 0; min-height:17px; }
+  .inv-gtitel.leer { border-top:none; }
+  .inv-blk { width:100%; }
+  .inv-blk th { font-size:11px; font-weight:400; border:1px solid #000; padding:1px 2px; text-align:center; }
+  .inv-blk td { border:1px solid #000; padding:0; height:16px; }
+  .inv-blk td.mg, .inv-blk td.kv { background:#e8e3a8; }
+  .inv-blk input { width:100%; height:100%; border:none; background:transparent; font:inherit;
+                   font-size:11px; text-align:right; padding:0 3px; }
+  .inv-blk td.su { text-align:right; font-size:11px; padding:0 3px; font-variant-numeric:tabular-nums; }
+  .inv-sumzeile td { border:1px solid #000; font-size:11px; font-weight:700; padding:1px 3px; height:17px; }
+  .inv-sumzeile .lab { font-weight:400; }
+  .inv-fuss { display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:8px; margin-top:5px; align-items:start; }
+  .inv-fz { width:100%; }
+  .inv-fz td { padding:1px 3px; font-size:13px; }
+  .inv-fz .k { font-weight:700; white-space:nowrap; }
+  .inv-box { border:1.5px solid #000; height:20px; }
+  .inv-box.g { background:#e8e3a8; }
+  .inv-box input, .inv-sig input { width:100%; height:100%; border:none; background:transparent; font:inherit; font-size:13px; padding:0 4px; }
+  .inv-box input { text-align:right; font-variant-numeric:tabular-nums; }
+  .inv-fix { border:1.5px solid #000; font-size:12px; font-weight:700; padding:2px 4px; white-space:nowrap; }
+  .inv-jn td { border:1.5px solid #000; text-align:center; font-size:12px; height:19px; width:52px; background:#e8e3a8; }
+  .inv-sig { border:1.5px solid #000; height:24px; }
+  .inv-sig.g { background:#e8e3a8; }
+  .inv-klein { font-size:9px; color:#333; margin-top:3px; }
+  .inv-pdfzeile { margin-top:12px; }
+  /* Am Handy ist das Blatt nur zur Kontrolle da - getippt wird in "Erfassen" */
+  @media (max-width: 900px) {
+    #invBlattView { overflow-x:auto; }
+    .inv-blatt { transform:scale(.42); transform-origin:top left; height:126mm; }
+  }
+
   @media print {
     @page { size: A4 portrait; margin: 8mm; }
     body { background: #fff; padding: 0; margin: 0; font-size: 0.7rem; }
@@ -600,6 +678,25 @@
     footer { display: none; }
     .time-picker-field { border-bottom: none !important; cursor: default !important; }
   }
+
+  /* Druck der Fahrzeug-Inventur: eigener Modus, weil das Blatt im Gegensatz
+     zum Spesenblatt QUER liegt und ein .panel ist (die Regel oben blendet
+     alle Panels beim Drucken aus). invDruck() setzt die Klasse nur waehrend
+     des Druckdialogs. */
+  @media print {
+    body.druck-inventur #formular-scroll,
+    body.druck-inventur #formular,
+    body.druck-inventur footer { display: none !important; }
+    body.druck-inventur #inventurPanel { display: block !important; padding: 0; border: none; }
+    body.druck-inventur #invBlattView { display: block !important; overflow: visible; }
+    body.druck-inventur #invErfassenView,
+    body.druck-inventur .inv-bar,
+    body.druck-inventur .inv-pdfzeile { display: none !important; }
+    body.druck-inventur .inv-blatt { width: auto; transform: none; height: auto; border: none; padding: 0; }
+    body.druck-inventur { font-size: 10pt; }
+  }
+  @page inventurQuer { size: A4 landscape; margin: 8mm; }
+  body.druck-inventur { page: inventurQuer; }
 
   /* ===================== Zeit-Dreh-Rad (ersetzt <input type=time>) ===================== */
   .time-picker-field {
@@ -840,6 +937,10 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+    <!-- Fahrzeug-Inventur: wie die Zeit-Kachel nur fuer Mirko sichtbar
+         (aktualisiereInventurSichtbarkeit()), zusaetzlich nur fuer Fahrer -
+         fuer Monteure ist eine KFZ-Bestandsaufnahme gegenstandslos. -->
+    <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
   </div>
   <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
        kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
@@ -872,6 +973,7 @@
   <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+  <button type="button" class="tab-btn" data-tab="inventur" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
   <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
   <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
@@ -1127,6 +1229,94 @@
   </div>
 </div>
 
+<!-- ===================== Fahrzeug-Inventur =====================
+     KFZ Bestandsaufnahme / Zwischeninventur (NL Lollar). Bildet den
+     Papiervordruck 1:1 nach: sechs Spalten mit Menge/KVP/Summe, je Spalte
+     eine Summenzeile, alle Spaltensummen zusammen = Istbestand.
+
+     Zwei Ansichten auf DIESELBEN Daten:
+       - "Erfassen": grosse Felder fuers Handy (am Fahrzeug), eine
+         Warengruppe nach der anderen. Cigaretten laeuft ueber zwei
+         Blattspalten, ist beim Erfassen aber EINE Liste ueber 48 Zeilen.
+       - "Blatt & PDF": der Vordruck selbst, fuer Ausdruck/PDF.
+
+     Sichtbarkeit: nur fuer Mirko (aktualisiereInventurSichtbarkeit()),
+     zusaetzlich nur fuer Fahrer - kein echter Zugriffsschutz, sondern
+     dieselbe kosmetische Loesung wie beim Zeit-Tab. -->
+<div class="panel no-print" id="inventurPanel" style="display:none;">
+  <div class="inv-bar">
+    <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
+    <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Blatt &amp; PDF</button>
+    <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
+    <span class="inv-status" id="invStatus"></span>
+  </div>
+
+  <div id="invErfassenView">
+    <div class="inv-gwahl" id="invGwahl"></div>
+    <div class="inv-summe">
+      <div><div class="inv-l" id="invGName">–</div><div class="inv-v" id="invGSum">0,00 €</div></div>
+      <div class="inv-r"><div class="inv-l" data-i18n="invIst">Istbestand</div><div class="inv-v" id="invIstMobil">0,00 €</div></div>
+    </div>
+    <div id="invRows"></div>
+    <div class="inv-hint" id="invHint"></div>
+    <div class="inv-fussleiste">
+      <button type="button" class="ghost" onclick="invNaechsteGruppe()" data-i18n="invNaechste">Nächste Gruppe</button>
+      <button type="button" class="primary" onclick="invSetAnsicht('blatt')" data-i18n="invFertig">Fertig → PDF</button>
+    </div>
+  </div>
+
+  <div id="invBlattView" style="display:none;">
+    <div class="inv-blatt" id="invBlatt">
+      <table class="inv-kopf">
+        <tr>
+          <td class="inv-titel">KFZ Bestandsaufnahme</td>
+          <td class="inv-kf" style="width:150px"><input id="invFahrer" placeholder="Name"></td>
+          <td class="inv-lbl" style="padding-left:10px">Datum:</td>
+          <td class="inv-kf" style="width:130px"><input id="invDatum"></td>
+          <td class="inv-nl" style="width:190px">NL Lollar</td>
+        </tr>
+        <tr>
+          <td><span class="inv-lbl">Tour:</span>
+              <span class="inv-kf" style="display:inline-block;width:70px;vertical-align:middle"><input id="invTour"></span>
+              <span class="inv-grau"></span>
+              <span class="inv-zwi">Zwischeninventur</span></td>
+          <td colspan="4"></td>
+        </tr>
+      </table>
+
+      <div class="inv-raster" id="invRaster"></div>
+
+      <div class="inv-fuss">
+        <table class="inv-fz">
+          <tr><td class="k">Istbestand:</td><td>Euro</td><td style="width:150px"><div class="inv-box"><input id="invIstFeld" readonly></div></td></tr>
+          <tr><td class="k">Sollbestand:</td><td>Euro</td><td><div class="inv-box g"><input id="invSoll" inputmode="decimal"></div></td></tr>
+          <tr><td class="k">Differenz:</td><td>Euro +/-</td><td><div class="inv-box"><input id="invDiff" readonly></div></td></tr>
+        </table>
+        <table class="inv-fz">
+          <tr><td>
+            <span class="inv-fix">Fzg.Fixbestand überprüft 1.100 EURO</span>
+            <!-- Fest auf "ja" (Mirko, 03.09.2026) -->
+            <table class="inv-jn" style="display:inline-table;vertical-align:middle;margin-left:4px">
+              <tr><td>ja</td><td>nein</td></tr>
+              <tr><td style="font-weight:700">X</td><td></td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <table class="inv-fz">
+          <tr><td class="k">Datum:</td><td><div class="inv-sig"><input id="invFDatum"></div></td></tr>
+          <tr><td class="k">Verkaufsfahrer:</td><td><div class="inv-sig"><input id="invFFahrer" placeholder="Unterschrift"></div></td></tr>
+          <tr><td class="k">GVL/TB/VR/…:</td><td><div class="inv-sig"><input id="invFGvl"></div></td></tr>
+          <tr><td class="k">Kontrolle:</td><td><div class="inv-sig g"><input id="invFKontrolle" placeholder="Unterschrift"></div></td></tr>
+        </table>
+      </div>
+      <div class="inv-klein">13.08.2026</div>
+    </div>
+    <div class="inv-pdfzeile">
+      <button type="button" class="primary" onclick="invDruck()" data-i18n="btnPdf">💾 Als PDF speichern</button>
+    </div>
+  </div>
+</div>
+
 <div class="panel no-print" id="archivPanel" style="display:none;">
   <h2 style="margin-top:0;" data-i18n="archivTitle">📁 Abgeschlossene Monate</h2>
   <div id="archivContent"></div>
@@ -1336,7 +1526,32 @@ function aktualisiereZeitSichtbarkeit() {
   document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'zeit\')"], #mainTabs .tab-btn[data-tab="zeit"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
+  aktualisiereInventurSichtbarkeit();
   aktualisiereKachelGridLayout();
+}
+
+/* Fahrzeug-Inventur: vorerst NUR fuer Mirko (03.09.2026) und zusaetzlich
+   nur fuer Fahrer - fuer Monteure ist eine KFZ-Bestandsaufnahme
+   gegenstandslos. Wie beim Zeit-Tab ist das KEIN Zugriffsschutz, sondern
+   rein kosmetisch: Kollegen sollen nichts angezeigt bekommen, was fuer sie
+   nicht gilt. Sobald das Blatt sich im Alltag bewaehrt hat, faellt die
+   istMirko()-Bedingung weg und es gilt nur noch "kein Monteur".
+   aktualisiereKachelGridLayout() wird bewusst NICHT von hier aufgerufen -
+   das erledigt die aufrufende aktualisiereZeitSichtbarkeit(), sonst
+   liefe es bei jedem Aufruf doppelt. */
+function aktualisiereInventurSichtbarkeit() {
+  const istMonteur = config.mitarbeitertyp === "monteur";
+  const sichtbar = istMirko() && !istMonteur;
+  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"]').forEach((el) => {
+    el.style.display = sichtbar ? "" : "none";
+  });
+  // Steht das Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
+  // Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
+  // bliebe ein Bereich offen, den es fuer diesen Nutzer nicht gibt.
+  const panel = document.getElementById("inventurPanel");
+  if (!sichtbar && panel && getComputedStyle(panel).display !== "none") {
+    zeigeKachelStartseite();
+  }
 }
 
 /* Bugfix (finale Whole-Branch-Review, Befund 6): .kachel-grid ist fest auf
@@ -1393,6 +1608,10 @@ const I18N = {
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
     tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
+    tabInventur: "🚚 Fahrzeug-Inventur",
+    invErfassen: "Erfassen", invBlatt: "Blatt & PDF", invKopf: "Kopfdaten",
+    invStueck: "Stückzahl", invPreis: "Verkaufspreis", invIst: "Istbestand",
+    invNaechste: "Nächste Gruppe", invFertig: "Fertig → PDF",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1420,6 +1639,10 @@ const I18N = {
     btnZeitenAlle: "⏰ Times for all days",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
     tabAnleitung: "❓ Guide", tabMehr: "☰ More", mehrWerkzeuge: "🛠️ Tools",
+    tabInventur: "🚚 Vehicle stocktake",
+    invErfassen: "Enter", invBlatt: "Sheet & PDF", invKopf: "Header",
+    invStueck: "Quantity", invPreis: "Retail price", invIst: "Actual stock",
+    invNaechste: "Next group", invFertig: "Done → PDF",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -1914,9 +2137,11 @@ function initSettingsUI() {
    - nochmal auf denselben Knopf schliesst und bringt alles zurueck */
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
-                     "arbeitszeitPanel", "urlaubPanel", "anleitungPanel", "mehrPanel"];
-/* Diese drei treten an die Stelle des Spesenblatts statt darueber zu liegen */
-const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel", "mehrPanel"];
+                     "arbeitszeitPanel", "urlaubPanel", "anleitungPanel", "mehrPanel",
+                     "inventurPanel"];
+/* Diese treten an die Stelle des Spesenblatts statt darueber zu liegen */
+const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel", "mehrPanel",
+                            "inventurPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -1940,8 +2165,8 @@ function zeigeAnsicht(id) {
    Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
    zeigeTab() immer deterministisch genau den angeklickten Bereich -
    klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
-const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel" };
-const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel };
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel", inventur: "inventurPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel, inventur: toggleInventurPanel };
 
 /* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
    die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
@@ -2310,6 +2535,281 @@ function toggleAnleitungPanel() {
 
 function toggleMehrPanel() {
   zeigeAnsicht("mehrPanel");
+}
+
+/* ===================== Fahrzeug-Inventur =====================
+   KFZ Bestandsaufnahme (Zwischeninventur), NL Lollar.
+
+   Rechenweg (von Mirko bestaetigt, 03.09.2026):
+     Zeile   : Menge x KVP = Summe
+     Spalte  : Summe aller Zeilen dieser Blattspalte
+     Istbest.: Summe ALLER Spaltensummen
+     Differenz = Sollbestand - Istbestand  (Soll kommt aus einer anderen
+     Rechnung und wird von Hand eingetragen)
+
+   Eine Warengruppe kann sich ueber mehrere Blattspalten erstrecken:
+   Cigaretten belegt zwei. Beim Erfassen ist das trotzdem EINE Liste ueber
+   48 Zeilen - Zeile 1-24 landet links, 25-48 rechts. Der Fahrer soll sich
+   nicht merken muessen, in welcher Spalte eine Zeile steht.
+
+   Eigener localStorage-Schluessel, bewusst getrennt von den Spesendaten:
+   die Inventur ist ein anderer Vorgang mit anderem Rhythmus. */
+const INV_KEY = "kfz-bestandsaufnahme-v2";
+const INV_ZEILEN = 24;   // Zeilen je Blattspalte (von Mirko abgezaehlt)
+
+const INV_GRUPPEN = [
+  { id:"cig",  kurz:"Cigaretten",    spalten:[{titel:"", pos:0}, {titel:"Cigaretten", pos:1}], zeilen:INV_ZEILEN },
+  { id:"zig",  kurz:"Zigarren",      spalten:[{titel:"Zigarren", pos:2}],      zeilen:INV_ZEILEN },
+  { id:"tab",  kurz:"Tabak/Rolls",   spalten:[{titel:"Tabak/Rolls", pos:3}],   zeilen:11 },
+  { id:"rba",  kurz:"RBA",           spalten:[{titel:"R B A", pos:3}],         zeilen:13 },
+  { id:"hue",  kurz:"Hülsen/Papier", spalten:[{titel:"Hülsen/Papier", pos:4}], zeilen:11 },
+  { id:"son",  kurz:"Sonstiges",     spalten:[{titel:"Sonstiges", pos:4}],     zeilen:13 },
+  { id:"lief", kurz:"Lieferscheine", spalten:[{titel:"Lieferscheine", pos:5}], zeilen:INV_ZEILEN, liefer:true }
+];
+
+let invState = { kopf:{}, felder:{}, soll:"", fuss:{}, sicht:{} };
+let invAktiv = "cig";
+let invAufgebaut = false;
+
+const invKapazitaet = (g) => g.spalten.length * g.zeilen;
+const invGruppe = (id) => INV_GRUPPEN.find((g) => g.id === id);
+const invFeld = (gid, i) => invState.felder[gid + "-" + i] || {};
+const invZahl = (v) => { const n = parseFloat(String(v == null ? "" : v).replace(/\./g, "").replace(",", ".")); return isNaN(n) ? 0 : n; };
+const invFmt = (n) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const invEsc = (s) => String(s).replace(/[&<>"]/g, (m) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[m]));
+
+function invZeilenSumme(g, i) {
+  const f = invFeld(g.id, i);
+  return g.liefer ? invZahl(f.su) : invZahl(f.mg) * invZahl(f.kv);
+}
+function invSpaltenSumme(g, sIdx) {
+  let s = 0;
+  for (let i = 0; i < g.zeilen; i++) s += invZeilenSumme(g, sIdx * g.zeilen + i);
+  return s;
+}
+function invGruppenSumme(g) { let s = 0; for (let i = 0; i < invKapazitaet(g); i++) s += invZeilenSumme(g, i); return s; }
+function invIstbestand() { return INV_GRUPPEN.reduce((s, g) => s + invGruppenSumme(g), 0); }
+function invHatInhalt(g, i) { return Object.values(invFeld(g.id, i)).some((v) => String(v || "").trim() !== ""); }
+
+function invSichern() { try { localStorage.setItem(INV_KEY, JSON.stringify(invState)); } catch (e) {} }
+function invLaden() {
+  try { const r = localStorage.getItem(INV_KEY); if (r) Object.assign(invState, JSON.parse(r)); } catch (e) {}
+  invState.sicht = invState.sicht || {};
+  invState.kopf = invState.kopf || {};
+  invState.fuss = invState.fuss || {};
+}
+
+function invBaueRaster() {
+  const spalten = [[], [], [], [], [], []];
+  INV_GRUPPEN.forEach((g) => g.spalten.forEach((sp, sIdx) => spalten[sp.pos].push({ g, sp, sIdx })));
+  document.getElementById("invRaster").innerHTML = spalten.map((inhalt) =>
+    '<div class="inv-spalte">' + inhalt.map(({ g, sp, sIdx }) => {
+      const kopf = g.liefer
+        ? '<tr><th style="width:22%">Nr.</th><th style="width:26%">W-Gr</th><th>Summe</th></tr>'
+        : '<tr><th style="width:30%">Menge</th><th style="width:34%">KVP</th><th>Summe</th></tr>';
+      let zeilen = "";
+      for (let i = 0; i < g.zeilen; i++) {
+        const gi = sIdx * g.zeilen + i;
+        zeilen += g.liefer
+          ? '<tr><td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="nr"></td>' +
+            '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="wgr"></td>' +
+            '<td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="su" inputmode="decimal"></td></tr>'
+          : '<tr><td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="mg" inputmode="numeric"></td>' +
+            '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="kv" inputmode="decimal"></td>' +
+            '<td class="su" id="invsu-'+g.id+'-'+gi+'"></td></tr>';
+      }
+      return '<div><div class="inv-gtitel' + (sp.titel ? "" : " leer") + '">' + (sp.titel || "&nbsp;") + "</div>" +
+        '<table class="inv-blk"><thead>' + kopf + "</thead><tbody>" + zeilen + "</tbody>" +
+        '<tfoot><tr class="inv-sumzeile"><td class="lab" colspan="2">Summe:</td>' +
+        '<td style="text-align:right" id="invss-' + g.id + "-" + sIdx + '"></td></tr></tfoot></table></div>';
+    }).join("") + "</div>").join("");
+}
+
+function invRechne() {
+  INV_GRUPPEN.forEach((g) => {
+    if (!g.liefer) for (let i = 0; i < invKapazitaet(g); i++) {
+      const z = document.getElementById("invsu-" + g.id + "-" + i);
+      if (z) { const s = invZeilenSumme(g, i); z.textContent = s ? invFmt(s) : ""; }
+    }
+    g.spalten.forEach((sp, sIdx) => {
+      const el = document.getElementById("invss-" + g.id + "-" + sIdx);
+      if (el) { const s = invSpaltenSumme(g, sIdx); el.textContent = s ? invFmt(s) : ""; }
+    });
+  });
+  const ist = invIstbestand();
+  document.getElementById("invIstFeld").value = ist ? invFmt(ist) : "";
+  const soll = invZahl(invState.soll);
+  document.getElementById("invDiff").value = String(invState.soll || "").trim() ? invFmt(soll - ist) : "";
+  document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
+  document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
+  document.getElementById("invGSum").textContent = invFmt(invGruppenSumme(invGruppe(invAktiv))) + " €";
+}
+
+function invSichtbareZeilen(g) {
+  let letzte = -1;
+  for (let i = 0; i < invKapazitaet(g); i++) if (invHatInhalt(g, i)) letzte = i;
+  return Math.min(Math.max(letzte + 2, invState.sicht[g.id] || 0, 6), invKapazitaet(g));
+}
+function invBaueGwahl() {
+  document.getElementById("invGwahl").innerHTML = INV_GRUPPEN.map((g) =>
+    '<button type="button" data-invw="' + g.id + '" aria-selected="' + (g.id === invAktiv) + '">' + g.kurz + "</button>").join("");
+}
+function invRenderMobil() {
+  const g = invGruppe(invAktiv), n = invSichtbareZeilen(g);
+  document.getElementById("invGName").textContent = g.kurz;
+  let html = "";
+  for (let i = 0; i < n; i++) {
+    if (i > 0 && g.spalten.length > 1 && i % g.zeilen === 0) {
+      html += '<div class="inv-trenner">weiter in Spalte ' + (i / g.zeilen + 1) + " des Blattes</div>";
+    }
+    const f = invFeld(g.id, i), s = invZeilenSumme(g, i);
+    html += '<div class="inv-row' + (invHatInhalt(g, i) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
+      (g.liefer
+        ? '<div class="inv-f"><label>Nr.</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="nr" value="'+invEsc(f.nr||"")+'"></div>' +
+          '<div class="inv-f"><label>W-Gr</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="wgr" value="'+invEsc(f.wgr||"")+'"></div>' +
+          '<div class="inv-f"><label>Summe</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="su" inputmode="decimal" value="'+invEsc(f.su||"")+'"></div>'
+        : '<div class="inv-f"><label>' + t("invStueck") + '</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="mg" inputmode="numeric" value="'+invEsc(f.mg||"")+'"></div>' +
+          '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="kv" inputmode="decimal" value="'+invEsc(f.kv||"")+'"></div>' +
+          '<div class="ms">' + (s ? invFmt(s) : "") + "</div>") +
+      "</div>";
+  }
+  document.getElementById("invRows").innerHTML = html;
+  document.getElementById("invHint").textContent = n >= invKapazitaet(g)
+    ? "Alle " + invKapazitaet(g) + " Zeilen dieser Gruppe sind angelegt."
+    : "Zeile " + n + " von " + invKapazitaet(g) + " · neue kommen von selbst dazu";
+}
+function invNaechsteGruppe() {
+  const i = INV_GRUPPEN.findIndex((g) => g.id === invAktiv);
+  invAktiv = INV_GRUPPEN[(i + 1) % INV_GRUPPEN.length].id;
+  invBaueGwahl(); invRenderMobil(); invRechne();
+}
+
+function invSchreibe(gid, i, f, wert) {
+  const k = gid + "-" + i;
+  invState.felder[k] = invState.felder[k] || {};
+  invState.felder[k][f] = wert;
+  invSichern();
+}
+
+/* Ein einziger delegierter Handler fuer beide Ansichten. Bewusst auf
+   #inventurPanel statt document, damit er nicht bei jeder Eingabe im
+   Spesenblatt mitlaeuft. */
+document.addEventListener("DOMContentLoaded", function () {
+  const panel = document.getElementById("inventurPanel");
+  if (!panel) return;
+
+  panel.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-invw]");
+    if (!b) return;
+    invAktiv = b.dataset.invw;
+    invBaueGwahl(); invRenderMobil(); invRechne();
+  });
+
+  panel.addEventListener("input", function (e) {
+    const el = e.target;
+    if (el.dataset.invmg) {                       // Erfassen-Ansicht
+      invSchreibe(el.dataset.invmg, el.dataset.invmi, el.dataset.invmf, el.value);
+      const sp = panel.querySelector('[data-invg="'+el.dataset.invmg+'"][data-invi="'+el.dataset.invmi+'"][data-invf="'+el.dataset.invmf+'"]');
+      if (sp) sp.value = el.value;
+      const g = invGruppe(el.dataset.invmg), i = +el.dataset.invmi, zeile = el.closest(".inv-row");
+      const ms = zeile.querySelector(".ms");
+      if (ms) { const s = invZeilenSumme(g, i); ms.textContent = s ? invFmt(s) : ""; }
+      zeile.classList.toggle("voll", invHatInhalt(g, i));
+      invRechne();
+      // Nachwachsen: gegen die TATSAECHLICH dargestellte Zeilenzahl pruefen -
+      // invSichtbareZeilen() liest bereits den neuen Stand.
+      if (panel.querySelectorAll("#invRows .inv-row").length !== invSichtbareZeilen(g)) {
+        const fo = document.activeElement;
+        const merk = fo && fo.dataset && fo.dataset.invmi ? { mi: fo.dataset.invmi, mf: fo.dataset.invmf, pos: fo.selectionStart } : null;
+        invRenderMobil();
+        if (merk) {
+          const neu = panel.querySelector('[data-invmi="'+merk.mi+'"][data-invmf="'+merk.mf+'"]');
+          if (neu) { neu.focus(); try { neu.setSelectionRange(merk.pos, merk.pos); } catch (x) {} }
+        }
+      }
+    } else if (el.dataset.invg) {                 // Blattansicht
+      invSchreibe(el.dataset.invg, el.dataset.invi, el.dataset.invf, el.value);
+      invRechne();
+    } else if (el.id === "invSoll") { invState.soll = el.value; invRechne(); invSichern(); }
+    else if (["invFahrer", "invDatum", "invTour"].includes(el.id)) { invState.kopf[el.id] = el.value; invSichern(); }
+    else if (["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].includes(el.id)) { invState.fuss[el.id] = el.value; invSichern(); }
+  });
+});
+
+function invSetAnsicht(a) {
+  document.getElementById("invErfassenView").style.display = a === "erfassen" ? "" : "none";
+  document.getElementById("invBlattView").style.display    = a === "blatt" ? "" : "none";
+  document.getElementById("invBtnErfassen").className = a === "erfassen" ? "primary" : "ghost";
+  document.getElementById("invBtnBlatt").className    = a === "blatt" ? "primary" : "ghost";
+  if (a === "erfassen") invRenderMobil();
+}
+
+function invHeute() { return new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }); }
+
+function invFrageKopf(erzwingen) {
+  if (!erzwingen && invState.kopf.invFahrer && invState.kopf.invTour && invState.kopf.invDatum) return;
+  const name = prompt("Name des Fahrers:", invState.kopf.invFahrer || config.name || "");
+  if (name === null) return;
+  const tour = prompt("Tour:", invState.kopf.invTour || "");
+  if (tour === null) return;
+  const datum = prompt("Datum:", invState.kopf.invDatum || invHeute());
+  if (datum === null) return;
+  invState.kopf.invFahrer = name.trim();
+  invState.kopf.invTour = tour.trim();
+  invState.kopf.invDatum = datum.trim();
+  if (!invState.fuss.invFDatum)  invState.fuss.invFDatum  = invState.kopf.invDatum;
+  if (!invState.fuss.invFFahrer) invState.fuss.invFFahrer = invState.kopf.invFahrer;
+  invSichern();
+  invFuelleKopfFelder();
+}
+function invFuelleKopfFelder() {
+  ["invFahrer", "invDatum", "invTour"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && invState.kopf[id] != null) el.value = invState.kopf[id];
+  });
+  ["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && invState.fuss[id] != null) el.value = invState.fuss[id];
+  });
+  const s = document.getElementById("invSoll");
+  if (s) s.value = invState.soll || "";
+}
+
+/* Druck: nur das Blatt, quer. Bewusst window.print() statt der
+   html2canvas/jsPDF-Strecke des Spesenblatts - das Inventurblatt ist eine
+   reine Tabelle ohne Grafik, da liefert der Browser-Druck ein schaerferes
+   und deutlich kleineres PDF als ein gerastertes Bild. */
+function invDruck() {
+  document.body.classList.add("druck-inventur");
+  window.print();
+  setTimeout(() => document.body.classList.remove("druck-inventur"), 500);
+}
+
+function toggleInventurPanel() {
+  const offen = zeigeAnsicht("inventurPanel");
+  if (!offen) return;
+  if (!invAufgebaut) {
+    invLaden();
+    invBaueRaster();
+    invBaueGwahl();
+    // Werte aus dem Speicher in die Blattfelder zurueckschreiben
+    Object.entries(invState.felder || {}).forEach(([k, v]) => {
+      const g = k.slice(0, k.lastIndexOf("-")), i = k.slice(k.lastIndexOf("-") + 1);
+      Object.entries(v).forEach(([f, val]) => {
+        const el = document.querySelector('[data-invg="'+g+'"][data-invi="'+i+'"][data-invf="'+f+'"]');
+        if (el) el.value = val;
+      });
+    });
+    invFuelleKopfFelder();
+    invAufgebaut = true;
+  }
+  /* Reihenfolge ist Absicht (Mirko, 03.09.2026): erst die Kopfabfrage,
+     danach IMMER "Erfassen" - auch am Rechner. Wer die Inventur oeffnet,
+     will zaehlen und eintragen; das Blatt ist das Ergebnis am Schluss,
+     nicht der Einstieg. Es bleibt einen Klick entfernt. */
+  invFrageKopf(false);
+  invSetAnsicht("erfassen");
+  invRechne();
 }
 
 /* Beim ALLERERSTEN Aufbau (Seitenaufruf) soll der laufende Monat
@@ -5552,7 +6052,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-03-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-03-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
