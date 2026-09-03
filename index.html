@@ -658,6 +658,20 @@
      gehoert. Ersetzt das ignoreElements von html2canvas - das konnte hier
      nicht verwendet werden, weil #inventurPanel selbst "no-print" traegt. */
   .inv-pdf-export .no-print { display:none !important; }
+  /* Ergebnis-Anzeige: das fertige Blatt als Bild, scrollbar wenn noetig */
+  .inv-ergebnis-rahmen { overflow:auto; background:#f4f4f2; border:1px solid #ddd; border-radius:8px; padding:8px; -webkit-overflow-scrolling:touch; }
+  .inv-ergebnis-bild { display:block; width:100%; height:auto; background:#fff; }
+  /* Am Handy passt das Querformat-Blatt zwar in die Breite, waere dann aber
+     zu klein zum Lesen. Deshalb in Lesegroesse zeigen und den Rahmen
+     seitlich scrollen lassen - man sieht das Ergebnis wirklich, statt nur
+     ein Briefmarkenbild davon. */
+  @media (max-width: 900px) {
+    /* Feste Lesebreite - "width:auto" wuerde die volle Aufnahmebreite von
+       ueber 2200 Pixeln nehmen, das waere unnoetig viel Wischerei. */
+    .inv-ergebnis-bild { width:880px; max-width:none; }
+    .inv-ergebnis-rahmen { max-height:58vh; }
+  }
+  .inv-ergebnis-hinweis { font-size:11px; color:#888; margin-top:5px; text-align:center; }
   .inv-klein { font-size:9px; color:#333; margin-top:3px; }
   .inv-pdfzeile { margin-top:12px; }
   /* Am Handy ist das Blatt nur zur Kontrolle da - getippt wird in "Erfassen" */
@@ -930,9 +944,10 @@
     </span>
   </div>
   <span class="toolbar-divider" id="invToolbarTrenner" style="display:none;"></span>
+  <!-- Ein Weg statt zwei: erst ansehen, im Ergebnisfenster dann speichern
+       oder drucken. Kein Knopf, der ungesehen herunterlaedt. -->
   <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
-    <button type="button" class="primary" onclick="invDownloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
-    <button type="button" class="ghost" onclick="invPreviewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
+    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invFertig">📄 Fertiges Blatt ansehen</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
@@ -1283,7 +1298,7 @@
     <div class="inv-hint" id="invHint"></div>
     <div class="inv-fussleiste">
       <button type="button" class="ghost" onclick="invNaechsteGruppe()" data-i18n="invNaechste">Nächste Gruppe</button>
-      <button type="button" class="primary" onclick="invDownloadPDF()" data-i18n="invFertig">Fertig → PDF</button>
+      <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invFertig">Fertig → PDF</button>
     </div>
   </div>
 
@@ -2875,17 +2890,68 @@ async function invBuildPdf() {
   const tour = (invState.kopf.invTour || "").trim();
   const datum = (invState.kopf.invDatum || invHeute()).replace(/[^0-9]/g, "-");
   const filename = "KFZ-Bestandsaufnahme" + (tour ? "_Tour-" + tour : "") + "_" + datum + ".pdf";
-  return { pdf, filename };
+  // imgData wird fuer die Ergebnis-Anzeige mit zurueckgegeben - so wird das
+  // Blatt nur EINMAL aufgenommen und nicht zweimal (Bild + PDF).
+  return { pdf, filename, imgData };
 }
 
-async function invDownloadPDF() {
-  const r = await invBuildPdf();
-  if (r) r.pdf.save(r.filename);
-}
-async function invPreviewPDF() {
+/* Ergebnis zeigen statt sofort speichern (Mirko, 03.09.2026): Nach "Fertig"
+   erscheint das fertige Blatt als BILD - man sieht, was herauskommt, bevor
+   irgendetwas auf dem Geraet landet. Bewusst ein Bild und kein eingebettetes
+   PDF: viele Handy-Browser koennen PDFs nicht inline darstellen und wuerden
+   nur einen Download-Balken oder eine leere Flaeche zeigen. Das Bild ist
+   exakt die Vorlage, aus der auch das PDF entsteht (dieselbe Aufnahme). */
+let __invErgebnis = null;
+
+async function invZeigeErgebnis() {
   const r = await invBuildPdf();
   if (!r) return;
-  window.open(r.pdf.output("bloburl"), "_blank");
+  __invErgebnis = r;
+  const ohneUnterschrift = !localStorage.getItem("inventur_signature");
+  const root = document.getElementById("modalRoot");
+  root.innerHTML =
+    '<div class="modal-overlay" onclick="if(event.target===this) invSchliesseErgebnis()">' +
+      '<div class="modal-box pdf-preview-box">' +
+        '<div class="pdf-preview-head">' +
+          '<h2>📄 Fertige Bestandsaufnahme</h2>' +
+          '<div class="pdf-preview-actions">' +
+            '<button class="primary" onclick="invDruckeErgebnis()">🖨️ Drucken</button>' +
+            '<button class="primary" onclick="invSpeichereErgebnis()">💾 Speichern</button>' +
+            '<button onclick="invSchliesseErgebnis()">Schließen</button>' +
+          '</div>' +
+        '</div>' +
+        (ohneUnterschrift
+          ? '<div style="background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; padding:7px 12px; margin-bottom:8px; font-size:0.85rem; color:var(--brand-dark);">' +
+            '✍️ <b>Noch nicht unterschrieben:</b> Entweder ein Foto der Unterschrift beim Verkaufsfahrer einfügen – oder den Ausdruck von Hand unterschreiben.</div>'
+          : '') +
+        '<div class="inv-ergebnis-rahmen"><img class="inv-ergebnis-bild" alt="Fertige Bestandsaufnahme" src="' + r.imgData + '"></div>' +
+        '<div class="inv-ergebnis-hinweis">Zum Lesen seitlich wischen · Istbestand ' + invFmt(invIstbestand()) + ' €</div>' +
+      '</div>' +
+    '</div>';
+}
+function invSpeichereErgebnis() {
+  if (__invErgebnis) __invErgebnis.pdf.save(__invErgebnis.filename);
+}
+function invDruckeErgebnis() {
+  if (!__invErgebnis) return;
+  /* Zum Drucken wird das PDF in einem unsichtbaren Rahmen geoeffnet und
+     dessen Druckdialog aufgerufen - so druckt der Browser das fertige
+     Dokument im Querformat, nicht die Bildschirmseite. Klappt das nicht
+     (strengere Handy-Browser), oeffnet sich das PDF stattdessen normal. */
+  const url = __invErgebnis.pdf.output("bloburl");
+  const rahmen = document.createElement("iframe");
+  rahmen.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  rahmen.src = url;
+  rahmen.onload = () => {
+    try { rahmen.contentWindow.focus(); rahmen.contentWindow.print(); }
+    catch (e) { window.open(url, "_blank"); }
+  };
+  document.body.appendChild(rahmen);
+  setTimeout(() => { try { rahmen.remove(); URL.revokeObjectURL(url); } catch (e) {} }, 60000);
+}
+function invSchliesseErgebnis() {
+  __invErgebnis = null;
+  closeModal();
 }
 
 function toggleInventurPanel() {
@@ -6170,7 +6236,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-03-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-03-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
