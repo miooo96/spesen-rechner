@@ -577,7 +577,8 @@
   }
 
   /* ===================== Fahrzeug-Inventur ===================== */
-  .inv-bar { display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .inv-kopfzeile { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin:0 0 12px; }
+  .inv-kopfzeile h2 { margin:0; font-size:1.15rem; }
   .inv-status { margin-left:auto; font-size:13px; color:#555; font-variant-numeric:tabular-nums; }
   .inv-gwahl { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:10px; scrollbar-width:none; }
   .inv-gwahl::-webkit-scrollbar { display:none; }
@@ -909,6 +910,18 @@
     <span id="toolbarKontextZeit" style="display:none;">
       <button id="toolbarStempelBtn" class="primary" onclick="azStempeln()">🟢 Start</button>
     </span>
+    <!-- Fahrzeug-Inventur: gleiche Anordnung wie ueberall - Kontext-Knoepfe
+         links, PDF-Aktion rechts in der eigenen Gruppe darunter. -->
+    <span id="toolbarKontextInventur" style="display:none;">
+      <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
+      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Blatt ansehen</button>
+      <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
+    </span>
+  </div>
+  <span class="toolbar-divider" id="invToolbarTrenner" style="display:none;"></span>
+  <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
+    <button type="button" class="primary" onclick="invDownloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
+    <button type="button" class="ghost" onclick="invPreviewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
@@ -1244,10 +1257,8 @@
      zusaetzlich nur fuer Fahrer - kein echter Zugriffsschutz, sondern
      dieselbe kosmetische Loesung wie beim Zeit-Tab. -->
 <div class="panel no-print" id="inventurPanel" style="display:none;">
-  <div class="inv-bar">
-    <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
-    <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Blatt &amp; PDF</button>
-    <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
+  <div class="inv-kopfzeile">
+    <h2 data-i18n="tabInventur">🚚 Fahrzeug-Inventur</h2>
     <span class="inv-status" id="invStatus"></span>
   </div>
 
@@ -1261,7 +1272,7 @@
     <div class="inv-hint" id="invHint"></div>
     <div class="inv-fussleiste">
       <button type="button" class="ghost" onclick="invNaechsteGruppe()" data-i18n="invNaechste">Nächste Gruppe</button>
-      <button type="button" class="primary" onclick="invSetAnsicht('blatt')" data-i18n="invFertig">Fertig → PDF</button>
+      <button type="button" class="primary" onclick="invDownloadPDF()" data-i18n="invFertig">Fertig → PDF</button>
     </div>
   </div>
 
@@ -1310,9 +1321,6 @@
         </table>
       </div>
       <div class="inv-klein">13.08.2026</div>
-    </div>
-    <div class="inv-pdfzeile">
-      <button type="button" class="primary" onclick="invDruck()" data-i18n="btnPdf">💾 Als PDF speichern</button>
     </div>
   </div>
 </div>
@@ -1609,7 +1617,7 @@ const I18N = {
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
     tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
     tabInventur: "🚚 Fahrzeug-Inventur",
-    invErfassen: "Erfassen", invBlatt: "Blatt & PDF", invKopf: "Kopfdaten",
+    invErfassen: "Erfassen", invBlatt: "Blatt ansehen", invKopf: "Kopfdaten",
     invStueck: "Stückzahl", invPreis: "Verkaufspreis", invIst: "Istbestand",
     invNaechste: "Nächste Gruppe", invFertig: "Fertig → PDF",
     btnZurueck: "← Zurück zur Auswahl",
@@ -1640,7 +1648,7 @@ const I18N = {
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
     tabAnleitung: "❓ Guide", tabMehr: "☰ More", mehrWerkzeuge: "🛠️ Tools",
     tabInventur: "🚚 Vehicle stocktake",
-    invErfassen: "Enter", invBlatt: "Sheet & PDF", invKopf: "Header",
+    invErfassen: "Enter", invBlatt: "View sheet", invKopf: "Header",
     invStueck: "Quantity", invPreis: "Retail price", invIst: "Actual stock",
     invNaechste: "Next group", invFertig: "Done → PDF",
     btnZurueck: "← Back to overview",
@@ -2194,7 +2202,7 @@ function zeigeTab(tab) {
   // leeren weissen Balken mit Trennstrich. Nur auf Spesen/Zeit gibt es
   // tatsaechlich Inhalt zum Anzeigen.
   const toolbar = document.querySelector(".toolbar");
-  if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit") ? "" : "none";
+  if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit" || tab === "inventur") ? "" : "none";
 
   markiereTab(tab);
   // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
@@ -2775,14 +2783,80 @@ function invFuelleKopfFelder() {
   if (s) s.value = invState.soll || "";
 }
 
-/* Druck: nur das Blatt, quer. Bewusst window.print() statt der
-   html2canvas/jsPDF-Strecke des Spesenblatts - das Inventurblatt ist eine
-   reine Tabelle ohne Grafik, da liefert der Browser-Druck ein schaerferes
-   und deutlich kleineres PDF als ein gerastertes Bild. */
-function invDruck() {
-  document.body.classList.add("druck-inventur");
-  window.print();
-  setTimeout(() => document.body.classList.remove("druck-inventur"), 500);
+/* PDF: dieselbe Strecke wie beim Spesenblatt (html2canvas + jsPDF, beide
+   liegen lokal im Projekt), nur im QUERformat - so verhaelt sich der Knopf
+   genau wie der gewohnte "Als PDF speichern" und es kommt eine fertige
+   Datei heraus statt eines Druckdialogs. Am Handy ist der Umweg ueber
+   "Drucken -> als PDF sichern" sonst kaum bedienbar.
+
+   Das Blatt wird fuer die Aufnahme kurz auf volle Groesse gestellt: am
+   Handy steht es per CSS auf transform:scale(.42), und html2canvas wuerde
+   sonst die verkleinerte Darstellung abfotografieren. */
+async function invBuildPdf() {
+  const el = document.getElementById("invBlatt");
+  if (!el) return null;
+  const warErfassen = getComputedStyle(document.getElementById("invErfassenView")).display !== "none";
+  const blattView = document.getElementById("invBlattView");
+  const vorherView = blattView.style.display;
+  const vorherTransform = el.style.transform;
+  const vorherHoehe = el.style.height;
+  blattView.style.display = "";
+  el.style.transform = "none";
+  el.style.height = "auto";
+  let canvas;
+  try {
+    /* KEIN ignoreElements wie beim Spesenblatt: #inventurPanel traegt selbst
+       die Klasse "no-print" (es ist ein .panel), der Filter wuerde also das
+       komplette Blatt aus der Aufnahme werfen - html2canvas meldet dann
+       "Unable to find element in cloned iframe". Innerhalb von #invBlatt
+       gibt es ohnehin kein no-print-Element, der Filter braeuchte hier
+       nichts zu tun. */
+    canvas = await html2canvas(el, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      windowWidth: 1300,
+    });
+  } finally {
+    el.style.transform = vorherTransform;
+    el.style.height = vorherHoehe;
+    blattView.style.display = vorherView;
+    if (warErfassen) invSetAnsicht("erfassen");
+  }
+  const imgData = canvas.toDataURL("image/png");
+  const { jsPDF } = window.jspdf;
+  /* compress: true ist hier nicht optional - ohne die Kompression wird das
+     Blatt rund 14 MB gross (gemessen 03.09.2026), damit 152 KB. PNG bleibt
+     bewusst gegenueber JPEG: das Blatt besteht aus duennen Linien, die
+     JPEG sichtbar weichzeichnet. */
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 8;
+  const maxWidth = pageWidth - margin * 2;
+  const maxHeight = pageHeight - margin * 2;
+  let imgWidth = maxWidth;
+  let imgHeight = (canvas.height * imgWidth) / canvas.width;
+  if (imgHeight > maxHeight) {
+    imgHeight = maxHeight;
+    imgWidth = (canvas.width * imgHeight) / canvas.height;
+  }
+  pdf.addImage(imgData, "PNG", (pageWidth - imgWidth) / 2, margin, imgWidth, imgHeight);
+
+  // Dateiname mit Tour und Datum, damit mehrere Blaetter unterscheidbar sind
+  const tour = (invState.kopf.invTour || "").trim();
+  const datum = (invState.kopf.invDatum || invHeute()).replace(/[^0-9]/g, "-");
+  const filename = "KFZ-Bestandsaufnahme" + (tour ? "_Tour-" + tour : "") + "_" + datum + ".pdf";
+  return { pdf, filename };
+}
+
+async function invDownloadPDF() {
+  const r = await invBuildPdf();
+  if (r) r.pdf.save(r.filename);
+}
+async function invPreviewPDF() {
+  const r = await invBuildPdf();
+  if (!r) return;
+  window.open(r.pdf.output("bloburl"), "_blank");
 }
 
 function toggleInventurPanel() {
@@ -5008,9 +5082,17 @@ function zeigeWerkzeugleisteGruppe2(tab) {
   const spesenTeil = document.getElementById("toolbarKontextSpesen");
   const zeitTeil = document.getElementById("toolbarKontextZeit");
   if (!gruppe || !spesenTeil || !zeitTeil) return;
-  gruppe.style.display = (tab === "spesen" || tab === "zeit") ? "" : "none";
+  const invTeil = document.getElementById("toolbarKontextInventur");
+  gruppe.style.display = (tab === "spesen" || tab === "zeit" || tab === "inventur") ? "" : "none";
   spesenTeil.style.display = tab === "spesen" ? "" : "none";
   zeitTeil.style.display = tab === "zeit" ? "" : "none";
+  if (invTeil) invTeil.style.display = tab === "inventur" ? "" : "none";
+  // Eigene PDF-Gruppe der Inventur (die des Spesenblatts passt nicht:
+  // anderes Dokument, anderes Format, andere Dateinamen).
+  const invPdf = document.getElementById("toolbarInventurPdf");
+  const invTrenner = document.getElementById("invToolbarTrenner");
+  if (invPdf) invPdf.style.display = tab === "inventur" ? "" : "none";
+  if (invTrenner) invTrenner.style.display = tab === "inventur" ? "" : "none";
 }
 
 /* ===== Spesen-Tab: Stammdaten UND Tage-Tabelle gemeinsam sichtbar =====
@@ -6052,7 +6134,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-03-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-03-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
