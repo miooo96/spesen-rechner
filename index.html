@@ -947,7 +947,10 @@
   <!-- Ein Weg statt zwei: erst ansehen, im Ergebnisfenster dann speichern
        oder drucken. Kein Knopf, der ungesehen herunterlaedt. -->
   <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
-    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invPdf">💾 PDF erstellen</button>
+    <button type="button" class="primary" onclick="invSpeichern()" data-i18n="invPdfSpeichern">💾 PDF speichern</button>
+    <button type="button" class="ghost" onclick="invDrucken()" data-i18n="invPdfDrucken">🖨️ PDF drucken</button>
+    <button type="button" class="ghost" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
+    <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
   </div>
   <span class="toolbar-divider"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
@@ -1289,17 +1292,19 @@
   </div>
 
   <div id="invErfassenView">
-    <div class="inv-gwahl" id="invGwahl"></div>
+    <!-- Keine Warengruppen-Auswahl mehr (Mirko, 04.09.2026): eine
+         durchlaufende Liste, die von selbst in die nächste Spalte des
+         Blattes läuft. Die Auswahlknöpfe stifteten mehr Verwirrung als
+         Nutzen. -->
     <div class="inv-summe">
-      <div><div class="inv-l" id="invGName">–</div><div class="inv-v" id="invGSum">0,00 €</div></div>
-      <div class="inv-r"><div class="inv-l" data-i18n="invIst">Istbestand</div><div class="inv-v" id="invIstMobil">0,00 €</div></div>
+      <div><div class="inv-l" data-i18n="invIst">Istbestand</div><div class="inv-v" id="invIstMobil">0,00 €</div></div>
+      <div class="inv-r"><div class="inv-l">Zeilen</div><div class="inv-v" id="invGSum">0</div></div>
     </div>
     <div id="invRows"></div>
     <div class="inv-hint" id="invHint"></div>
     <div class="inv-fussleiste">
-      <button type="button" class="ghost" onclick="invNaechsteGruppe()" data-i18n="invNaechste">Nächste Gruppe</button>
-      <!-- Fuehrt bewusst NUR zum Zettel, erzeugt noch kein PDF (Mirko,
-           03.09.2026): der Zettel selbst ist das Ergebnis, das man sehen
+      <!-- Fuehrt bewusst NUR zum Blatt, erzeugt noch kein PDF (Mirko,
+           03.09.2026): das Blatt selbst ist das Ergebnis, das man sehen
            will. Das PDF entsteht erst ueber die Werkzeugleiste. -->
       <button type="button" class="primary" onclick="invSetAnsicht('blatt')" data-i18n="invFertig">Fertig → Zettel ansehen</button>
     </div>
@@ -1662,10 +1667,11 @@ const I18N = {
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
     tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
     tabInventur: "🚚 Fahrzeug-Inventur",
-    invErfassen: "Erfassen", invBlatt: "Inventur Zettel", invKopf: "Kopfdaten",
+    invErfassen: "Erfassen", invBlatt: "Inventur Blatt", invKopf: "Kopfdaten",
     invStueck: "Stückzahl", invPreis: "Verkaufspreis", invIst: "Istbestand",
-    invNaechste: "Nächste Gruppe", invFertig: "Fertig → Zettel ansehen",
-    invPdf: "💾 PDF erstellen",
+    invFertig: "Fertig → Blatt ansehen",
+    invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
+    invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1696,8 +1702,9 @@ const I18N = {
     tabInventur: "🚚 Vehicle stocktake",
     invErfassen: "Enter", invBlatt: "Stocktake sheet", invKopf: "Header",
     invStueck: "Quantity", invPreis: "Retail price", invIst: "Actual stock",
-    invNaechste: "Next group", invFertig: "Done → view sheet",
-    invPdf: "💾 Create PDF",
+    invFertig: "Done → view sheet",
+    invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
+    invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -2623,7 +2630,6 @@ const INV_GRUPPEN = [
 ];
 
 let invState = { kopf:{}, felder:{}, soll:"", fuss:{}, sicht:{} };
-let invAktiv = "cig";
 let invAufgebaut = false;
 
 const invKapazitaet = (g) => g.spalten.length * g.zeilen;
@@ -2697,48 +2703,56 @@ function invRechne() {
   document.getElementById("invDiff").value = String(invState.soll || "").trim() ? invFmt(soll - ist) : "";
   document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
   document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
-  document.getElementById("invGSum").textContent = invFmt(invGruppenSumme(invGruppe(invAktiv))) + " €";
 }
 
-function invSichtbareZeilen(g) {
+/* Durchlaufende Zeilenfolge (Mirko, 04.09.2026): Beim Erfassen gibt es keine
+   Warengruppen mehr, sondern EINE Liste. Ist eine Spalte des Blattes voll,
+   läuft die nächste Zeile automatisch in die folgende Spalte.
+
+   Die Lieferschein-Spalte ist bewusst NICHT Teil der Folge: sie hat mit
+   Nr./W-Gr./Summe einen anderen Aufbau und könnte eine Menge-KVP-Zeile gar
+   nicht aufnehmen. Sie wird ohnehin nicht ausgefüllt. */
+const INV_FOLGE = (() => {
+  const folge = [];
+  INV_GRUPPEN.forEach((g) => {
+    if (g.liefer) return;
+    g.spalten.forEach((sp, sIdx) => {
+      for (let r = 0; r < g.zeilen; r++) {
+        folge.push({ gid: g.id, gi: sIdx * g.zeilen + r, spalte: sp.titel || g.kurz, erste: r === 0 });
+      }
+    });
+  });
+  return folge;
+})();
+
+function invSichtbareZeilen() {
   let letzte = -1;
-  for (let i = 0; i < invKapazitaet(g); i++) if (invHatInhalt(g, i)) letzte = i;
-  return Math.min(Math.max(letzte + 2, invState.sicht[g.id] || 0, 6), invKapazitaet(g));
-}
-function invBaueGwahl() {
-  document.getElementById("invGwahl").innerHTML = INV_GRUPPEN.map((g) =>
-    '<button type="button" data-invw="' + g.id + '" aria-selected="' + (g.id === invAktiv) + '">' + g.kurz + "</button>").join("");
+  INV_FOLGE.forEach((f, i) => { if (invHatInhalt(invGruppe(f.gid), f.gi)) letzte = i; });
+  return Math.min(Math.max(letzte + 2, invState.sicht.folge || 0, 6), INV_FOLGE.length);
 }
 function invRenderMobil() {
-  const g = invGruppe(invAktiv), n = invSichtbareZeilen(g);
-  document.getElementById("invGName").textContent = g.kurz;
+  const n = invSichtbareZeilen();
   let html = "";
   for (let i = 0; i < n; i++) {
-    if (i > 0 && g.spalten.length > 1 && i % g.zeilen === 0) {
-      html += '<div class="inv-trenner">weiter in Spalte ' + (i / g.zeilen + 1) + " des Blattes</div>";
+    const eintrag = INV_FOLGE[i];
+    const g = invGruppe(eintrag.gid);
+    // Sichtbarer Hinweis, sobald es auf dem Blatt in der naechsten Spalte weitergeht
+    if (i > 0 && eintrag.erste) {
+      html += '<div class="inv-trenner">weiter bei „' + invEsc(eintrag.spalte) + '" auf dem Blatt</div>';
     }
-    const f = invFeld(g.id, i), s = invZeilenSumme(g, i);
-    html += '<div class="inv-row' + (invHatInhalt(g, i) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
-      (g.liefer
-        ? '<div class="inv-f"><label>Nr.</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="nr" value="'+invEsc(f.nr||"")+'"></div>' +
-          '<div class="inv-f"><label>W-Gr</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="wgr" value="'+invEsc(f.wgr||"")+'"></div>' +
-          '<div class="inv-f"><label>Summe</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="su" inputmode="decimal" value="'+invEsc(f.su||"")+'"></div>'
-        : '<div class="inv-f"><label>' + t("invStueck") + '</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="mg" inputmode="numeric" value="'+invEsc(f.mg||"")+'"></div>' +
-          '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+i+'" data-invmf="kv" inputmode="decimal" value="'+invEsc(f.kv||"")+'"></div>' +
-          '<div class="ms">' + (s ? invFmt(s) : "") + "</div>") +
+    const f = invFeld(g.id, eintrag.gi), s = invZeilenSumme(g, eintrag.gi);
+    html += '<div class="inv-row' + (invHatInhalt(g, eintrag.gi) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
+      '<div class="inv-f"><label>' + t("invStueck") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="mg" inputmode="numeric" value="'+invEsc(f.mg||"")+'"></div>' +
+      '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="kv" inputmode="decimal" value="'+invEsc(f.kv||"")+'"></div>' +
+      '<div class="ms">' + (s ? invFmt(s) : "") + "</div>" +
       "</div>";
   }
   document.getElementById("invRows").innerHTML = html;
-  document.getElementById("invHint").textContent = n >= invKapazitaet(g)
-    ? "Alle " + invKapazitaet(g) + " Zeilen dieser Gruppe sind angelegt."
-    : "Zeile " + n + " von " + invKapazitaet(g) + " · neue kommen von selbst dazu";
+  document.getElementById("invGSum").textContent = n;
+  document.getElementById("invHint").textContent = n >= INV_FOLGE.length
+    ? "Alle " + INV_FOLGE.length + " Zeilen des Blattes sind angelegt."
+    : "Zeile " + n + " von " + INV_FOLGE.length + " · neue kommen von selbst dazu";
 }
-function invNaechsteGruppe() {
-  const i = INV_GRUPPEN.findIndex((g) => g.id === invAktiv);
-  invAktiv = INV_GRUPPEN[(i + 1) % INV_GRUPPEN.length].id;
-  invBaueGwahl(); invRenderMobil(); invRechne();
-}
-
 function invSchreibe(gid, i, f, wert) {
   const k = gid + "-" + i;
   invState.felder[k] = invState.felder[k] || {};
@@ -2753,13 +2767,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const panel = document.getElementById("inventurPanel");
   if (!panel) return;
 
-  panel.addEventListener("click", function (e) {
-    const b = e.target.closest("[data-invw]");
-    if (!b) return;
-    invAktiv = b.dataset.invw;
-    invBaueGwahl(); invRenderMobil(); invRechne();
-  });
-
   panel.addEventListener("input", function (e) {
     const el = e.target;
     if (el.dataset.invmg) {                       // Erfassen-Ansicht
@@ -2773,7 +2780,7 @@ document.addEventListener("DOMContentLoaded", function () {
       invRechne();
       // Nachwachsen: gegen die TATSAECHLICH dargestellte Zeilenzahl pruefen -
       // invSichtbareZeilen() liest bereits den neuen Stand.
-      if (panel.querySelectorAll("#invRows .inv-row").length !== invSichtbareZeilen(g)) {
+      if (panel.querySelectorAll("#invRows .inv-row").length !== invSichtbareZeilen()) {
         const fo = document.activeElement;
         const merk = fo && fo.dataset && fo.dataset.invmi ? { mi: fo.dataset.invmi, mf: fo.dataset.invmf, pos: fo.selectionStart } : null;
         invRenderMobil();
@@ -2937,6 +2944,65 @@ async function invZeigeErgebnis() {
 function invSpeichereErgebnis() {
   if (__invErgebnis) __invErgebnis.pdf.save(__invErgebnis.filename);
 }
+
+/* ---------- Werkzeuge auf dem Inventur Blatt (Mirko, 04.09.2026) ----------
+   Drei getrennte Knöpfe statt eines Sammelwegs: speichern, drucken, per
+   E-Mail an die Niederlassung. Alle drei erzeugen dasselbe PDF. */
+async function invSpeichern() {
+  const r = await invBuildPdf();
+  if (r) r.pdf.save(r.filename);
+}
+async function invDrucken() {
+  const r = await invBuildPdf();
+  if (!r) return;
+  __invErgebnis = r;
+  invDruckeErgebnis();
+}
+/* E-Mail: gleicher Weg wie beim Spesennachweis. Browser können aus
+   Sicherheitsgründen keine Anhänge selbst setzen - deshalb erst das PDF
+   herunterladen, dann die vorausgefüllte Mail öffnen, in der steht, dass
+   die Datei noch anzuhängen ist. Adresse kommt aus den Stammdaten
+   (config.arbeitgeberEmail), es wird keine zweite gepflegt. */
+async function invPerEmail() {
+  if (!config.arbeitgeberEmail) {
+    alert("Bitte zuerst in den Stammdaten die E-Mail-Adresse der Niederlassung eintragen.");
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgArbeitgeberEmail");
+    return;
+  }
+  const r = await invBuildPdf();
+  if (!r) return;
+  r.pdf.save(r.filename);
+  const tour = (invState.kopf.invTour || "").trim();
+  const datum = (invState.kopf.invDatum || invHeute()).trim();
+  const betreff = "KFZ Bestandsaufnahme" + (tour ? " – Tour " + tour : "") + " – " + datum;
+  const text =
+    "Hallo,\n\nanbei die KFZ Bestandsaufnahme (Zwischeninventur)" +
+    (tour ? " für Tour " + tour : "") + " vom " + datum + ".\n\n" +
+    "Istbestand: " + invFmt(invIstbestand()) + " EUR\n\n" +
+    "Hinweis: Bitte die soeben heruntergeladene PDF-Datei noch an diese E-Mail anhängen " +
+    "(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n" +
+    "Viele Grüße\n" + (invState.kopf.invFahrer || config.name || "");
+  alert('PDF "' + r.filename + '" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail – dort bitte die PDF aus dem Downloads-Ordner anhängen.');
+  window.location.href = "mailto:" + encodeURIComponent(config.arbeitgeberEmail) +
+    "?subject=" + encodeURIComponent(betreff) + "&body=" + encodeURIComponent(text);
+}
+
+/* Neue Inventur: Mengen und Preise auf null, Kopfdaten werden neu abgefragt.
+   Die Unterschrift bleibt erhalten - die ist ja dauerhaft hinterlegt und
+   nicht Teil einer einzelnen Zählung. */
+function invNeueInventur() {
+  if (!confirm("Neue Inventur beginnen?\n\nAlle eingetragenen Mengen und Preise sowie der Sollbestand werden gelöscht. Die hinterlegte Unterschrift bleibt erhalten.")) return;
+  invState.felder = {};
+  invState.soll = "";
+  invState.sicht = {};
+  invSichern();
+  document.querySelectorAll("#invRaster input").forEach((i) => { i.value = ""; });
+  document.getElementById("invSoll").value = "";
+  invFrageKopf(true);
+  invSetAnsicht("erfassen");
+  invRechne();
+}
 function invDruckeErgebnis() {
   if (!__invErgebnis) return;
   /* Zum Drucken wird das PDF in einem unsichtbaren Rahmen geoeffnet und
@@ -2965,7 +3031,6 @@ function toggleInventurPanel() {
   if (!invAufgebaut) {
     invLaden();
     invBaueRaster();
-    invBaueGwahl();
     // Werte aus dem Speicher in die Blattfelder zurueckschreiben
     Object.entries(invState.felder || {}).forEach(([k, v]) => {
       const g = k.slice(0, k.lastIndexOf("-")), i = k.slice(k.lastIndexOf("-") + 1);
@@ -6241,7 +6306,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-03-6"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-04-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
