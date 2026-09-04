@@ -955,7 +955,10 @@
   <!-- Ein Weg statt zwei: erst ansehen, im Ergebnisfenster dann speichern
        oder drucken. Kein Knopf, der ungesehen herunterlaedt. -->
   <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
-    <button type="button" class="primary" onclick="invSpeichern()" data-i18n="invPdfSpeichern">💾 PDF speichern</button>
+    <!-- Ansehen steht bewusst vorn: erst das fertige Blatt kontrollieren,
+         dann speichern, drucken oder senden (Mirko, 04.09.2026). -->
+    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invPdfAnsehen">👁️ PDF ansehen</button>
+    <button type="button" class="ghost" onclick="invSpeichern()" data-i18n="invPdfSpeichern">💾 PDF speichern</button>
     <button type="button" class="ghost" onclick="invDrucken()" data-i18n="invPdfDrucken">🖨️ PDF drucken</button>
     <button type="button" class="ghost" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
     <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
@@ -1703,6 +1706,7 @@ const I18N = {
     invErfassen: "Erfassen", invBlatt: "Inventur Blatt", invKopf: "Kopfdaten",
     invStueck: "Stückzahl", invPreis: "Verkaufspreis", invIst: "Istbestand",
     invFertig: "Fertig → Blatt ansehen",
+    invPdfAnsehen: "👁️ PDF ansehen",
     invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
     invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
     invKaefig: "📦 Käfig zählen",
@@ -1737,6 +1741,7 @@ const I18N = {
     invErfassen: "Enter", invBlatt: "Stocktake sheet", invKopf: "Header",
     invStueck: "Quantity", invPreis: "Retail price", invIst: "Actual stock",
     invFertig: "Done → view sheet",
+    invPdfAnsehen: "👁️ View PDF",
     invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
     invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
     invKaefig: "📦 Count cage",
@@ -6464,7 +6469,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-04-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-04-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
