@@ -1329,12 +1329,12 @@
        (z.B. 180,00), nicht der Kleinverkaufspreis. -->
   <div id="invKaefigView" style="display:none;">
     <div class="inv-summe">
-      <div><div class="inv-l">Gezählt</div><div class="inv-v" id="kaeSumme">0,00 €</div></div>
-      <div class="inv-r"><div class="inv-l">Stangen</div><div class="inv-v" id="kaeStangen">0</div></div>
+      <div><div class="inv-l">Gezählte Stangen</div><div class="inv-v" id="kaeSumme">0</div></div>
+      <div class="inv-r"><div class="inv-l">Zeilen</div><div class="inv-v" id="kaeStangen">0</div></div>
     </div>
     <div class="card" style="margin-bottom:10px">
       <table class="inv-fz">
-        <tr><td class="k">Lieferschein:</td><td style="width:150px"><div class="inv-box g"><input id="kaeLieferschein" inputmode="decimal" placeholder="Endbetrag"></div></td></tr>
+        <tr><td class="k">Lieferschein:</td><td style="width:150px"><div class="inv-box g"><input id="kaeLieferschein" inputmode="numeric" placeholder="Stangen"></div></td></tr>
         <tr><td class="k">Differenz:</td><td><div class="inv-box"><input id="kaeDiff" readonly></div></td></tr>
       </table>
       <div id="kaeUrteil" class="kae-urteil"></div>
@@ -2797,11 +2797,16 @@ function invRenderMobil() {
    Eigener Vorgang, eigener Speicher: die neu bestellte Ware im Käfig
    zählen und gegen den Endbetrag auf dem Lieferschein halten.
 
-   Gezählt werden STANGEN (Mirko, 04.09.2026) - der Preis je Zeile ist
-   also der Stangenpreis (180,00 / 120,00 / 104,00 …), nicht der
-   Kleinverkaufspreis der Einzelpackung. Deshalb bewusst KEINE Auswahl
-   der Stangenart: der Stangenpreis steht auf der Ware, zwei Felder
-   reichen - genau wie beim Inventurblatt. */
+   Hier zaehlt AUSSCHLIESSLICH die Stueckzahl (Mirko, 04.09.2026): "beim
+   Käfig zählen ist der einzelne Preis egal, da gehts echt nur um die
+   Gesamtstückzahl". Deshalb kein Preisfeld, keine Euro-Betraege und
+   keine Stangenart - eine Zahl je Zeile, damit man in Teilmengen zaehlen
+   kann (Regal fuer Regal), und am Ende die Summe gegen die Stangenzahl
+   auf dem Lieferschein.
+
+   Bewusst mehrere Zeilen statt eines einzigen Feldes: so bleiben die
+   Teilergebnisse sichtbar und man muss beim Verzaehlen nicht von vorn
+   anfangen. */
 const KAE_KEY = "kfz-kaefig-v1";
 let kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
 
@@ -2812,10 +2817,10 @@ function kaeLaden() {
 function kaeSichern() { try { localStorage.setItem(KAE_KEY, JSON.stringify(kaeState)); } catch (e) {} }
 
 const kaeZeile = (i) => kaeState.zeilen[i] || {};
-const kaeHatInhalt = (i) => Object.values(kaeZeile(i)).some((v) => String(v || "").trim() !== "");
-function kaeZeilenSumme(i) { const z = kaeZeile(i); return invZahl(z.anz) * invZahl(z.preis); }
+const kaeHatInhalt = (i) => String(kaeZeile(i).anz || "").trim() !== "";
+function kaeZeilenSumme(i) { return invZahl(kaeZeile(i).anz); }
 function kaeGesamt() { let s = 0; Object.keys(kaeState.zeilen).forEach((k) => { s += kaeZeilenSumme(k); }); return s; }
-function kaeStangenZahl() { let s = 0; Object.keys(kaeState.zeilen).forEach((k) => { s += invZahl(kaeState.zeilen[k].anz); }); return s; }
+function kaeZeilenMitInhalt() { return Object.keys(kaeState.zeilen).filter((k) => kaeHatInhalt(k)).length; }
 function kaeSichtbar() {
   let letzte = -1;
   Object.keys(kaeState.zeilen).forEach((k) => { if (kaeHatInhalt(k)) letzte = Math.max(letzte, +k); });
@@ -2826,11 +2831,10 @@ function kaeRender() {
   const n = kaeSichtbar();
   let html = "";
   for (let i = 0; i < n; i++) {
-    const z = kaeZeile(i), s = kaeZeilenSumme(i);
+    const z = kaeZeile(i);
     html += '<div class="inv-row' + (kaeHatInhalt(i) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
       '<div class="inv-f"><label>Stangen</label><input data-kae="'+i+'" data-kaef="anz" inputmode="numeric" value="'+invEsc(z.anz||"")+'"></div>' +
-      '<div class="inv-f"><label>Stangenpreis</label><input data-kae="'+i+'" data-kaef="preis" inputmode="decimal" value="'+invEsc(z.preis||"")+'"></div>' +
-      '<div class="ms">' + (s ? invFmt(s) : "") + "</div></div>";
+      "</div>";
   }
   document.getElementById("kaeRows").innerHTML = html;
   document.getElementById("kaeHint").textContent = "Zeile " + n + " · neue kommen von selbst dazu";
@@ -2839,12 +2843,13 @@ function kaeRender() {
 
 function kaeRechne() {
   const gezaehlt = kaeGesamt();
-  document.getElementById("kaeSumme").textContent = invFmt(gezaehlt) + " €";
-  document.getElementById("kaeStangen").textContent = kaeStangenZahl();
+  const stk = (n) => n.toLocaleString("de-DE") + (Math.abs(n) === 1 ? " Stange" : " Stangen");
+  document.getElementById("kaeSumme").textContent = gezaehlt.toLocaleString("de-DE");
+  document.getElementById("kaeStangen").textContent = kaeZeilenMitInhalt();
   // Kopfzeile mitziehen, solange der Käfig offen ist
   const st = document.getElementById("invStatus");
   if (st && getComputedStyle(document.getElementById("invKaefigView")).display !== "none") {
-    st.textContent = "Käfig: " + invFmt(gezaehlt) + " €";
+    st.textContent = "Käfig: " + stk(gezaehlt);
   }
   const lsText = String(kaeState.lieferschein || "").trim();
   const urteil = document.getElementById("kaeUrteil");
@@ -2852,27 +2857,29 @@ function kaeRechne() {
   if (!lsText) {
     diffFeld.value = "";
     urteil.className = "kae-urteil offen";
-    urteil.innerHTML = '<span class="punkt"></span>Lieferschein-Betrag eintragen, dann wird verglichen';
+    urteil.innerHTML = '<span class="punkt"></span>Stangenzahl vom Lieferschein eintragen, dann wird verglichen';
     return;
   }
-  /* Differenz = Lieferschein − Gezählt. Positiv heisst: es fehlt Ware
-     gegenüber dem Lieferschein. So herum, weil der Lieferschein die
+  /* Differenz = Lieferschein − Gezählt, in STÜCK. Positiv heisst: es fehlen
+     Stangen gegenüber dem Lieferschein. So herum, weil der Lieferschein die
      Vorgabe ist und die Zählung dagegen geprüft wird. */
   const diff = invZahl(lsText) - gezaehlt;
-  diffFeld.value = invFmt(diff);
-  if (Math.abs(diff) < 0.005) {
+  diffFeld.value = diff.toLocaleString("de-DE");
+  if (diff === 0) {
     urteil.className = "kae-urteil passt";
     urteil.innerHTML = '<span class="punkt"></span>Stimmt überein';
   } else {
     urteil.className = "kae-urteil abweichung";
+    // Einzahl/Mehrzahl auch beim Verb - "Es fehlen 1 Stange" liest sich schlampig
+    const eins = Math.abs(diff) === 1;
     urteil.innerHTML = '<span class="punkt"></span>' +
-      (diff > 0 ? "Es fehlen " + invFmt(diff) + " € gegenüber dem Lieferschein"
-                : "Es sind " + invFmt(-diff) + " € mehr gezählt als auf dem Lieferschein");
+      (diff > 0 ? (eins ? "Es fehlt " : "Es fehlen ") + stk(diff) + " gegenüber dem Lieferschein"
+                : (eins ? "Es ist " : "Es sind ") + stk(-diff) + " mehr gezählt als auf dem Lieferschein");
   }
 }
 
 function kaeNeu() {
-  if (!confirm("Neue Käfig-Zählung beginnen?\n\nAlle gezählten Stangen und der Lieferschein-Betrag werden gelöscht.")) return;
+  if (!confirm("Neue Käfig-Zählung beginnen?\n\nAlle gezählten Stangen und die Lieferschein-Angabe werden gelöscht.")) return;
   kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
   kaeSichern();
   document.getElementById("kaeLieferschein").value = "";
@@ -2901,8 +2908,6 @@ document.addEventListener("DOMContentLoaded", function () {
       kaeState.zeilen[i][el.dataset.kaef] = el.value;
       kaeSichern();
       const zeile = el.closest(".inv-row");
-      const s = kaeZeilenSumme(i);
-      zeile.querySelector(".ms").textContent = s ? invFmt(s) : "";
       zeile.classList.toggle("voll", kaeHatInhalt(i));
       kaeRechne();
       if (panel.querySelectorAll("#kaeRows .inv-row").length !== kaeSichtbar()) {
@@ -6469,7 +6474,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-04-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-04-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
