@@ -672,6 +672,13 @@
     .inv-ergebnis-rahmen { max-height:58vh; }
   }
   .inv-ergebnis-hinweis { font-size:11px; color:#888; margin-top:5px; text-align:center; }
+  /* Käfig zählen: das Urteil muss auf einen Blick lesbar sein, ohne dass man
+     Vorzeichen deuten muss - deshalb Klartext plus Farbe, nie Farbe allein. */
+  .kae-urteil { margin-top:8px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .kae-urteil .punkt { width:11px; height:11px; border-radius:50%; flex:none; }
+  .kae-urteil.passt { color:#0a7a0a; } .kae-urteil.passt .punkt { background:#0ca30c; }
+  .kae-urteil.abweichung { color:#b03030; } .kae-urteil.abweichung .punkt { background:#d03b3b; }
+  .kae-urteil.offen { color:#888; } .kae-urteil.offen .punkt { background:#bbb; }
   .inv-klein { font-size:9px; color:#333; margin-top:3px; }
   .inv-pdfzeile { margin-top:12px; }
   /* Am Handy ist das Blatt nur zur Kontrolle da - getippt wird in "Erfassen" */
@@ -939,7 +946,8 @@
          links, PDF-Aktion rechts in der eigenen Gruppe darunter. -->
     <span id="toolbarKontextInventur" style="display:none;">
       <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
-      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Zettel</button>
+      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Blatt</button>
+      <button type="button" class="ghost" id="invBtnKaefig" onclick="invSetAnsicht('kaefig')" data-i18n="invKaefig">📦 Käfig zählen</button>
       <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
     </span>
   </div>
@@ -1310,6 +1318,31 @@
     </div>
   </div>
 
+  <!-- ===================== Käfig zählen =====================
+       Zweiter, eigenständiger Vorgang (Mirko, 04.09.2026): die neu
+       bestellte Ware im Käfig zählen und die Gesamtsumme gegen den
+       Endbetrag auf dem Lieferschein halten. Gezählt werden STANGEN,
+       nicht Päckchen - deshalb ist der Preis hier der Stangenpreis
+       (z.B. 180,00), nicht der Kleinverkaufspreis. -->
+  <div id="invKaefigView" style="display:none;">
+    <div class="inv-summe">
+      <div><div class="inv-l">Gezählt</div><div class="inv-v" id="kaeSumme">0,00 €</div></div>
+      <div class="inv-r"><div class="inv-l">Stangen</div><div class="inv-v" id="kaeStangen">0</div></div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <table class="inv-fz">
+        <tr><td class="k">Lieferschein:</td><td style="width:150px"><div class="inv-box g"><input id="kaeLieferschein" inputmode="decimal" placeholder="Endbetrag"></div></td></tr>
+        <tr><td class="k">Differenz:</td><td><div class="inv-box"><input id="kaeDiff" readonly></div></td></tr>
+      </table>
+      <div id="kaeUrteil" class="kae-urteil"></div>
+    </div>
+    <div id="kaeRows"></div>
+    <div class="inv-hint" id="kaeHint"></div>
+    <div class="inv-fussleiste">
+      <button type="button" class="ghost" onclick="kaeNeu()">🗑️ Neue Zählung</button>
+    </div>
+  </div>
+
   <div id="invBlattView" style="display:none;">
     <div class="inv-blatt" id="invBlatt">
       <table class="inv-kopf">
@@ -1672,6 +1705,7 @@ const I18N = {
     invFertig: "Fertig → Blatt ansehen",
     invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
     invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
+    invKaefig: "📦 Käfig zählen",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1705,6 +1739,7 @@ const I18N = {
     invFertig: "Done → view sheet",
     invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
     invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
+    invKaefig: "📦 Count cage",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -2753,6 +2788,92 @@ function invRenderMobil() {
     ? "Alle " + INV_FOLGE.length + " Zeilen des Blattes sind angelegt."
     : "Zeile " + n + " von " + INV_FOLGE.length + " · neue kommen von selbst dazu";
 }
+/* ===================== Käfig zählen =====================
+   Eigener Vorgang, eigener Speicher: die neu bestellte Ware im Käfig
+   zählen und gegen den Endbetrag auf dem Lieferschein halten.
+
+   Gezählt werden STANGEN (Mirko, 04.09.2026) - der Preis je Zeile ist
+   also der Stangenpreis (180,00 / 120,00 / 104,00 …), nicht der
+   Kleinverkaufspreis der Einzelpackung. Deshalb bewusst KEINE Auswahl
+   der Stangenart: der Stangenpreis steht auf der Ware, zwei Felder
+   reichen - genau wie beim Inventurblatt. */
+const KAE_KEY = "kfz-kaefig-v1";
+let kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
+
+function kaeLaden() {
+  try { const r = localStorage.getItem(KAE_KEY); if (r) Object.assign(kaeState, JSON.parse(r)); } catch (e) {}
+  kaeState.zeilen = kaeState.zeilen || {};
+}
+function kaeSichern() { try { localStorage.setItem(KAE_KEY, JSON.stringify(kaeState)); } catch (e) {} }
+
+const kaeZeile = (i) => kaeState.zeilen[i] || {};
+const kaeHatInhalt = (i) => Object.values(kaeZeile(i)).some((v) => String(v || "").trim() !== "");
+function kaeZeilenSumme(i) { const z = kaeZeile(i); return invZahl(z.anz) * invZahl(z.preis); }
+function kaeGesamt() { let s = 0; Object.keys(kaeState.zeilen).forEach((k) => { s += kaeZeilenSumme(k); }); return s; }
+function kaeStangenZahl() { let s = 0; Object.keys(kaeState.zeilen).forEach((k) => { s += invZahl(kaeState.zeilen[k].anz); }); return s; }
+function kaeSichtbar() {
+  let letzte = -1;
+  Object.keys(kaeState.zeilen).forEach((k) => { if (kaeHatInhalt(k)) letzte = Math.max(letzte, +k); });
+  return Math.max(letzte + 2, kaeState.sicht || 0, 6);
+}
+
+function kaeRender() {
+  const n = kaeSichtbar();
+  let html = "";
+  for (let i = 0; i < n; i++) {
+    const z = kaeZeile(i), s = kaeZeilenSumme(i);
+    html += '<div class="inv-row' + (kaeHatInhalt(i) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
+      '<div class="inv-f"><label>Stangen</label><input data-kae="'+i+'" data-kaef="anz" inputmode="numeric" value="'+invEsc(z.anz||"")+'"></div>' +
+      '<div class="inv-f"><label>Stangenpreis</label><input data-kae="'+i+'" data-kaef="preis" inputmode="decimal" value="'+invEsc(z.preis||"")+'"></div>' +
+      '<div class="ms">' + (s ? invFmt(s) : "") + "</div></div>";
+  }
+  document.getElementById("kaeRows").innerHTML = html;
+  document.getElementById("kaeHint").textContent = "Zeile " + n + " · neue kommen von selbst dazu";
+  kaeRechne();
+}
+
+function kaeRechne() {
+  const gezaehlt = kaeGesamt();
+  document.getElementById("kaeSumme").textContent = invFmt(gezaehlt) + " €";
+  document.getElementById("kaeStangen").textContent = kaeStangenZahl();
+  // Kopfzeile mitziehen, solange der Käfig offen ist
+  const st = document.getElementById("invStatus");
+  if (st && getComputedStyle(document.getElementById("invKaefigView")).display !== "none") {
+    st.textContent = "Käfig: " + invFmt(gezaehlt) + " €";
+  }
+  const lsText = String(kaeState.lieferschein || "").trim();
+  const urteil = document.getElementById("kaeUrteil");
+  const diffFeld = document.getElementById("kaeDiff");
+  if (!lsText) {
+    diffFeld.value = "";
+    urteil.className = "kae-urteil offen";
+    urteil.innerHTML = '<span class="punkt"></span>Lieferschein-Betrag eintragen, dann wird verglichen';
+    return;
+  }
+  /* Differenz = Lieferschein − Gezählt. Positiv heisst: es fehlt Ware
+     gegenüber dem Lieferschein. So herum, weil der Lieferschein die
+     Vorgabe ist und die Zählung dagegen geprüft wird. */
+  const diff = invZahl(lsText) - gezaehlt;
+  diffFeld.value = invFmt(diff);
+  if (Math.abs(diff) < 0.005) {
+    urteil.className = "kae-urteil passt";
+    urteil.innerHTML = '<span class="punkt"></span>Stimmt überein';
+  } else {
+    urteil.className = "kae-urteil abweichung";
+    urteil.innerHTML = '<span class="punkt"></span>' +
+      (diff > 0 ? "Es fehlen " + invFmt(diff) + " € gegenüber dem Lieferschein"
+                : "Es sind " + invFmt(-diff) + " € mehr gezählt als auf dem Lieferschein");
+  }
+}
+
+function kaeNeu() {
+  if (!confirm("Neue Käfig-Zählung beginnen?\n\nAlle gezählten Stangen und der Lieferschein-Betrag werden gelöscht.")) return;
+  kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
+  kaeSichern();
+  document.getElementById("kaeLieferschein").value = "";
+  kaeRender();
+}
+
 function invSchreibe(gid, i, f, wert) {
   const k = gid + "-" + i;
   invState.felder[k] = invState.felder[k] || {};
@@ -2769,6 +2890,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
   panel.addEventListener("input", function (e) {
     const el = e.target;
+    if (el.dataset.kae !== undefined) {           // Käfig zählen
+      const i = el.dataset.kae;
+      kaeState.zeilen[i] = kaeState.zeilen[i] || {};
+      kaeState.zeilen[i][el.dataset.kaef] = el.value;
+      kaeSichern();
+      const zeile = el.closest(".inv-row");
+      const s = kaeZeilenSumme(i);
+      zeile.querySelector(".ms").textContent = s ? invFmt(s) : "";
+      zeile.classList.toggle("voll", kaeHatInhalt(i));
+      kaeRechne();
+      if (panel.querySelectorAll("#kaeRows .inv-row").length !== kaeSichtbar()) {
+        const fo = document.activeElement;
+        const merk = fo && fo.dataset && fo.dataset.kae !== undefined ? { i: fo.dataset.kae, f: fo.dataset.kaef, pos: fo.selectionStart } : null;
+        kaeRender();
+        if (merk) {
+          const neu = panel.querySelector('[data-kae="'+merk.i+'"][data-kaef="'+merk.f+'"]');
+          if (neu) { neu.focus(); try { neu.setSelectionRange(merk.pos, merk.pos); } catch (x) {} }
+        }
+      }
+      return;
+    }
+    if (el.id === "kaeLieferschein") { kaeState.lieferschein = el.value; kaeSichern(); kaeRechne(); return; }
     if (el.dataset.invmg) {                       // Erfassen-Ansicht
       invSchreibe(el.dataset.invmg, el.dataset.invmi, el.dataset.invmf, el.value);
       const sp = panel.querySelector('[data-invg="'+el.dataset.invmg+'"][data-invi="'+el.dataset.invmi+'"][data-invf="'+el.dataset.invmf+'"]');
@@ -2801,9 +2944,24 @@ document.addEventListener("DOMContentLoaded", function () {
 function invSetAnsicht(a) {
   document.getElementById("invErfassenView").style.display = a === "erfassen" ? "" : "none";
   document.getElementById("invBlattView").style.display    = a === "blatt" ? "" : "none";
+  document.getElementById("invKaefigView").style.display   = a === "kaefig" ? "" : "none";
   document.getElementById("invBtnErfassen").className = a === "erfassen" ? "primary" : "ghost";
   document.getElementById("invBtnBlatt").className    = a === "blatt" ? "primary" : "ghost";
+  document.getElementById("invBtnKaefig").className   = a === "kaefig" ? "primary" : "ghost";
+  /* Die PDF-Werkzeuge gehören zum Inventurblatt. Beim Käfigzählen gibt es
+     kein Blatt und kein PDF - dort wären sie irreführend. */
+  const pdfGruppe = document.getElementById("toolbarInventurPdf");
+  const trenner = document.getElementById("invToolbarTrenner");
+  if (pdfGruppe) pdfGruppe.style.display = a === "kaefig" ? "none" : "";
+  if (trenner) trenner.style.display = a === "kaefig" ? "none" : "";
   if (a === "erfassen") invRenderMobil();
+  if (a === "kaefig") { kaeLaden(); document.getElementById("kaeLieferschein").value = kaeState.lieferschein || ""; kaeRender(); }
+  /* Die Kopfzeile zeigt sonst den Istbestand der Inventur - im Käfig ist
+     das die falsche Zahl und stiftet Verwirrung. */
+  const status = document.getElementById("invStatus");
+  if (status) status.textContent = a === "kaefig"
+    ? "Käfig: " + invFmt(kaeGesamt()) + " €"
+    : "Istbestand " + invFmt(invIstbestand()) + " €";
 }
 
 function invHeute() { return new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }); }
@@ -6306,7 +6464,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-04-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-04-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
