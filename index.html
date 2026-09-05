@@ -743,8 +743,21 @@
      sie auf position:relative und damit auf 0 x 0. Der Splash war
      stockdunkel, obwohl alle Dateien geladen waren. */
   #splashScreen.nacht > div:not(.nacht-lage):not(.splash-credit) { position: relative; z-index: 5; }
-  /* Die Fusszeile bleibt absolut am unteren Rand - nur nach vorn holen. */
-  #splashScreen.nacht .splash-credit { z-index: 5; }
+  /* Die Fusszeile bleibt absolut am unteren Rand - nur nach vorn holen.
+     Sie leuchtet in denselben Farben wie die Reklame und atmet im selben
+     Takt mit (Mirko, 05.09.2026: "das built for Hall Tabakwaren by Mirko
+     Rieb auf der ersten seite eventuell auch in neon farben setzen und
+     mit laufen lassen").
+
+     Der Schein ist schwaecher gestuft als bei "seit 1903" - die Zeile ist
+     nur 0,7 rem gross, ein zu breiter Hof macht sie unleserlich statt
+     leuchtend. */
+  #splashScreen.nacht .splash-credit {
+    z-index: 5; opacity: 1; color: #ffd9a8; font-weight: 700;
+    text-shadow: 0 0 3px #fff2dc, 0 0 9px #ffa53a, 0 0 18px #de7008,
+                 0 2px 8px rgba(0,0,0,.85);
+    animation: nachtAtmen 7s ease-in-out infinite;
+  }
   #splashScreen.nacht h2 { text-shadow: 0 2px 12px rgba(0,0,0,.85); }
   /* "seit 1903" leuchtet in denselben Farben wie die Reklame und macht
      die Leucht-Art mit (Mirko: "das soll auch mit dem rest des bildes
@@ -2764,7 +2777,7 @@ function initSplash() {
        dauert 7 Sekunden und ist bei der Haelfte am hellsten. Mit -3,5 s
        steht es beim Oeffnen genau auf dem Hoehepunkt und atmet von dort
        ruhig weiter. */
-    splashEl.querySelectorAll(".nacht-kern,.nacht-nah,.nacht-weit,.nacht-raum,.splash-jahr,.splash-weiter")
+    splashEl.querySelectorAll(".nacht-kern,.nacht-nah,.nacht-weit,.nacht-raum,.splash-jahr,.splash-weiter,.splash-credit")
       .forEach((el) => { el.style.animationDelay = "-3.5s"; });
   }
 
@@ -2788,17 +2801,6 @@ function splashSchliessen() {
   zeigeKachelStartseite();
 }
 
-/* Startbildschirm noch einmal zeigen - nach dem Einrichtungsassistenten.
-   initSplash() laeuft dabei erneut: Es setzt die Begruessung mit dem
-   gerade eingegebenen Namen, entscheidet ueber den Nachtbild-Auftritt und
-   startet fuer Kollegen wieder den 1,5-Sekunden-Timer. Die Funken werden
-   nicht doppelt gebaut, darauf achtet nachtFunkenBauen(). */
-function splashErneutZeigen() {
-  const el = document.getElementById("splashScreen");
-  if (!el) return;
-  el.style.display = "";
-  initSplash();
-}
 function setLang(lang) {
   currentLang = lang;
   WEEKDAY_NAMES = lang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
@@ -3690,17 +3692,21 @@ function wizardNext() {
     // Stammdaten geht es zurueck zur Kachel-Auswahl, nicht mehr automatisch
     // in den Spesen-Tab hinein - der Assistent legt nur die Grunddaten an,
     // waehlt aber keine Funktion fuer den Nutzer vor.
-    zeigeKachelStartseite();
-    /* Nach dem Einrichten zurueck auf den Startbildschirm (Mirko,
-       05.09.2026): "wenn man beim ersten oeffnen die daten eingegeben hat
-       muss man erst nochmal in das erste menu kommen wo man dann auf
-       weiter geht um in die funktionen zu kommen."
+    /* Nach dem Einrichten geht es DIREKT in die App - kein zweiter
+       Startbildschirm (Mirko, 05.09.2026): "wenn man auf weiter geht wird
+       man nach name und so gefragt, dann soll er nicht mehr zurueck in
+       home screen."
 
-       Erst jetzt steht der Name fest - der Startbildschirm kann also
-       ueberhaupt erst hier entscheiden, ob er im Nachtbild-Auftritt mit
-       "Weiter"-Knopf erscheint oder sich nach 1,5 s selbst ausblendet.
-       Deshalb wird er neu aufgebaut statt beim Laden. */
-    splashErneutZeigen();
+       Der Startbildschirm erscheint dafuer bei jedem NEUEN Oeffnen der
+       App. Der Ablauf beim ersten Mal ist damit:
+         Startbildschirm -> Weiter -> Assistent -> fertig -> App
+       und bei jedem weiteren Oeffnen:
+         Startbildschirm -> Weiter -> App
+
+       Zwischenzeitlich (Version 2026-09-05-31 bis -35) erschien der
+       Startbildschirm nach dem Assistenten noch einmal. Auf Mirkos
+       Korrektur wieder entfernt. */
+    zeigeKachelStartseite();
     return;
   }
   wizardStep++;
@@ -8726,7 +8732,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-34"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-35"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
