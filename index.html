@@ -3388,6 +3388,18 @@ const INV_GRUPPEN = [
 let invState = { kopf:{}, felder:{}, soll:"", fuss:{}, sicht:{} };
 let invAufgebaut = false;
 
+/* Fuss-Felder des Inventurblatts, die gespeichert und beim naechsten
+   Oeffnen zurueckgeschrieben werden. EINE Liste fuer beide Richtungen -
+   vorher stand sie zweimal im Code und haette auseinanderlaufen koennen.
+
+   invFrei1 / invFrei2 sind die beiden unbeschrifteten Felder des Vordrucks
+   (das grosse weisse Rechteck neben dem grauen "b" und das schmale Feld
+   unter der Differenz). Sie haben KEINE Funktion und gehen in keine
+   Rechnung ein - was hineingeschrieben wird, soll aber stehen bleiben
+   (Mirko, 05.09.2026: "wenn man was reinschreibt soll es bleiben, in der
+   regel wird aber nichts reingeschrieben"). */
+const INV_FUSS_FELDER = ["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle", "invFrei1", "invFrei2"];
+
 const invKapazitaet = (g) => g.spalten.length * g.zeilen;
 const invGruppe = (id) => INV_GRUPPEN.find((g) => g.id === id);
 const invFeld = (gid, i) => invState.felder[gid + "-" + i] || {};
@@ -3793,7 +3805,7 @@ document.addEventListener("DOMContentLoaded", function () {
       invRechne();
     } else if (el.id === "invSoll") { invState.soll = el.value; invRechne(); invSichern(); }
     else if (["invFahrer", "invDatum", "invTour"].includes(el.id)) { invState.kopf[el.id] = el.value; invSichern(); }
-    else if (["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].includes(el.id)) {
+    else if (INV_FUSS_FELDER.includes(el.id)) {
       invState.fuss[el.id] = el.value;
       if (el.id === "invFKontrolle" || el.id === "invFFahrer") invStempelPflegen(el.id);
       invSichern();
@@ -3981,7 +3993,7 @@ function invFuelleKopfFelder() {
   // Das Datum im Fuss ist dasselbe Datum - es wird mitgezogen, nicht nur
   // beim ersten Mal gesetzt. Genau das war Mirkos Punkt "auch das datum".
   invState.fuss.invFDatum = werte.invDatum;
-  ["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].forEach((id) => {
+  INV_FUSS_FELDER.forEach((id) => {
     const el = document.getElementById(id);
     if (el && invState.fuss[id] != null) el.value = invState.fuss[id];
   });
@@ -8183,7 +8195,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-22"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-23"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
