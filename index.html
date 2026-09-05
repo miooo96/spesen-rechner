@@ -601,7 +601,7 @@
                  font-variant-numeric:tabular-nums; border:1px solid #bbb; border-radius:8px; background:#f4f4f2; }
   .inv-row .ms { flex:0 0 auto; min-width:88px; text-align:right; padding-bottom:12px;
                  font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
-  .inv-trenner { display:flex; align-items:center; gap:8px; margin:14px 2px 8px; color:#888; font-size:11.5px;
+  .inv-trenner { display:flex; align-items:center; gap:8px; margin:14px 2px 8px; color:#888; font-size:11px;
                  text-transform:uppercase; letter-spacing:.05em; }
   .inv-trenner::before, .inv-trenner::after { content:""; flex:1; height:1px; background:#ddd; }
   .inv-hint { text-align:center; color:#888; font-size:13px; padding:10px 0 2px; }
@@ -615,13 +615,18 @@
   .inv-kopf td { padding:1px 3px; vertical-align:bottom; }
   .inv-titel { font-size:20px; font-weight:700; white-space:nowrap; }
   .inv-zwi { font-size:15px; font-weight:700; margin-left:10px; }
-  .inv-grau { display:inline-block; width:60px; height:16px; background:#bfbfbf; border:1.5px solid #000; vertical-align:middle; }
-  .inv-nl { font-size:17px; font-weight:700; text-align:center; border:1.5px solid #000; padding:2px 10px; }
-  .inv-kf { border:1.5px solid #000; background:#e8e3a8; }
+  .inv-grau { display:inline-block; width:60px; height:16px; background:#bfbfbf; border:1px solid #000; vertical-align:middle; }
+  .inv-nl { font-size:17px; font-weight:700; text-align:center; border:1px solid #000; padding:2px 10px; }
+  .inv-kf { border:1px solid #000; background:#e8e3a8; }
   .inv-kf input { width:100%; border:none; background:transparent; font:inherit; font-size:14px; padding:2px 4px; }
   .inv-lbl { font-size:14px; font-weight:700; white-space:nowrap; }
-  .inv-raster { display:grid; grid-template-columns:repeat(6,1fr); border:1.5px solid #000; }
-  .inv-spalte { border-right:1.5px solid #000; display:flex; flex-direction:column; }
+  /* Alle Linien im Blatt sind EINFACH und duenn (1px). Vorher standen hier
+     1,5px - zusammen mit den 1px-Zellraendern der Tabellen ergab das an
+     jeder Gruppenkante eine dicke Doppellinie, die es auf dem Vordruck
+     nicht gibt (Mirko, 05.09.2026: "ueberall wo bei dir dicke doppelte
+     Linien sind, sollen einzelne schmale Linien sein"). */
+  .inv-raster { display:grid; grid-template-columns:repeat(6,1fr); border:1px solid #000; }
+  .inv-spalte { border-right:1px solid #000; display:flex; flex-direction:column; }
   .inv-spalte:last-child { border-right:none; }
   .inv-gtitel { text-align:center; font-weight:700; font-size:13px; border-bottom:1px solid #000;
                 border-top:1px solid #000; padding:1px 0; min-height:17px; }
@@ -629,6 +634,12 @@
   .inv-blk { width:100%; }
   .inv-blk th { font-size:11px; font-weight:400; border:1px solid #000; padding:1px 2px; text-align:center; }
   .inv-blk td { border:1px solid #000; padding:0; height:16px; }
+  /* Im Original haengen die Warengruppen direkt aneinander - eine Linie,
+     kein Abstand. Vorher lagen hier Zellrand + Spaltenrand + Zellrand
+     uebereinander und wirkten wie eine Doppellinie (Mirko, 05.09.2026).
+     Deshalb an den Aussenkanten der Bloecke keine eigenen Zellraender. */
+  .inv-blk td:first-child, .inv-blk th:first-child { border-left:none; }
+  .inv-blk td:last-child, .inv-blk th:last-child { border-right:none; }
   .inv-blk td.mg, .inv-blk td.kv { background:#e8e3a8; }
   .inv-blk tr.inv-subkopf td { font-size:11px; text-align:center; background:#fff; padding:1px 2px; height:16px; }
   .inv-blk td.fest { font-size:11px; font-weight:700; padding:0 3px; }
@@ -642,13 +653,13 @@
   .inv-fz { width:100%; }
   .inv-fz td { padding:1px 3px; font-size:13px; }
   .inv-fz .k { font-weight:700; white-space:nowrap; }
-  .inv-box { border:1.5px solid #000; height:20px; }
+  .inv-box { border:1px solid #000; height:20px; }
   .inv-box.g { background:#e8e3a8; }
   .inv-box input, .inv-sig input { width:100%; height:100%; border:none; background:transparent; font:inherit; font-size:13px; padding:0 4px; }
   .inv-box input { text-align:right; font-variant-numeric:tabular-nums; }
-  .inv-fix { border:1.5px solid #000; font-size:12px; font-weight:700; padding:2px 4px; white-space:nowrap; }
-  .inv-jn td { border:1.5px solid #000; text-align:center; font-size:12px; height:19px; width:52px; background:#e8e3a8; }
-  .inv-sig { border:1.5px solid #000; height:24px; }
+  .inv-fix { border:1px solid #000; font-size:12px; font-weight:700; padding:2px 4px; white-space:nowrap; }
+  .inv-jn td { border:1px solid #000; text-align:center; font-size:12px; height:19px; width:52px; background:#e8e3a8; }
+  .inv-sig { border:1px solid #000; height:24px; }
   .inv-sig.g { background:#e8e3a8; }
   /* Unterschriftsfeld: Bild und Eingabefeld liegen uebereinander im selben
      Kasten - ist ein Foto gesetzt, deckt es das leere Feld ab. */
@@ -714,26 +725,29 @@
   /* Der Titel steht in einem Feld ohne Breite und laeuft nach rechts aus -
      so bestimmt allein der Tour-Block, wo der Zwischeninventur-Kasten beginnt. */
   .inv-kopf .inv-titel { width:0; overflow:visible; white-space:nowrap; font-size:20px; font-weight:700; }
-  .inv-kopf td.inv-kf { background:#e8e3a8; border:1.5px solid #000; height:24px; }
+  .inv-kopf td.inv-kf { background:#e8e3a8; border:1px solid #000; height:24px; }
   .inv-kopf td.inv-kf input { width:100%; height:22px; line-height:22px; border:none; background:transparent;
                               font:inherit; font-size:14px; padding:0 5px; }
-  .inv-kopf td.inv-datumzelle { border:1.5px solid #000; white-space:nowrap; padding-left:4px; }
+  .inv-kopf td.inv-datumzelle { border:1px solid #000; white-space:nowrap; padding-left:4px; }
   .inv-kopf .inv-datumfeld { display:inline-block; width:62%; height:20px; background:#e8e3a8;
                              vertical-align:middle; margin-left:4px; }
   .inv-kopf .inv-datumfeld input { width:100%; height:20px; line-height:20px; border:none;
                                    background:transparent; font:inherit; font-size:14px; padding:0 5px; }
-  .inv-kopf td.inv-nl { border:1.5px solid #000; text-align:center; font-size:17px; font-weight:700; }
-  .inv-kopf td.inv-zwikasten { border:1.5px solid #000; font-size:15px; font-weight:700;
+  .inv-kopf td.inv-nl { border:1px solid #000; text-align:center; font-size:17px; font-weight:700; }
+  .inv-kopf td.inv-zwikasten { border:1px solid #000; font-size:15px; font-weight:700;
                                vertical-align:top; padding:2px 4px; height:34px; }
-  .inv-kopf td.inv-leerkasten { border:1.5px solid #000; }
+  .inv-kopf td.inv-leerkasten { border:1px solid #000; }
   .inv-tour { border-collapse:collapse; margin-top:2px; width:100%; table-layout:fixed; }
-  .inv-tour td { padding:0; height:15px; }
+  .inv-tour td { padding:0; height:17px; vertical-align:middle; }
   .inv-tour td.tlab { width:24%; border:none; font-size:14px; font-weight:700; padding-right:4px; vertical-align:bottom; }
-  .inv-tour td.grau { width:32%; background:#bfbfbf; border:1.5px solid #000; }
+  .inv-tour td.grau { width:32%; background:#bfbfbf; border:1px solid #000; }
   .inv-tour td.grau.breit { width:44%; }
-  .inv-tour td.tgelb { background:#e8e3a8; border:1.5px solid #000; }
-  .inv-tour td.tgelb input { width:100%; height:15px; line-height:15px; border:none; background:transparent;
-                             font:inherit; font-size:12px; padding:0 4px; }
+  .inv-tour td.tgelb { background:#e8e3a8; border:1px solid #000; }
+  /* Die Tour-Nummer sass zu tief in der Zelle und war unten angeschnitten
+     (Mirko, 05.09.2026). Feldhoehe = Zellenhoehe, Text mittig darin. */
+  .inv-tour td.tgelb input { display:block; width:100%; height:17px; line-height:17px; border:none;
+                             background:transparent; font:inherit; font-size:13px; padding:0 4px;
+                             vertical-align:middle; }
 
   .inv-fuss { display:grid; grid-template-columns:66.67% 33.33%; gap:0; margin-top:0; align-items:start; }
   .inv-betrag { border-collapse:collapse; width:100%; table-layout:fixed; }
@@ -744,21 +758,21 @@
   .inv-betrag td.lab { font-weight:700; white-space:nowrap; padding:0 6px 0 3px; }
   .inv-betrag td.eh { padding-right:10px; white-space:nowrap; }
   .inv-betrag td.frei { border:none; }
-  .inv-betrag td.kasten { border:1.5px solid #000; }
+  .inv-betrag td.kasten { border:1px solid #000; }
   .inv-betrag td.lab.kasten { border-right:none; }
   .inv-betrag td.eh.kasten { border-left:none; }
-  .inv-betrag td.wert { border:1.5px solid #000; }
+  .inv-betrag td.wert { border:1px solid #000; }
   .inv-betrag td.wert.g { background:#e8e3a8; }
   .inv-betrag td.wert input { width:100%; height:20px; line-height:20px; border:none; background:transparent;
                               font:inherit; font-size:13px; text-align:right; padding:0 5px; }
-  .inv-betrag td.markeb { border:1.5px solid #000; background:#bfbfbf; font-size:11px; text-align:center; color:#555; }
-  .inv-betrag td.grossfeld { border:1.5px solid #000; vertical-align:top; }
+  .inv-betrag td.markeb { border:1px solid #000; background:#bfbfbf; font-size:11px; text-align:center; color:#555; }
+  .inv-betrag td.grossfeld { border:1px solid #000; vertical-align:top; }
   .inv-betrag td.grossfeld input { width:100%; height:100%; border:none; background:transparent;
                                    font:inherit; font-size:13px; padding:1px 4px; }
   .inv-betrag tr.tief td { height:18px; }
-  .inv-betrag td.fix { border:1.5px solid #000; font-size:12px; font-weight:700;
+  .inv-betrag td.fix { border:1px solid #000; font-size:12px; font-weight:700;
                        white-space:nowrap; padding:1px 4px; text-align:center; }
-  .inv-betrag td.jn { border:1.5px solid #000; background:#e8e3a8; font-size:12px; text-align:center; height:19px; }
+  .inv-betrag td.jn { border:1px solid #000; background:#e8e3a8; font-size:12px; text-align:center; height:19px; }
   .inv-betrag td.jn.kreuz { font-weight:700; }
   .inv-betrag tr:first-child td.jn { background:transparent; }
 
@@ -766,7 +780,7 @@
   .inv-unter col.u-lab { width:34%; } .inv-unter col.u-a { width:38%; } .inv-unter col.u-b { width:28%; }
   .inv-unter td { padding:0; height:30px; }
   .inv-unter td.k { border:none; font-size:13px; font-weight:700; white-space:nowrap; padding-right:6px; }
-  .inv-unter td.feld { border:1.5px solid #000; }
+  .inv-unter td.feld { border:1px solid #000; }
   .inv-unter td.feld.g { background:#e8e3a8; }
   .inv-unter td.feld input { width:100%; height:26px; line-height:26px; border:none; background:transparent;
                              font:inherit; font-size:13px; padding:0 5px; }
@@ -6795,7 +6809,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
