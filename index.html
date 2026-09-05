@@ -3425,14 +3425,24 @@ function heuteAktualisieren() {
   __heuteZiel = v.tab;
   document.getElementById("heuteWeiterText").textContent = v.text;
 
-  /* Chips und Kachelzahlen betreffen Fahrzeug-Inventur und Abrechnung.
-     Wer diese Bereiche nicht sieht, bekommt hier auch keine Zahlen daraus -
-     sonst stuenden auf der Startseite Begriffe zu Funktionen, die es fuer
-     ihn gar nicht gibt. Der Gruss und "Weitermachen" bleiben fuer alle. */
+  /* Ab hier beginnt der FUNKTIONS-Teil des "Heute"-Kopfes und der bleibt
+     vorerst bei Mirko (05.09.2026, auf seine Rueckfrage "wieso ist die
+     funktion weitermachen bei anderen benutzern verfuegbar?"):
+
+       "Weitermachen" springt in die zuletzt offene Aufgabe - eine
+       Bequemlichkeit, die zusammen mit den drei Sonderbereichen
+       entstanden ist, kein Aussehen.
+       Die Chips zeigen Istbestand, gezaehlte Ware und Sollbestand,
+       stammen also direkt aus Inventur und Abrechnung.
+
+     Gruss und Datum bleiben fuer alle - das ist Auftritt, keine Funktion. */
+  const weiterKnopf = document.getElementById("heuteWeiter");
   if (!zeigtSonderbereiche()) {
+    if (weiterKnopf) weiterKnopf.style.display = "none";
     document.getElementById("heuteChips").innerHTML = "";
     return;
   }
+  if (weiterKnopf) weiterKnopf.style.display = "";
   const inv = heuteLies(INV_KEY), kae = heuteLies(KAE_KEY);
   const ist = heuteIstbestand(inv), ware = heuteWareStangen(kae);
   const chips = [];
@@ -8732,7 +8742,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-35"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-36"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
