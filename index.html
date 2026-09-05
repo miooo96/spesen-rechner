@@ -1781,7 +1781,12 @@
               <td class="feld sigzelle" colspan="2">
                 <div class="inv-sigwrap">
                   <img id="sigImg-inventur_signature" class="inv-sig-img" alt="" style="display:none">
-                  <input id="invFFahrer" placeholder="Unterschrift">
+                  <!-- KEIN Platzhalter und keine Vorbelegung mit dem Namen
+                       (Mirko, 05.09.2026): "die spalten unterschrift wird
+                       entweder digital ausgefuellt oder haendisch nach dem
+                       drucken. wenn digital dann mit zeitstempel."
+                       Eine Unterschriftszeile muss frei sein. -->
+                  <input id="invFFahrer">
                   <span class="inv-stempel" id="sigTs-inventur_signature"></span>
                 </div>
                 <div class="no-print inv-sig-knoepfe">
@@ -3883,7 +3888,12 @@ function kopfUebernehmen() {
   if (invAufgebaut) {
     invState.kopf = invState.kopf || {};
     invState.fuss = invState.fuss || {};
-    if (!invState.fuss.invFFahrer) invState.fuss.invFFahrer = fahrer;
+    /* Die Fuss-Zeile "Verkaufsfahrer" wird bewusst NICHT mit dem Namen
+       vorbelegt (Mirko, 05.09.2026). Das ist eine Unterschriftszeile: sie
+       wird entweder digital mit dem Foto der Unterschrift gefuellt (mit
+       Zeitstempel) oder nach dem Drucken von Hand unterschrieben. Vorher
+       stand dort automatisch der getippte Name - damit war die Zeile
+       vorausgefuellt und zum Unterschreiben unbrauchbar. */
     invSichern();
     invFuelleKopfFelder();
   }
@@ -3937,8 +3947,20 @@ function kopfDialogSpeichern() {
   if (f) f();
 }
 
+/* Ein Durchgang laeuft, sobald ein Datum gesetzt ist. Beim Abschliessen
+   wird das Datum geleert - die erste Inventur der neuen Woche fragt also
+   wieder, danach nicht mehr. */
+function kopfDurchgangLaeuft() { kopfLaden(); return !!String(kopfState.datum || "").trim(); }
+
+/* Gefragt wird im INVENTUR-Bereich, nicht beim App-Start (Mirko,
+   05.09.2026: "die touren abfrage wird erst im inventur abgefragt und wird
+   darauf hin automatisch auch in der abrechnung hinterlegt").
+
+   Einmal je Durchgang: Wer die Inventur der neuen Woche oeffnet, bestaetigt
+   Tour und Datum - vorbelegt aus den Stammdaten und dem letzten Durchgang.
+   Innerhalb einer Woche kommt der Dialog nicht noch einmal. */
 function invFrageKopf(erzwingen) {
-  if (!erzwingen && kopfVollstaendig()) { kopfUebernehmen(); return; }
+  if (!erzwingen && kopfVollstaendig() && kopfDurchgangLaeuft()) { kopfUebernehmen(); return; }
   kopfDialog();
 }
 function invFuelleKopfFelder() {
@@ -8056,7 +8078,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-20"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-21"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
