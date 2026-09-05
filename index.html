@@ -734,22 +734,19 @@
                      width:100%; height:24px; line-height:24px; padding:0 3px;
                      text-align:right; font-variant-numeric:tabular-nums; }
   .abr-kopfbereich { position:relative; min-height:86px; margin-bottom:6px; }
-  .abr-kopfzeile-links { position:absolute; left:0; top:0; display:flex; align-items:center; gap:20px; }
-  /* Das Logo reicht von der linken Kante "Kunde" bis in die Mitte der
-     Spalte "Kunden-Nr." - rund 16,7 % der Blattbreite. */
-  /* Feste Breite statt Prozent: Der Logo-Block liegt absolut, dort loest
-     eine Prozentangabe gegen die eigene Inhaltsbreite auf und bleibt
-     wirkungslos. 124 px entsprechen 16,7 % der Blattbreite - vom linken
-     Rand "Kunde" bis in die Mitte von "Kunden-Nr.". */
-  .abr-logo-bild { width:124px; height:auto; }
+  /* Die Logodatei hat rundum viel Weissraum - die Schrift belegt nur 42 %
+     der Bildbreite. Damit das "H" von Hall und das "T" von Tabakwaren
+     links buendig mit der Spalte "Kunde" stehen, sitzt das Bild in einem
+     Ausschnitt und wird darin verschoben: gezaehlt wird die Schrift, nicht
+     der Bildrand. Rechts reicht sie rund 45 % in die Spalte "Kunden-Nr."
+     hinein, unten endet sie auf der Tabellenkante (Mirko, 05.09.2026). */
+  .abr-logo { position:absolute; left:0; top:6px; width:122px; height:86px; overflow:hidden; }
+  .abr-logo img { position:absolute; left:-89px; top:-43.5px; width:291px; height:auto; }
   .abr-kopf { width:100%; table-layout:fixed; }
   .abr-kopf td { padding:2px 4px; vertical-align:middle; height:26px; }
   .abr-kopf td.abr-frei { border:none; }
 
-  /* Das Logo ist auf dem Vordruck deutlich groesser - rund 14 % der
-     Blattbreite (Mirko, 05.09.2026). */
-
-  .abr-titel { font-size:13px; line-height:1.35; }
+  .abr-titel { position:absolute; left:142px; top:26px; font-size:13px; line-height:1.35; }
   .abr-nrlinie { display:inline-block; width:70px; border-bottom:1px solid #000; }
   .abr-kopf td.abr-k-lab { border:1px solid #000; font-size:12px; text-align:center; white-space:nowrap; }
   .abr-kopf td.abr-k-feld { border:1px solid #000; }
@@ -1787,10 +1784,8 @@
          das Logo die "Vertreter"-Zeile in die Hoehe. Beide Kopfzeilen sind
          dadurch gleich hoch (Mirko, 05.09.2026). -->
     <div class="abr-kopfbereich">
-    <div class="abr-kopfzeile-links">
-      <img class="abr-logo-bild" src="hall-logo.png" alt="Hall Tabakwaren">
-      <div class="abr-titel">Verkaufsbericht<br>Nr.: <span class="abr-nrlinie"></span></div>
-    </div>
+    <div class="abr-logo"><img src="hall-logo.png" alt="Hall Tabakwaren"></div>
+    <div class="abr-titel">Verkaufsbericht<br>Nr.: <span class="abr-nrlinie"></span></div>
     <table class="abr-kopf">
       <!-- Dieselben neun Spalten wie die Kundentabelle - so sitzen die
            Kanten pixelgenau uebereinander, statt sie nachzurechnen. -->
@@ -7499,7 +7494,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-14"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-15"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
