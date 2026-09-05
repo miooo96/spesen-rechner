@@ -736,8 +736,12 @@
   .abr-kopf { width:100%; margin-bottom:6px; table-layout:fixed; }
   .abr-kopf td { padding:2px 4px; vertical-align:middle; }
   .abr-kopf td.abr-frei { border:none; }
-  .abr-kopfzeile-links { display:flex; align-items:center; gap:26px; }
-  .abr-logo-bild { height:34px; }
+  .abr-kopfzeile-links { display:flex; align-items:center; gap:22px; padding:2px 0 6px; }
+  /* Das Logo ist auf dem Vordruck deutlich groesser - rund 14 % der
+     Blattbreite (Mirko, 05.09.2026). */
+  /* 14 % der Blattbreite (nicht der Zelle) - 210 mm mal 0,14 sind rund
+     104 px in der Bildschirmdarstellung. */
+  .abr-logo-bild { width:104px; height:auto; }
   .abr-titel { font-size:13px; line-height:1.35; }
   .abr-nrlinie { display:inline-block; width:70px; border-bottom:1px solid #000; }
   .abr-kopf td.abr-k-lab { border:1px solid #000; font-size:12px; text-align:center; white-space:nowrap; }
@@ -811,9 +815,13 @@
   .abr-stoer { margin-left:22.8%; width:77.2%; }
   .abr-stoer td.lab { width:57%; text-align:center; font-weight:400; background:#fff; }
   .abr-stoer td.feld { background:#f6c9a0; }
-  .abr-erklaerung { border:1px solid #000; border-top:none; background:#f6c9a0;
+  /* Der Textkasten reicht links bis zur Kante von "Kunde" - weiter nach
+     links als die Stoergeld-Zeile darueber - und hat rundum eine Linie.
+     Oben links fehlte bisher der Strich (Mirko, 05.09.2026). */
+  .abr-erklaerung { border:1px solid #000; background:#f6c9a0;
                     font-size:8px; font-weight:400; text-align:center; padding:6px 6px;
-                    line-height:1.5; white-space:nowrap; }
+                    line-height:1.5; white-space:nowrap;
+                    margin-left:-38.2%; }
 
   .abr-unterschrift { margin-top:16px; }
   .abr-unterschrift td { padding:7px 4px; font-size:12px; }
@@ -1784,16 +1792,17 @@
           </div>
         </td>
         <td class="abr-k-lab">Vertreter:</td>
-        <td class="abr-k-feld" colspan="3"><input id="abrVertreter"></td>
-        <td class="abr-frei"></td>
+        <td class="abr-k-feld" colspan="4"><input id="abrVertreter"></td>
       </tr>
       <tr>
         <td class="abr-frei" colspan="4"></td>
         <td class="abr-k-lab">Tour Nr:</td>
         <td class="abr-k-feld"><input id="abrTour"></td>
         <td class="abr-k-lab">Datum:</td>
-        <td class="abr-k-feld"><input id="abrDatum"></td>
-        <td class="abr-frei"></td>
+        <!-- Das Datumsfeld beginnt auf der Kante von "Rechnungs-inkasso" und
+             laeuft bis zum rechten Blattrand - so endet der Kopfkasten
+             buendig mit "Sonstiges-Inkasso" (Mirko, 05.09.2026). -->
+        <td class="abr-k-feld" colspan="2"><input id="abrDatum"></td>
       </tr>
     </table>
 
@@ -1837,7 +1846,7 @@
           <tr><td></td><td class="lab">Rechnungs-Inkasso</td><td class="feld"><input id="abrRechInkasso" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Sonstiges-Inkasso</td><td class="feld"><input id="abrSonstInkasso" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Geldablieferung lt.<br>Abrechnung</td><td class="feld"><input id="abrGeldablieferung" inputmode="decimal"></td></tr>
-          <tr><td></td><td class="lab fett">Kasse Soll</td><td class="feld"><input id="abrKasseSoll" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab fett">Kasse Soll</td><td class="feld"><input id="abrKasseSoll" readonly></td></tr>
           <tr><td></td><td class="lab">Kosten</td><td class="feld"><input id="abrKosten" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Falschgeld</td><td class="feld"><input id="abrFalschgeld" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">A-Konto</td><td class="feld"><input id="abrAKonto" inputmode="decimal"></td></tr>
@@ -3999,7 +4008,7 @@ const ABR_KEY = "hall-abrechnung-v1";
 let abrState = { felder: {}, sig: {} };
 
 const ABR_EINGABEN = ["abrVertreter","abrTour","abrDatum","abrBarverkauf","abrRechInkasso",
-  "abrSonstInkasso","abrGeldablieferung","abrKasseSoll","abrKosten","abrFalschgeld","abrAKonto",
+  "abrSonstInkasso","abrGeldablieferung","abrKosten","abrFalschgeld","abrAKonto",
   "abrHartgeld","abrScheine","abrRestgeld","abrGeldkarte","abrGiroGo","abrFreiverkauf","abrSchecks",
   "abrStoergeld","abrEndbestandVortrag","abrAutomatenverkauf","abrRechnungKVP","abrLieferscheinKVP",
   "abrBestandErhoehung","abrBestandVerminderung","abrEntlastung","abrLadeO1","abrLadeO2",
@@ -4029,7 +4038,12 @@ function abrInventurIst() {
 
 function abrRechne() {
   const kasseHaben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
-  const diffGeld = abrWert("abrGeldablieferung") - kasseHaben;
+  /* "Kasse Soll" traegt denselben Betrag wie "Geldablieferung lt.
+     Abrechnung" und wird an deren Stelle fuer die Differenz benutzt
+     (Mirko, 05.09.2026). Der Wert wird uebernommen, damit die Zeile auf
+     dem Ausdruck nicht leer bleibt. */
+  const kasseSoll = abrWert("abrGeldablieferung");
+  const diffGeld = kasseSoll - kasseHaben;
 
   const soll = abrWert("abrEndbestandVortrag")
              - abrWert("abrAutomatenverkauf")
@@ -4044,6 +4058,7 @@ function abrRechne() {
 
   const zeige = (id, wert, nurWenn) =>
     abrSetz(id, nurWenn ? invFmt(wert) : "");
+  zeige("abrKasseSoll", kasseSoll, String(abrState.felder.abrGeldablieferung || "").trim() !== "");
   zeige("abrKasseHaben", kasseHaben, kasseHaben !== 0);
   zeige("abrDiffGeld", diffGeld, String(abrState.felder.abrGeldablieferung || "").trim() !== "" || kasseHaben !== 0);
   zeige("abrInventurSoll", soll, soll !== 0);
@@ -7472,7 +7487,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-12"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-13"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
