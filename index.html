@@ -729,10 +729,37 @@
   }
 
   /* ---- Splash im Nachtbild-Auftritt ---- */
-  /* Der Text rutscht nach unten: mittig saesse er genau auf dem
-     Hall-Signet, und beides waere schlechter zu lesen. Unten liegt
-     ohnehin der dunkelste Teil des Schleiers. */
-  #splashScreen.nacht { background: #140800; justify-content: flex-end; padding-bottom: 58px; }
+  /* Startbildschirm nach Entwurf A (Mirko, 05.09.2026): Nachtfoto als
+     Vollbild, darauf gross der Gruss - sonst nichts ausser dem
+     Weiter-Knopf. Die Kategorien stehen erst dahinter.
+
+     Der Text steht unten: mittig saesse er auf dem Hall-Signet, und
+     beides waere schlechter zu lesen. Unten liegt ohnehin der dunkelste
+     Teil des Schleiers. Links ausgerichtet, weil eine dreizeilige grosse
+     Schrift mittig unruhig wirkt. */
+  #splashScreen.nacht {
+    background: #140800; justify-content: flex-end;
+    align-items: stretch; text-align: left;
+    /* 56 px unten: die Fusszeile sitzt absolut bei bottom:18px und
+       ueberlappte sonst den Knopf - gemessen -2 px Abstand. */
+    padding: 24px 20px 56px; gap: 0;
+  }
+  #splashScreen.nacht h2 { display: none; }        /* "Hall Tabakwaren" steckt schon im Foto */
+  #splashScreen.nacht .splash-month { display: none; }
+  /* Kleine Zeile ueber dem Gruss - ersetzt die weggefallene Ueberschrift */
+  #splashScreen.nacht .splash-jahr {
+    font-size: .72rem; font-weight: 800; letter-spacing: 3.4px;
+    text-transform: uppercase; margin: 0 0 10px; text-align: left;
+  }
+  /* Der Gruss ist das Hauptmotiv: dreimal so gross wie zuvor. Der Name
+     steht auf einer eigenen Zeile in Orange - der Zeilenumbruch kommt
+     als \n aus initSplash() und wird hier zur Zeile gemacht. */
+  #splashScreen.nacht .splash-greeting {
+    white-space: pre-line;
+    font-size: 2.7rem; font-weight: 900; line-height: .96; letter-spacing: -1.6px;
+    color: #fff; margin: 0 0 20px; text-align: left;
+    text-shadow: 0 4px 30px rgba(0,0,0,.85);
+  }
   #splashScreen.nacht > img { display: none; }   /* die Reklame IM Foto ist das Logo */
   #splashScreen.nacht .nacht-schleier {
     background: linear-gradient(180deg, rgba(20,8,0,.55) 0%, rgba(20,8,0,.10) 32%,
@@ -794,6 +821,7 @@
   .splash-weiter:active { transform: scale(.97); }
   /* Im Nachtbild-Auftritt als Leuchtroehre, passend zur Reklame. */
   #splashScreen.nacht .splash-weiter {
+    margin: 0; align-self: flex-start;
     color: #fff3e0; background: rgba(38,18,4,.5);
     border: 2px solid #ffb35c;
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
@@ -833,14 +861,28 @@
      statt das orginal logo"). Das Logo dient nur als Schablone fuer eine
      leuchtende Flaeche; der Schein liegt auf dem AEUSSEREN Element, weil
      filter vor mask angewendet wird. */
+  #nachtZurueck { display: none; }
+  body.nacht-start #nachtZurueck {
+    display: inline-flex; align-items: center;
+    margin: 0 0 6px; padding: .5rem 1rem; min-height: 40px;
+    font: 700 .88rem 'Montserrat', sans-serif; cursor: pointer;
+    color: #e8d5bd; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(222,112,8,.35); border-radius: 999px;
+  }
+  body.nacht-start #nachtZurueck:hover {
+    background: rgba(222,112,8,.18); border-color: rgba(222,112,8,.65);
+  }
+
   #nachtStartLogo { display: none; }
   /* Das Schild rueckt nach oben, weil die Kopfzeile weggefallen ist -
      es steht jetzt an ihrer Stelle. */
   body.nacht-start #nachtStartLogo {
     display: flex; justify-content: center; margin: 2px 0 16px;
   }
+  /* Das Logo TRAEGT "seit 1903" bereits - eine zusaetzliche Zeile
+     darunter waere dieselbe Angabe zweimal (Mirko, 05.09.2026). */
   #nachtStartLogo span {
-    display: block; width: 62%; max-width: 230px; padding-bottom: 42.6%;  /* 300x206 */
+    display: block; width: 68%; max-width: 250px; padding-bottom: 46.7%;  /* 300x206 */
     background: #fff3e0;
     -webkit-mask: url("hall-logo-original.png") center/contain no-repeat;
             mask: url("hall-logo-original.png") center/contain no-repeat;
@@ -854,12 +896,40 @@
   /* Kacheln auf dunklem Grund: kein Weiss mehr (Mirko: "so weiss ist
      doof"), sondern dunkles, leicht durchscheinendes Glas mit warmem
      Rand - das Nachtgefuehl bleibt, die Schrift bleibt lesbar. */
+  /* Kategorien nach Entwurf B (Mirko, 05.09.2026): volle Breite statt
+     zweispaltiger Kacheln, jede Zeile mit leuchtender Kante links.
+     Ruhiger zu lesen als ein Raster und im Fahrzeug leichter zu treffen -
+     der Daumen muss nur die Hoehe finden, nicht die Spalte. */
+  body.nacht-start .kachel-grid { grid-template-columns: 1fr !important; gap: 10px; }
   body.nacht-start .kachel-btn {
-    background: rgba(38,18,4,.58);
-    border: 1px solid rgba(222,112,8,.40);
-    color: #f7e6cf;
-    box-shadow: 0 2px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,200,140,.14);
-    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+    position: relative; overflow: hidden;
+    display: flex; align-items: center;
+    text-align: left; padding: 16px 15px 16px 22px;
+    font-size: .98rem; border-radius: 14px;
+    background: linear-gradient(90deg, rgba(222,112,8,.15), rgba(222,112,8,.02));
+    border: 1px solid rgba(222,112,8,.30);
+    color: #f6e9d9;
+    box-shadow: none;
+  }
+  /* Die Leuchtkante - dasselbe Motiv wie die Reklame im Startbild. */
+  body.nacht-start .kachel-btn::before {
+    content: ""; position: absolute; left: 0; top: 12%; bottom: 12%;
+    width: 3px; border-radius: 3px; background: var(--accent);
+    box-shadow: 0 0 10px var(--accent), 0 0 22px rgba(222,112,8,.75);
+  }
+  body.nacht-start .kachel-btn:hover {
+    background: linear-gradient(90deg, rgba(222,112,8,.26), rgba(222,112,8,.05));
+    border-color: rgba(222,112,8,.6);
+    transform: none;
+  }
+  /* Die Statuszeile rechts darf NICHT umbrechen - sonst schiebt sie die
+     Beschriftung in zwei Zeilen ("Fahrzeug-Inventur" wurde zu
+     "Fahrzeug-" / "Inventur"). Sie steht deshalb auf einer Zeile, wird
+     nicht gestaucht und ist etwas kleiner als die Beschriftung. */
+  body.nacht-start .kachel-zahl {
+    margin: 0 0 0 auto; padding-left: 12px; flex: 0 0 auto;
+    white-space: nowrap; text-align: right; color: #ffb45c;
+    font-size: .74rem; font-weight: 600; font-variant-numeric: tabular-nums;
   }
   body.nacht-start .heute-tag, body.nacht-start .heute-datum { color: #e8d5bd; }
   body.nacht-start .heute-chip { background: rgba(38,18,4,.6); color: #f7e6cf;
@@ -1645,6 +1715,10 @@
        sobald ein Bereich geoeffnet wird. Sichtbar nur mit body.nacht-start
        (gesetzt in zeigeKachelStartseite(), nur fuer Mirko). -->
   <div id="nachtStartHg" aria-hidden="true"></div>
+  <!-- Zurueck auf den Startbildschirm (Mirko, 05.09.2026: "einen
+       zurueckknopf wo man nochmal in hauptscreen kommen wuerde"). Nur im
+       Nachtbild-Auftritt sichtbar. -->
+  <button type="button" id="nachtZurueck" onclick="zurueckZumStartbild()">‹ Startbild</button>
   <div id="nachtStartLogo" aria-hidden="true"><span></span></div>
   <!-- "Heute": Kopfbereich ueber den Kacheln. Wer die App zum zweiten Mal
        oeffnet, soll seinen Stand sehen statt einer Menuetafel - ein grosser
@@ -2744,8 +2818,12 @@ function initSplash() {
   // config.name noch leer - dann generische Begruessung ohne Namen.
   const greetEl = document.getElementById("splashGreeting");
   if (greetEl) {
-    greetEl.textContent = config.name
-      ? t("splashGreetingKnown").replace("{name}", config.name)
+    /* Auf dem Startbildschirm steht der Gruss gross und allein - deshalb
+       hier dieselbe Tageszeit-Regel wie auf der Kachelseite, nicht mehr
+       das feste "Hallo". Nur der Vorname, sonst wird die Zeile zu lang. */
+    const vorname = (config.name || "").trim().split(" ")[0];
+    greetEl.textContent = vorname
+      ? tageszeitGruss() + ",\n" + vorname
       : t("splashGreetingUnknown");
   }
   // Kein Klick mehr noetig (Entscheidung 26.08.2026): der Splash blendet
@@ -2795,6 +2873,16 @@ function initSplash() {
 }
 
 /* Splash schliessen und auf der Kachel-Startseite landen. */
+/* Zurueck auf den Startbildschirm. Der Gruss wird dabei neu gesetzt -
+   wer mittags aufmacht und abends zurueckspringt, soll "Guten Abend"
+   lesen, nicht den Gruss von vorhin. */
+function zurueckZumStartbild() {
+  const el = document.getElementById("splashScreen");
+  if (!el) return;
+  el.style.display = "";
+  initSplash();
+}
+
 function splashSchliessen() {
   const el = document.getElementById("splashScreen");
   if (el) el.style.display = "none";
@@ -3408,6 +3496,25 @@ function heuteVorschlag() {
 let __heuteZiel = "spesen";
 function heuteWeitermachen() { zeigeTab(__heuteZiel); }
 
+/* Gruss nach Tageszeit (Mirko, 05.09.2026: "tagesabhaengig und
+   uhrzeitmaessig den gruss anpassen - morgens guten morgen, mittags
+   guten mittag und abends guten abend").
+
+   Genau die drei genannten Stufen, keine vierte erfunden. Grenzen:
+     bis 11 Uhr   Guten Morgen
+     11 bis 17    Guten Mittag
+     ab 17 Uhr    Guten Abend
+
+   Steht hier EINMAL und wird von Startbildschirm und Kachelseite
+   gemeinsam benutzt - sonst begruesst die App auf zwei Bildschirmen
+   unterschiedlich. */
+function tageszeitGruss() {
+  const stunde = new Date().getHours();
+  if (stunde < 11) return "Guten Morgen";
+  if (stunde < 17) return "Guten Mittag";
+  return "Guten Abend";
+}
+
 function heuteAktualisieren() {
   const kopf = document.getElementById("heuteKopf");
   if (!kopf) return;
@@ -3416,7 +3523,7 @@ function heuteAktualisieren() {
   const jetzt = new Date();
   const tage = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
   const stunde = jetzt.getHours();
-  const gruss = stunde < 11 ? "Guten Morgen" : (stunde < 18 ? "Guten Tag" : "Guten Abend");
+  const gruss = tageszeitGruss();
   document.getElementById("heuteTag").textContent = gruss + ", " + (config.name || "").split(" ")[0];
   document.getElementById("heuteDatum").textContent =
     tage[jetzt.getDay()] + ", " + jetzt.toLocaleDateString("de-DE");
@@ -3457,18 +3564,20 @@ function heuteAktualisieren() {
   document.getElementById("heuteChips").innerHTML = chips.join("");
 
   // Zahlen auf den Kacheln
-  heuteKachelZahl("inventur", ist > 0 ? invFmt(ist) + " €" : "noch nichts erfasst");
+  heuteKachelZahl("inventur", ist > 0 ? invFmt(ist) + " €" : "");
   /* Der alte Text "Gerüst – noch nicht in Betrieb" stammte vom Tag des
      Einbaus und stimmte seit dem 05.09.2026 nicht mehr. */
-  heuteKachelZahl("abrechnung", abr.endbestand
-    ? "Endbestand " + invFmt(abr.endbestand) + " €"
-    : "noch nichts eingetragen");
+  heuteKachelZahl("abrechnung", abr.endbestand ? invFmt(abr.endbestand) + " €" : "");
 }
 /* Haengt eine kleine Zahlenzeile unter die Beschriftung einer Kachel. */
 function heuteKachelZahl(tab, text) {
   const btn = document.querySelector('.kachel-btn[onclick="zeigeTab(\'' + tab + '\')"]');
   if (!btn) return;
   let el = btn.querySelector(".kachel-zahl");
+  /* Leerer Text heisst: Zeile ganz weg. Ein "noch nichts erfasst" sagt
+     nichts aus, kostet aber Platz - in der schmalen Zeilenansicht drueckte
+     es "Fahrzeug-Inventur" auf zwei Zeilen (gemessen 05.09.2026). */
+  if (!text) { if (el) el.remove(); return; }
   if (!el) { el = document.createElement("span"); el.className = "kachel-zahl"; btn.appendChild(el); }
   el.textContent = text;
 }
@@ -8757,7 +8866,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-37"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-38"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
