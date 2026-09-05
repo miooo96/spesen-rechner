@@ -674,7 +674,7 @@
      Einstellungen von Mirko (05.09.2026): Leucht-Art "Aufladen",
      Neon-Staerke 7 von 10 (= 0.79), Rauch 0 - deshalb ist der Rauch
      hier gar nicht erst eingebaut. */
-  :root { --neon: .79; }
+  :root { --neon: .80; }   /* Mirko, 05.09.2026: "neon 80" */
 
   /* WICHTIG: Die Bildebenen sind standardmaessig AUS und werden nur mit
      der Klasse "nacht" gezeigt.
@@ -732,21 +732,77 @@
     50%      { opacity: var(--neon); }
   }
 
-  /* Glut am unteren Rand + aufsteigende Funken */
-  .nacht-glut {
-    background: radial-gradient(ellipse at 50% 108%, rgba(222,112,8,.75), transparent 62%);
-    filter: blur(20px); animation: nachtGlimmen 8s ease-in-out infinite;
+  /* ===================== Fallende Asche =====================
+     Ersetzt die aufsteigenden Funken (Mirko, 05.09.2026, nach dem
+     Vergleich von fuenf Fassungen: "wir nehmen c, menge 15 tempo 5
+     groesse 3 neon 80").
+
+     Gewaehlt wurde am Ende Fassung F - "Asche in Schueben" ("wobei ich
+     finde asche in schueben mit den selben einstellungen sogar besser"):
+     ein duenner Dauerschleier, und im Takt loest sich am oberen Rand ein
+     Schwung Asche, kurz nachdem es dort warm aufgeglimmt hat.
+
+     Die Quelle liegt bewusst AUSSERHALB des Bildes. Ein gezeichnetes
+     Objekt - erst probiert war eine Zigarette - bricht den Stil: Der
+     Hintergrund ist ein Foto, eine gezeichnete Form davor hat weder
+     Massstab noch Halter. Ein Schein am Rand hat beides nicht noetig.
+
+     Mit entfernt wurde die Glut-Ebene am unteren Rand
+     (radial-gradient von 50% 108%). Sie sass genau dort, wo die Asche am
+     dichtesten faellt, und nahm den Flocken den Kontrast. Mirko hat sie
+     in den Vergleichen entfernen lassen und Fassung C in genau diesem
+     Zustand ausgewaehlt - gemessen null Glut-Ebenen im Vergleichsbild.
+
+     ZWEI EBENEN pro Flocke, das ist der Kern: aussen faellt, innen
+     taumelt. Ein einziges Keyframe koennte beides nicht unabhaengig -
+     Fallzeit (13-30 s) und Taumelzeit (1,6-4,4 s) muessen sich
+     ueberlagern, sonst sieht man das Muster. */
+  .nacht-flocken { overflow: hidden; }
+  .nacht-asche {
+    position: absolute; top: -8%;
+    animation-name: nachtFallen; animation-timing-function: linear;
+    animation-iteration-count: infinite; will-change: transform;
   }
-  @keyframes nachtGlimmen { 0%,100% { opacity:.6 } 50% { opacity:1 } }
-  .nacht-funke {
-    position: absolute; bottom: -4%; border-radius: 50%;
-    background: radial-gradient(circle, #ffe0ae, rgba(222,112,8,.25) 55%, transparent 70%);
-    will-change: transform, opacity;
+  @keyframes nachtFallen { to { transform: translateY(var(--weg)); } }
+
+  .nacht-flocke {
+    animation-name: nachtTaumeln; animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite; animation-direction: alternate;
+    will-change: transform;
   }
-  @keyframes nachtSteigen {
-    0%   { transform: translate(0,0) scale(.6); opacity: 0; }
-    10%  { opacity: 1; }
-    100% { transform: translate(var(--drift), calc(-1 * var(--weg))) scale(1.2); opacity: 0; }
+  @keyframes nachtTaumeln {
+    from { transform: translateX(calc(-1 * var(--seit))) rotate(-140deg); }
+    to   { transform: translateX(var(--seit)) rotate(140deg); }
+  }
+
+  /* Unregelmaessig, nicht rund - Asche ist kein Punkt */
+  .nacht-flocke i {
+    display: block; border-radius: 46% 58% 40% 62% / 55% 42% 60% 45%;
+    background: linear-gradient(150deg, #d9d0c6, #8b8178 60%, #4a443e);
+  }
+  /* Ein Teil der Flocken glueht noch - der warme Rand frisch geloester Asche */
+  .nacht-asche.glueht .nacht-flocke i {
+    background: linear-gradient(150deg, #ffd9a0, #ff8c14 45%, #7a3a08);
+    box-shadow: 0 0 7px 1.5px rgba(255,130,20,.85), 0 0 18px 4px rgba(222,112,8,.35);
+  }
+
+  /* Die Quelle: nur ein warmer Schein knapp ueber dem Bildrand. Kurz
+     bevor sich der naechste Schwung loest, glimmt er auf. */
+  /* "top: 0" und der Verlauf mit dem Brennpunkt bei 50% 0%: Der hellste
+     Punkt liegt genau auf der Bildkante und faellt nach unten ab - das
+     liest sich wie eine Quelle knapp ausserhalb, ohne dass etwas ueber
+     den Rand ragen und geschnitten werden muss. */
+  .nacht-quelle {
+    position: absolute; top: 0; left: 58%; transform: translateX(-50%);
+    width: 30%; min-width: 92px; max-width: 150px; height: 62px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,146,44,.5), transparent 68%);
+    filter: blur(11px); pointer-events: none;
+    animation: nachtQuelle var(--zug, 12.7s) ease-in-out infinite;
+  }
+  @keyframes nachtQuelle {
+    0%, 58%, 100% { opacity: .30; }
+    80%           { opacity: .95; }
+    90%           { opacity: .45; }
   }
 
   /* ---- Splash im Nachtbild-Auftritt ---- */
@@ -961,7 +1017,7 @@
      dazu. */
   @media (prefers-reduced-motion: reduce) {
     .nacht-foto, .nacht-kern, .nacht-nah, .nacht-weit, .nacht-raum,
-    .nacht-glut, .nacht-funke, #nachtStartLogo,
+    .nacht-asche, .nacht-flocke, .nacht-quelle, #nachtStartLogo,
     #splashScreen.nacht .splash-jahr { animation: none !important; }
   }
 
@@ -1637,10 +1693,9 @@
   <div class="nacht-lage nacht-weit"></div>
   <div class="nacht-lage nacht-nah"></div>
   <div class="nacht-lage nacht-kern"></div>
-  <div class="nacht-lage nacht-glut"></div>
-  <!-- Eigener Behaelter fuer die Funken. Haengen sie direkt am Splash,
-       werden sie zu Flex-Elementen und schieben den Text hoch. -->
-  <div class="nacht-lage nacht-funken" id="splashFunken"></div>
+  <!-- Eigener Behaelter fuer die Asche. Haengen die Flocken direkt am
+       Splash, werden sie zu Flex-Elementen und schieben den Text hoch. -->
+  <div class="nacht-lage nacht-flocken" id="splashFunken"></div>
   <div class="nacht-lage nacht-schleier"></div>
   <img src="hall-logo-original.png" alt="Hall Tabakwaren">
   <div>
@@ -2914,7 +2969,7 @@ function initSplash() {
   const splashEl = document.getElementById("splashScreen");
   if (splashEl) {
     splashEl.classList.add("nacht");
-    nachtFunkenBauen(document.getElementById("splashFunken"), 20);
+    nachtAscheBauen(document.getElementById("splashFunken"), ASCHE_MENGE);
     /* Vorlauf, damit der Splash hell aufgeht statt dunkel: Das Atmen
        dauert 7 Sekunden und ist bei der Haelfte am hellsten. Mit -3,5 s
        steht es beim Oeffnen genau auf dem Hoehepunkt und atmet von dort
@@ -3649,23 +3704,133 @@ function heuteKachelZahl(tab, text) {
 /* Funken fuer den Nachtbild-Auftritt. Jeder bekommt eigene Groesse,
    Laufzeit, Drift und einen negativen Start, damit sie schon unterwegs
    sind statt gleichzeitig loszulaufen - sonst sieht man das Muster. */
-function nachtFunkenBauen(behaelter, anzahl) {
-  if (!behaelter || behaelter.dataset.funken) return;
-  const hoehe = window.innerHeight || 800;
-  for (let i = 0; i < anzahl; i++) {
-    const f = document.createElement("div");
-    f.className = "nacht-funke";
-    const g = 2 + Math.random() * 4.5;
-    f.style.width = g + "px";
-    f.style.height = g + "px";
-    f.style.left = (Math.random() * 100) + "%";
-    f.style.setProperty("--drift", (Math.random() * 70 - 35) + "px");
-    f.style.setProperty("--weg", (hoehe * (0.75 + Math.random() * 0.45)) + "px");
-    f.style.animation = "nachtSteigen " + (8 + Math.random() * 9).toFixed(1) + "s linear infinite";
-    f.style.animationDelay = (-Math.random() * 16).toFixed(1) + "s";
-    behaelter.appendChild(f);
+/* Werte aus dem Vergleich, den Mirko am 05.09.2026 ausgewaehlt hat:
+   Fassung C, Menge 15, Tempo 5, Groesse 3. Sie stehen hier als Zahlen
+   und nicht verstreut im Code, damit sich der Auftritt an EINER Stelle
+   nachstellen laesst. */
+const ASCHE_MENGE  = 15;
+const ASCHE_TEMPO  = 5;   // kleiner = langsamer
+const ASCHE_GROESSE = 3;  // Grundmass in px
+
+/* Eine Flocke. Dieselbe Bauart fuer den Dauerschleier und fuer den
+   Schub - sonst faellt die Asche aus der Quelle anders als die uebrige
+   und man sieht zwei Handschriften in einem Bild. */
+function nachtFlocke(glueht, dauer, groesse) {
+  const fall = document.createElement("div");
+  fall.className = "nacht-asche" + (glueht ? " glueht" : "");
+  fall.style.animationDuration = dauer.toFixed(1) + "s";
+
+  const flocke = document.createElement("div");
+  flocke.className = "nacht-flocke";
+  flocke.style.setProperty("--seit", (5 + Math.random() * 16).toFixed(0) + "px");
+  flocke.style.animationDuration = (1.6 + Math.random() * 2.8).toFixed(1) + "s";
+  flocke.style.animationDelay = (-Math.random() * 3).toFixed(1) + "s";
+
+  const kern = document.createElement("i");
+  const g = groesse * (0.55 + Math.random() * 0.95);
+  kern.style.width  = g.toFixed(1) + "px";
+  kern.style.height = (g * (0.55 + Math.random() * 0.5)).toFixed(1) + "px";
+
+  flocke.appendChild(kern);
+  fall.appendChild(flocke);
+  return fall;
+}
+
+/* Der Fallweg, und warum die Dauer mitskaliert wird:
+   Die Werte aus dem Vergleich galten fuer einen 560 px hohen Rahmen mit
+   660 px Fallweg. Auf einem hohen Handy waere dieselbe Dauer schneller,
+   weil der Weg laenger ist. Also wird beides zusammen skaliert - dann
+   faellt die Asche ueberall so, wie Mirko sie beurteilt hat. */
+function nachtFallweg() { return (window.innerHeight || 800) * 1.2; }
+
+/* Ein Schub: der Schwung Asche, der sich am oberen Rand loest. */
+function nachtSchub(behaelter) {
+  /* Nichts bauen, solange der Behaelter nicht sichtbar ist - sonst laeuft
+     der Takt im Hintergrund weiter und erzeugt Arbeit fuer nichts.
+
+     Geprueft wird mit getClientRects(), NICHT mit offsetParent. Der
+     naheliegende Test "!behaelter.offsetParent" ist hier falsch:
+     offsetParent ist bei position:fixed IMMER null, auch wenn das
+     Element bildschirmfuellend sichtbar ist. Genau das ist der
+     Hintergrund der Kachelseite (#nachtStartHg, position:fixed) - mit
+     der offsetParent-Abfrage kam dort nie ein Schub an, gemessen 5
+     Flocken vor und 5 nach einem vollen Takt. getClientRects() ist leer,
+     wenn wirklich nichts gerendert wird, und funktioniert bei jeder
+     Positionierungsart. */
+  if (!behaelter || !behaelter.getClientRects().length) return;
+  /* Wer "Bewegung reduzieren" eingeschaltet hat, bekommt ein Standbild.
+     Die CSS-Regel dafuer stellt zwar die Animationen ab - ohne diese
+     Zeile wuerden die Schuebe aber weiter Flocken erzeugen, die dann
+     regungslos am oberen Rand haengen, bis sie wieder entfernt werden. */
+  try {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  } catch (e) {}
+  const weg = nachtFallweg();
+  const anzahl = 9 + Math.floor(Math.random() * 6);
+  const quelle = behaelter.querySelector(".nacht-quelle");
+  // Ursprung messen statt schaetzen - die Quelle sitzt in Prozent
+  let mitte = 58, oben = 6;
+  if (quelle) {
+    const q = quelle.getBoundingClientRect(), b = behaelter.getBoundingClientRect();
+    if (b.width) mitte = ((q.left + q.width / 2) - b.left) / b.width * 100;
+    oben = Math.max(0, q.top - b.top + 6);
   }
-  behaelter.dataset.funken = "1";
+
+  for (let i = 0; i < anzahl; i++) {
+    const dauer = (26 - ASCHE_TEMPO) * (0.45 + Math.random() * 0.55) * (weg / 660);
+    const fall = nachtFlocke(Math.random() < 0.45, dauer, ASCHE_GROESSE * 0.85);
+    fall.style.setProperty("--weg", weg.toFixed(0) + "px");
+    fall.style.left = Math.max(0, Math.min(100, mitte + (Math.random() * 16 - 8))) + "%";
+    fall.style.top  = oben.toFixed(0) + "px";
+    fall.style.animationDelay = (Math.random() * 0.55).toFixed(2) + "s";
+    behaelter.appendChild(fall);
+    // Aufraeumen, sonst waechst der Behaelter bei jedem Schub weiter
+    setTimeout(() => fall.remove(), (dauer + 1.5) * 1000);
+  }
+}
+
+function nachtAscheBauen(behaelter, anzahl) {
+  if (!behaelter || behaelter.dataset.asche) return;
+  const weg = nachtFallweg();
+
+  /* Die Quelle wird hier erzeugt und nicht ins Markup geschrieben: Sie
+     muss INNERHALB des Flocken-Behaelters liegen. Ein direktes Kind des
+     Splash wuerde zum Flex-Element und den Gruss verschieben - genau der
+     Fehler, der am 05.09.2026 schon einmal den Text auf das Signet
+     geschoben hat. So gilt es fuer beide Auftritte (Splash und
+     Kachelseite) automatisch. */
+  if (!behaelter.querySelector(".nacht-quelle")) {
+    const q = document.createElement("div");
+    q.className = "nacht-quelle";
+    behaelter.appendChild(q);
+  }
+
+  /* Dauerschleier: bewusst duenn (ein Drittel), den Rest liefern die
+     Schuebe. Steht beides auf voller Menge, verschwindet der Rhythmus im
+     Dauerregen - dann sieht es aus wie Fassung A. */
+  const schleier = Math.max(3, Math.round(anzahl / 3));
+  for (let i = 0; i < schleier; i++) {
+    const dauer = (26 - ASCHE_TEMPO) * (0.65 + Math.random() * 0.8) * (weg / 660);
+    const fall = nachtFlocke(Math.random() < 0.2, dauer, ASCHE_GROESSE);
+    fall.style.setProperty("--weg", weg.toFixed(0) + "px");
+    fall.style.left = (Math.random() * 100) + "%";
+    // Negativer Start: die Flocken sind schon unterwegs, statt gemeinsam loszulaufen
+    fall.style.animationDelay = (-Math.random() * dauer).toFixed(1) + "s";
+    behaelter.appendChild(fall);
+  }
+
+  /* Takt der Schuebe. Der Schein glimmt bei 80 % der Runde auf, die
+     Asche loest sich bei 92 % - deshalb der Versatz beim ersten Mal. */
+  const zug = (28 - ASCHE_TEMPO) * 0.55;
+  behaelter.style.setProperty("--zug", zug.toFixed(1) + "s");
+  const q = behaelter.querySelector(".nacht-quelle");
+  if (q) q.style.setProperty("--zug", zug.toFixed(1) + "s");
+  setTimeout(() => {
+    nachtSchub(behaelter);
+    setInterval(() => nachtSchub(behaelter), zug * 1000);
+  }, zug * 920);
+
+  behaelter.dataset.asche = "1";
 }
 
 function zeigeKachelStartseite() {
@@ -3677,7 +3842,7 @@ function zeigeKachelStartseite() {
      bleiben. */
   document.body.classList.add("nacht-start");
   const hg = document.getElementById("nachtStartHg");
-  if (hg) nachtFunkenBauen(hg, 18);
+  if (hg) nachtAscheBauen(hg, ASCHE_MENGE);
   heuteAktualisieren();
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "none";
@@ -9028,7 +9193,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-41"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-42"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
