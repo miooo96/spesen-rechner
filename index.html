@@ -695,6 +695,14 @@
   .kae-gr { flex:0 0 104px; }
   .kae-gr select { width:100%; padding:12px 6px; font:inherit; font-size:17px; text-align:center;
                    border:1px solid #bbb; border-radius:8px; background:#fff; }
+  .abr-kette { border:1px solid #ddd; border-radius:10px; padding:10px 12px; background:#fff; margin:10px 0; }
+  .abr-zeile { display:flex; gap:8px; align-items:baseline; padding:3px 0; font-size:14px; }
+  .abr-op { flex:0 0 18px; text-align:center; font-weight:700; color:#888; }
+  .abr-ergebnis { border-top:1px solid #ddd; margin-top:4px; padding-top:6px; font-weight:600; }
+  .abr-pruef { color:#444; }
+  .abr-luecke { height:10px; }
+  .abr-hinweis { background:#FDE9DC; border:1px solid var(--accent); border-radius:8px;
+                 padding:9px 12px; font-size:0.9rem; color:var(--brand-dark); }
   .kae-tally { flex:0 0 auto; align-self:center; margin-top:14px; font-size:20px; line-height:1;
                padding:11px 13px; border:1px solid #bbb; border-radius:10px; background:#fff; cursor:pointer; }
   .kae-zaehl-overlay { align-items:stretch; }
@@ -1115,6 +1123,10 @@
          (aktualisiereInventurSichtbarkeit()), zusaetzlich nur fuer Fahrer -
          fuer Monteure ist eine KFZ-Bestandsaufnahme gegenstandslos. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
+    <!-- Abrechnung: wie die Inventur vorerst nur fuer Mirko sichtbar. Steht
+         als Geruest bereit, gefuellt wird sie mit echten Abrechnungen nach
+         dem Urlaub (Mirko, 05.09.2026). -->
+    <button type="button" class="kachel-btn" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
   </div>
   <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
        kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
@@ -1148,6 +1160,7 @@
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   <button type="button" class="tab-btn" data-tab="inventur" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
+  <button type="button" class="tab-btn" data-tab="abrechnung" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
   <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
   <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
@@ -1583,6 +1596,33 @@
   </div>
 </div>
 
+<div class="panel no-print" id="abrechnungPanel" style="display:none;">
+  <h2 style="margin-top:0;">🧾 Abrechnung</h2>
+  <p class="small" style="color:#666; margin-top:0;">
+    Ziel: Inventur und Abrechnung rechnen sich selbst – ohne dass jemand
+    nachrechnen muss.
+  </p>
+  <div class="abr-kette">
+    <div class="abr-zeile"><span class="abr-op"></span>Fahrzeugbestand am Anfang</div>
+    <div class="abr-zeile"><span class="abr-op">+</span>Beladung / Lieferscheine</div>
+    <div class="abr-zeile"><span class="abr-op">−</span>Verkauf laut Automaten</div>
+    <div class="abr-zeile abr-ergebnis"><span class="abr-op">=</span>Sollbestand</div>
+    <div class="abr-zeile abr-pruef"><span class="abr-op">↕</span>gegen den gezählten Istbestand → <b>Differenz Ware</b></div>
+    <div class="abr-luecke"></div>
+    <div class="abr-zeile">Geld aus den Automaten + Scheine und Münzen</div>
+    <div class="abr-zeile abr-pruef"><span class="abr-op">↕</span>gegen den Sollumsatz → <b>Differenz Geld</b></div>
+  </div>
+  <p class="small" style="color:#666;">
+    Beide Differenzen müssen zusammenpassen. Tun sie das nicht, zeigt die App,
+    <b>an welcher Stelle</b> es auseinanderläuft – das ist der eigentliche Nutzen.
+  </p>
+  <div class="abr-hinweis">
+    <b>Noch nicht in Betrieb.</b> Gebaut wird die Rechenkette erst mit echten
+    Abrechnungen – Mirko fotografiert nach dem Urlaub eine vollständige
+    Abrechnung. Ein erfundenes Rechenwerk wäre wertlos.
+  </div>
+</div>
+
 <div class="panel no-print" id="archivPanel" style="display:none;">
   <h2 style="margin-top:0;" data-i18n="archivTitle">📁 Abgeschlossene Monate</h2>
   <div id="archivContent"></div>
@@ -1808,7 +1848,7 @@ function aktualisiereZeitSichtbarkeit() {
 function aktualisiereInventurSichtbarkeit() {
   const istMonteur = config.mitarbeitertyp === "monteur";
   const sichtbar = istMirko() && !istMonteur;
-  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"]').forEach((el) => {
+  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"], .kachel-btn[onclick="zeigeTab(\'abrechnung\')"], #mainTabs .tab-btn[data-tab="abrechnung"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
   // Steht das Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
@@ -1882,6 +1922,7 @@ const I18N = {
     invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
     invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
     invKaefig: "📦 Ware zählen",
+    tabAbrechnung: "🧾 Abrechnung",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1917,6 +1958,7 @@ const I18N = {
     invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
     invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
     invKaefig: "📦 Count goods",
+    tabAbrechnung: "🧾 Settlement",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -2412,10 +2454,10 @@ function initSettingsUI() {
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
                      "arbeitszeitPanel", "urlaubPanel", "anleitungPanel", "mehrPanel",
-                     "inventurPanel"];
+                     "inventurPanel", "abrechnungPanel"];
 /* Diese treten an die Stelle des Spesenblatts statt darueber zu liegen */
 const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel", "mehrPanel",
-                            "inventurPanel"];
+                            "inventurPanel", "abrechnungPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -2439,8 +2481,8 @@ function zeigeAnsicht(id) {
    Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
    zeigeTab() immer deterministisch genau den angeklickten Bereich -
    klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
-const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel", inventur: "inventurPanel" };
-const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel, inventur: toggleInventurPanel };
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel", inventur: "inventurPanel", abrechnung: "abrechnungPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel, inventur: toggleInventurPanel, abrechnung: toggleAbrechnungPanel };
 
 /* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
    die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
@@ -3147,6 +3189,7 @@ function kaeZaehlerAuf(i) {
           '<span class="kae-zaehl-hinweis">Tippen = eine Stange</span>' +
         '</button>' +
         '<div class="kae-zaehl-leiste">' +
+          '<button type="button" class="ghost" onclick="kaeZaehlerPlus(10)">+10</button>' +
           '<button type="button" class="ghost" onclick="kaeZaehlerMinus()">− Zurück</button>' +
           '<button type="button" class="ghost" onclick="kaeZaehlerZu()">Abbrechen</button>' +
           '<button type="button" class="primary" onclick="kaeZaehlerUebernehmen()">✓ Übernehmen</button>' +
@@ -3158,8 +3201,8 @@ function kaeZaehlerAnzeige() {
   const el = document.getElementById("kaeZaehlZahl");
   if (el) el.textContent = __kaeZaehler.stand;
 }
-function kaeZaehlerPlus() {
-  __kaeZaehler.stand++;
+function kaeZaehlerPlus(schritt) {
+  __kaeZaehler.stand += (schritt || 1);
   kaeZaehlerAnzeige();
   // Kurzes Rueckmelden am Geraet, damit man nicht hinsehen muss (Android).
   if (navigator.vibrate) navigator.vibrate(8);
@@ -3527,6 +3570,8 @@ function invSchliesseErgebnis() {
   __invErgebnis = null;
   closeModal();
 }
+
+function toggleAbrechnungPanel() { zeigeAnsicht("abrechnungPanel"); }
 
 function toggleInventurPanel() {
   const offen = zeigeAnsicht("inventurPanel");
@@ -6809,7 +6854,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
