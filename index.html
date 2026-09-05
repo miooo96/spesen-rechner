@@ -1320,18 +1320,20 @@
     <div class="heute-chips" id="heuteChips"></div>
   </div>
   <div class="kachel-grid">
+    <!-- Reihenfolge nach dem Arbeitsablauf (Mirko, 05.09.2026): Spesen,
+         Fahrzeug-Inventur, Abrechnung - so werden sie im Fahrzeug benutzt.
+         Zeit, Urlaub und Jahr danach; sie gehoeren nicht zum
+         Wochenabschluss. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
     <!-- Fahrzeug-Inventur: wie die Zeit-Kachel nur fuer Mirko sichtbar
          (aktualisiereInventurSichtbarkeit()), zusaetzlich nur fuer Fahrer -
          fuer Monteure ist eine KFZ-Bestandsaufnahme gegenstandslos. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
-    <!-- Abrechnung: wie die Inventur vorerst nur fuer Mirko sichtbar. Steht
-         als Geruest bereit, gefuellt wird sie mit echten Abrechnungen nach
-         dem Urlaub (Mirko, 05.09.2026). -->
+    <!-- Abrechnung: wie die Inventur nur fuer Mirko und nur fuer Fahrer. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   </div>
   <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
        kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
@@ -1360,12 +1362,16 @@
 
 <nav id="mainTabs" class="no-print" role="tablist" aria-label="Hauptbereiche">
   <button type="button" class="tab-btn tab-back" onclick="zurueckZurAuswahl()" title="Zurück zur Auswahl" data-i18n="btnZurueck">←</button>
+  <!-- Reihenfolge nach dem Arbeitsablauf (Mirko, 05.09.2026): erst Spesen,
+       dann Fahrzeug-Inventur, dann Abrechnung - das ist die Reihenfolge, in
+       der die drei im Fahrzeug tatsaechlich benutzt werden. Zeit, Urlaub
+       und Jahr kommen danach; sie gehoeren nicht zum Wochenabschluss. -->
   <button type="button" class="tab-btn active" data-tab="spesen" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
+  <button type="button" class="tab-btn" data-tab="inventur" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
+  <button type="button" class="tab-btn" data-tab="abrechnung" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
   <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
-  <button type="button" class="tab-btn" data-tab="inventur" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
-  <button type="button" class="tab-btn" data-tab="abrechnung" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
   <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
   <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
   <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
@@ -1977,13 +1983,21 @@
       </div>
     </div>
 
+    <!-- Unterschriften auf dem Verkaufsbericht sind NICHT ausfuellbar
+         (Mirko, 05.09.2026): "die unterschrift auf dem abrechnungszettel
+         darf nicht ausgefuellt sein muss haendisch eingetragen werden".
+         Deshalb readonly und aus ABR_EINGABEN entfernt - es wird dort
+         nichts getippt, nichts gespeichert, nichts wiederhergestellt. Die
+         Zeilen bleiben leer und werden auf dem Ausdruck von Hand
+         unterschrieben. Zeitstempel entfaellt hier bewusst; beim
+         Inventurblatt bleibt die digitale Unterschrift erhalten. -->
     <table class="abr-unterschrift">
       <tr><td class="lab">Unterschrift Fahrer:</td>
-          <td class="linie" style="width:26%"><input id="abrUntFahrer"></td>
-          <td class="rest"><span class="inv-stempel" id="abrTs-abrUntFahrer"></span></td></tr>
+          <td class="linie" style="width:26%"><input id="abrUntFahrer" readonly></td>
+          <td class="rest"></td></tr>
       <tr><td class="lab">Kontrolliert:</td>
-          <td class="linie" style="width:26%"><input id="abrKontrolliert"></td>
-          <td class="rest"><span class="inv-stempel" id="abrTs-abrKontrolliert"></span></td></tr>
+          <td class="linie" style="width:26%"><input id="abrKontrolliert" readonly></td>
+          <td class="rest"></td></tr>
     </table>
   </div>
 </div>
@@ -4324,8 +4338,12 @@ const ABR_EINGABEN = ["abrVertreter","abrTour","abrDatum","abrBarverkauf","abrRe
   "abrHartgeld","abrScheine","abrRestgeld","abrGeldkarte","abrGiroGo","abrFreiverkauf","abrSchecks",
   "abrStoergeld","abrEndbestandVortrag","abrAutomatenverkauf","abrRechnungKVP","abrLieferscheinKVP",
   "abrBestandErhoehung","abrBestandVerminderung","abrEntlastung","abrLadeO1","abrLadeO2",
-  "abrLadeU1","abrLadeU2","abrLadeU3","abrLadeU4","abrLadeU5","abrEntladeschein",
-  "abrUntFahrer","abrKontrolliert"];
+  "abrLadeU1","abrLadeU2","abrLadeU3","abrLadeU4","abrLadeU5","abrEntladeschein"];
+/* abrUntFahrer und abrKontrolliert stehen hier bewusst NICHT mehr drin
+   (Mirko, 05.09.2026). Die Unterschriften werden von Hand auf dem Ausdruck
+   geleistet - also wird dort nichts getippt, nichts gespeichert und nichts
+   wiederhergestellt. Bereits gespeicherte Werte aus frueheren Fassungen
+   werden beim Laden entfernt, siehe abrLaden(). */
 
 function abrWert(id) { return invZahl((abrState.felder || {})[id]); }
 function abrSetz(id, wert) {
@@ -4337,6 +4355,20 @@ function abrLaden() {
   try { const r = localStorage.getItem(ABR_KEY); if (r) Object.assign(abrState, JSON.parse(r)); } catch (e) {}
   abrState.felder = abrState.felder || {};
   abrState.sig = abrState.sig || {};
+  /* Aufraeumen aelterer Staende: Bis 2026-09-05-26 waren die beiden
+     Unterschriftszeilen tippbar und wurden gespeichert. Wer damals etwas
+     eingetragen hatte, saehe es sonst weiterhin im Blatt - obwohl dort
+     jetzt von Hand unterschrieben wird. */
+  let bereinigt = false;
+  ["abrUntFahrer", "abrKontrolliert"].forEach((id) => {
+    if (abrState.felder[id] != null || abrState.sig[id] != null) bereinigt = true;
+    delete abrState.felder[id];
+    delete abrState.sig[id];
+    abrSetz(id, "");
+  });
+  // Bereinigung zurueckschreiben, sonst stuende der alte Wert weiter im
+  // Speicher und damit auch in jeder Sicherungsdatei.
+  if (bereinigt) abrSichern();
   ABR_EINGABEN.forEach((id) => { if (abrState.felder[id] != null) abrSetz(id, abrState.felder[id]); });
 }
 
@@ -4426,26 +4458,17 @@ function abrRechne() {
   if (st) st.textContent = ist ? "Inventur Ist " + invFmt(ist) + " €" : "";
 }
 
-/* Unterschrift mit Zeitstempel - gleiche Mechanik wie im Inventurblatt. */
-function abrStempelPflegen(id) {
-  const el = document.getElementById(id);
-  const gefuellt = el && String(el.value || "").trim() !== "";
-  if (gefuellt && !abrState.sig[id]) abrState.sig[id] = Date.now();
-  if (!gefuellt) delete abrState.sig[id];
-  abrStempelZeigen();
-}
-function abrStempelZeigen() {
-  ["abrUntFahrer", "abrKontrolliert"].forEach((id) => {
-    const el = document.getElementById("abrTs-" + id);
-    if (el) el.textContent = abrState.sig[id] ? "signiert " + invStempelText(abrState.sig[id]) : "";
-  });
-}
+/* Zeitstempel-Mechanik fuer den Verkaufsbericht entfaellt (Mirko,
+   05.09.2026): Dort wird von Hand unterschrieben, es gibt also nichts zu
+   stempeln. Die Funktion bleibt als leerer Platzhalter erhalten, weil sie
+   an mehreren Stellen beim Aufbau des Bereichs aufgerufen wird.
+   Im Inventurblatt bleibt die digitale Unterschrift samt Stempel bestehen. */
+function abrStempelZeigen() { /* keine Unterschriftsfelder mehr */ }
 
 document.addEventListener("input", function (e) {
   const el = e.target;
   if (!el || !el.id || ABR_EINGABEN.indexOf(el.id) === -1) return;
   abrState.felder[el.id] = el.value;
-  if (el.id === "abrUntFahrer" || el.id === "abrKontrolliert") abrStempelPflegen(el.id);
   abrRechne();
   abrSichern();
 });
@@ -4617,7 +4640,7 @@ function abrBestandHinweis() {
   const zahl = Math.abs(invZahl(feld ? feld.value : ""));
   if (!zahl) { el.innerHTML = "Keine Bestandsänderung? Dann einfach weiter."; return; }
   if (!abrBestandArt) {
-    el.innerHTML = "Bitte oben wählen: <b>Bestandserhöhung</b> oder <b>Bestandsverminderung</b>.";
+    el.innerHTML = "Bitte oben wählen: <b>− Bestandserhöhung</b> oder <b>+ Bestandsverminderung</b>.";
     return;
   }
   const zeile   = abrBestandArt === "erhoehung" ? "Bestandserhöhung" : "Bestandsverminderung";
@@ -4682,8 +4705,11 @@ function abrAssiZeige() {
   } else if (s.bestand) {
     inhalt =
       '<div class="assi-vz">' +
-        '<button type="button" class="ghost" id="assiArtErh" onclick="abrBestandWahl(\'erhoehung\')">Bestandserhöhung</button>' +
-        '<button type="button" class="ghost" id="assiArtVerm" onclick="abrBestandWahl(\'verminderung\')">Bestandsverminderung</button>' +
+        /* Vorzeichen vor der Beschriftung (Mirko, 05.09.2026): man sieht
+           beim Antippen, in welche Richtung die Summe wirkt - dieselbe
+           Schreibweise wie auf dem Vordruck. */
+        '<button type="button" class="ghost" id="assiArtErh" onclick="abrBestandWahl(\'erhoehung\')">− Bestandserhöhung</button>' +
+        '<button type="button" class="ghost" id="assiArtVerm" onclick="abrBestandWahl(\'verminderung\')">+ Bestandsverminderung</button>' +
       '</div>' +
       '<label>Summe</label>' +
       '<input class="assi-feld" id="assiBestandBetrag" inputmode="decimal" oninput="abrBestandSchreiben()">' +
@@ -8267,7 +8293,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-26"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-27"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
