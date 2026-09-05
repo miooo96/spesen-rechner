@@ -416,6 +416,18 @@
     padding:1.1rem 1.2rem; background:var(--brand-dark); color:#fff;
     box-shadow:0 6px 20px rgba(97,42,0,.28);
     transition: transform .15s, box-shadow .15s;
+    /* GENAU DERSELBE FEHLER wie am 26.08.2026 bei .kachel-btn: Ohne dies
+       erbt der Knopf die globale Regel "button { white-space: nowrap }".
+       Die Statuszeile ("Fahrzeug-Inventur · Tour 12 · 24 Zeilen erfasst")
+       laeuft dann rechts aus dem orangenen Rechteck heraus, statt
+       umzubrechen - gemessen 21 px Ueberstand bei 393 px Geraetebreite,
+       das Wort "erfasst" stand halb ausserhalb.
+       Gemeldet von Mirko am 05.09.2026: "bei weitermachen muss der
+       orangene rechteck ueber komplett erfasst gehen."
+       Die Kachel-Korrektur von damals hat diesen Knopf nicht erreicht,
+       weil er erst danach entstanden ist. Deshalb steht die Regel jetzt
+       an beiden Stellen. */
+    white-space: normal;
   }
   .heute-weiter:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(97,42,0,.34); }
   .heute-weiter-l { display:block; font-size:1.15rem; font-weight:700; }
@@ -8866,7 +8878,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-38"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-39"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
