@@ -775,11 +775,10 @@
   /* Der Geldblock beginnt unter "Kunden-Nr." und endet auf der rechten
      Kante von "Barverkauf". Die Warenabrechnung beginnt auf der Kante von
      "Rechnungs-KVP" und schliesst rechts buendig mit "Sonstiges-Inkasso". */
-  /* Die Warenabrechnung ist im Original schmaler als der Platz rechts
-     hergibt - rund 35 % der Blattbreite. Rechts bleibt sie buendig mit
-     "Sonstiges-Inkasso", nach links rueckt sie ein (Mirko, 05.09.2026:
-     "etwas kleiner gehalten, nicht so gross gezogen"). */
-  .abr-mitte { display:grid; grid-template-columns:12.9% 33.8% 18.3% 35%; position:relative; }
+  /* Die Warenabrechnung beginnt links auf der Trennlinie zwischen
+     "Kreditverkauf" und "Rechnungs-KVP" (57,3 %) und endet rechts buendig
+     mit "Sonstiges-Inkasso" (Mirko, 05.09.2026). */
+  .abr-mitte { display:grid; grid-template-columns:12.9% 33.8% 10.6% 42.7%; position:relative; }
   .abr-links { grid-column:2; }
   .abr-rechts { grid-column:4; padding-top:74px; }
   /* Feste Spaltenbreiten - sonst zieht der laengste Text ("Geldablieferung
@@ -7498,7 +7497,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-16"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-17"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
