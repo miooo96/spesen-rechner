@@ -722,7 +722,10 @@
   .kae-gr { flex:0 0 104px; }
   .kae-gr select { width:100%; padding:12px 6px; font:inherit; font-size:17px; text-align:center;
                    border:1px solid #bbb; border-radius:8px; background:#fff; }
-  /* ===== Verkaufsbericht (Abrechnung) - Blatt im Original-Layout ===== */
+  /* ===== Verkaufsbericht (Abrechnung) - Blatt im Original-Layout =====
+     Kein Gelb, keine grauen Rechenfelder: Der Vordruck ist durchgehend
+     weiss, nur der Stoergeld-Kasten ist farbig (Mirko, 05.09.2026:
+     "ohne diese gelbe farbe die ist auch nicht im orginal"). */
   .abr-blatt { width:210mm; background:#fff; padding:8mm 7mm; color:#000; margin:10px auto;
                box-shadow:0 1px 6px rgba(0,0,0,.15); }
   .abr-blatt table { border-collapse:collapse; }
@@ -740,37 +743,55 @@
   .abr-kopf td.abr-k-feld { border:1px solid #000; }
   .abr-kopf td.abr-k-feld input { text-align:left; }
 
-  .abr-kunden { width:100%; margin-bottom:8px; }
+  .abr-kunden { width:100%; margin-bottom:0; }
   .abr-kunden th { border:1px solid #000; font-size:9.5px; font-weight:400; padding:2px 3px;
                    text-align:left; vertical-align:top; }
   .abr-kunden td { border:1px solid #000; height:21px; font-size:11px; padding:0 3px; }
-  .abr-kunden td.nr { width:2%; }
+  /* Die Zeilennummer steht im Original IN der Kunde-Spalte, nicht in einer
+     eigenen schmalen Spalte davor. */
+  .abr-kunden td.kunde { width:14%; font-size:10px; vertical-align:top; padding-top:1px; }
 
-  .abr-mitte { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; }
-  .abr-geld, .abr-ware, .abr-stoer, .abr-unterschrift { width:100%; }
-  .abr-geld td { border:1px solid #000; height:21px; font-size:11.5px; padding:0 4px; }
-  .abr-geld td.lab.sum { border:none; width:22%; text-align:right; padding-right:6px; }
-  .abr-geld tr:first-child td.lab.sum { font-size:11.5px; }
-  .abr-geld td:first-child:empty { border:none; }
-  .abr-geld td.lab { width:42%; }
+  /* Der Geldblock sitzt eingerueckt, die Warenabrechnung rechts und etwas
+     tiefer - so steht es auf dem Vordruck. */
+  .abr-mitte { display:grid; grid-template-columns:11% 38% 8% 43%; position:relative; }
+  .abr-links { grid-column:2; }
+  .abr-rechts { grid-column:4; padding-top:62px; }
+  /* Feste Spaltenbreiten - sonst zieht der laengste Text ("Geldablieferung
+     lt. Abrechnung") die Beschriftungsspalte auf und die Betraege werden
+     abgeschnitten. */
+  .abr-geld, .abr-ware { width:100%; table-layout:fixed; }
+  .abr-stoer, .abr-unterschrift { width:100%; }
+  .abr-geld td { border:1px solid #000; height:22px; font-size:11.5px; padding:0 4px; }
+  .abr-geld td:first-child { border:none; width:20%; }
+  .abr-geld td.sum { border:1px solid #000; text-align:center; }
+  .abr-geld td.lab { width:44%; }
   .abr-geld td.feld { width:36%; }
   .abr-geld td.fett, .abr-ware td.fett { font-weight:700; }
-  .abr-geld td.feld.g, .abr-ware td.feld.g { background:#e8e3a8; }
-  .abr-geld td.feld.rechnet, .abr-ware td.feld.rechnet { background:#f2f2f2; }
 
-  .abr-ware td { border:1px solid #000; height:21px; font-size:11.5px; padding:0 4px; }
-  .abr-ware td.titel { text-align:center; font-weight:700; font-size:12.5px; height:24px; }
+  .abr-ware td { border:1px solid #000; height:22px; font-size:11.5px; padding:0 4px; }
+  .abr-ware td.titel { text-align:center; font-weight:700; font-size:12.5px; height:26px; }
   .abr-ware td.lab { width:58%; }
 
-  .abr-stoer { margin-top:10px; }
-  .abr-stoer td { border:1px solid #000; height:24px; font-size:13px; padding:0 5px; }
+  /* Pfeile aus den KVP-Spalten in den Geldblock */
+  .abr-pfeil { position:absolute; pointer-events:none; }
+  .abr-pfeil i { position:absolute; display:block; background:#000; }
+  .abr-pfeil .waag { height:1px; left:6px; right:0; top:0; }
+  .abr-pfeil .senk { width:1px; right:0; top:-34px; height:34px; }
+  .abr-pfeil .spitze { width:0; height:0; background:none; left:0; top:-3px;
+                       border-top:3.5px solid transparent; border-bottom:3.5px solid transparent;
+                       border-right:7px solid #000; }
+  .abr-pfeil-1 { left:50%; width:19%; top:30px; }
+  .abr-pfeil-2 { left:50%; width:31%; top:48px; }
+
+  .abr-stoer { margin-top:12px; }
+  .abr-stoer td { border:1px solid #000; height:26px; font-size:13px; padding:0 5px; }
   .abr-stoer td.lab { width:52%; text-align:center; font-weight:600; background:#f6c9a0; }
   .abr-stoer td.feld { background:#f6c9a0; }
   .abr-erklaerung { border:1px solid #000; border-top:none; background:#f6c9a0;
                     font-size:10.5px; font-weight:600; text-align:center; padding:7px 9px; }
 
-  .abr-unterschrift { margin-top:14px; }
-  .abr-unterschrift td { padding:6px 4px; font-size:12px; }
+  .abr-unterschrift { margin-top:16px; }
+  .abr-unterschrift td { padding:7px 4px; font-size:12px; }
   .abr-unterschrift td.lab { width:32%; white-space:nowrap; }
   .abr-unterschrift td.linie { border-bottom:1px solid #000; }
   .abr-sigwrap { display:flex; align-items:center; }
@@ -1686,7 +1707,7 @@
               </td></tr>
           <tr><td class="k">GVL/TB/VR/…:</td><td class="feld" colspan="2"><input id="invFGvl"></td></tr>
           <tr><td class="k">Kontrolle:</td>
-              <td class="feld g" colspan="2">
+              <td class="feld" colspan="2">
                 <div class="inv-sigwrap">
                   <input id="invFKontrolle" placeholder="Unterschrift">
                   <span class="inv-stempel" id="invTs-invFKontrolle"></span>
@@ -1736,38 +1757,42 @@
         <th>Barverkauf</th><th>Kreditverkauf</th><th>Rechnungs-<br>KVP</th>
         <th>Lieferschein<br>KVP</th><th>Rechnungs-<br>inkasso</th><th>Sonstiges-<br>Inkasso</th>
       </tr>
-      <tr><td class="nr">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td class="nr">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td class="nr">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td class="nr">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td class="nr">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td class="nr">6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="kunde">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="kunde">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="kunde">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="kunde">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="kunde">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="kunde">6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
     </table>
 
     <div class="abr-mitte">
+      <!-- Zwei Pfeile wie auf dem Vordruck: sie fuehren von den Spalten
+           Rechnungs-KVP und Lieferschein-KVP nach links in den Geldblock. -->
+      <div class="abr-pfeil abr-pfeil-1"><i class="spitze"></i><i class="waag"></i><i class="senk"></i></div>
+      <div class="abr-pfeil abr-pfeil-2"><i class="spitze"></i><i class="waag"></i><i class="senk"></i></div>
       <div class="abr-links">
         <table class="abr-geld">
           <tr><td class="lab sum">Summe:</td><td class="lab">Barverkauf</td><td class="feld"><input id="abrBarverkauf" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Rechnungs-Inkasso</td><td class="feld"><input id="abrRechInkasso" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Sonstiges-Inkasso</td><td class="feld"><input id="abrSonstInkasso" inputmode="decimal"></td></tr>
-          <tr><td></td><td class="lab">Geldablieferung lt.<br>Abrechnung</td><td class="feld g"><input id="abrGeldablieferung" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Geldablieferung lt.<br>Abrechnung</td><td class="feld"><input id="abrGeldablieferung" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab fett">Kasse Soll</td><td class="feld"><input id="abrKasseSoll" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Kosten</td><td class="feld"><input id="abrKosten" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Falschgeld</td><td class="feld"><input id="abrFalschgeld" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">A-Konto</td><td class="feld"><input id="abrAKonto" inputmode="decimal"></td></tr>
-          <tr><td></td><td class="lab">Hartgeld</td><td class="feld g"><input id="abrHartgeld" inputmode="decimal"></td></tr>
-          <tr><td></td><td class="lab">Scheine</td><td class="feld g"><input id="abrScheine" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Hartgeld</td><td class="feld"><input id="abrHartgeld" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Scheine</td><td class="feld"><input id="abrScheine" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Restgeld</td><td class="feld"><input id="abrRestgeld" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Geldkarte</td><td class="feld"><input id="abrGeldkarte" inputmode="decimal"></td></tr>
-          <tr><td></td><td class="lab">GiroGo</td><td class="feld g"><input id="abrGiroGo" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">GiroGo</td><td class="feld"><input id="abrGiroGo" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Freiverkauf</td><td class="feld"><input id="abrFreiverkauf" inputmode="decimal"></td></tr>
           <tr><td></td><td class="lab">Schecks</td><td class="feld"><input id="abrSchecks" inputmode="decimal"></td></tr>
-          <tr><td></td><td class="lab fett">Kasse Haben</td><td class="feld rechnet"><input id="abrKasseHaben" readonly></td></tr>
-          <tr><td></td><td class="lab">Differenz</td><td class="feld rechnet"><input id="abrDiffGeld" readonly></td></tr>
+          <tr><td></td><td class="lab fett">Kasse Haben</td><td class="feld"><input id="abrKasseHaben" readonly></td></tr>
+          <tr><td></td><td class="lab">Differenz</td><td class="feld"><input id="abrDiffGeld" readonly></td></tr>
         </table>
 
         <table class="abr-stoer">
-          <tr><td class="lab">Störgeld:</td><td class="feld g"><input id="abrStoergeld" inputmode="decimal"></td></tr>
+          <tr><td class="lab">Störgeld:</td><td class="feld"><input id="abrStoergeld" inputmode="decimal"></td></tr>
         </table>
         <div class="abr-erklaerung">
           Die Abgabe von Störgeld ist verpflichtend, hiermit bestätige ich, dass
@@ -1778,25 +1803,25 @@
       <div class="abr-rechts">
         <table class="abr-ware">
           <tr><td class="titel" colspan="2">Warenabrechnug</td></tr>
-          <tr><td class="lab">Endbestand Vortrag:</td><td class="feld g"><input id="abrEndbestandVortrag" inputmode="decimal"></td></tr>
-          <tr><td class="lab">- Automatenverkauf</td><td class="feld g"><input id="abrAutomatenverkauf" inputmode="decimal"></td></tr>
+          <tr><td class="lab">Endbestand Vortrag:</td><td class="feld"><input id="abrEndbestandVortrag" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Automatenverkauf</td><td class="feld"><input id="abrAutomatenverkauf" inputmode="decimal"></td></tr>
           <tr><td class="lab">- Rechnung KVP</td><td class="feld"><input id="abrRechnungKVP" inputmode="decimal"></td></tr>
           <tr><td class="lab">- Lieferschein KVP</td><td class="feld"><input id="abrLieferscheinKVP" inputmode="decimal"></td></tr>
-          <tr><td class="lab">- Bestandserhöhung</td><td class="feld g"><input id="abrBestandErhoehung" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Bestandsverminderung</td><td class="feld g"><input id="abrBestandVerminderung" inputmode="decimal"></td></tr>
-          <tr><td class="lab">- Entlastung Sonstiges</td><td class="feld g"><input id="abrEntlastung" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeO1" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeO2" inputmode="decimal"></td></tr>
-          <tr><td class="lab fett">Inventur Soll</td><td class="feld rechnet"><input id="abrInventurSoll" readonly></td></tr>
-          <tr><td class="lab fett">Inventur Ist</td><td class="feld rechnet"><input id="abrInventurIst" readonly></td></tr>
-          <tr><td class="lab fett">Differenz</td><td class="feld rechnet"><input id="abrDiffWare" readonly></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU1" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU2" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU3" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU4" inputmode="decimal"></td></tr>
-          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU5" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Bestandserhöhung</td><td class="feld"><input id="abrBestandErhoehung" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Bestandsverminderung</td><td class="feld"><input id="abrBestandVerminderung" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Entlastung Sonstiges</td><td class="feld"><input id="abrEntlastung" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeO1" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeO2" inputmode="decimal"></td></tr>
+          <tr><td class="lab fett">Inventur Soll</td><td class="feld"><input id="abrInventurSoll" readonly></td></tr>
+          <tr><td class="lab fett">Inventur Ist</td><td class="feld"><input id="abrInventurIst" readonly></td></tr>
+          <tr><td class="lab fett">Differenz</td><td class="feld"><input id="abrDiffWare" readonly></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU1" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU2" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU3" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU4" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU5" inputmode="decimal"></td></tr>
           <tr><td class="lab">- Entladeschein</td><td class="feld"><input id="abrEntladeschein" inputmode="decimal"></td></tr>
-          <tr><td class="lab fett">Endbestand IST</td><td class="feld rechnet"><input id="abrEndbestandIst" readonly></td></tr>
+          <tr><td class="lab fett">Endbestand IST</td><td class="feld"><input id="abrEndbestandIst" readonly></td></tr>
         </table>
       </div>
     </div>
@@ -7342,7 +7367,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-7"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-8"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
