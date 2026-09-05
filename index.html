@@ -726,6 +726,10 @@
      Kein Gelb, keine grauen Rechenfelder: Der Vordruck ist durchgehend
      weiss, nur der Stoergeld-Kasten ist farbig (Mirko, 05.09.2026:
      "ohne diese gelbe farbe die ist auch nicht im orginal"). */
+  .abr-archiv-zeile { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap;
+                      background:#fff; border-radius:8px; padding:7px 11px; margin-bottom:6px;
+                      font-size:0.88rem; box-shadow:0 1px 4px rgba(24,26,32,.08); }
+  .abr-archiv-zeile .klein { margin-left:auto; font-size:0.78rem; color:#888; }
   .abr-blatt { width:210mm; background:#fff; padding:8mm 7mm; color:#000; margin:10px auto;
                box-shadow:0 1px 6px rgba(0,0,0,.15); }
   .abr-blatt table { border-collapse:collapse; }
@@ -1002,6 +1006,25 @@
        greift auf die SEITENBREITE zu: unter 240 mm liegt Hochformat vor,
        dann wird das Blatt so weit verkleinert, dass es vollstaendig auf
        eine Seite passt. Lieber klein und komplett als zerschnitten. */
+    /* Der Verkaufsbericht steckt ebenfalls in einem .panel und wuerde beim
+       Browser-Druck sonst leer bleiben. Er ist ein Hochkant-Blatt, deshalb
+       kein Querformat, aber dieselbe Absicherung: passt er nicht auf die
+       Seite, wird er verkleinert statt zerschnitten (Mirko, 05.09.2026:
+       "muss auch auf 1 DIN A4 Seite ohne dass was abgeschnitten ist"). */
+    body.druck-abrechnung #formular-scroll,
+    body.druck-abrechnung #formular,
+    body.druck-abrechnung footer { display: none !important; }
+    body.druck-abrechnung #abrechnungPanel { display: block !important; padding: 0; border: none; }
+    body.druck-abrechnung .inv-kopfzeile,
+    body.druck-abrechnung .inv-bar,
+    body.druck-abrechnung .abr-archiv { display: none !important; }
+    body.druck-abrechnung .abr-blatt { width: auto; margin: 0; padding: 0; box-shadow: none;
+                                       transform: none; break-inside: avoid; page-break-inside: avoid; }
+    body.druck-abrechnung .abr-blatt * { break-inside: avoid; page-break-inside: avoid; }
+    @media (max-width: 205mm) {
+      body.druck-abrechnung .abr-blatt { zoom: 0.92; }
+    }
+
     @media (max-width: 239mm) {
       body.druck-inventur .inv-blatt { zoom: 0.63; }
     }
@@ -1771,8 +1794,11 @@
     <button type="button" class="ghost" onclick="abrZeigeErgebnis()">📄 PDF ansehen</button>
     <button type="button" class="ghost" onclick="abrSpeichern()">💾 PDF speichern</button>
     <button type="button" class="ghost" onclick="abrDrucken()">🖨️ Drucken</button>
+    <button type="button" class="primary" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
     <button type="button" class="ghost" onclick="abrNeu()">🗑️ Neuer Bericht</button>
   </div>
+
+  <div class="abr-archiv" id="abrArchiv"></div>
 
   <!-- Verkaufsbericht 1:1 nach dem Vordruck (Foto 05.09.2026). Ausgefuellt
        wird direkt im Blatt, daraus entsteht auch die PDF - es gibt keine
@@ -3731,6 +3757,7 @@ function invSetAnsicht(a) {
      ausloest. Auf dem Bildschirm hat sie keine Wirkung, alle Regeln dazu
      stehen in @media print. */
   document.body.classList.toggle("druck-inventur", a === "blatt");
+  document.body.classList.remove("druck-abrechnung");
   document.getElementById("invErfassenView").style.display = a === "erfassen" ? "" : "none";
   document.getElementById("invBlattView").style.display    = a === "blatt" ? "" : "none";
   document.getElementById("invKaefigView").style.display   = a === "kaefig" ? "" : "none";
@@ -4129,11 +4156,88 @@ function abrVorbelegen() {
   }
 }
 
+/* ---------- Abschliessen: speichern und neue Woche beginnen ----------
+   Mirko (05.09.2026): "wenn man alles ausgefuellt hat, das man beim
+   abrechnen auf abschicken drueckt, sie automatisch gespeichert wird und
+   mit dem abschliessen quasi eine neue inventur und abrechnung beginnt."
+
+   Ablauf: PDF erzeugen und ablegen, den Bericht ins Archiv schreiben,
+   danach Verkaufsbericht, Fahrzeug-Inventur und Ware zaehlen leeren. Der
+   "Endbestand IST" wandert als "Endbestand Vortrag" in die neue Woche -
+   damit haengt die Kette von Woche zu Woche zusammen. */
+const ABR_ARCHIV_KEY = "hall-abrechnung-archiv";
+
+function abrArchivLesen() {
+  try { return JSON.parse(localStorage.getItem(ABR_ARCHIV_KEY) || "[]") || []; } catch (e) { return []; }
+}
+function abrArchivZeigen() {
+  const el = document.getElementById("abrArchiv");
+  if (!el) return;
+  const liste = abrArchivLesen();
+  if (!liste.length) { el.innerHTML = ""; return; }
+  el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>Abgeschlossene Abrechnungen</h3>" +
+    liste.slice().reverse().map((e) =>
+      '<div class="abr-archiv-zeile"><span>' + invEsc(e.datum || "") +
+      (e.tour ? " · Tour " + invEsc(e.tour) : "") + "</span>" +
+      '<span>Endbestand ' + invFmt(e.endbestand || 0) + " €</span>" +
+      '<span class="klein">abgeschlossen ' + invStempelText(e.zeitpunkt) + "</span></div>").join("");
+}
+
+async function abrAbschliessen() {
+  const endbestand = invZahl(document.getElementById("abrEndbestandIst").value);
+  const datum = String(abrState.felder.abrDatum || "").trim();
+  const tour = String(abrState.felder.abrTour || "").trim();
+  if (!endbestand) {
+    alert("Es steht noch kein Endbestand IST im Blatt.\n\nBitte zuerst die Inventur zählen und die Ladelisten eintragen.");
+    return;
+  }
+  const frage = "Abrechnung abschließen?\n\n" +
+    "• Der Bericht wird als PDF gespeichert und ins Archiv gelegt\n" +
+    "• Endbestand IST " + invFmt(endbestand) + " € wird als Endbestand Vortrag in die neue Woche übernommen\n" +
+    "• Verkaufsbericht, Fahrzeug-Inventur und Ware zählen werden geleert\n\n" +
+    "Das lässt sich nicht rückgängig machen.";
+  if (!confirm(frage)) return;
+
+  // 1. PDF ablegen
+  const r = await abrBuildPdf();
+  if (r) r.pdf.save(r.filename);
+
+  // 2. Ins Archiv
+  const archiv = abrArchivLesen();
+  archiv.push({ datum: datum, tour: tour, endbestand: endbestand,
+                zeitpunkt: Date.now(), felder: abrState.felder, sig: abrState.sig });
+  try { localStorage.setItem(ABR_ARCHIV_KEY, JSON.stringify(archiv.slice(-24))); } catch (e) {}
+
+  // 3. Alles leeren, Endbestand als Vortrag uebernehmen
+  abrState = { felder: {}, sig: {} };
+  ABR_EINGABEN.forEach((id) => abrSetz(id, ""));
+  abrVorbelegen();
+  abrState.felder.abrEndbestandVortrag = invFmt(endbestand);
+  abrSetz("abrEndbestandVortrag", invFmt(endbestand));
+  abrSichern();
+
+  invState = { kopf: {}, felder: {}, soll: "", fuss: {}, sicht: {} };
+  invSichern();
+  invAufgebaut = false;
+  kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
+  kaeSichern();
+
+  abrStempelZeigen();
+  abrRechne();
+  abrArchivZeigen();
+  alert("Abgeschlossen.\n\nDie neue Woche beginnt mit Endbestand Vortrag " +
+        invFmt(endbestand) + " €.");
+}
+
 let abrAufgebaut = false;
 function toggleAbrechnungPanel() {
   const offen = zeigeAnsicht("abrechnungPanel");
+  /* Wie beim Inventurblatt: Ohne diese Klasse blendet die allgemeine
+     Druckregel das Panel aus und der Browser druckt leere Seiten. */
+  document.body.classList.toggle("druck-abrechnung", offen);
   if (!offen) return;
   if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
+  abrArchivZeigen();
   abrRechne();
 }
 
@@ -7497,7 +7601,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-17"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-18"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
