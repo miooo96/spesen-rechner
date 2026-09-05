@@ -229,12 +229,21 @@
     body.als-app.pdf-export #formular-scroll { display: block; }
     body.als-app #handyBlatt { display: block; }
 
-    /* "Als App einrichten" IN der App ist sinnlos - sie ist ja schon
-       eingerichtet. Der Platz gehoert dem Knopf "Zeiten fuer alle Tage",
-       der am Handy der erste Handgriff im Monat ist. Auf der Webseite
-       bleibt der Knopf natuerlich stehen, dort soll er ja gefunden werden.
-       "!important", weil "⋯ Mehr" (body.mehr-offen) sonst wieder einblendet. */
-    body.als-app .nur-webseite { display: none !important; }
+    /* Hier stand bis zum 05.09.2026:
+           body.als-app .nur-webseite { display: none !important; }
+       Sie blendete "Als App einrichten" in der installierten App aus, mit
+       der Begruendung, dort sei nichts mehr einzurichten.
+
+       Ersatzlos entfernt, weil die Begruendung nur den eigenen Gebrauch
+       bedachte: Mirko richtet die App bei Kollegen ein und braucht die
+       Anleitung dafuer auf SEINEM Geraet - dort laeuft sie laengst als
+       App, also war sie genau dann verschwunden, wenn er sie brauchte.
+       Der Knopf bleibt jetzt ueberall stehen und heisst in der App
+       "Auf weiterem Geraet einrichten" (aktualisiereInstallBeschriftung()).
+
+       Die Klasse selbst ist damit unbenutzt und deshalb ebenfalls weg -
+       eine Regel, die nichts mehr trifft, wird beim naechsten Mal falsch
+       verstanden. */
   }
   button, .btn {
     padding: 9px 16px; border: 1px solid transparent; background: #f1f3f6;
@@ -1763,19 +1772,32 @@
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+    <!-- "Als App einrichten" steht seit 05.09.2026 HIER, im ersten Grid,
+         statt weiter unten im zweiten (Mirko: "zur app hinzufuegen ist
+         irgendwie weggefallen oder? ich finde den schritt nicht mehr").
+
+         Es war nie weg - der Umbau auf einspaltige Zeilen (Entwurf B) hat
+         die Seite hoeher gemacht, dadurch begann die Kachel bei y=839 px
+         und das Sichtfenster endete bei 852 px. Auf dem iPhone frisst die
+         Safari-Leiste weitere ~90 px, dort war sie ganz unsichtbar. Eine
+         Anleitung, die man erst durch Scrollen findet, findet man nicht.
+
+         Bleibt technisch ein Modal (kein zeigeTab(), keine Tab-
+         Hervorhebung). "nur-webseite" ist bewusst ENTFERNT: In der
+         installierten App war die Kachel vorher ausgeblendet ("dort ist
+         nichts mehr einzurichten") - das stimmt nur, solange man sie fuer
+         sich selbst braucht. Mirko zeigt sie Kollegen auf deren Geraeten,
+         und dafuer muss er sie in seiner eigenen App oeffnen koennen. Die
+         Beschriftung wechselt dann zu "Auf weiterem Geraet einrichten",
+         siehe aktualisiereInstallBeschriftung(). -->
+    <button type="button" class="kachel-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
   </div>
-  <!-- "Als App einrichten" und "Mehr" bewusst als eigenes, zweites
-       kachel-grid, IMMER als Paar nebeneinander (Live-Feedback Mirko,
-       28.08.2026 - ersetzt die Task-10-Entscheidung, Install allein in
-       einer eigenen Zeile zu lassen). "Als App einrichten" bleibt
-       technisch ein Modal (kein zeigeTab()-Aufruf, keine Tab-
-       Hervorhebung, "nur-webseite" unveraendert - in der installierten
-       App sinnlos). "Mehr" ist dagegen ein echtes Panel wie im ersten
-       Grid, nur hier positioniert, damit es nie allein in einer Zeile
-       landet, wenn die Anzahl der Kacheln im ersten Grid (je nach
-       Zeit-Tab-Sichtbarkeit, Task 8) mal gerade, mal ungerade ist. -->
+  <!-- "Mehr" steht allein in einem eigenen Grid. Als einziges Element ist
+       die Anzahl IMMER 1 (ungerade) - aktualisiereKachelGridLayout() gibt
+       ihm dadurch ohne Sonderfall volle Breite. Vorher war es mit "Als App
+       einrichten" gepaart (28.08.2026); dieses Paar ist mit dem Umzug der
+       Install-Kachel nach oben aufgeloest. -->
   <div class="kachel-grid">
-    <button type="button" class="kachel-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
   </div>
   <!-- "Anleitung" bewusst als eigenes, drittes kachel-grid mit nur einer
@@ -1802,7 +1824,10 @@
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
   <button type="button" class="tab-btn" data-tab="jahr" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
   <button type="button" class="tab-btn" data-tab="anleitung" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
-  <button type="button" class="tab-btn nur-webseite" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  <!-- Ebenfalls ohne "nur-webseite" (05.09.2026) - damit die Anleitung an
+       beiden Stellen erreichbar bleibt, auch aus der installierten App
+       heraus. Begruendung siehe Kachel weiter oben. -->
+  <button type="button" class="tab-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
   <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
 </nav>
 
@@ -2756,6 +2781,11 @@ const I18N = {
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Als App einrichten",
+    /* Zweite Beschriftung fuer denselben Knopf, sichtbar NUR in der
+       installierten App. "Als App einrichten" waere dort falsch - sie
+       laeuft ja bereits als App. Gemeint ist das Einrichten auf einem
+       weiteren Geraet, etwa beim Kollegen. */
+    btnInstallApp: "📱 Auf weiterem Gerät einrichten",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
@@ -2792,6 +2822,7 @@ const I18N = {
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Install as app",
+    btnInstallApp: "📱 Set up on another device",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
@@ -2812,6 +2843,27 @@ function applyI18n() {
   document.title = t("pageTitle");
   const langSel = document.getElementById("langSwitch");
   if (langSel) langSel.value = currentLang;
+  aktualisiereInstallBeschriftung();
+}
+/* Der Install-Knopf traegt zwei Beschriftungen, je nachdem WO er steht:
+
+     im Browser          -> "Als App einrichten"
+     in der App          -> "Auf weiterem Geraet einrichten"
+
+   Bis zum 05.09.2026 war der Knopf in der installierten App ausgeblendet
+   (.nur-webseite). Das war folgerichtig gedacht - "dort ist nichts mehr
+   einzurichten" -, uebersah aber den haeufigeren Fall: Mirko richtet die
+   App bei Kollegen ein und braucht die Anleitung dafuer auf SEINEM Geraet,
+   auf dem sie laengst installiert ist.
+
+   Muss am Ende von applyI18n() stehen und nicht daneben: Die Schleife
+   darueber setzt textContent aus data-i18n und wuerde eine vorher
+   gesetzte Beschriftung bei jedem Sprachwechsel wieder ueberschreiben. */
+function aktualisiereInstallBeschriftung() {
+  const alsApp = document.body.classList.contains("als-app");
+  document.querySelectorAll('[data-i18n="btnInstall"]').forEach((el) => {
+    el.textContent = alsApp ? t("btnInstallApp") : t("btnInstall");
+  });
 }
 /* Startbildschirm: zeigt den echten aktuellen Kalendermonat (nicht den in
    der App gerade ausgewaehlten Abrechnungsmonat) und eine personalisierte
@@ -3681,10 +3733,20 @@ function setzeAppKennung() {
              || window.navigator.standalone === true;
   } catch (e) { alsApp = false; }
   document.body.classList.toggle("als-app", !!alsApp);
-  // Bugfix (finale Whole-Branch-Review, Befund 6): body.als-app blendet
-  // "Als App einrichten" per CSS aus (.nur-webseite) - siehe
-  // aktualisiereKachelGridLayout() weiter oben, warum das die verbleibende
-  // "Mehr"-Kachel sonst allein in der Zeile stehen laesst.
+  /* Die Beschriftung des Install-Knopfes haengt an genau dieser Klasse und
+     MUSS hier mitgesetzt werden: Beim Start laeuft applyI18n() (Zeile
+     ~8863) VOR setzeAppKennung() - zu diesem Zeitpunkt weiss die App noch
+     nicht, ob sie im Browser oder als App laeuft, und wuerde in der
+     installierten App faelschlich "Als App einrichten" anzeigen.
+     Zweiter Grund: Der Zustand kann sich im Betrieb aendern (siehe
+     matchMedia-Zuhoerer weiter unten); dann muss die Beschriftung mit. */
+  if (typeof aktualisiereInstallBeschriftung === "function") aktualisiereInstallBeschriftung();
+  /* Frueher blendete body.als-app den Install-Knopf per .nur-webseite ganz
+     aus; dann konnte die verbleibende "Mehr"-Kachel allein in der Zeile
+     stehen, weshalb hier neu umbrochen wurde. Seit dem 05.09.2026 bleibt
+     der Knopf sichtbar (Mirko richtet die App bei Kollegen ein). Der
+     Aufruf bleibt trotzdem: Zeit-, Inventur- und Abrechnungs-Kachel
+     koennen weiterhin fehlen, und dann stimmt die Aufteilung sonst nicht. */
   if (typeof aktualisiereKachelGridLayout === "function") aktualisiereKachelGridLayout();
   return alsApp;
 }
@@ -8878,7 +8940,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-39"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-40"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
