@@ -2851,6 +2851,12 @@ function zeigeTab(tab) {
 
   markiereTab(tab);
   heuteMerkeBereich(tab);
+  /* Druckklassen am Bereichswechsel setzen, nicht in den toggle*-Funktionen:
+     die laufen nur, wenn das Panel vorher zu war. Stand es schon offen,
+     fehlte die Klasse - und der Browser druckte leere Seiten
+     (gefunden beim Durchlauf am 05.09.2026). */
+  document.body.classList.toggle("druck-abrechnung", tab === "abrechnung");
+  if (tab !== "inventur") document.body.classList.remove("druck-inventur");
   // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
   // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
   // innerhalb des Tabs.
@@ -4232,8 +4238,6 @@ async function abrAbschliessen() {
 let abrAufgebaut = false;
 function toggleAbrechnungPanel() {
   const offen = zeigeAnsicht("abrechnungPanel");
-  /* Wie beim Inventurblatt: Ohne diese Klasse blendet die allgemeine
-     Druckregel das Panel aus und der Browser druckt leere Seiten. */
   document.body.classList.toggle("druck-abrechnung", offen);
   if (!offen) return;
   if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
@@ -7601,7 +7605,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-18"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-19"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
