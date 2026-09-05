@@ -1023,7 +1023,7 @@
     <span id="toolbarKontextInventur" style="display:none;">
       <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
       <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Blatt</button>
-      <button type="button" class="ghost" id="invBtnKaefig" onclick="invSetAnsicht('kaefig')" data-i18n="invKaefig">📦 Käfig zählen</button>
+      <button type="button" class="ghost" id="invBtnKaefig" onclick="invSetAnsicht('kaefig')" data-i18n="invKaefig">📦 Ware zählen</button>
       <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
     </span>
   </div>
@@ -1836,7 +1836,7 @@ const I18N = {
     invPdfAnsehen: "👁️ PDF ansehen",
     invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
     invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
-    invKaefig: "📦 Käfig zählen",
+    invKaefig: "📦 Ware zählen",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
@@ -1871,7 +1871,7 @@ const I18N = {
     invPdfAnsehen: "👁️ View PDF",
     invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
     invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
-    invKaefig: "📦 Count cage",
+    invKaefig: "📦 Count goods",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
@@ -2970,7 +2970,10 @@ function invRenderMobil() {
     ? "Alle " + INV_FOLGE.length + " Zeilen des Blattes sind angelegt."
     : "Zeile " + n + " von " + INV_FOLGE.length + " · neue kommen von selbst dazu";
 }
-/* ===================== Käfig zählen =====================
+/* ===================== Ware zählen (frueher "Käfig zählen") =====================
+   Umbenannt am 05.09.2026 auf Mirkos Wunsch. Die internen Namen (kae*,
+   KAE_KEY, invKaefigView) bleiben absichtlich stehen: an ihnen haengen die
+   bereits gespeicherten Zaehlungen auf den Geraeten.
    Eigener Vorgang, eigener Speicher: die neu bestellte Ware im Käfig
    zählen und gegen den Endbetrag auf dem Lieferschein halten.
 
@@ -3026,7 +3029,7 @@ function kaeRechne() {
   // Kopfzeile mitziehen, solange der Käfig offen ist
   const st = document.getElementById("invStatus");
   if (st && getComputedStyle(document.getElementById("invKaefigView")).display !== "none") {
-    st.textContent = "Käfig: " + stk(gezaehlt);
+    st.textContent = "Ware: " + stk(gezaehlt);
   }
   const lsText = String(kaeState.lieferschein || "").trim();
   const urteil = document.getElementById("kaeUrteil");
@@ -3056,7 +3059,7 @@ function kaeRechne() {
 }
 
 function kaeNeu() {
-  if (!confirm("Neue Käfig-Zählung beginnen?\n\nAlle gezählten Stangen und die Lieferschein-Angabe werden gelöscht.")) return;
+  if (!confirm("Neue Zählung beginnen?\n\nAlle gezählten Stangen und die Lieferschein-Angabe werden gelöscht.")) return;
   kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
   kaeSichern();
   document.getElementById("kaeLieferschein").value = "";
@@ -3151,7 +3154,7 @@ function invSetAnsicht(a) {
      das die falsche Zahl und stiftet Verwirrung. */
   const status = document.getElementById("invStatus");
   if (status) status.textContent = a === "kaefig"
-    ? "Käfig: " + invFmt(kaeGesamt()) + " €"
+    ? "Ware: " + invFmt(kaeGesamt()) + " €"
     : "Istbestand " + invFmt(invIstbestand()) + " €";
 }
 
