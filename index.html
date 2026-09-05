@@ -710,6 +710,24 @@
   #splashScreen.nacht .splash-greeting,
   #splashScreen.nacht .splash-month { text-shadow: 0 2px 8px rgba(0,0,0,.8); }
 
+  /* Der "Weiter"-Knopf. Nur im Nachtbild-Auftritt sichtbar - sonst
+     verschwindet der Splash ohnehin von selbst. Als Leuchtroehre
+     gestaltet, damit er zum Rest passt, und mit 52 px Hoehe gross genug
+     fuer den Daumen. */
+  .splash-weiter { display: none; }
+  #splashScreen.nacht .splash-weiter {
+    display: block; position: relative; z-index: 6;
+    margin: 22px auto 0; padding: .85rem 2.6rem; min-height: 52px;
+    font: 800 1.05rem 'Montserrat', sans-serif; cursor: pointer;
+    color: #fff3e0; background: rgba(38,18,4,.5);
+    border: 2px solid #ffb35c; border-radius: 999px;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    text-shadow: 0 0 10px #de7008;
+    box-shadow: 0 0 18px rgba(222,112,8,.55), inset 0 0 14px rgba(222,112,8,.35);
+    animation: nachtAufladen 5s ease-in infinite;
+  }
+  #splashScreen.nacht .splash-weiter:active { transform: scale(.97); }
+
   /* ---- Kachel-Startseite im Nachtbild-Auftritt ----
      Hier bewusst KEIN Foto: die Startseite sieht man bei jedem Oeffnen
      und bei jedem Ruecksprung. Ein Foto mit Text darueber wird auf Dauer
@@ -1410,6 +1428,12 @@
     <div class="splash-greeting" id="splashGreeting"></div>
     <div class="splash-month" id="splashMonth"></div>
   </div>
+  <!-- "Weiter"-Knopf: nur im Nachtbild-Auftritt sichtbar. Dort bleibt der
+       Splash stehen, bis man ihn antippt (Mirko, 05.09.2026) - fuer
+       Kollegen blendet er sich unveraendert nach 1,5 s selbst aus, dann
+       waere ein Knopf sinnlos. -->
+  <button type="button" id="splashWeiter" class="splash-weiter" onclick="splashSchliessen()"
+          data-i18n="splashContinue">Weiter →</button>
   <div class="splash-credit">built for Hall Tabakwaren by Mirko Rieb</div>
 </div>
 
@@ -2607,14 +2631,33 @@ function initSplash() {
        Vorlauf saehe man ihn immer im dunkelsten Viertel. Mit -2,8 s
        startet er bei rund zwei Dritteln und wird waehrend der ganzen
        Standzeit heller - man sieht also genau den Teil, um den es geht. */
-    splashEl.querySelectorAll(".nacht-kern,.nacht-nah,.nacht-weit,.nacht-raum,.splash-jahr")
+    splashEl.querySelectorAll(".nacht-kern,.nacht-nah,.nacht-weit,.nacht-raum,.splash-jahr,.splash-weiter")
       .forEach((el) => { el.style.animationDelay = "-2.8s"; });
   }
+
+  /* Wie der Splash endet, haengt daran, wer davorsitzt:
+
+     Mirko (Nachtbild-Auftritt): Der Bildschirm BLEIBT stehen, bis er
+     "Weiter" antippt. Ausdruecklich so gewaehlt (05.09.2026, Variante E
+     aus fuenf vorgelegten) - er wollte das Startbild sehen koennen statt
+     es nach 1,5 s zu verlieren. Der Preis ist ein zusaetzlicher Tipp bei
+     jedem Oeffnen; das war ihm bekannt.
+
+     Kollegen: unveraendert, der Splash blendet sich nach 1,5 Sekunden
+     selbst aus. Fuer sie aendert sich nichts. */
+  if (splashEl && istMirko()) return;
 
   setTimeout(function () {
     const el = document.getElementById("splashScreen");
     if (el) el.style.display = "none";
   }, 1500);
+}
+
+/* Splash schliessen und auf der Kachel-Startseite landen. */
+function splashSchliessen() {
+  const el = document.getElementById("splashScreen");
+  if (el) el.style.display = "none";
+  zeigeKachelStartseite();
 }
 function setLang(lang) {
   currentLang = lang;
@@ -8525,7 +8568,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-28"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-29"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
