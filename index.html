@@ -760,6 +760,11 @@
   .nacht-flocken { overflow: hidden; }
   .nacht-asche {
     position: absolute; top: -8%;
+    /* Fallweg in vh statt in Pixeln: Dreht jemand das Handy oder zieht am
+       Rechner das Fenster groesser, stimmt die Strecke weiter. Mit einem
+       festen Pixelwert waere sie danach zu kurz oder zu lang, weil die
+       Flocken nur einmal beim Oeffnen gebaut werden. */
+    --weg: 120vh;
     animation-name: nachtFallen; animation-timing-function: linear;
     animation-iteration-count: infinite; will-change: transform;
   }
@@ -791,12 +796,23 @@
   /* "top: 0" und der Verlauf mit dem Brennpunkt bei 50% 0%: Der hellste
      Punkt liegt genau auf der Bildkante und faellt nach unten ab - das
      liest sich wie eine Quelle knapp ausserhalb, ohne dass etwas ueber
-     den Rand ragen und geschnitten werden muss. */
+     den Rand ragen und geschnitten werden muss.
+
+     UEBER DIE GANZE BREITE (Mirko, 05.09.2026: "das sollte sich auch
+     denke ich ueber den ganzen bildschirm verteilen"). Vorher war es ein
+     Punkt bei 58 % - am Handy faellt das kaum auf, auf einem breiten
+     Bildschirm rieselte die Asche sichtbar in einer einzigen Spalte.
+     Jetzt ein breiter, weicher Schein ueber die volle Breite: in der
+     Mitte am waermsten, zu den Seiten auslaufend. Das liest sich als
+     "die Luft oben ist warm" statt als Punktquelle - und die Asche darf
+     ueberall herunterkommen. */
   .nacht-quelle {
-    position: absolute; top: 0; left: 58%; transform: translateX(-50%);
-    width: 30%; min-width: 92px; max-width: 150px; height: 62px;
-    background: radial-gradient(ellipse at 50% 0%, rgba(255,146,44,.5), transparent 68%);
-    filter: blur(11px); pointer-events: none;
+    position: absolute; top: 0; left: 0; right: 0; height: 90px;
+    /* Ellipse 140 % breit: der Verlauf laeuft erst weit ausserhalb des
+       Bildes aus, dadurch bleibt der Schein bis an beide Raender warm
+       statt in der Mitte zu sitzen. */
+    background: radial-gradient(140% 100% at 50% 0%, rgba(255,146,44,.42), transparent 72%);
+    filter: blur(13px); pointer-events: none;
     animation: nachtQuelle var(--zug, 12.7s) ease-in-out infinite;
   }
   @keyframes nachtQuelle {
@@ -3743,6 +3759,26 @@ function nachtFlocke(glueht, dauer, groesse) {
    faellt die Asche ueberall so, wie Mirko sie beurteilt hat. */
 function nachtFallweg() { return (window.innerHeight || 800) * 1.2; }
 
+/* Wie viele Flocken auf DIESEN Bildschirm gehoeren.
+
+   Mirko hat die Menge 15 in einem Vorschau-Rahmen von 300 x 560 px
+   ausgewaehlt - das sind 168.000 Bildpunkte. Ein Handy hat mit
+   393 x 852 rund 335.000, ein Rechnerbildschirm ueber 1,3 Millionen.
+   Eine feste Zahl ergibt dort also ganz unterschiedliche Dichten: auf
+   dem Handy die Haelfte, am Rechner ein Achtel dessen, was er gesehen
+   hat. Genau das war seine Rueckmeldung ("fuer das webseiten
+   hauptbildschirm ist das zu wenig asche").
+
+   Deshalb ist nicht die ANZAHL fest, sondern die DICHTE. Nach oben
+   gedeckelt, damit ein grosser Bildschirm nicht mehrere hundert
+   Elemente gleichzeitig bewegen muss. */
+const ASCHE_BEZUGSFLAECHE = 300 * 560;
+function nachtAscheAnzahl(grundmenge) {
+  const flaeche = (window.innerWidth || 393) * (window.innerHeight || 852);
+  const gewuenscht = Math.round(grundmenge * flaeche / ASCHE_BEZUGSFLAECHE);
+  return Math.max(grundmenge, Math.min(80, gewuenscht));
+}
+
 /* Ein Schub: der Schwung Asche, der sich am oberen Rand loest. */
 function nachtSchub(behaelter) {
   /* Nichts bauen, solange der Behaelter nicht sichtbar ist - sonst laeuft
@@ -3766,26 +3802,33 @@ function nachtSchub(behaelter) {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   } catch (e) {}
   const weg = nachtFallweg();
-  const anzahl = 9 + Math.floor(Math.random() * 6);
+  /* Ein Schub waechst mit der Breite mit - auf einem breiten Bildschirm
+     waeren 9 bis 14 Flocken ueber 1.500 px ein Rinnsal. Gedeckelt, damit
+     ein sehr breites Fenster nicht hundert Flocken auf einmal loest. */
+  const breitenfaktor = Math.min(2.5, Math.max(1, (window.innerWidth || 393) / 300));
+  const anzahl = Math.round((9 + Math.random() * 6) * breitenfaktor);
+
   const quelle = behaelter.querySelector(".nacht-quelle");
-  // Ursprung messen statt schaetzen - die Quelle sitzt in Prozent
-  let mitte = 58, oben = 6;
+  let oben = 6;
   if (quelle) {
     const q = quelle.getBoundingClientRect(), b = behaelter.getBoundingClientRect();
-    if (b.width) mitte = ((q.left + q.width / 2) - b.left) / b.width * 100;
     oben = Math.max(0, q.top - b.top + 6);
   }
 
   for (let i = 0; i < anzahl; i++) {
     const dauer = (26 - ASCHE_TEMPO) * (0.45 + Math.random() * 0.55) * (weg / 660);
     const fall = nachtFlocke(Math.random() < 0.45, dauer, ASCHE_GROESSE * 0.85);
-    fall.style.setProperty("--weg", weg.toFixed(0) + "px");
-    fall.style.left = Math.max(0, Math.min(100, mitte + (Math.random() * 16 - 8))) + "%";
+    /* Ueber die GANZE Breite statt um einen Punkt herum. Vorher lag der
+       Ursprung bei 58 % mit +/- 8 % Streuung - am Handy unauffaellig, auf
+       einem breiten Bildschirm eine sichtbare Spalte in der Mitte. */
+    fall.style.left = (Math.random() * 100).toFixed(1) + "%";
     fall.style.top  = oben.toFixed(0) + "px";
-    fall.style.animationDelay = (Math.random() * 0.55).toFixed(2) + "s";
+    /* Nicht alle gleichzeitig loesen: bis 1,4 s Versatz, sonst faellt der
+       Schub als geschlossene Front und sieht nach Vorhang aus. */
+    fall.style.animationDelay = (Math.random() * 1.4).toFixed(2) + "s";
     behaelter.appendChild(fall);
     // Aufraeumen, sonst waechst der Behaelter bei jedem Schub weiter
-    setTimeout(() => fall.remove(), (dauer + 1.5) * 1000);
+    setTimeout(() => fall.remove(), (dauer + 2.5) * 1000);
   }
 }
 
@@ -3808,12 +3851,11 @@ function nachtAscheBauen(behaelter, anzahl) {
   /* Dauerschleier: bewusst duenn (ein Drittel), den Rest liefern die
      Schuebe. Steht beides auf voller Menge, verschwindet der Rhythmus im
      Dauerregen - dann sieht es aus wie Fassung A. */
-  const schleier = Math.max(3, Math.round(anzahl / 3));
+  const schleier = Math.max(3, Math.round(nachtAscheAnzahl(anzahl) / 3));
   for (let i = 0; i < schleier; i++) {
     const dauer = (26 - ASCHE_TEMPO) * (0.65 + Math.random() * 0.8) * (weg / 660);
     const fall = nachtFlocke(Math.random() < 0.2, dauer, ASCHE_GROESSE);
-    fall.style.setProperty("--weg", weg.toFixed(0) + "px");
-    fall.style.left = (Math.random() * 100) + "%";
+    fall.style.left = (Math.random() * 100).toFixed(1) + "%";
     // Negativer Start: die Flocken sind schon unterwegs, statt gemeinsam loszulaufen
     fall.style.animationDelay = (-Math.random() * dauer).toFixed(1) + "s";
     behaelter.appendChild(fall);
@@ -9193,7 +9235,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-42"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-43"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
