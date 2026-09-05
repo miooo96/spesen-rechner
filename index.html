@@ -603,6 +603,171 @@
     font-size: 0.7rem; color: #fff; opacity: .55; letter-spacing: .3px;
   }
 
+  /* ===================== Nachtbild-Auftritt =====================
+     Entstanden am 05.09.2026 aus Mirkos Wunsch nach einem Hintergrund
+     "der mit Hall zu tun hat". Vorbild ist der Kopfbereich von
+     halltabakwaren.de: das historische Nachtfoto des Ladens mit seinen
+     Leuchtreklamen.
+
+     Vorerst NUR fuer Mirko (istMirko). Kollegen sehen unveraendert die
+     helle Oberflaeche. Zwei Schalter:
+       #splashScreen.nacht  - das Startbild beim Oeffnen
+       body.nacht-start     - die Kachel-Startseite
+
+     Bewegt werden ausschliesslich transform und opacity. Das laeuft auf
+     der Grafikeinheit, kostet praktisch keinen Akku und zwingt den
+     Browser zu keinem neuen Seitenaufbau.
+
+     Einstellungen von Mirko (05.09.2026): Leucht-Art "Aufladen",
+     Neon-Staerke 7 von 10 (= 0.79), Rauch 0 - deshalb ist der Rauch
+     hier gar nicht erst eingebaut. */
+  :root { --neon: .79; }
+
+  .nacht-lage { position: absolute; inset: 0; pointer-events: none; }
+
+  /* Das Foto, sehr langsam heranzoomend */
+  .nacht-foto {
+    background: url("hall-nachtbild.jpg") 50% 42%/cover no-repeat;
+    animation: nachtZoom 54s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  @keyframes nachtZoom { from { transform: scale(1.04); } to { transform: scale(1.17); } }
+
+  /* Die Leuchtreklame: VIER Lagen derselben Maske, mit "screen"
+     uebereinandergelegt. Dadurch addiert sich ihre Helligkeit - weiss-
+     heisser Kern, farbiger Schein aussen. Genau so verhaelt sich eine
+     echte Leuchtroehre; eine einzelne Lage schafft das nicht, egal wie
+     hell man sie stellt. */
+  .nacht-kern, .nacht-nah, .nacht-weit, .nacht-raum {
+    background: url("hall-nachtbild-neon.png") 50% 42%/cover no-repeat;
+    mix-blend-mode: screen; will-change: opacity;
+    animation: nachtZoom 54s ease-in-out infinite alternate,
+               nachtAufladen 5s ease-in infinite;
+  }
+  .nacht-kern { filter: brightness(1.85) saturate(.55); }
+  .nacht-nah  { filter: blur(5px)  brightness(1.70) saturate(1.5); }
+  .nacht-weit { filter: blur(20px) brightness(1.50) saturate(2.2); }
+  .nacht-raum { filter: blur(55px) brightness(1.35) saturate(2.4); }
+
+  /* "Aufladen": wird stetig heller, stockt kurz beim Anlaufen, leuchtet
+     voll auf und faengt von vorne an (Mirkos Wunsch: "immer etwas heller
+     wird und dann wieder von vorne aufleuchtet"). */
+  @keyframes nachtAufladen {
+    0%   { opacity: calc(.12 * var(--neon)); }
+    8%   { opacity: calc(.30 * var(--neon)); }
+    10%  { opacity: calc(.16 * var(--neon)); }
+    45%  { opacity: calc(.62 * var(--neon)); }
+    85%  { opacity: var(--neon); }
+    92%  { opacity: var(--neon); }
+    100% { opacity: calc(.12 * var(--neon)); }
+  }
+
+  /* Glut am unteren Rand + aufsteigende Funken */
+  .nacht-glut {
+    background: radial-gradient(ellipse at 50% 108%, rgba(222,112,8,.75), transparent 62%);
+    filter: blur(20px); animation: nachtGlimmen 8s ease-in-out infinite;
+  }
+  @keyframes nachtGlimmen { 0%,100% { opacity:.6 } 50% { opacity:1 } }
+  .nacht-funke {
+    position: absolute; bottom: -4%; border-radius: 50%;
+    background: radial-gradient(circle, #ffe0ae, rgba(222,112,8,.25) 55%, transparent 70%);
+    will-change: transform, opacity;
+  }
+  @keyframes nachtSteigen {
+    0%   { transform: translate(0,0) scale(.6); opacity: 0; }
+    10%  { opacity: 1; }
+    100% { transform: translate(var(--drift), calc(-1 * var(--weg))) scale(1.2); opacity: 0; }
+  }
+
+  /* ---- Splash im Nachtbild-Auftritt ---- */
+  /* Der Text rutscht nach unten: mittig saesse er genau auf dem
+     Hall-Signet, und beides waere schlechter zu lesen. Unten liegt
+     ohnehin der dunkelste Teil des Schleiers. */
+  #splashScreen.nacht { background: #140800; justify-content: flex-end; padding-bottom: 58px; }
+  #splashScreen.nacht > img { display: none; }   /* die Reklame IM Foto ist das Logo */
+  #splashScreen.nacht .nacht-schleier {
+    background: linear-gradient(180deg, rgba(20,8,0,.55) 0%, rgba(20,8,0,.10) 32%,
+                rgba(20,8,0,.55) 68%, rgba(20,8,0,.92) 100%);
+  }
+  /* Nur der Textblock und die Fusszeile nach vorn - NICHT die Bildebenen.
+     Ohne das :not() traf diese Regel auch die .nacht-lage-Ebenen, setzte
+     sie auf position:relative und damit auf 0 x 0. Der Splash war
+     stockdunkel, obwohl alle Dateien geladen waren. */
+  #splashScreen.nacht > div:not(.nacht-lage):not(.splash-credit) { position: relative; z-index: 5; }
+  /* Die Fusszeile bleibt absolut am unteren Rand - nur nach vorn holen. */
+  #splashScreen.nacht .splash-credit { z-index: 5; }
+  #splashScreen.nacht h2 { text-shadow: 0 2px 12px rgba(0,0,0,.85); }
+  /* "seit 1903" leuchtet in denselben Farben wie die Reklame und macht
+     die Leucht-Art mit (Mirko: "das soll auch mit dem rest des bildes
+     neon farbend mit machen"). Die Begruessung bleibt bewusst ruhig -
+     ausdruecklich so gewuenscht. */
+  #splashScreen.nacht .splash-jahr {
+    color: #fff3e0;
+    text-shadow: 0 0 4px #fff2dc, 0 0 12px #ffa53a, 0 0 28px #de7008,
+                 0 0 60px #de7008, 0 2px 10px rgba(0,0,0,.75);
+    animation: nachtAufladen 5s ease-in infinite;
+  }
+  #splashScreen.nacht .splash-greeting,
+  #splashScreen.nacht .splash-month { text-shadow: 0 2px 8px rgba(0,0,0,.8); }
+
+  /* ---- Kachel-Startseite im Nachtbild-Auftritt ----
+     Hier bewusst KEIN Foto: die Startseite sieht man bei jedem Oeffnen
+     und bei jedem Ruecksprung. Ein Foto mit Text darueber wird auf Dauer
+     unruhig. Stattdessen dunkle Nacht, Glut, Funken - und das Logo als
+     weisse Leuchtroehre ueber den Kacheln. */
+  body.nacht-start { background: #150900; }
+  #nachtStartHg {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 118%, #3d1d05, #150900 72%);
+  }
+  body.nacht-start h1 { color: #f7e6cf; }
+  body.nacht-start .footer-hinweis, body.nacht-start footer { color: #c9b49c; }
+
+  /* Das Logo als Leuchtroehre, ueber den Kacheln (Mirko, 05.09.2026:
+     "koennte man es auch ueber die kacheln setzen und die kacheln
+     drunter bauen" - und: "weisse neon silouette nehmen wir ebenfalls
+     statt das orginal logo"). Das Logo dient nur als Schablone fuer eine
+     leuchtende Flaeche; der Schein liegt auf dem AEUSSEREN Element, weil
+     filter vor mask angewendet wird. */
+  #nachtStartLogo { display: none; }
+  body.nacht-start #nachtStartLogo {
+    display: flex; justify-content: center; margin: 4px 0 20px;
+  }
+  #nachtStartLogo span {
+    display: block; width: 62%; max-width: 230px; padding-bottom: 42.6%;  /* 300x206 */
+    background: #fff3e0;
+    -webkit-mask: url("hall-logo-original.png") center/contain no-repeat;
+            mask: url("hall-logo-original.png") center/contain no-repeat;
+  }
+  #nachtStartLogo {
+    filter: drop-shadow(0 0 4px #fff2dc) drop-shadow(0 0 14px #ffa53a)
+            drop-shadow(0 0 34px #de7008) drop-shadow(0 0 70px #de7008);
+    animation: nachtAufladen 5s ease-in infinite;
+  }
+
+  /* Kacheln auf dunklem Grund: kein Weiss mehr (Mirko: "so weiss ist
+     doof"), sondern dunkles, leicht durchscheinendes Glas mit warmem
+     Rand - das Nachtgefuehl bleibt, die Schrift bleibt lesbar. */
+  body.nacht-start .kachel-btn {
+    background: rgba(38,18,4,.58);
+    border: 1px solid rgba(222,112,8,.40);
+    color: #f7e6cf;
+    box-shadow: 0 2px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,200,140,.14);
+    -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  }
+  body.nacht-start .heute-tag, body.nacht-start .heute-datum { color: #e8d5bd; }
+  body.nacht-start .heute-chip { background: rgba(38,18,4,.6); color: #f7e6cf;
+                                 border: 1px solid rgba(222,112,8,.35); }
+
+  /* Wer am Geraet "Bewegung reduzieren" eingeschaltet hat, bekommt ein
+     ruhiges Standbild statt der Animation - gehoert zu jeder Animation
+     dazu. */
+  @media (prefers-reduced-motion: reduce) {
+    .nacht-foto, .nacht-kern, .nacht-nah, .nacht-weit, .nacht-raum,
+    .nacht-glut, .nacht-funke, #nachtStartLogo,
+    #splashScreen.nacht .splash-jahr { animation: none !important; }
+  }
+
   /* ===================== Fahrzeug-Inventur ===================== */
   .inv-kopfzeile { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin:0 0 12px; }
   .inv-kopfzeile h2 { margin:0; font-size:1.15rem; }
@@ -1224,7 +1389,20 @@
 <body>
 
 <div id="splashScreen" class="no-print">
-  <img src="hall-logo.png" alt="Hall Tabakwaren">
+  <!-- Bildebenen des Nachtbild-Auftritts. Sie sind immer im Markup, aber
+       nur sichtbar, wenn #splashScreen die Klasse "nacht" traegt - die
+       setzt initSplash() ausschliesslich fuer Mirko. -->
+  <div class="nacht-lage nacht-foto"></div>
+  <div class="nacht-lage nacht-raum"></div>
+  <div class="nacht-lage nacht-weit"></div>
+  <div class="nacht-lage nacht-nah"></div>
+  <div class="nacht-lage nacht-kern"></div>
+  <div class="nacht-lage nacht-glut"></div>
+  <!-- Eigener Behaelter fuer die Funken. Haengen sie direkt am Splash,
+       werden sie zu Flex-Elementen und schieben den Text hoch. -->
+  <div class="nacht-lage nacht-funken" id="splashFunken"></div>
+  <div class="nacht-lage nacht-schleier"></div>
+  <img src="hall-logo-original.png" alt="Hall Tabakwaren">
   <div>
     <h2 data-i18n="pageTitle">Hall Tabakwaren</h2>
     <div class="splash-subtitle" data-i18n="splashSubtitle">Spesen-Rechner</div>
@@ -1235,7 +1413,11 @@
   <div class="splash-credit">built for Hall Tabakwaren by Mirko Rieb</div>
 </div>
 
-<h1 class="no-print"><img src="hall-logo.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
+<!-- Logo: das Original von der Firmenwebseite. Die alte Datei hall-logo.png
+     hatte einen weissen Hintergrund und rundum Weissraum - auf der weissen
+     Kopfzeile faellt das nicht auf, auf dunklem Grund schon. Fuer Kollegen
+     aendert sich dadurch optisch nichts. -->
+<h1 class="no-print"><img src="hall-logo-original.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
 <div class="toolbar no-print">
   <!-- Reihenfolge getauscht (Werkzeugleiste & Hauptkategorien Redesign,
@@ -1303,6 +1485,12 @@
      tabJahr) - ein Label, zwei Darstellungen, keine Duplikate im
      I18N-Dictionary. -->
 <div id="kachelStartseite" class="no-print">
+  <!-- Hintergrund und Leuchtschild des Nachtbild-Auftritts. Beide liegen
+       INNERHALB der Kachel-Startseite und verschwinden dadurch von selbst,
+       sobald ein Bereich geoeffnet wird. Sichtbar nur mit body.nacht-start
+       (gesetzt in zeigeKachelStartseite(), nur fuer Mirko). -->
+  <div id="nachtStartHg" aria-hidden="true"></div>
+  <div id="nachtStartLogo" aria-hidden="true"><span></span></div>
   <!-- "Heute": Kopfbereich ueber den Kacheln. Wer die App zum zweiten Mal
        oeffnet, soll seinen Stand sehen statt einer Menuetafel - ein grosser
        Knopf auf die zuletzt offene Aufgabe. Vorerst nur fuer Mirko sichtbar
@@ -2410,6 +2598,19 @@ function initSplash() {
   const jahrEl = document.getElementById("splashJahr");
   if (jahrEl) jahrEl.textContent = istMirko() ? "seit 1903" : "";
 
+  /* Nachtbild-Auftritt einschalten - vorerst nur fuer Mirko. */
+  const splashEl = document.getElementById("splashScreen");
+  if (splashEl && istMirko()) {
+    splashEl.classList.add("nacht");
+    nachtFunkenBauen(document.getElementById("splashFunken"), 20);
+    /* Der Splash steht nur 1,5 Sekunden, ein Aufladen dauert 5. Ohne
+       Vorlauf saehe man ihn immer im dunkelsten Viertel. Mit -2,8 s
+       startet er bei rund zwei Dritteln und wird waehrend der ganzen
+       Standzeit heller - man sieht also genau den Teil, um den es geht. */
+    splashEl.querySelectorAll(".nacht-kern,.nacht-nah,.nacht-weit,.nacht-raum,.splash-jahr")
+      .forEach((el) => { el.style.animationDelay = "-2.8s"; });
+  }
+
   setTimeout(function () {
     const el = document.getElementById("splashScreen");
     if (el) el.style.display = "none";
@@ -2905,6 +3106,8 @@ function zeigeTab(tab) {
   // wieder eingeblendet, nicht schon auf der Kachel-Seite.
   const kachelEl = document.getElementById("kachelStartseite");
   if (kachelEl) kachelEl.style.display = "none";
+  // Nachtbild nur auf der Startseite - die Arbeitsbereiche bleiben hell.
+  document.body.classList.remove("nacht-start");
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "";
   // Bugfix (finale Whole-Branch-Review, Befund 4): Auf Urlaub/Jahresuebersicht/
@@ -3069,9 +3272,38 @@ function heuteKachelZahl(tab, text) {
   el.textContent = text;
 }
 
+/* Funken fuer den Nachtbild-Auftritt. Jeder bekommt eigene Groesse,
+   Laufzeit, Drift und einen negativen Start, damit sie schon unterwegs
+   sind statt gleichzeitig loszulaufen - sonst sieht man das Muster. */
+function nachtFunkenBauen(behaelter, anzahl) {
+  if (!behaelter || behaelter.dataset.funken) return;
+  const hoehe = window.innerHeight || 800;
+  for (let i = 0; i < anzahl; i++) {
+    const f = document.createElement("div");
+    f.className = "nacht-funke";
+    const g = 2 + Math.random() * 4.5;
+    f.style.width = g + "px";
+    f.style.height = g + "px";
+    f.style.left = (Math.random() * 100) + "%";
+    f.style.setProperty("--drift", (Math.random() * 70 - 35) + "px");
+    f.style.setProperty("--weg", (hoehe * (0.75 + Math.random() * 0.45)) + "px");
+    f.style.animation = "nachtSteigen " + (8 + Math.random() * 9).toFixed(1) + "s linear infinite";
+    f.style.animationDelay = (-Math.random() * 16).toFixed(1) + "s";
+    behaelter.appendChild(f);
+  }
+  behaelter.dataset.funken = "1";
+}
+
 function zeigeKachelStartseite() {
   const kachelEl = document.getElementById("kachelStartseite");
   if (kachelEl) kachelEl.style.display = "";
+  /* Nachtbild-Auftritt der Startseite - nur fuer Mirko. Die Klasse haengt
+     am body, weil auch Kopfzeile und Kacheln umgefaerbt werden muessen;
+     sie faellt in zeigeTab() wieder weg, damit die Arbeitsbereiche hell
+     bleiben. */
+  document.body.classList.toggle("nacht-start", istMirko());
+  const hg = document.getElementById("nachtStartHg");
+  if (hg && istMirko()) nachtFunkenBauen(hg, 18);
   heuteAktualisieren();
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "none";
@@ -8293,7 +8525,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-27"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-28"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
