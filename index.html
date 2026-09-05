@@ -4358,7 +4358,25 @@ function abrBerechne() {
      (Mirko, 05.09.2026). Der Wert wird uebernommen, damit die Zeile auf
      dem Ausdruck nicht leer bleibt. */
   const kasseSoll = abrWert("abrGeldablieferung");
-  const diffGeld = kasseSoll - kasseHaben;
+  /* Richtung der Geld-Differenz: KASSE HABEN minus KASSE SOLL, also
+     tatsaechlich da minus laut Abrechnung verlangt. Mehr Geld dabei als
+     verlangt ergibt damit ein PLUS.
+
+     Warum gedreht (Mirko, 05.09.2026, an einem eigenen Beispiel bemerkt:
+     98.560 verlangt, 103.315 tatsaechlich dabei -> "müsste die differenz ja
+     ein plus geld bestand sein und kein minus 4.755"):
+
+     Der Brain Dump nennt zwar die Formel "geldablieferung laut abrechnung
+     minus kasse haben", sagt im GLEICHEN Satz aber "entweder plus bestand
+     oder minus je nach dem ob man zu viel geld oder zu wenig abgeliefert
+     hat". Beides zusammen geht nicht auf: die genannte Formel liefert bei
+     zu viel Geld ein Minus. Die Absicht ("zu viel = plus") gewinnt.
+
+     Damit folgen jetzt BEIDE Differenzen derselben Regel - Ist minus Soll:
+       Ware: Inventur Ist  - Inventur Soll
+       Geld: Kasse Haben   - Kasse Soll
+     Fehlbetrag negativ, Ueberschuss positiv. */
+  const diffGeld = kasseHaben - kasseSoll;
 
   /* Vorzeichen der beiden Bestands-Zeilen: PLUS Bestandserhoehung, MINUS
      Bestandsverminderung. Von Mirko am 05.09.2026 ausgeschrieben:
@@ -4483,9 +4501,16 @@ const ABR_SCHRITTE = [
     ],
     zwischen: () => {
       const { kasseHaben, diffGeld } = abrBerechne();
+      /* Im Klartext, nicht nur als Vorzeichen - dieselbe Ueberlegung wie
+         beim Ware-Zaehlen (03.09.2026): ein Minus liest man im Fahrzeug zu
+         leicht falsch. */
+      const klartext = diffGeld === 0
+        ? "Stimmt genau überein."
+        : diffGeld > 0
+          ? "Sie haben <b>" + invFmt(diffGeld) + " € mehr</b> dabei, als die Abrechnung verlangt."
+          : "Es fehlen <b>" + invFmt(Math.abs(diffGeld)) + " €</b> gegenüber der Abrechnung.";
       return "Kasse Haben: <b>" + invFmt(kasseHaben) + " €</b><br>" +
-             "Differenz: <b>" + invFmt(diffGeld) + " €</b> " +
-             (diffGeld === 0 ? "(stimmt überein)" : diffGeld > 0 ? "(es fehlt Geld in der Kasse)" : "(es ist mehr da als abgeliefert)");
+             "Differenz: <b>" + invFmt(diffGeld) + " €</b><br>" + klartext;
     } },
 
   { titel: "Störgeld",
@@ -8239,7 +8264,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-24"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-25"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
