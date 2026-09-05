@@ -825,6 +825,15 @@
     body.druck-inventur .inv-blatt { width: auto; transform: none; height: auto; min-height: 0;
                                     border: none; padding: 0; break-inside: avoid; page-break-inside: avoid; }
     body.druck-inventur { font-size: 10pt; }
+    /* Bleibt der Druckdialog auf Hochformat (Safari kann die Ausrichtung
+       nicht per CSS gesetzt bekommen), passt ein 297 mm breites Blatt nicht
+       auf die Seite - der Ueberhang erzeugt Folgeseiten. Der Medientest
+       greift auf die SEITENBREITE zu: unter 240 mm liegt Hochformat vor,
+       dann wird das Blatt so weit verkleinert, dass es vollstaendig auf
+       eine Seite passt. Lieber klein und komplett als zerschnitten. */
+    @media (max-width: 239mm) {
+      body.druck-inventur .inv-blatt { zoom: 0.63; }
+    }
   }
   @page inventurQuer { size: A4 landscape; margin: 8mm; }
   body.druck-inventur { page: inventurQuer; }
@@ -3235,6 +3244,14 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function invSetAnsicht(a) {
+  /* Wichtig fuers Drucken: Das Blatt steckt in einem .panel, und die globale
+     Druckregel blendet ALLE Panels aus. Ohne die Klasse "druck-inventur"
+     druckt der Browser deshalb leere Seiten (Mirko, 05.09.2026: "zwei leere
+     Blaetter"). Die Klasse haengt jetzt daran, dass die Blatt-Ansicht offen
+     ist - nicht am beforeprint-Ereignis, das nicht jeder Handy-Druckweg
+     ausloest. Auf dem Bildschirm hat sie keine Wirkung, alle Regeln dazu
+     stehen in @media print. */
+  document.body.classList.toggle("druck-inventur", a === "blatt");
   document.getElementById("invErfassenView").style.display = a === "erfassen" ? "" : "none";
   document.getElementById("invBlattView").style.display    = a === "blatt" ? "" : "none";
   document.getElementById("invKaefigView").style.display   = a === "kaefig" ? "" : "none";
@@ -3467,13 +3484,11 @@ window.addEventListener("beforeprint", () => {
   if (!view || !panel) return;
   const offen = getComputedStyle(panel).display !== "none" && getComputedStyle(view).display !== "none";
   if (!offen) return;
-  document.body.classList.add("druck-inventur");
   __invDruckStil = document.createElement("style");
   __invDruckStil.textContent = "@page { size: A4 landscape; margin: 7mm; }";
   document.head.appendChild(__invDruckStil);
 });
 window.addEventListener("afterprint", () => {
-  document.body.classList.remove("druck-inventur");
   if (__invDruckStil) { __invDruckStil.remove(); __invDruckStil = null; }
 });
 
@@ -6780,7 +6795,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-04-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
