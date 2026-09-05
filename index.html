@@ -1158,6 +1158,17 @@
   .wizard-dots span.active { background: var(--accent); }
   .wizard-buttons { display: flex; justify-content: space-between; margin-top: 1.25rem; gap: 0.5rem; }
 
+  /* Abrechnungs-Assistent: grosse Zahlenfelder, weil im Fahrzeug mit dem
+     Daumen getippt wird - dieselbe Ueberlegung wie beim Inventur-Erfassen. */
+  .assi-feld {
+    width: 100%; font-size: 1.15rem; padding: 0.6rem 0.7rem; text-align: right;
+    border: 1px solid #cfd4dc; border-radius: 8px;
+  }
+  .assi-zwischen {
+    margin-top: 0.5rem; padding: 0.7rem 0.8rem; border-radius: 8px;
+    background: #f3f6fb; font-size: 0.92rem; line-height: 1.5;
+  }
+
   /* Versionsnummer/Sprache im Footer */
   footer .footer-link { color: #888; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 0.75rem; padding: 0; }
   /* Chef-Funktionen (Auswertung, CSV-Export) - fuer Mitarbeiter unsichtbar.
@@ -1383,6 +1394,14 @@
       <div>
         <label>Niederlassung</label>
         <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
+      </div>
+      <!-- Tour: gehoert zu Inventur/Abrechnung und ist deshalb - wie die
+           beiden Kacheln selbst - vorerst nur fuer Mirko sichtbar.
+           Ein-/ausgeblendet in aktualisiereInventurSichtbarkeit(). -->
+      <div id="cfgTourFeld" style="display:none;">
+        <label>Tour-Nr.</label>
+        <input id="cfgTour" placeholder="z.B. 12" oninput="saveConfig();">
+        <p class="hinweis-text" style="margin:0.35rem 0 0;">Füllt Inventurblatt und Verkaufsbericht vor. Beim Start eines Durchgangs änderbar.</p>
       </div>
       <div>
         <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
@@ -1772,10 +1791,14 @@
                 </div>
               </td></tr>
           <tr><td class="k">GVL/TB/VR/…:</td><td class="feld" colspan="2"><input id="invFGvl"></td></tr>
+          <!-- Kontrolle: KEIN Platzhalter "Unterschrift" (Mirko, 05.09.2026).
+               Die Zeile unterschreibt die Niederlassung, nicht der Fahrer -
+               auf dem Vordruck steht dort nichts. Der graue Platzhaltertext
+               wurde von html2canvas mit in die PDF aufgenommen. -->
           <tr><td class="k">Kontrolle:</td>
               <td class="feld" colspan="2">
                 <div class="inv-sigwrap">
-                  <input id="invFKontrolle" placeholder="Unterschrift">
+                  <input id="invFKontrolle">
                   <span class="inv-stempel" id="invTs-invFKontrolle"></span>
                 </div>
               </td></tr>
@@ -1791,9 +1814,12 @@
     <span class="sp" id="abrStatus" style="margin-left:auto; color:#555;"></span>
   </div>
   <div class="inv-bar">
+    <button type="button" class="ghost" onclick="abrAssistentStart()">🧭 Schritt für Schritt</button>
+    <button type="button" class="ghost" onclick="kopfDialog()">📋 Kopfdaten</button>
     <button type="button" class="ghost" onclick="abrZeigeErgebnis()">📄 PDF ansehen</button>
     <button type="button" class="ghost" onclick="abrSpeichern()">💾 PDF speichern</button>
     <button type="button" class="ghost" onclick="abrDrucken()">🖨️ Drucken</button>
+    <button type="button" class="ghost" onclick="abrBeideDrucken()">🖨️ Beide Zettel</button>
     <button type="button" class="primary" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
     <button type="button" class="ghost" onclick="abrNeu()">🗑️ Neuer Bericht</button>
   </div>
@@ -2175,6 +2201,11 @@ function aktualisiereInventurSichtbarkeit() {
   document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"], .kachel-btn[onclick="zeigeTab(\'abrechnung\')"], #mainTabs .tab-btn[data-tab="abrechnung"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
+  // Das Tour-Feld in den Stammdaten gehoert zu diesen beiden Bereichen und
+  // folgt derselben Sichtbarkeit - sonst fragte der Zettel Kollegen nach
+  // einer Tour fuer Funktionen, die sie gar nicht sehen.
+  const tourFeld = document.getElementById("cfgTourFeld");
+  if (tourFeld) tourFeld.style.display = sichtbar ? "" : "none";
   // Steht das Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
   // Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
   // bliebe ein Bereich offen, den es fuer diesen Nutzer nicht gibt.
@@ -2386,7 +2417,12 @@ const BUNDESLAENDER = {
 };
 
 const DEFAULT_CONFIG = {
-  name: "", strasse: "", ort: "", niederlassung: "", arbeitgeberEmail: "", eigeneEmail: "",
+  /* tour: Stammdatum, damit Tour-Nummer und Name nur EINMAL eingetragen
+     werden und von dort in Inventurblatt UND Verkaufsbericht laufen
+     (Mirko, 05.09.2026: "somit koennten wir gewaehrleisten, dass alles
+     uebereinstimmt"). Dient nur als Vorschlag - der Durchgang kann eine
+     andere Tour tragen, siehe kopfState. */
+  name: "", strasse: "", ort: "", niederlassung: "", tour: "", arbeitgeberEmail: "", eigeneEmail: "",
   jahr: 2026, startMonat: 1, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
@@ -2430,6 +2466,7 @@ function saveConfig() {
   if (isNaN(config.bezahltDefault)) config.bezahltDefault = 0;
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
+  config.tour = val("cfgTour");
   config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
   config.eigeneEmail = val("cfgEigeneEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
@@ -2740,6 +2777,7 @@ function initSettingsUI() {
   document.getElementById("cfgStrasse").value = config.strasse;
   document.getElementById("cfgOrt").value = config.ort;
   document.getElementById("cfgNiederlassung").value = config.niederlassung;
+  document.getElementById("cfgTour").value = config.tour || "";
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
   document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
@@ -3788,27 +3826,135 @@ function invSetAnsicht(a) {
 
 function invHeute() { return new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }); }
 
+/* ===================== Kopfdaten an EINER Stelle =====================
+   Mirko (05.09.2026): "vom spesen tool selbst wuerde ich nur die kopfdaten
+   adresse tour ect uebernehmen wo sie benoetigt wird nichts von den
+   spesendaten selbst ... somit koennten wir gewaehrleisten, dass alles
+   uebereinstimmt, auch das datum."
+
+   Vorher lagen dieselben Angaben an drei Stellen: der Name in config.name,
+   die Tour nur im Inventur-Kopf, das Datum in Inventur-Kopf, Inventur-Fuss
+   und Verkaufsbericht getrennt. Wurde die Inventur am Donnerstag gezaehlt
+   und am Freitag abgerechnet, trugen die beiden Blaetter zwei Daten.
+
+   Ab jetzt ist DIESER Speicher die einzige Quelle. Beide Blaetter lesen
+   hier - sie halten keine eigene Fassung mehr.
+
+   Woher die Werte kommen:
+     Fahrer - aus den Stammdaten (config.name)
+     Tour   - aus den Stammdaten als VORSCHLAG (config.tour); ein Durchgang
+              darf eine andere tragen, z.B. wenn Mirko als Springer faehrt
+     Datum  - gehoert zum Durchgang, NICHT in die Stammdaten: die App wird
+              am Montag geoeffnet und am Freitag abgerechnet. */
+const KOPF_KEY = "hall-kopfdaten-v1";
+let kopfState = { fahrer: "", tour: "", datum: "" };
+let kopfGeladen = false;
+
+function kopfLaden() {
+  if (kopfGeladen) return;
+  try { const r = localStorage.getItem(KOPF_KEY); if (r) Object.assign(kopfState, JSON.parse(r) || {}); } catch (e) {}
+  kopfGeladen = true;
+}
+function kopfSichern() { try { localStorage.setItem(KOPF_KEY, JSON.stringify(kopfState)); } catch (e) {} }
+
+function kopfFahrer() { kopfLaden(); return String(kopfState.fahrer || config.name || "").trim(); }
+function kopfTour()   { kopfLaden(); return String(kopfState.tour   || config.tour || "").trim(); }
+function kopfDatum()  { kopfLaden(); return String(kopfState.datum  || "").trim() || invHeute(); }
+/* Das Datum faellt notfalls auf "heute" zurueck und fehlt damit nie -
+   vollstaendig heisst also: Fahrer und Tour stehen. */
+function kopfVollstaendig() { return !!(kopfFahrer() && kopfTour()); }
+
+function kopfSetzen(fahrer, tour, datum) {
+  kopfLaden();
+  kopfState.fahrer = String(fahrer || "").trim();
+  kopfState.tour   = String(tour   || "").trim();
+  kopfState.datum  = String(datum  || "").trim() || invHeute();
+  kopfSichern();
+  kopfUebernehmen();
+}
+
+/* Die Kopfdaten in beide Blaetter schreiben - aber NUR in die Speicher, die
+   bereits aufgebaut sind. Sonst schriebe abrSichern() einen frisch
+   initialisierten, leeren abrState ueber die gespeicherte Abrechnung und
+   der halbe Verkaufsbericht waere weg. Noch nicht aufgebaute Blaetter holen
+   sich die Werte beim Aufbau selbst (invFuelleKopfFelder / abrVorbelegen). */
+function kopfUebernehmen() {
+  const fahrer = kopfFahrer(), tour = kopfTour(), datum = kopfDatum();
+  if (invAufgebaut) {
+    invState.kopf = invState.kopf || {};
+    invState.fuss = invState.fuss || {};
+    if (!invState.fuss.invFFahrer) invState.fuss.invFFahrer = fahrer;
+    invSichern();
+    invFuelleKopfFelder();
+  }
+  if (abrAufgebaut) {
+    abrState.felder = abrState.felder || {};
+    abrState.felder.abrVertreter = fahrer;
+    abrState.felder.abrTour      = tour;
+    abrState.felder.abrDatum     = datum;
+    abrSetz("abrVertreter", fahrer);
+    abrSetz("abrTour", tour);
+    abrSetz("abrDatum", datum);
+    abrSichern();
+  }
+}
+
+/* EIN Fenster statt drei nacheinander aufpoppender prompt()-Abfragen. Am
+   Handy waren das drei Systemdialoge hintereinander - ein "Abbrechen" in
+   der Mitte hinterliess einen halb gefuellten Kopf. */
+let __kopfNachher = null;
+function kopfDialog(nachher) {
+  kopfLaden();
+  document.getElementById("modalRoot").innerHTML =
+    '<div class="modal-overlay"><div class="modal-box">' +
+      '<h2>📋 Kopfdaten</h2>' +
+      '<p style="font-size:0.9rem; color:#444; margin-top:0;">Gelten für <b>Inventurblatt und Verkaufsbericht gemeinsam</b> – einmal eintragen, beide Zettel tragen dasselbe.</p>' +
+      '<label>Verkaufsfahrer</label>' +
+      '<input id="kopfFahrerFeld" style="margin-bottom:0.75rem;">' +
+      '<label>Tour-Nr.</label>' +
+      '<input id="kopfTourFeld" placeholder="z.B. 12" style="margin-bottom:0.75rem;">' +
+      '<label>Datum</label>' +
+      '<input id="kopfDatumFeld" placeholder="TT.MM.JJJJ">' +
+      '<div class="wizard-buttons">' +
+        '<button onclick="kopfDialogAbbrechen()">Abbrechen</button>' +
+        '<button class="primary" onclick="kopfDialogSpeichern()">Übernehmen</button>' +
+      '</div>' +
+    '</div></div>';
+  document.getElementById("kopfFahrerFeld").value = kopfFahrer();
+  document.getElementById("kopfTourFeld").value   = kopfTour();
+  document.getElementById("kopfDatumFeld").value  = kopfDatum();
+  __kopfNachher = typeof nachher === "function" ? nachher : null;
+}
+function kopfDialogAbbrechen() { __kopfNachher = null; closeModal(); }
+function kopfDialogSpeichern() {
+  kopfSetzen(
+    document.getElementById("kopfFahrerFeld").value,
+    document.getElementById("kopfTourFeld").value,
+    document.getElementById("kopfDatumFeld").value
+  );
+  closeModal();
+  const f = __kopfNachher; __kopfNachher = null;
+  if (f) f();
+}
+
 function invFrageKopf(erzwingen) {
-  if (!erzwingen && invState.kopf.invFahrer && invState.kopf.invTour && invState.kopf.invDatum) return;
-  const name = prompt("Name des Fahrers:", invState.kopf.invFahrer || config.name || "");
-  if (name === null) return;
-  const tour = prompt("Tour:", invState.kopf.invTour || "");
-  if (tour === null) return;
-  const datum = prompt("Datum:", invState.kopf.invDatum || invHeute());
-  if (datum === null) return;
-  invState.kopf.invFahrer = name.trim();
-  invState.kopf.invTour = tour.trim();
-  invState.kopf.invDatum = datum.trim();
-  if (!invState.fuss.invFDatum)  invState.fuss.invFDatum  = invState.kopf.invDatum;
-  if (!invState.fuss.invFFahrer) invState.fuss.invFFahrer = invState.kopf.invFahrer;
-  invSichern();
-  invFuelleKopfFelder();
+  if (!erzwingen && kopfVollstaendig()) { kopfUebernehmen(); return; }
+  kopfDialog();
 }
 function invFuelleKopfFelder() {
-  ["invFahrer", "invDatum", "invTour"].forEach((id) => {
+  /* Kopfzeile immer aus der gemeinsamen Quelle - invState.kopf ist nur noch
+     eine Kopie fuer den Ausdruck, keine zweite Wahrheit. */
+  invState.kopf = invState.kopf || {};
+  invState.fuss = invState.fuss || {};
+  const werte = { invFahrer: kopfFahrer(), invTour: kopfTour(), invDatum: kopfDatum() };
+  Object.entries(werte).forEach(([id, wert]) => {
+    invState.kopf[id] = wert;
     const el = document.getElementById(id);
-    if (el && invState.kopf[id] != null) el.value = invState.kopf[id];
+    if (el) el.value = wert;
   });
+  // Das Datum im Fuss ist dasselbe Datum - es wird mitgezogen, nicht nur
+  // beim ersten Mal gesetzt. Genau das war Mirkos Punkt "auch das datum".
+  invState.fuss.invFDatum = werte.invDatum;
   ["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].forEach((id) => {
     const el = document.getElementById(id);
     if (el && invState.fuss[id] != null) el.value = invState.fuss[id];
@@ -3827,9 +3973,41 @@ function invFuelleKopfFelder() {
    Das Blatt wird fuer die Aufnahme kurz auf volle Groesse gestellt: am
    Handy steht es per CSS auf transform:scale(.42), und html2canvas wuerde
    sonst die verkleinerte Darstellung abfotografieren. */
-async function invBuildPdf() {
+/* Ein Panel kurz aufnehmbar machen: html2canvas rendert ein Element in
+   einem display:none-Container nicht - es kaeme eine leere Flaeche heraus.
+   Fuer die gemeinsame PDF wird das jeweils geschlossene Panel deshalb
+   eingeblendet und gleichzeitig weit aus dem Sichtfeld geschoben:
+   sichtbar fuer den Renderer, unsichtbar fuer den Nutzer, kein Aufblitzen.
+   Gibt eine Funktion zum Zuruecksetzen zurueck (null = war schon sichtbar). */
+function panelAufnehmbar(panelId, breite) {
+  const panel = document.getElementById(panelId);
+  if (!panel || getComputedStyle(panel).display !== "none") return null;
+  const vorher = { display: panel.style.display, position: panel.style.position,
+                   left: panel.style.left, top: panel.style.top, width: panel.style.width };
+  panel.style.display = "block";
+  panel.style.position = "absolute";
+  panel.style.left = "-20000px";
+  panel.style.top = "0";
+  panel.style.width = breite + "px";
+  return () => Object.assign(panel.style, vorher);
+}
+
+/* Bild mittig auf die aktuelle Seite legen, Seitenverhaeltnis erhalten. */
+function pdfBildEinpassen(pdf, canvas, rand) {
+  const seiteB = pdf.internal.pageSize.getWidth(), seiteH = pdf.internal.pageSize.getHeight();
+  const maxB = seiteB - rand * 2, maxH = seiteH - rand * 2;
+  let b = maxB, h = (canvas.height * b) / canvas.width;
+  if (h > maxH) { h = maxH; b = (canvas.width * h) / canvas.height; }
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", (seiteB - b) / 2, rand, b, h);
+}
+
+/* Nimmt das Inventurblatt als Bild auf - herausgeloest, damit sowohl die
+   einzelne PDF als auch die gemeinsame PDF dieselbe Aufnahme benutzen. */
+async function invBlattCanvas() {
+  invAufbauen();
   const el = document.getElementById("invBlatt");
   if (!el) return null;
+  const panelZurueck = panelAufnehmbar("inventurPanel", 1300);
   const warErfassen = getComputedStyle(document.getElementById("invErfassenView")).display !== "none";
   const blattView = document.getElementById("invBlattView");
   const vorherView = blattView.style.display;
@@ -3857,8 +4035,18 @@ async function invBuildPdf() {
     el.style.transform = vorherTransform;
     el.style.height = vorherHoehe;
     blattView.style.display = vorherView;
-    if (warErfassen) invSetAnsicht("erfassen");
+    // War das Panel geschlossen, wird nur es zurueckgesetzt - die Ansicht
+    // darin interessiert dann niemanden. War es offen, muss die zuvor
+    // gewaehlte Ansicht zurueck.
+    if (panelZurueck) panelZurueck();
+    else if (warErfassen) invSetAnsicht("erfassen");
   }
+  return canvas;
+}
+
+async function invBuildPdf() {
+  const canvas = await invBlattCanvas();
+  if (!canvas) return null;
   const imgData = canvas.toDataURL("image/png");
   const { jsPDF } = window.jspdf;
   /* compress: true ist hier nicht optional - ohne die Kompression wird das
@@ -4149,17 +4337,220 @@ function abrNeu() {
 
 /* Vertreter, Tour und Datum stehen schon in den Stammdaten bzw. in der
    Fahrzeug-Inventur - sie werden vorbelegt, lassen sich aber ueberschreiben. */
+/* Kopfdaten aus der gemeinsamen Quelle (kopfState), nicht mehr aus dem
+   Inventur-Speicher. Vorher las diese Funktion die Tour aus invState und
+   setzte das Datum eigenmaechtig auf "heute" - wurde die Inventur am
+   Donnerstag gezaehlt und am Freitag abgerechnet, trugen die beiden
+   Blaetter zwei verschiedene Daten. Genau das sollte weg. */
 function abrVorbelegen() {
-  const inv = heuteLies(INV_KEY);
-  if (!abrState.felder.abrVertreter && config.name) {
-    abrState.felder.abrVertreter = config.name; abrSetz("abrVertreter", config.name);
+  const fahrer = kopfFahrer(), tour = kopfTour(), datum = kopfDatum();
+  abrState.felder = abrState.felder || {};
+  if (fahrer) { abrState.felder.abrVertreter = fahrer; abrSetz("abrVertreter", fahrer); }
+  if (tour)   { abrState.felder.abrTour      = tour;   abrSetz("abrTour", tour); }
+  abrState.felder.abrDatum = datum; abrSetz("abrDatum", datum);
+}
+
+/* ===================== Abrechnungs-Assistent =====================
+   Mirko (05.09.2026): "eine hilfe durchfuehrung wo die daten abgefragt
+   werden nach und nach die wir benoetigen ... schritt fuer schritt quasi".
+
+   Bewusst ein ZUSAETZLICHER Weg, kein Pflichtweg (so entschieden am
+   05.09.2026): Wer nur einen Wert nachtragen will, tippt weiter direkt ins
+   Blatt. Der Assistent fragt nur die Werte ab, die wirklich gebraucht
+   werden - die acht nie benutzten Felder (Kosten, Falschgeld, A-Konto,
+   Restgeld, Geldkarte, Freiverkauf, Schecks, Entladeschein) ueberspringt
+   er. Sie bleiben auf dem Blatt stehen, damit der Ausdruck dem Original
+   entspricht.
+
+   Jeder Tastendruck schreibt sofort in abrState und ins Blatt. Wer in der
+   Mitte abbricht, verliert nichts. */
+const ABR_SCHRITTE = [
+  { titel: "Kopfdaten", kopf: true,
+    text: "Gelten für Inventurblatt und Verkaufsbericht gemeinsam." },
+
+  { titel: "Geldablieferung",
+    text: "Vom Abrechnungszettel: der Betrag, den Sie laut Papier abliefern.",
+    felder: [{ id: "abrGeldablieferung", label: "Geldablieferung lt. Abrechnung" }] },
+
+  { titel: "Was tatsächlich in der Kasse ist",
+    text: "Vom Zählzettel. Die drei zusammen ergeben „Kasse Haben“.",
+    felder: [
+      { id: "abrScheine",  label: "Scheine" },
+      { id: "abrHartgeld", label: "Hartgeld" },
+      { id: "abrGiroGo",   label: "GiroGo" }
+    ],
+    zwischen: () => {
+      const haben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
+      const diff  = abrWert("abrGeldablieferung") - haben;
+      return "Kasse Haben: <b>" + invFmt(haben) + " €</b><br>" +
+             "Differenz: <b>" + invFmt(diff) + " €</b> " +
+             (diff === 0 ? "(stimmt überein)" : diff > 0 ? "(es fehlt Geld in der Kasse)" : "(es ist mehr da als abgeliefert)");
+    } },
+
+  { titel: "Störgeld",
+    text: "Wird nur eingetragen und mitgedruckt – es fließt in keine Summe.",
+    felder: [{ id: "abrStoergeld", label: "Störgeld" }] },
+
+  { titel: "Warenabrechnung: Ausgangswert",
+    text: "Der Endbestand, mit dem Sie in die Woche gestartet sind. Nach einem Abschluss steht er schon da.",
+    felder: [
+      { id: "abrEndbestandVortrag", label: "Endbestand Vortrag" },
+      { id: "abrAutomatenverkauf",  label: "Automatenverkauf", hinweis: "Was Sie diese Woche in die Automaten gefüllt haben." }
+    ] },
+
+  { titel: "Bestand und Entlastung",
+    text: "Alles vom externen Zettel. Nur ausfüllen, was zutrifft.",
+    felder: [
+      { id: "abrBestandErhoehung",    label: "Bestandserhöhung", hinweis: "Mehr gefüllt als geplant." },
+      { id: "abrBestandVerminderung", label: "Bestandsverminderung", hinweis: "Weniger gefüllt als geplant." },
+      { id: "abrEntlastung",          label: "Entlastung Sonstiges", hinweis: "Wenn Sie eine Gutschrift erhalten haben." }
+    ] },
+
+  { titel: "Ladeliste – diese Woche",
+    text: "Nur falls Sie in der laufenden Woche nachbestellt haben (Lieferschein).",
+    felder: [
+      { id: "abrLadeO1", label: "Ladeliste Nr. (1)" },
+      { id: "abrLadeO2", label: "Ladeliste Nr. (2)" }
+    ] },
+
+  { titel: "Ladeliste – neue Woche",
+    text: "Die Gesamtsummen der Lieferscheine für die kommende Woche.",
+    felder: [
+      { id: "abrLadeU1", label: "Ladeliste Nr. (1)" },
+      { id: "abrLadeU2", label: "Ladeliste Nr. (2)" },
+      { id: "abrLadeU3", label: "Ladeliste Nr. (3)" },
+      { id: "abrLadeU4", label: "Ladeliste Nr. (4)" },
+      { id: "abrLadeU5", label: "Ladeliste Nr. (5)" }
+    ] },
+
+  { titel: "Das kommt heraus", uebersicht: true }
+];
+
+let abrAssiSchritt = 0;
+
+function abrAssistentStart() {
+  if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
+  abrAssiSchritt = 0;
+  abrAssiZeige();
+}
+
+/* Eingabe im Assistenten: in den Speicher, ins Blatt und neu rechnen. Die
+   Ziel-Id steht am Feld (data-ziel) - der globale input-Listener oben
+   greift nur bei den Blattfeldern selbst. */
+function abrAssiEingabe(el) {
+  const ziel = el.getAttribute("data-ziel");
+  if (!ziel) return;
+  abrState.felder[ziel] = el.value;
+  abrSetz(ziel, el.value);
+  abrRechne();
+  abrSichern();
+  const hinweis = document.getElementById("assiZwischen");
+  const s = ABR_SCHRITTE[abrAssiSchritt];
+  if (hinweis && s && s.zwischen) hinweis.innerHTML = s.zwischen();
+}
+
+function abrAssiUebersicht() {
+  const haben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
+  const diffGeld = abrWert("abrGeldablieferung") - haben;
+  const soll = abrWert("abrEndbestandVortrag") - abrWert("abrAutomatenverkauf")
+             - abrWert("abrBestandErhoehung") + abrWert("abrBestandVerminderung")
+             - abrWert("abrEntlastung") + abrWert("abrLadeO1") + abrWert("abrLadeO2");
+  const ist = abrInventurIst();
+  const diffWare = ist - soll;
+  const endbestand = ist + abrWert("abrLadeU1") + abrWert("abrLadeU2") + abrWert("abrLadeU3")
+                   + abrWert("abrLadeU4") + abrWert("abrLadeU5");
+  const zeile = (l, w, fett) =>
+    '<tr><td style="padding:3px 0; color:#444;">' + l + '</td>' +
+    '<td style="padding:3px 0; text-align:right; ' + (fett ? "font-weight:700;" : "") + '">' + invFmt(w) + ' €</td></tr>';
+  /* Inventur Ist kommt aus der Fahrzeug-Inventur. Steht dort nichts, ist
+     die Warenabrechnung wertlos - das muss man sehen, bevor man abschliesst. */
+  const warnung = ist === 0
+    ? '<p class="hinweis-text" style="color:#b00; margin-top:0.75rem;">⚠️ Die Fahrzeug-Inventur ist noch leer. Ohne Istbestand stimmen Differenz und Endbestand nicht.</p>'
+    : "";
+  return '<table style="width:100%; font-size:0.95rem;">' +
+    zeile("Kasse Haben", haben, true) +
+    zeile("Differenz (Geld)", diffGeld) +
+    '<tr><td colspan="2" style="padding:8px 0 2px; border-top:1px solid #e3e6eb;"></td></tr>' +
+    zeile("Inventur Soll", soll) +
+    zeile("Inventur Ist (aus der Inventur)", ist) +
+    zeile("Differenz (Ware)", diffWare) +
+    zeile("Endbestand IST", endbestand, true) +
+    '</table>' + warnung;
+}
+
+function abrAssiZeige() {
+  const s = ABR_SCHRITTE[abrAssiSchritt];
+  const letzter = abrAssiSchritt === ABR_SCHRITTE.length - 1;
+  let inhalt;
+  if (s.kopf) {
+    inhalt = '<label>Verkaufsfahrer</label><input id="assiFahrer" style="margin-bottom:0.75rem;">' +
+             '<label>Tour-Nr.</label><input id="assiTour" placeholder="z.B. 12" style="margin-bottom:0.75rem;">' +
+             '<label>Datum</label><input id="assiDatum" placeholder="TT.MM.JJJJ">';
+  } else if (s.uebersicht) {
+    inhalt = abrAssiUebersicht();
+  } else {
+    inhalt = (s.felder || []).map((f) =>
+      '<label>' + f.label + '</label>' +
+      '<input class="assi-feld" data-ziel="' + f.id + '" inputmode="decimal" oninput="abrAssiEingabe(this)">' +
+      (f.hinweis ? '<p class="hinweis-text" style="margin:0.2rem 0 0.7rem;">' + f.hinweis + '</p>'
+                 : '<div style="height:0.75rem;"></div>')
+    ).join("");
+    if (s.zwischen) inhalt += '<div id="assiZwischen" class="assi-zwischen"></div>';
   }
-  const tour = (inv.kopf || {}).invTour;
-  if (!abrState.felder.abrTour && tour) { abrState.felder.abrTour = tour; abrSetz("abrTour", tour); }
-  if (!abrState.felder.abrDatum) {
-    const heute = new Date().toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" });
-    abrState.felder.abrDatum = heute; abrSetz("abrDatum", heute);
+  document.getElementById("modalRoot").innerHTML =
+    '<div class="modal-overlay"><div class="modal-box">' +
+      '<h2 style="margin-bottom:0.35rem;">🧭 ' + s.titel + '</h2>' +
+      '<p style="font-size:0.82rem; color:#888; margin:0 0 0.85rem;">Schritt ' + (abrAssiSchritt + 1) + ' von ' + ABR_SCHRITTE.length + '</p>' +
+      (s.text ? '<p style="font-size:0.9rem; color:#444; margin-top:0;">' + s.text + '</p>' : "") +
+      inhalt +
+      '<div class="wizard-buttons">' +
+        '<button onclick="abrAssiZurueck()"' + (abrAssiSchritt === 0 ? ' style="visibility:hidden;"' : '') + '>Zurück</button>' +
+        '<button onclick="abrAssiSchliessen()" style="margin-left:auto;">Schließen</button>' +
+        '<button class="primary" onclick="abrAssiWeiter()">' + (letzter ? "Fertig" : "Weiter") + '</button>' +
+      '</div>' +
+    '</div></div>';
+
+  if (s.kopf) {
+    document.getElementById("assiFahrer").value = kopfFahrer();
+    document.getElementById("assiTour").value   = kopfTour();
+    document.getElementById("assiDatum").value  = kopfDatum();
+  } else if (!s.uebersicht) {
+    (s.felder || []).forEach((f) => {
+      const el = document.querySelector('.assi-feld[data-ziel="' + f.id + '"]');
+      if (el) el.value = (abrState.felder || {})[f.id] || "";
+    });
+    const zw = document.getElementById("assiZwischen");
+    if (zw && s.zwischen) zw.innerHTML = s.zwischen();
+    const erstes = document.querySelector(".assi-feld");
+    if (erstes) erstes.focus();
   }
+}
+
+/* Kopfdaten-Schritt sichern, bevor weitergeblaettert wird - sonst waere die
+   Eingabe beim Zurueckspringen wieder weg. */
+function abrAssiSichereSchritt() {
+  const s = ABR_SCHRITTE[abrAssiSchritt];
+  if (!s || !s.kopf) return;
+  const f = document.getElementById("assiFahrer"), t = document.getElementById("assiTour"), d = document.getElementById("assiDatum");
+  if (f && t && d) kopfSetzen(f.value, t.value, d.value);
+}
+
+function abrAssiWeiter() {
+  abrAssiSichereSchritt();
+  if (abrAssiSchritt === ABR_SCHRITTE.length - 1) { abrAssiSchliessen(); return; }
+  abrAssiSchritt++;
+  abrAssiZeige();
+}
+function abrAssiZurueck() {
+  abrAssiSichereSchritt();
+  if (abrAssiSchritt === 0) return;
+  abrAssiSchritt--;
+  abrAssiZeige();
+}
+function abrAssiSchliessen() {
+  abrAssiSichereSchritt();
+  closeModal();
+  abrRechne();
 }
 
 /* ---------- Abschliessen: speichern und neue Woche beginnen ----------
@@ -4204,9 +4595,16 @@ async function abrAbschliessen() {
     "Das lässt sich nicht rückgängig machen.";
   if (!confirm(frage)) return;
 
-  // 1. PDF ablegen
-  const r = await abrBuildPdf();
-  if (r) r.pdf.save(r.filename);
+  /* 1. PDF ablegen - BEIDE Zettel in einer Datei (Mirko, 05.09.2026).
+        Muss vor dem Leeren passieren: danach sind die Blaetter
+        zurueckgesetzt und die Aufnahme waere leer. */
+  const r = await abrBuildBeidePdf();
+  if (r) {
+    r.pdf.save(r.filename);
+    if (confirm("Gespeichert: " + r.filename + "\n\n(Seite 1 Inventurblatt, Seite 2 Verkaufsbericht)\n\nBeide Zettel jetzt drucken?")) {
+      abrDruckePdf(r.pdf);
+    }
+  }
 
   // 2. Ins Archiv
   const archiv = abrArchivLesen();
@@ -4214,7 +4612,14 @@ async function abrAbschliessen() {
                 zeitpunkt: Date.now(), felder: abrState.felder, sig: abrState.sig });
   try { localStorage.setItem(ABR_ARCHIV_KEY, JSON.stringify(archiv.slice(-24))); } catch (e) {}
 
-  // 3. Alles leeren, Endbestand als Vortrag uebernehmen
+  /* 3. Alles leeren, Endbestand als Vortrag uebernehmen.
+        Das Datum gehoert zum abgeschlossenen Durchgang und wird geleert -
+        sonst truege der Bericht der neuen Woche das Datum des letzten.
+        Fahrer und Tour bleiben stehen, die wechseln nicht woechentlich. */
+  kopfLaden();
+  kopfState.datum = "";
+  kopfSichern();
+
   abrState = { felder: {}, sig: {} };
   ABR_EINGABEN.forEach((id) => abrSetz(id, ""));
   abrVorbelegen();
@@ -4248,9 +4653,13 @@ function toggleAbrechnungPanel() {
 /* PDF: dieselbe Machart wie beim Inventurblatt - das Blatt wird
    aufgenommen und als Bild in eine A4-Seite gelegt. Hier HOCHformat, der
    Verkaufsbericht ist ein Hochkant-Blatt. */
-async function abrBuildPdf() {
+/* Nimmt den Verkaufsbericht als Bild auf - herausgeloest, damit die
+   einzelne und die gemeinsame PDF dieselbe Aufnahme benutzen. */
+async function abrBlattCanvas() {
+  if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
   const el = document.getElementById("abrBlatt");
   if (!el) return null;
+  const panelZurueck = panelAufnehmbar("abrechnungPanel", 1000);
   const vorher = el.style.transform;
   el.style.transform = "none";
   let canvas;
@@ -4258,18 +4667,53 @@ async function abrBuildPdf() {
     canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", windowWidth: 1000 });
   } finally {
     el.style.transform = vorher;
+    if (panelZurueck) panelZurueck();
   }
+  return canvas;
+}
+
+/* Dateiname aus den gemeinsamen Kopfdaten - damit heissen Inventurblatt,
+   Verkaufsbericht und die gemeinsame Datei nach derselben Tour und
+   demselben Datum. */
+function abrDateiname(basis) {
+  const tour = kopfTour(), datum = kopfDatum().replace(/[^0-9]/g, "-");
+  return basis + (tour ? "_Tour-" + tour : "") + "_" + datum + ".pdf";
+}
+
+async function abrBuildPdf() {
+  const canvas = await abrBlattCanvas();
+  if (!canvas) return null;
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
-  const seiteB = pdf.internal.pageSize.getWidth(), seiteH = pdf.internal.pageSize.getHeight();
-  const rand = 8, maxB = seiteB - rand * 2, maxH = seiteH - rand * 2;
-  let b = maxB, h = (canvas.height * b) / canvas.width;
-  if (h > maxH) { h = maxH; b = (canvas.width * h) / canvas.height; }
-  pdf.addImage(canvas.toDataURL("image/png"), "PNG", (seiteB - b) / 2, rand, b, h);
-  const datum = String(abrState.felder.abrDatum || "").replace(/[^0-9]/g, "-");
-  const tour = String(abrState.felder.abrTour || "").trim();
-  return { pdf, filename: "Verkaufsbericht" + (tour ? "_Tour-" + tour : "") + "_" + datum + ".pdf",
-           imgData: canvas.toDataURL("image/png") };
+  pdfBildEinpassen(pdf, canvas, 8);
+  return { pdf, filename: abrDateiname("Verkaufsbericht"), imgData: canvas.toDataURL("image/png") };
+}
+
+/* Beide Zettel in EINER PDF (Mirko, 05.09.2026): "das man beide zettel auf
+   einmal druckt sobald man abgeschlossen hat. ohne beides einzeln
+   ausdrucken zu muessen".
+
+   Seite 1 Inventurblatt (A4 quer), Seite 2 Verkaufsbericht (A4 hoch).
+   Gemischte Ausrichtung in einem Auftrag kann nur eine selbst gebaute PDF -
+   der Druckdialog des Browsers kennt pro Auftrag nur EINE Ausrichtung.
+   Genau deshalb laeuft dieser Weg ueber jsPDF und nicht ueber
+   window.print() auf beide Panels. */
+async function abrBuildBeidePdf() {
+  const invCanvas = await invBlattCanvas();
+  const abrCanvas = await abrBlattCanvas();
+  if (!invCanvas || !abrCanvas) return null;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  pdfBildEinpassen(pdf, invCanvas, 8);
+  pdf.addPage("a4", "portrait");
+  pdfBildEinpassen(pdf, abrCanvas, 8);
+  return { pdf, filename: abrDateiname("Abrechnung-komplett") };
+}
+
+async function abrBeideDrucken() {
+  const r = await abrBuildBeidePdf();
+  if (!r) { alert("Die Blätter konnten nicht aufgenommen werden."); return; }
+  abrDruckePdf(r.pdf);
 }
 function abrDruckePdf(pdf) {
   const url = pdf.output("bloburl");
@@ -4320,26 +4764,33 @@ async function abrDrucken() {
   if (r) abrDruckePdf(r.pdf);
 }
 
+/* Aufbau des Inventurblatts, herausgeloest aus toggleInventurPanel():
+   Fuer die gemeinsame PDF muss das Blatt auch dann aufgebaut sein, wenn der
+   Bereich in dieser Sitzung nie geoeffnet wurde - sonst nimmt html2canvas
+   ein leeres Raster auf. */
+function invAufbauen() {
+  if (invAufgebaut) return;
+  invLaden();
+  invBaueRaster();
+  // Werte aus dem Speicher in die Blattfelder zurueckschreiben
+  Object.entries(invState.felder || {}).forEach(([k, v]) => {
+    const g = k.slice(0, k.lastIndexOf("-")), i = k.slice(k.lastIndexOf("-") + 1);
+    Object.entries(v).forEach(([f, val]) => {
+      const el = document.querySelector('[data-invg="'+g+'"][data-invi="'+i+'"][data-invf="'+f+'"]');
+      if (el) el.value = val;
+    });
+  });
+  invFuelleKopfFelder();
+  // Gespeicherte Unterschrift (Foto) anzeigen, samt Zeitstempel
+  loadSignatureImageInto("sigImg-inventur_signature", "inventur_signature");
+  renderSignatureTimestamp("inventur_signature");
+  invAufgebaut = true;
+}
+
 function toggleInventurPanel() {
   const offen = zeigeAnsicht("inventurPanel");
   if (!offen) return;
-  if (!invAufgebaut) {
-    invLaden();
-    invBaueRaster();
-    // Werte aus dem Speicher in die Blattfelder zurueckschreiben
-    Object.entries(invState.felder || {}).forEach(([k, v]) => {
-      const g = k.slice(0, k.lastIndexOf("-")), i = k.slice(k.lastIndexOf("-") + 1);
-      Object.entries(v).forEach(([f, val]) => {
-        const el = document.querySelector('[data-invg="'+g+'"][data-invi="'+i+'"][data-invf="'+f+'"]');
-        if (el) el.value = val;
-      });
-    });
-    invFuelleKopfFelder();
-    // Gespeicherte Unterschrift (Foto) anzeigen, samt Zeitstempel
-    loadSignatureImageInto("sigImg-inventur_signature", "inventur_signature");
-    renderSignatureTimestamp("inventur_signature");
-    invAufgebaut = true;
-  }
+  invAufbauen();
   /* Reihenfolge ist Absicht (Mirko, 03.09.2026): erst die Kopfabfrage,
      danach IMMER "Erfassen" - auch am Rechner. Wer die Inventur oeffnet,
      will zaehlen und eintragen; das Blatt ist das Ergebnis am Schluss,
@@ -7605,7 +8056,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-19"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-20"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
