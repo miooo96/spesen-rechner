@@ -2057,35 +2057,19 @@ function initSplash() {
   // z-index:1100 unter dem Splash mit z-index:9999, siehe .modal-overlay-
   // Regel) - sobald sich der Splash ausblendet, wird ein bereits
   // vorhandener Assistent einfach sichtbar, kein Wettlauf noetig.
-  /* "seit 1903": Die Jahreszahl laeuft beim Start von der Gruendung bis
-     heute hoch - eine Sekunde, dann steht sie. Erzaehlt in einem Bild
-     ueber 120 Jahre Firmengeschichte plus moderne Technik. Vorerst nur
-     fuer Mirko, wie der "Heute"-Kopf (05.09.2026). */
-  const jahrEl = document.getElementById("splashJahr");
-  /* Auf dem Splash steht die Firma, nicht das Werkzeug (Mirko, 05.09.2026):
-     "Hall Tabakwaren seit 1903" - der Zusatz "Spesen-Rechner" faellt weg.
-     Die App kann laengst mehr als Spesen. Fuer die Kollegen bleibt der
-     bisherige Splash unveraendert, solange die Neuerungen nicht
-     freigegeben sind. */
+  /* Auf dem Startbild steht die Firma, nicht das Werkzeug (Mirko,
+     05.09.2026): "Hall Tabakwaren seit 1903" - der Zusatz "Spesen-Rechner"
+     faellt weg, die App kann laengst mehr als Spesen.
+
+     Die Jahreszahl stand zwischenzeitlich als Hochzaehler von 1903 auf das
+     laufende Jahr. Wieder entfernt, Mirkos Urteil: "unnoetig, man versteht
+     da nicht was gemeint ist." Ein Effekt, den man erklaeren muss, ist
+     keiner - jetzt steht die Zahl einfach da. */
   const untertitelEl = document.querySelector("#splashScreen .splash-subtitle");
   if (untertitelEl) untertitelEl.style.display = istMirko() ? "none" : "";
-  if (jahrEl) {
-    if (!istMirko()) { jahrEl.textContent = ""; }
-    else {
-      const start = 1903, ziel = new Date().getFullYear(), dauer = 1000;
-      const t0 = performance.now();
-      jahrEl.textContent = "seit " + start;
-      const lauf = (t) => {
-        const p = Math.min(1, (t - t0) / dauer);
-        // langsam auslaufend, damit die Zahl am Ende "einrastet"
-        const e = 1 - Math.pow(1 - p, 3);
-        jahrEl.textContent = "seit " + Math.round(start + (ziel - start) * e);
-        if (p < 1) requestAnimationFrame(lauf);
-        else jahrEl.textContent = "seit " + start;
-      };
-      requestAnimationFrame(lauf);
-    }
-  }
+  const jahrEl = document.getElementById("splashJahr");
+  if (jahrEl) jahrEl.textContent = istMirko() ? "seit 1903" : "";
+
   setTimeout(function () {
     const el = document.getElementById("splashScreen");
     if (el) el.style.display = "none";
@@ -7034,7 +7018,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-5"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-6"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
