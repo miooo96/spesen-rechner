@@ -19,6 +19,20 @@
      gleiche Zeichnung, gleiche Farben, nur scharf.
      Vorher stand hier hall-logo.png - ein 500x309 grosses Bild mit weissem
      Kasten, das im Tab zu einem unkenntlichen Fleck schrumpfte. -->
+<!-- favicon.ico im Stamm ZUERST (Mirko, 05.09.2026: "wieso wird im chrome
+     immer das neue H als icon angezeigt, aber in safari nicht? da ist noch
+     das alte").
+
+     Chrome nimmt die PNGs darunter - deshalb sah er dort das neue H.
+     Safari greift in mehreren Faellen auf apple-touch-icon zurueck, und das
+     traegt BEWUSST das volle Logo, weil es auf dem iPhone-Startbildschirm
+     steht. Fuer den Tab ist das die falsche der beiden.
+
+     Eine echte favicon.ico im Stamm fragen Safari und praktisch jedes
+     andere Programm von sich aus ab, auch ohne HTML-Verweis. Sie enthaelt
+     16/32/48/64 px in einer Datei, damit bei 16 px nicht aus dem H ein
+     oranger Klumpen heruntergerechnet wird. Gebaut von favicon-ico-bauen.py. -->
+<link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
 <link rel="icon" type="image/png" sizes="180x180" href="icons/favicon-180.png">
@@ -9291,7 +9305,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-45"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-46"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });

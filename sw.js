@@ -34,7 +34,7 @@
    dabei aendern, sonst installiert der Browser den neuen Worker nicht.
 */
 
-const CACHE_VERSION = "2026-09-05-45";
+const CACHE_VERSION = "2026-09-05-46";
 const CACHE_NAME = "hall-spesen-" + CACHE_VERSION;
 
 /* Was beim Installieren mitgenommen wird, damit auch der allererste
@@ -51,6 +51,7 @@ const SHELL = [
   "./app/",
   "./app/index.html",
   "./app/manifest.json",
+  "./favicon.ico",
   "./icons/favicon-32.png",
   "./icons/favicon-64.png",
   "./icons/favicon-180.png",
