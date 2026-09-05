@@ -5457,9 +5457,11 @@ async function abrAbschliessen() {
   const r = await abrBuildBeidePdf();
   if (r) {
     r.pdf.save(r.filename);
-    if (confirm("Gespeichert: " + r.filename + "\n\n(Seite 1 Inventurblatt, Seite 2 Verkaufsbericht)\n\nBeide Zettel jetzt drucken?")) {
-      pdfDrucken(r.pdf);
-    }
+    /* Dasselbe Uebergabe-Fenster wie bei "Beide Zettel" statt eines
+       confirm() mit pdfDrucken(): Sonst haette der Abschluss wieder den
+       Weg genommen, der am Handy nur Seite 1 druckt (05.09.2026). Eine
+       Stelle, ein Weg. */
+    pdfUebergabe(r.pdf, r.filename);
   }
 
   // 2. Ins Archiv
@@ -5569,7 +5571,93 @@ async function abrBuildBeidePdf() {
 async function abrBeideDrucken() {
   const r = await abrBuildBeidePdf();
   if (!r) { alert("Die Blätter konnten nicht aufgenommen werden."); return; }
-  pdfDrucken(r.pdf);
+  pdfUebergabe(r.pdf, r.filename);
+}
+
+/* ---------- Zweiseitige PDF an das Geraet uebergeben ----------
+   Mirko, 05.09.2026: "wenn man beide zettel drucken will kommt nur der
+   inventur zettel in der druckvorschau, ich drucke halt mit einem epson
+   drucker ueber die epson iprint app."
+
+   NACHGEMESSEN, nicht geraten: Die PDF selbst ist vollstaendig - zwei
+   Seiten, Seite 1 quer 297x210 mm (Inventurblatt), Seite 2 hoch
+   210x297 mm (Verkaufsbericht), 393 KB. Erzeugt wird also richtig.
+
+   Der Verlust passiert beim Drucken. Der entscheidende Hinweis liegt
+   darin, WELCHE Zettel funktionieren: Inventurblatt und Verkaufsbericht
+   einzeln drucken einwandfrei - das sind einseitige PDFs, dort IST
+   Seite 1 das ganze Dokument. Nur die zweiseitige verliert Seite 2.
+   Zwei Erklaerungen passen dazu, beide fuehren zur selben Loesung:
+     - Handy-Browser drucken eine eingebettete PDF nur bis Seite 1
+     - eine Druckstrecke setzt EINE Seitenausrichtung fuer den ganzen
+       Auftrag und verwirft, was nicht passt (hier quer + hoch gemischt)
+
+   Loesung: die Datei nicht mehr durch die Seite drucken, sondern dem
+   Geraet uebergeben - dann bekommt die Epson-App die vollstaendige PDF,
+   genau wie beim Weiterleiten aus der Dateien-App.
+
+   Warum ein Fenster mit Knopf und kein sofortiges Teilen: navigator.share
+   verlangt eine frische Nutzeraktion. Zwischen dem Tippen auf "Beide
+   Zettel" und dem fertigen PDF liegen die beiden html2canvas-Aufnahmen;
+   danach gilt der urspruengliche Fingertipp als abgelaufen und das Teilen
+   wird abgewiesen. Der Knopf im Fenster ist die neue Nutzeraktion. */
+let __pdfUebergabe = null;
+function pdfUebergabe(pdf, dateiname) {
+  const blob = pdf.output("blob");
+  let datei = null;
+  try { datei = new File([blob], dateiname, { type: "application/pdf" }); } catch (e) { datei = null; }
+  const kannTeilen = !!(datei && navigator.canShare && navigator.share
+                        && navigator.canShare({ files: [datei] }));
+  __pdfUebergabe = { pdf: pdf, datei: datei, dateiname: dateiname };
+
+  const seiten = pdf.getNumberOfPages ? pdf.getNumberOfPages() : 2;
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <h2>📄 Beide Zettel sind fertig</h2>
+        <p><b>${seiten} Seiten</b> in einer Datei:<br>
+           Seite 1 Inventurblatt (quer) &middot; Seite 2 Verkaufsbericht (hoch)</p>
+        ${kannTeilen ? `
+        <div class="modal-close-row" style="margin-bottom:.6rem;">
+          <button class="primary" onclick="pdfUebergabeTeilen()">📤 An Druck-App übergeben</button>
+        </div>
+        <div class="hinweis-box">
+          <b>Empfohlen bei Epson iPrint.</b> Der Knopf reicht die komplette
+          Datei an Ihr Gerät weiter – dort wählen Sie „Drucken" oder direkt
+          die Epson-App. So kommen <b>beide</b> Seiten an.
+        </div>` : ``}
+        <div class="modal-close-row" style="gap:.5rem; flex-wrap:wrap;">
+          <button class="ghost" onclick="pdfUebergabeDrucken()">🖨️ Direkt drucken</button>
+          <button class="ghost" onclick="pdfUebergabeSpeichern()">💾 PDF speichern</button>
+          <button class="ghost" onclick="closeModal()">Schließen</button>
+        </div>
+        ${kannTeilen ? `
+        <p class="small" style="margin-top:.8rem;">„Direkt drucken" geht über den
+           Browser. Am Handy kann dabei nur die erste Seite ankommen – dafür
+           gibt es den Knopf oben.</p>` : ``}
+      </div>
+    </div>`;
+}
+async function pdfUebergabeTeilen() {
+  const u = __pdfUebergabe;
+  if (!u || !u.datei) return;
+  try {
+    await navigator.share({ files: [u.datei], title: u.dateiname });
+    closeModal();
+  } catch (e) {
+    // Abbruch durch den Nutzer ist kein Fehler - Fenster bleibt einfach offen.
+    if (e && e.name === "AbortError") return;
+    alert("Das Übergeben hat nicht geklappt.\n\nBitte „💾 PDF speichern“ nehmen und die Datei\naus dem Download-Ordner in der Epson-App öffnen.");
+  }
+}
+function pdfUebergabeDrucken() {
+  const u = __pdfUebergabe; if (!u) return;
+  closeModal(); pdfDrucken(u.pdf);
+}
+function pdfUebergabeSpeichern() {
+  const u = __pdfUebergabe; if (!u) return;
+  u.pdf.save(u.dateiname); closeModal();
 }
 /* ---------- PDF drucken ----------
    EINE Stelle fuer alle drei Druckknoepfe (Inventurblatt, Verkaufsbericht,
@@ -8940,7 +9028,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-40"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-41"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
