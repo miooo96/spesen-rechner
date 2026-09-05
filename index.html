@@ -733,15 +733,22 @@
                      border:none; background:transparent; font:inherit; font-size:11px;
                      width:100%; height:24px; line-height:24px; padding:0 3px;
                      text-align:right; font-variant-numeric:tabular-nums; }
-  .abr-kopf { width:100%; margin-bottom:6px; table-layout:fixed; }
-  .abr-kopf td { padding:2px 4px; vertical-align:middle; }
+  .abr-kopfbereich { position:relative; min-height:86px; margin-bottom:6px; }
+  .abr-kopfzeile-links { position:absolute; left:0; top:0; display:flex; align-items:center; gap:20px; }
+  /* Das Logo reicht von der linken Kante "Kunde" bis in die Mitte der
+     Spalte "Kunden-Nr." - rund 16,7 % der Blattbreite. */
+  /* Feste Breite statt Prozent: Der Logo-Block liegt absolut, dort loest
+     eine Prozentangabe gegen die eigene Inhaltsbreite auf und bleibt
+     wirkungslos. 124 px entsprechen 16,7 % der Blattbreite - vom linken
+     Rand "Kunde" bis in die Mitte von "Kunden-Nr.". */
+  .abr-logo-bild { width:124px; height:auto; }
+  .abr-kopf { width:100%; table-layout:fixed; }
+  .abr-kopf td { padding:2px 4px; vertical-align:middle; height:26px; }
   .abr-kopf td.abr-frei { border:none; }
-  .abr-kopfzeile-links { display:flex; align-items:center; gap:22px; padding:2px 0 6px; }
+
   /* Das Logo ist auf dem Vordruck deutlich groesser - rund 14 % der
      Blattbreite (Mirko, 05.09.2026). */
-  /* 14 % der Blattbreite (nicht der Zelle) - 210 mm mal 0,14 sind rund
-     104 px in der Bildschirmdarstellung. */
-  .abr-logo-bild { width:104px; height:auto; }
+
   .abr-titel { font-size:13px; line-height:1.35; }
   .abr-nrlinie { display:inline-block; width:70px; border-bottom:1px solid #000; }
   .abr-kopf td.abr-k-lab { border:1px solid #000; font-size:12px; text-align:center; white-space:nowrap; }
@@ -1776,6 +1783,14 @@
          die Tour-Spalte hat die Breite von "Rechnungs-KVP", die
          Datums-Beschriftung die von "Lieferschein KVP" und das Datumsfeld
          selbst die von "Rechnungs-inkasso". -->
+    <!-- Logo und Titel stehen ausserhalb des Tabellenflusses, sonst zieht
+         das Logo die "Vertreter"-Zeile in die Hoehe. Beide Kopfzeilen sind
+         dadurch gleich hoch (Mirko, 05.09.2026). -->
+    <div class="abr-kopfbereich">
+    <div class="abr-kopfzeile-links">
+      <img class="abr-logo-bild" src="hall-logo.png" alt="Hall Tabakwaren">
+      <div class="abr-titel">Verkaufsbericht<br>Nr.: <span class="abr-nrlinie"></span></div>
+    </div>
     <table class="abr-kopf">
       <!-- Dieselben neun Spalten wie die Kundentabelle - so sitzen die
            Kanten pixelgenau uebereinander, statt sie nachzurechnen. -->
@@ -1785,12 +1800,7 @@
         <col style="width:10.6%"><col style="width:10.6%"><col style="width:10.9%">
       </colgroup>
       <tr>
-        <td class="abr-frei" colspan="4">
-          <div class="abr-kopfzeile-links">
-            <img class="abr-logo-bild" src="hall-logo.png" alt="Hall Tabakwaren">
-            <div class="abr-titel">Verkaufsbericht<br>Nr.: <span class="abr-nrlinie"></span></div>
-          </div>
-        </td>
+        <td class="abr-frei" colspan="4"></td>
         <td class="abr-k-lab">Vertreter:</td>
         <td class="abr-k-feld" colspan="4"><input id="abrVertreter"></td>
       </tr>
@@ -1805,6 +1815,7 @@
         <td class="abr-k-feld" colspan="2"><input id="abrDatum"></td>
       </tr>
     </table>
+    </div>
 
     <!-- Kundentabelle: wird auf der Tour nicht gefuellt (Mirko), bleibt aber
          auf dem Blatt, damit der Ausdruck dem Original entspricht. -->
@@ -1875,7 +1886,8 @@
 
       <div class="abr-rechts">
         <table class="abr-ware">
-          <colgroup><col style="width:62%"><col style="width:38%"></colgroup>
+          <!-- Im Original sind die beiden Spalten gleich breit. -->
+          <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
           <tr><td class="titel" colspan="2">Warenabrechnug</td></tr>
           <tr><td class="lab">Endbestand Vortrag:</td><td class="feld"><input id="abrEndbestandVortrag" inputmode="decimal"></td></tr>
           <tr><td class="lab">- Automatenverkauf</td><td class="feld"><input id="abrAutomatenverkauf" inputmode="decimal"></td></tr>
@@ -7487,7 +7499,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-13"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-14"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
