@@ -630,7 +630,10 @@
   .inv-blk th { font-size:11px; font-weight:400; border:1px solid #000; padding:1px 2px; text-align:center; }
   .inv-blk td { border:1px solid #000; padding:0; height:16px; }
   .inv-blk td.mg, .inv-blk td.kv { background:#e8e3a8; }
-  .inv-blk input { width:100%; height:100%; border:none; background:transparent; font:inherit;
+  .inv-blk tr.inv-subkopf td { font-size:11px; text-align:center; background:#fff; padding:1px 2px; height:16px; }
+  .inv-blk td.fest { font-size:11px; font-weight:700; padding:0 3px; }
+  .inv-blk tr.inv-leerzeile td { border:1px solid #000; height:16px; }
+  .inv-blk input { width:100%; height:16px; line-height:16px; border:none; background:transparent; font:inherit;
                    font-size:11px; text-align:right; padding:0 3px; }
   .inv-blk td.su { text-align:right; font-size:11px; padding:0 3px; font-variant-numeric:tabular-nums; }
   .inv-sumzeile td { border:1px solid #000; font-size:11px; font-weight:700; padding:1px 3px; height:17px; }
@@ -680,6 +683,78 @@
   .kae-urteil.abweichung { color:#b03030; } .kae-urteil.abweichung .punkt { background:#d03b3b; }
   .kae-urteil.offen { color:#888; } .kae-urteil.offen .punkt { background:#bbb; }
   .inv-klein { font-size:9px; color:#333; margin-top:3px; }
+
+  /* ---- Kopf und Fuss 1:1 nach dem Vordruck (04./05.09.2026) ---- */
+  .inv-kopf { border-collapse:collapse; width:100%; margin-bottom:0; table-layout:fixed; }
+  .inv-kopf td { padding:0; }
+  .inv-kopf td.frei, .inv-kopf td.inv-titelzelle { border:none; }
+  .inv-kopf td.inv-titelzelle { vertical-align:top; padding:0; }
+  /* Der Titel steht in einem Feld ohne Breite und laeuft nach rechts aus -
+     so bestimmt allein der Tour-Block, wo der Zwischeninventur-Kasten beginnt. */
+  .inv-kopf .inv-titel { width:0; overflow:visible; white-space:nowrap; font-size:20px; font-weight:700; }
+  .inv-kopf td.inv-kf { background:#e8e3a8; border:1.5px solid #000; height:24px; }
+  .inv-kopf td.inv-kf input { width:100%; height:22px; line-height:22px; border:none; background:transparent;
+                              font:inherit; font-size:14px; padding:0 5px; }
+  .inv-kopf td.inv-datumzelle { border:1.5px solid #000; white-space:nowrap; padding-left:4px; }
+  .inv-kopf .inv-datumfeld { display:inline-block; width:62%; height:20px; background:#e8e3a8;
+                             vertical-align:middle; margin-left:4px; }
+  .inv-kopf .inv-datumfeld input { width:100%; height:20px; line-height:20px; border:none;
+                                   background:transparent; font:inherit; font-size:14px; padding:0 5px; }
+  .inv-kopf td.inv-nl { border:1.5px solid #000; text-align:center; font-size:17px; font-weight:700; }
+  .inv-kopf td.inv-zwikasten { border:1.5px solid #000; font-size:15px; font-weight:700;
+                               vertical-align:top; padding:2px 4px; height:34px; }
+  .inv-kopf td.inv-leerkasten { border:1.5px solid #000; }
+  .inv-tour { border-collapse:collapse; margin-top:2px; width:100%; table-layout:fixed; }
+  .inv-tour td { padding:0; height:15px; }
+  .inv-tour td.tlab { width:24%; border:none; font-size:14px; font-weight:700; padding-right:4px; vertical-align:bottom; }
+  .inv-tour td.grau { width:32%; background:#bfbfbf; border:1.5px solid #000; }
+  .inv-tour td.grau.breit { width:44%; }
+  .inv-tour td.tgelb { background:#e8e3a8; border:1.5px solid #000; }
+  .inv-tour td.tgelb input { width:100%; height:15px; line-height:15px; border:none; background:transparent;
+                             font:inherit; font-size:12px; padding:0 4px; }
+
+  .inv-fuss { display:grid; grid-template-columns:66.67% 33.33%; gap:0; margin-top:0; align-items:start; }
+  .inv-betrag { border-collapse:collapse; width:100%; table-layout:fixed; }
+  .inv-betrag col.c-lab { width:22%; } .inv-betrag col.c-eh { width:13%; }
+  .inv-betrag col.c-wert { width:15%; } .inv-betrag col.c-b { width:5%; }
+  .inv-betrag col.c-gross { width:27.5%; } .inv-betrag col.c-jn { width:8.75%; }
+  .inv-betrag td { padding:0; height:20px; font-size:13px; }
+  .inv-betrag td.lab { font-weight:700; white-space:nowrap; padding:0 6px 0 3px; }
+  .inv-betrag td.eh { padding-right:10px; white-space:nowrap; }
+  .inv-betrag td.frei { border:none; }
+  .inv-betrag td.kasten { border:1.5px solid #000; }
+  .inv-betrag td.lab.kasten { border-right:none; }
+  .inv-betrag td.eh.kasten { border-left:none; }
+  .inv-betrag td.wert { border:1.5px solid #000; }
+  .inv-betrag td.wert.g { background:#e8e3a8; }
+  .inv-betrag td.wert input { width:100%; height:20px; line-height:20px; border:none; background:transparent;
+                              font:inherit; font-size:13px; text-align:right; padding:0 5px; }
+  .inv-betrag td.markeb { border:1.5px solid #000; background:#bfbfbf; font-size:11px; text-align:center; color:#555; }
+  .inv-betrag td.grossfeld { border:1.5px solid #000; vertical-align:top; }
+  .inv-betrag td.grossfeld input { width:100%; height:100%; border:none; background:transparent;
+                                   font:inherit; font-size:13px; padding:1px 4px; }
+  .inv-betrag tr.tief td { height:18px; }
+  .inv-betrag td.fix { border:1.5px solid #000; font-size:12px; font-weight:700;
+                       white-space:nowrap; padding:1px 4px; text-align:center; }
+  .inv-betrag td.jn { border:1.5px solid #000; background:#e8e3a8; font-size:12px; text-align:center; height:19px; }
+  .inv-betrag td.jn.kreuz { font-weight:700; }
+  .inv-betrag tr:first-child td.jn { background:transparent; }
+
+  .inv-unter { align-self:end; border-collapse:collapse; width:100%; table-layout:fixed; }
+  .inv-unter col.u-lab { width:34%; } .inv-unter col.u-a { width:38%; } .inv-unter col.u-b { width:28%; }
+  .inv-unter td { padding:0; height:30px; }
+  .inv-unter td.k { border:none; font-size:13px; font-weight:700; white-space:nowrap; padding-right:6px; }
+  .inv-unter td.feld { border:1.5px solid #000; }
+  .inv-unter td.feld.g { background:#e8e3a8; }
+  .inv-unter td.feld input { width:100%; height:26px; line-height:26px; border:none; background:transparent;
+                             font:inherit; font-size:13px; padding:0 5px; }
+  /* Unterschrift, Foto und Zeitstempel liegen in derselben Zeile - der
+     Stempel wandert damit mit in den Ausdruck und die PDF. */
+  .inv-sigwrap { display:flex; align-items:center; height:28px; position:relative; }
+  .inv-sigwrap input { flex:1 1 auto; min-width:0; }
+  .inv-sigwrap .inv-sig-img { position:absolute; left:4px; top:1px; max-height:26px; max-width:60%; object-fit:contain; }
+  .inv-stempel { flex:0 0 auto; font-size:9px; color:#555; white-space:nowrap; padding:0 5px 0 6px; }
+  .inv-unter td.sigzelle { height:30px; }
   .inv-pdfzeile { margin-top:12px; }
   /* Am Handy ist das Blatt nur zur Kontrolle da - getippt wird in "Erfassen" */
   @media (max-width: 900px) {
@@ -725,7 +800,8 @@
     body.druck-inventur #invErfassenView,
     body.druck-inventur .inv-bar,
     body.druck-inventur .inv-pdfzeile { display: none !important; }
-    body.druck-inventur .inv-blatt { width: auto; transform: none; height: auto; border: none; padding: 0; }
+    body.druck-inventur .inv-blatt { width: auto; transform: none; height: auto; min-height: 0;
+                                    border: none; padding: 0; break-inside: avoid; page-break-inside: avoid; }
     body.druck-inventur { font-size: 10pt; }
   }
   @page inventurQuer { size: A4 landscape; margin: 8mm; }
@@ -1348,65 +1424,116 @@
 
   <div id="invBlattView" style="display:none;">
     <div class="inv-blatt" id="invBlatt">
+      <!-- Kopf 1:1 nach dem Vordruck (04.09.2026): Namensfeld, Datum und
+           "NL Lollar" in einer Reihe, darunter der Kasten "Zwischeninventur",
+           der links am grauen Tour-Kasten anstoesst. Alle Linien fallen
+           zusammen, damit der Block geschlossen wirkt. -->
       <table class="inv-kopf">
+        <colgroup><col style="width:17%"><col style="width:10%"><col style="width:15%"><col style="width:25%"><col style="width:33%"></colgroup>
         <tr>
-          <td class="inv-titel">KFZ Bestandsaufnahme</td>
-          <td class="inv-kf" style="width:150px"><input id="invFahrer" placeholder="Name"></td>
-          <td class="inv-lbl" style="padding-left:10px">Datum:</td>
-          <td class="inv-kf" style="width:130px"><input id="invDatum"></td>
-          <td class="inv-nl" style="width:190px">NL Lollar</td>
+          <td class="inv-titelzelle" rowspan="2">
+            <div class="inv-titel">KFZ Bestandsaufnahme</div>
+            <table class="inv-tour">
+              <tr>
+                <td class="tlab" rowspan="2">Tour:</td>
+                <td class="grau"></td>
+                <td class="grau breit" rowspan="2"></td>
+              </tr>
+              <tr><td class="tgelb"><input id="invTour"></td></tr>
+            </table>
+          </td>
+          <td class="frei"></td>
+          <td class="inv-kf"><input id="invFahrer" placeholder="Name"></td>
+          <td class="inv-datumzelle"><span class="inv-lbl">Datum:</span><span class="inv-datumfeld"><input id="invDatum"></span></td>
+          <td class="inv-nl">NL Lollar</td>
         </tr>
         <tr>
-          <td><span class="inv-lbl">Tour:</span>
-              <span class="inv-kf" style="display:inline-block;width:70px;vertical-align:middle"><input id="invTour"></span>
-              <span class="inv-grau"></span>
-              <span class="inv-zwi">Zwischeninventur</span></td>
-          <td colspan="4"></td>
+          <td class="inv-zwikasten" colspan="3">Zwischeninventur</td>
+          <td class="inv-leerkasten"></td>
         </tr>
       </table>
 
       <div class="inv-raster" id="invRaster"></div>
 
+      <!-- Fuss als EINE zusammenhaengende Tabelle: die Fixbestand-Zeile sitzt
+           direkt ueber "Istbestand" und stoesst links an die Kaestchen-Spalte,
+           darunter die vier Kaestchen, das graue Feld mit dem "b" und das
+           grosse Feld. Masse richten sich nach den Spaltenkanten der Tabelle:
+           Kaestchen enden auf der Cigaretten-Kante, ja/nein auf der Kante von
+           Tabak/RBA, der rechte Block am Blattrand. -->
       <div class="inv-fuss">
-        <table class="inv-fz">
-          <tr><td class="k">Istbestand:</td><td>Euro</td><td style="width:150px"><div class="inv-box"><input id="invIstFeld" readonly></div></td></tr>
-          <tr><td class="k">Sollbestand:</td><td>Euro</td><td><div class="inv-box g"><input id="invSoll" inputmode="decimal"></div></td></tr>
-          <tr><td class="k">Differenz:</td><td>Euro +/-</td><td><div class="inv-box"><input id="invDiff" readonly></div></td></tr>
-        </table>
-        <table class="inv-fz">
-          <tr><td>
-            <span class="inv-fix">Fzg.Fixbestand überprüft 1.100 EURO</span>
+        <table class="inv-betrag">
+          <colgroup><col class="c-lab"><col class="c-eh"><col class="c-wert"><col class="c-b"><col class="c-gross"><col class="c-jn"><col class="c-jn"></colgroup>
+          <tr>
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td>
+            <td class="frei"></td><td class="frei"></td>
+            <td class="jn">ja</td><td class="jn">nein</td>
+          </tr>
+          <tr>
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td>
+            <td class="fix" colspan="2">Fzg.Fixbestand überprüft 1.100 EURO</td>
             <!-- Fest auf "ja" (Mirko, 03.09.2026) -->
-            <table class="inv-jn" style="display:inline-table;vertical-align:middle;margin-left:4px">
-              <tr><td>ja</td><td>nein</td></tr>
-              <tr><td style="font-weight:700">X</td><td></td></tr>
-            </table>
-          </td></tr>
+            <td class="jn kreuz">X</td><td class="jn"></td>
+          </tr>
+          <tr>
+            <td class="lab">Istbestand:</td><td class="eh">Euro</td>
+            <td class="wert"><input id="invIstFeld" readonly></td>
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td><td class="frei"></td>
+          </tr>
+          <tr>
+            <td class="lab">Sollbestand:</td><td class="eh">Euro</td>
+            <td class="wert g"><input id="invSoll" inputmode="decimal"></td>
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td><td class="frei"></td>
+          </tr>
+          <tr>
+            <td class="lab kasten">Differenz:</td><td class="eh kasten">Euro +/-</td>
+            <td class="wert"><input id="invDiff" readonly></td>
+            <td class="markeb">b</td>
+            <td class="grossfeld" rowspan="3"><input id="invFrei2"></td>
+            <td class="frei"></td><td class="frei"></td>
+          </tr>
+          <tr>
+            <td class="frei"></td><td class="frei"></td>
+            <td class="wert"><input id="invFrei1"></td>
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td>
+          </tr>
+          <tr class="tief">
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td>
+            <td class="frei"></td><td class="frei"></td><td class="frei"></td>
+          </tr>
         </table>
-        <table class="inv-fz">
-          <tr><td class="k">Datum:</td><td><div class="inv-sig"><input id="invFDatum"></div></td></tr>
+
+        <table class="inv-unter">
+          <colgroup><col class="u-lab"><col class="u-a"><col class="u-b"></colgroup>
+          <!-- Nur die Datums-Zeile ist im Original senkrecht geteilt. -->
+          <tr><td class="k">Datum:</td><td class="feld"><input id="invFDatum"></td><td class="feld"></td></tr>
           <!-- Verkaufsfahrer: entweder Foto der echten Unterschrift (einmal
-               einfuegen, bleibt gespeichert) oder leer lassen und den
-               Ausdruck von Hand unterschreiben. Gleiche Mechanik wie beim
-               Spesennachweis, nur eigener Speicherschluessel. -->
+               einfuegen, bleibt gespeichert) oder leer lassen und den Ausdruck
+               von Hand unterschreiben. Der Zeitstempel steht in der Zeile und
+               wandert damit mit in die PDF. -->
           <tr><td class="k">Verkaufsfahrer:</td>
-              <td>
-                <div class="inv-sig inv-sig-feld">
+              <td class="feld sigzelle" colspan="2">
+                <div class="inv-sigwrap">
                   <img id="sigImg-inventur_signature" class="inv-sig-img" alt="" style="display:none">
                   <input id="invFFahrer" placeholder="Unterschrift">
+                  <span class="inv-stempel" id="sigTs-inventur_signature"></span>
                 </div>
                 <div class="no-print inv-sig-knoepfe">
                   <input type="file" id="sigFile-inventur_signature" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'inventur_signature')">
                   <button type="button" class="ghost" onclick="document.getElementById('sigFile-inventur_signature').click()" title="Foto/Scan der handschriftlichen Unterschrift einfügen">📷 Unterschrift einfügen</button>
                   <button type="button" class="ghost" onclick="clearSignature('inventur_signature')" title="Unterschrift entfernen">✕</button>
-                  <span class="inv-sig-ts" id="sigTs-inventur_signature"></span>
                 </div>
               </td></tr>
-          <tr><td class="k">GVL/TB/VR/…:</td><td><div class="inv-sig"><input id="invFGvl"></div></td></tr>
-          <tr><td class="k">Kontrolle:</td><td><div class="inv-sig g"><input id="invFKontrolle" placeholder="Unterschrift"></div></td></tr>
+          <tr><td class="k">GVL/TB/VR/…:</td><td class="feld" colspan="2"><input id="invFGvl"></td></tr>
+          <tr><td class="k">Kontrolle:</td>
+              <td class="feld g" colspan="2">
+                <div class="inv-sigwrap">
+                  <input id="invFKontrolle" placeholder="Unterschrift">
+                  <span class="inv-stempel" id="invTs-invFKontrolle"></span>
+                </div>
+              </td></tr>
         </table>
       </div>
-      <div class="inv-klein">13.08.2026</div>
     </div>
   </div>
 </div>
@@ -2657,16 +2784,21 @@ function toggleMehrPanel() {
    Eigener localStorage-Schluessel, bewusst getrennt von den Spesendaten:
    die Inventur ist ein anderer Vorgang mit anderem Rhythmus. */
 const INV_KEY = "kfz-bestandsaufnahme-v2";
-const INV_ZEILEN = 24;   // Zeilen je Blattspalte (von Mirko abgezaehlt)
+const INV_ZEILEN = 22;   /* Zeilen je Blattspalte. 04.09.2026 von Mirko am
+   Original nachgezaehlt (vorher 24) und an einem geraden Foto nachgemessen. */
 
 const INV_GRUPPEN = [
   { id:"cig",  kurz:"Cigaretten",    spalten:[{titel:"", pos:0}, {titel:"Cigaretten", pos:1}], zeilen:INV_ZEILEN },
   { id:"zig",  kurz:"Zigarren",      spalten:[{titel:"Zigarren", pos:2}],      zeilen:INV_ZEILEN },
   { id:"tab",  kurz:"Tabak/Rolls",   spalten:[{titel:"Tabak/Rolls", pos:3}],   zeilen:11 },
-  { id:"rba",  kurz:"RBA",           spalten:[{titel:"R B A", pos:3}],         zeilen:13 },
+  { id:"rba",  kurz:"RBA",           spalten:[{titel:"R B A", pos:3}],         zeilen:7 },
   { id:"hue",  kurz:"Hülsen/Papier", spalten:[{titel:"Hülsen/Papier", pos:4}], zeilen:11 },
-  { id:"son",  kurz:"Sonstiges",     spalten:[{titel:"Sonstiges", pos:4}],     zeilen:13 },
-  { id:"lief", kurz:"Lieferscheine", spalten:[{titel:"Lieferscheine", pos:5}], zeilen:INV_ZEILEN, liefer:true }
+  { id:"son",  kurz:"Sonstiges",     spalten:[{titel:"Sonstiges", pos:4}],     zeilen:7 },
+  /* Lieferscheine sind im Original drei Teilbloecke mit je eigener Kopfzeile:
+     6 Zeilen, dann "Geldk." + 1 Zeile, dann 11 Zeilen. 19 Zeilen plus die
+     3 Kopfzeilen = 22, also genauso hoch wie die Nachbarspalten. */
+  { id:"lief", kurz:"Lieferscheine", spalten:[{titel:"Lieferscheine", pos:5}], zeilen:19, liefer:true,
+    unterbloecke:[6,2,11], marke:{6:"Geldk."}, leerzeileAmEnde:true }
 ];
 
 let invState = { kopf:{}, felder:{}, soll:"", fuss:{}, sicht:{} };
@@ -2692,6 +2824,37 @@ function invGruppenSumme(g) { let s = 0; for (let i = 0; i < invKapazitaet(g); i
 function invIstbestand() { return INV_GRUPPEN.reduce((s, g) => s + invGruppenSumme(g), 0); }
 function invHatInhalt(g, i) { return Object.values(invFeld(g.id, i)).some((v) => String(v || "").trim() !== ""); }
 
+/* ---------- Unterschrift mit Zeitstempel ----------
+   Wird ein Unterschriftsfeld ausgefuellt, haelt das Blatt Datum und Uhrzeit
+   fest; wird es geleert, verschwindet der Stempel wieder - es soll nie ein
+   Zeitpunkt ohne Unterschrift dastehen. Beim Verkaufsfahrer hat ein
+   hochgeladenes Unterschriften-Foto Vorrang, dessen Zeitstempel steht
+   bereits unter dem Schluessel "inventur_signature_ts". */
+function invStempelText(ms) {
+  const d = new Date(ms), z = (n) => String(n).padStart(2, "0");
+  return z(d.getDate()) + "." + z(d.getMonth() + 1) + "." + d.getFullYear() +
+         ", " + z(d.getHours()) + ":" + z(d.getMinutes());
+}
+function invStempelPflegen(id) {
+  invState.fuss.sig = invState.fuss.sig || {};
+  const el = document.getElementById(id);
+  const gefuellt = el && String(el.value || "").trim() !== "";
+  if (gefuellt && !invState.fuss.sig[id]) invState.fuss.sig[id] = Date.now();
+  if (!gefuellt) delete invState.fuss.sig[id];
+  invStempelZeigen();
+}
+function invStempelZeigen() {
+  const sig = (invState.fuss || {}).sig || {};
+  const kontrolle = document.getElementById("invTs-invFKontrolle");
+  if (kontrolle) kontrolle.textContent = sig.invFKontrolle ? "signiert " + invStempelText(sig.invFKontrolle) : "";
+  const fahrer = document.getElementById("sigTs-inventur_signature");
+  if (fahrer) {
+    const foto = localStorage.getItem("inventur_signature_ts");
+    if (foto) renderSignatureTimestamp("inventur_signature");
+    else fahrer.textContent = sig.invFFahrer ? "signiert " + invStempelText(sig.invFFahrer) : "";
+  }
+}
+
 function invSichern() { try { localStorage.setItem(INV_KEY, JSON.stringify(invState)); } catch (e) {} }
 function invLaden() {
   try { const r = localStorage.getItem(INV_KEY); if (r) Object.assign(invState, JSON.parse(r)); } catch (e) {}
@@ -2704,25 +2867,39 @@ function invBaueRaster() {
   const spalten = [[], [], [], [], [], []];
   INV_GRUPPEN.forEach((g) => g.spalten.forEach((sp, sIdx) => spalten[sp.pos].push({ g, sp, sIdx })));
   document.getElementById("invRaster").innerHTML = spalten.map((inhalt) =>
-    '<div class="inv-spalte">' + inhalt.map(({ g, sp, sIdx }) => {
+    '<div class="inv-spalte">' + inhalt.map(({ g, sp, sIdx }, idx) => {
       const kopf = g.liefer
         ? '<tr><th style="width:22%">Nr.</th><th style="width:26%">W-Gr</th><th>Summe</th></tr>'
-        : '<tr><th style="width:30%">Menge</th><th style="width:34%">KVP</th><th>Summe</th></tr>';
+        : '<tr><th style="width:27%">Menge</th><th style="width:32%">KVP</th><th>Summe</th></tr>';
       let zeilen = "";
+      // Zeilen, vor denen im Original eine weitere Kopfzeile steht
+      const neuerBlock = [];
+      if (g.unterbloecke) { let pz = 0; g.unterbloecke.forEach((n) => { pz += n; if (pz < g.zeilen) neuerBlock.push(pz); }); }
       for (let i = 0; i < g.zeilen; i++) {
         const gi = sIdx * g.zeilen + i;
+        if (neuerBlock.indexOf(i) !== -1) zeilen += '<tr class="inv-subkopf"><td>Nr.</td><td>W-Gr</td><td>Summe</td></tr>';
+        const marke = g.marke && g.marke[i];
         zeilen += g.liefer
-          ? '<tr><td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="nr"></td>' +
+          ? '<tr>' + (marke
+              ? '<td class="mg fest">' + marke + '</td>'
+              : '<td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="nr"></td>') +
             '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="wgr"></td>' +
             '<td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="su" inputmode="decimal"></td></tr>'
           : '<tr><td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="mg" inputmode="numeric"></td>' +
             '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="kv" inputmode="decimal"></td>' +
             '<td class="su" id="invsu-'+g.id+'-'+gi+'"></td></tr>';
       }
+      // Im Original steht bei den Lieferscheinen vor "Summe:" noch eine Leerzeile
+      if (g.leerzeileAmEnde) zeilen += "<tr><td>&nbsp;</td><td></td><td></td></tr>";
       return '<div><div class="inv-gtitel' + (sp.titel ? "" : " leer") + '">' + (sp.titel || "&nbsp;") + "</div>" +
         '<table class="inv-blk"><thead>' + kopf + "</thead><tbody>" + zeilen + "</tbody>" +
-        '<tfoot><tr class="inv-sumzeile"><td class="lab" colspan="2">Summe:</td>' +
-        '<td style="text-align:right" id="invss-' + g.id + "-" + sIdx + '"></td></tr></tfoot></table></div>';
+        // Beschriftung schmal, Summenfeld breit (ueber KVP und Summe) - wie im Original
+        '<tfoot><tr class="inv-sumzeile"><td class="lab">Summe:</td>' +
+        '<td colspan="2" style="text-align:right" id="invss-' + g.id + "-" + sIdx + '"></td></tr>' +
+        // Folgt in derselben Spalte noch eine Warengruppe, steht im Original
+        // eine leere Zeile dazwischen - die senkrechten Striche laufen durch.
+        (idx < inhalt.length - 1 ? '<tr class="inv-leerzeile"><td></td><td></td><td></td></tr>' : "") +
+        "</tfoot></table></div>";
     }).join("") + "</div>").join("");
 }
 
@@ -2947,7 +3124,11 @@ document.addEventListener("DOMContentLoaded", function () {
       invRechne();
     } else if (el.id === "invSoll") { invState.soll = el.value; invRechne(); invSichern(); }
     else if (["invFahrer", "invDatum", "invTour"].includes(el.id)) { invState.kopf[el.id] = el.value; invSichern(); }
-    else if (["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].includes(el.id)) { invState.fuss[el.id] = el.value; invSichern(); }
+    else if (["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle"].includes(el.id)) {
+      invState.fuss[el.id] = el.value;
+      if (el.id === "invFKontrolle" || el.id === "invFFahrer") invStempelPflegen(el.id);
+      invSichern();
+    }
   });
 });
 
@@ -3001,6 +3182,7 @@ function invFuelleKopfFelder() {
     const el = document.getElementById(id);
     if (el && invState.fuss[id] != null) el.value = invState.fuss[id];
   });
+  invStempelZeigen();
   const s = document.getElementById("invSoll");
   if (s) s.value = invState.soll || "";
 }
@@ -3171,6 +3353,28 @@ function invNeueInventur() {
   invSetAnsicht("erfassen");
   invRechne();
 }
+/* Druckt der Nutzer die Seite selbst (Cmd+P, Teilen -> Drucken), statt den
+   Knopf im Blatt zu benutzen, stellt sich die Seite hier quer. Die benannte
+   Druckseite "@page inventurQuer" unterstuetzen viele Browser nicht - dann
+   liegt ein 297 mm breites Blatt auf einer Hochkant-Seite und es kommen
+   leere Folgeseiten heraus (Mirko, 05.09.2026). */
+let __invDruckStil = null;
+window.addEventListener("beforeprint", () => {
+  const view = document.getElementById("invBlattView");
+  const panel = document.getElementById("inventurPanel");
+  if (!view || !panel) return;
+  const offen = getComputedStyle(panel).display !== "none" && getComputedStyle(view).display !== "none";
+  if (!offen) return;
+  document.body.classList.add("druck-inventur");
+  __invDruckStil = document.createElement("style");
+  __invDruckStil.textContent = "@page { size: A4 landscape; margin: 7mm; }";
+  document.head.appendChild(__invDruckStil);
+});
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("druck-inventur");
+  if (__invDruckStil) { __invDruckStil.remove(); __invDruckStil = null; }
+});
+
 function invDruckeErgebnis() {
   if (!__invErgebnis) return;
   /* Zum Drucken wird das PDF in einem unsichtbaren Rahmen geoeffnet und
