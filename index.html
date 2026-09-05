@@ -678,6 +678,14 @@
   /* Käfig zählen: das Urteil muss auf einen Blick lesbar sein, ohne dass man
      Vorzeichen deuten muss - deshalb Klartext plus Farbe, nie Farbe allein. */
   .kae-urteil { margin-top:8px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  /* Auf Handybreite passen drei Felder nebeneinander nur knapp - die
+     Zeilensumme bekommt deshalb eine eigene Zeile darunter. */
+  #kaeRows .inv-row { flex-wrap:wrap; }
+  .kae-gr { flex:0 0 104px; }
+  .kae-gr select { width:100%; padding:12px 6px; font:inherit; font-size:17px; text-align:center;
+                   border:1px solid #bbb; border-radius:8px; background:#fff; }
+  .kae-zs { flex:0 0 100%; text-align:right; padding:2px 2px 0 0; min-height:17px;
+            font-size:13px; font-weight:600; color:#555; font-variant-numeric:tabular-nums; }
   .kae-urteil .punkt { width:11px; height:11px; border-radius:50%; flex:none; }
   .kae-urteil.passt { color:#0a7a0a; } .kae-urteil.passt .punkt { background:#0ca30c; }
   .kae-urteil.abweichung { color:#b03030; } .kae-urteil.abweichung .punkt { background:#d03b3b; }
@@ -2997,8 +3005,22 @@ function kaeLaden() {
 function kaeSichern() { try { localStorage.setItem(KAE_KEY, JSON.stringify(kaeState)); } catch (e) {} }
 
 const kaeZeile = (i) => kaeState.zeilen[i] || {};
-const kaeHatInhalt = (i) => String(kaeZeile(i).anz || "").trim() !== "";
-function kaeZeilenSumme(i) { return invZahl(kaeZeile(i).anz); }
+const kaeHatInhalt = (i) => {
+  const z = kaeZeile(i);
+  return String(z.anz || "").trim() !== "" || String(z.kar || "").trim() !== "";
+};
+/* Kartongroessen bei Hall (Mirko, 05.09.2026): "ganz unterschiedlich, wir
+   haben in der Regel 20 Stangen, 25, 30, 16, 12 in vollen Kartons". Deshalb
+   keine feste Zahl, sondern eine Auswahl - 20 als Vorbelegung, weil zuerst
+   genannt. Eine Zeile kann beides tragen: volle Kartons und lose Stangen. */
+const KAE_GROESSEN = [12, 16, 20, 25, 30];
+const KAE_STANDARD = 20;
+function kaeZeilenSumme(i) {
+  const z = kaeZeile(i);
+  const kartons = invZahl(z.kar);
+  const groesse = invZahl(z.gr) || KAE_STANDARD;
+  return kartons * groesse + invZahl(z.anz);
+}
 function kaeGesamt() { let s = 0; Object.keys(kaeState.zeilen).forEach((k) => { s += kaeZeilenSumme(k); }); return s; }
 function kaeZeilenMitInhalt() { return Object.keys(kaeState.zeilen).filter((k) => kaeHatInhalt(k)).length; }
 function kaeSichtbar() {
@@ -3012,8 +3034,15 @@ function kaeRender() {
   let html = "";
   for (let i = 0; i < n; i++) {
     const z = kaeZeile(i);
+    const gr = String(z.gr || KAE_STANDARD);
+    const optionen = KAE_GROESSEN.map((g) =>
+      '<option value="'+g+'"'+(String(g) === gr ? " selected" : "")+'>'+g+'er</option>').join("");
+    const summe = kaeZeilenSumme(i);
     html += '<div class="inv-row' + (kaeHatInhalt(i) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
-      '<div class="inv-f"><label>Stangen</label><input data-kae="'+i+'" data-kaef="anz" inputmode="numeric" value="'+invEsc(z.anz||"")+'"></div>' +
+      '<div class="inv-f"><label>Kartons</label><input data-kae="'+i+'" data-kaef="kar" inputmode="numeric" value="'+invEsc(z.kar||"")+'"></div>' +
+      '<div class="inv-f kae-gr"><label>je Karton</label><select data-kae="'+i+'" data-kaef="gr">'+optionen+'</select></div>' +
+      '<div class="inv-f"><label>lose Stangen</label><input data-kae="'+i+'" data-kaef="anz" inputmode="numeric" value="'+invEsc(z.anz||"")+'"></div>' +
+      '<div class="kae-zs">' + (summe ? "= " + summe.toLocaleString("de-DE") + " Stangen" : "") + '</div>' +
       "</div>";
   }
   document.getElementById("kaeRows").innerHTML = html;
@@ -3082,7 +3111,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   panel.addEventListener("input", function (e) {
     const el = e.target;
-    if (el.dataset.kae !== undefined) {           // Käfig zählen
+    if (el.dataset.kae !== undefined) {           // Ware zählen
       const i = el.dataset.kae;
       kaeState.zeilen[i] = kaeState.zeilen[i] || {};
       kaeState.zeilen[i][el.dataset.kaef] = el.value;
