@@ -2536,8 +2536,23 @@ const MIRKO_NAME = "Mirko Rieb";
 function istMirko() {
   return (config.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase();
 }
+/* ---- Wer sieht was ----------------------------------------------
+   Mirko (05.09.2026): "nur die zusaetzlichen funktionen sollten bei mir
+   erstmal bleiben, design und so kann von meiner ausfertigung uebernommen
+   werden, nur eben die stechuhr nicht, inventur nicht und abrechnung
+   nicht."
+
+   Damit ist die Trennung sauber:
+     AUSSEHEN  - Nachtbild, Leuchtreklame, Kacheln, Startbildschirm: ALLE
+     FUNKTIONEN - Stechuhr, Fahrzeug-Inventur, Abrechnung: nur Mirko,
+                  bis der Chef zustimmt
+
+   Vorher war beides an istMirko() gekoppelt; deshalb sahen Kollegen auch
+   das neue Aussehen nicht. */
+function zeigtSonderbereiche() { return istMirko(); }
+
 function aktualisiereZeitSichtbarkeit() {
-  const sichtbar = istMirko();
+  const sichtbar = zeigtSonderbereiche();
   document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'zeit\')"], #mainTabs .tab-btn[data-tab="zeit"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
@@ -2556,7 +2571,7 @@ function aktualisiereZeitSichtbarkeit() {
    liefe es bei jedem Aufruf doppelt. */
 function aktualisiereInventurSichtbarkeit() {
   const istMonteur = config.mitarbeitertyp === "monteur";
-  const sichtbar = istMirko() && !istMonteur;
+  const sichtbar = zeigtSonderbereiche() && !istMonteur;
   document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"], .kachel-btn[onclick="zeigeTab(\'abrechnung\')"], #mainTabs .tab-btn[data-tab="abrechnung"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
@@ -2736,13 +2751,13 @@ function initSplash() {
      da nicht was gemeint ist." Ein Effekt, den man erklaeren muss, ist
      keiner - jetzt steht die Zahl einfach da. */
   const untertitelEl = document.querySelector("#splashScreen .splash-subtitle");
-  if (untertitelEl) untertitelEl.style.display = istMirko() ? "none" : "";
+  if (untertitelEl) untertitelEl.style.display = "none";
   const jahrEl = document.getElementById("splashJahr");
-  if (jahrEl) jahrEl.textContent = istMirko() ? "seit 1903" : "";
+  if (jahrEl) jahrEl.textContent = "seit 1903";
 
   /* Nachtbild-Auftritt einschalten - vorerst nur fuer Mirko. */
   const splashEl = document.getElementById("splashScreen");
-  if (splashEl && istMirko()) {
+  if (splashEl) {
     splashEl.classList.add("nacht");
     nachtFunkenBauen(document.getElementById("splashFunken"), 20);
     /* Vorlauf, damit der Splash hell aufgeht statt dunkel: Das Atmen
@@ -3394,7 +3409,6 @@ function heuteWeitermachen() { zeigeTab(__heuteZiel); }
 function heuteAktualisieren() {
   const kopf = document.getElementById("heuteKopf");
   if (!kopf) return;
-  if (!istMirko()) { kopf.style.display = "none"; return; }
   kopf.style.display = "";
 
   const jetzt = new Date();
@@ -3409,7 +3423,14 @@ function heuteAktualisieren() {
   __heuteZiel = v.tab;
   document.getElementById("heuteWeiterText").textContent = v.text;
 
-  // Chips: der Stand in Zahlen, nur wo er belegbar ist
+  /* Chips und Kachelzahlen betreffen Fahrzeug-Inventur und Abrechnung.
+     Wer diese Bereiche nicht sieht, bekommt hier auch keine Zahlen daraus -
+     sonst stuenden auf der Startseite Begriffe zu Funktionen, die es fuer
+     ihn gar nicht gibt. Der Gruss und "Weitermachen" bleiben fuer alle. */
+  if (!zeigtSonderbereiche()) {
+    document.getElementById("heuteChips").innerHTML = "";
+    return;
+  }
   const inv = heuteLies(INV_KEY), kae = heuteLies(KAE_KEY);
   const ist = heuteIstbestand(inv), ware = heuteWareStangen(kae);
   const chips = [];
@@ -3469,9 +3490,9 @@ function zeigeKachelStartseite() {
      am body, weil auch Kopfzeile und Kacheln umgefaerbt werden muessen;
      sie faellt in zeigeTab() wieder weg, damit die Arbeitsbereiche hell
      bleiben. */
-  document.body.classList.toggle("nacht-start", istMirko());
+  document.body.classList.add("nacht-start");
   const hg = document.getElementById("nachtStartHg");
-  if (hg && istMirko()) nachtFunkenBauen(hg, 18);
+  if (hg) nachtFunkenBauen(hg, 18);
   heuteAktualisieren();
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "none";
@@ -8705,7 +8726,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-33"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-34"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
