@@ -750,7 +750,13 @@
     position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
     background: radial-gradient(ellipse at 50% 118%, #3d1d05, #150900 72%);
   }
-  body.nacht-start h1 { color: #f7e6cf; }
+  /* Kopfzeile faellt auf der Nacht-Startseite ganz weg (Mirko,
+     05.09.2026): "die ueberschrift spesen-rechner pauschalspesen fuer
+     dienstreisen weg, genau so das stehende hall logo oben links,
+     stattdessen neon schild etwas hoeher".
+     Sie steht nur hier still - in allen Arbeitsbereichen bleibt sie. */
+  body.nacht-start h1 { display: none; }
+  body.nacht-start { padding-top: .6rem; }
   body.nacht-start .footer-hinweis, body.nacht-start footer { color: #c9b49c; }
 
   /* Das Logo als Leuchtroehre, ueber den Kacheln (Mirko, 05.09.2026:
@@ -760,8 +766,10 @@
      leuchtende Flaeche; der Schein liegt auf dem AEUSSEREN Element, weil
      filter vor mask angewendet wird. */
   #nachtStartLogo { display: none; }
+  /* Das Schild rueckt nach oben, weil die Kopfzeile weggefallen ist -
+     es steht jetzt an ihrer Stelle. */
   body.nacht-start #nachtStartLogo {
-    display: flex; justify-content: center; margin: 4px 0 20px;
+    display: flex; justify-content: center; margin: 2px 0 16px;
   }
   #nachtStartLogo span {
     display: block; width: 62%; max-width: 230px; padding-bottom: 42.6%;  /* 300x206 */
@@ -2714,6 +2722,18 @@ function splashSchliessen() {
   if (el) el.style.display = "none";
   zeigeKachelStartseite();
 }
+
+/* Startbildschirm noch einmal zeigen - nach dem Einrichtungsassistenten.
+   initSplash() laeuft dabei erneut: Es setzt die Begruessung mit dem
+   gerade eingegebenen Namen, entscheidet ueber den Nachtbild-Auftritt und
+   startet fuer Kollegen wieder den 1,5-Sekunden-Timer. Die Funken werden
+   nicht doppelt gebaut, darauf achtet nachtFunkenBauen(). */
+function splashErneutZeigen() {
+  const el = document.getElementById("splashScreen");
+  if (!el) return;
+  el.style.display = "";
+  initSplash();
+}
 function setLang(lang) {
   currentLang = lang;
   WEEKDAY_NAMES = lang === "en" ? WEEKDAY_NAMES_EN : WEEKDAY_NAMES_DE;
@@ -3600,6 +3620,16 @@ function wizardNext() {
     // in den Spesen-Tab hinein - der Assistent legt nur die Grunddaten an,
     // waehlt aber keine Funktion fuer den Nutzer vor.
     zeigeKachelStartseite();
+    /* Nach dem Einrichten zurueck auf den Startbildschirm (Mirko,
+       05.09.2026): "wenn man beim ersten oeffnen die daten eingegeben hat
+       muss man erst nochmal in das erste menu kommen wo man dann auf
+       weiter geht um in die funktionen zu kommen."
+
+       Erst jetzt steht der Name fest - der Startbildschirm kann also
+       ueberhaupt erst hier entscheiden, ob er im Nachtbild-Auftritt mit
+       "Weiter"-Knopf erscheint oder sich nach 1,5 s selbst ausblendet.
+       Deshalb wird er neu aufgebaut statt beim Laden. */
+    splashErneutZeigen();
     return;
   }
   wizardStep++;
@@ -8625,7 +8655,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-30"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-31"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
