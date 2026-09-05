@@ -1168,6 +1168,10 @@
     margin-top: 0.5rem; padding: 0.7rem 0.8rem; border-radius: 8px;
     background: #f3f6fb; font-size: 0.92rem; line-height: 1.5;
   }
+  /* Vorzeichen-Umschalter: Die Zifferntastatur am Handy hat kein Minus,
+     ein negativer Betrag waere dort nicht eintippbar. */
+  .assi-vz { display: flex; gap: 0.5rem; margin: 0.25rem 0 0.9rem; }
+  .assi-vz button { flex: 1; padding: 0.6rem 0.5rem; font-size: 1rem; }
 
   /* Versionsnummer/Sprache im Footer */
   footer .footer-link { color: #888; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 0.75rem; padding: 0; }
@@ -4289,7 +4293,11 @@ function abrInventurIst() {
   return heuteIstbestand(st);
 }
 
-function abrRechne() {
+/* ---------- Die Rechenkette an EINER Stelle ----------
+   Vorher fuehrten abrRechne() (Blatt) und die Uebersicht im Assistenten
+   dieselbe Formel getrennt. Bei der Vorzeichenaenderung vom 05.09.2026
+   waeren die beiden garantiert auseinandergelaufen. */
+function abrBerechne() {
   const kasseHaben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
   /* "Kasse Soll" traegt denselben Betrag wie "Geldablieferung lt.
      Abrechnung" und wird an deren Stelle fuer die Differenz benutzt
@@ -4298,16 +4306,32 @@ function abrRechne() {
   const kasseSoll = abrWert("abrGeldablieferung");
   const diffGeld = kasseSoll - kasseHaben;
 
+  /* Vorzeichen der beiden Bestands-Zeilen: PLUS Bestandserhoehung, MINUS
+     Bestandsverminderung. Von Mirko am 05.09.2026 ausgeschrieben:
+     "endbestand vortag minus automatenverkauf plus bestandserhoehung minus
+     sonstige entlastung falls ausgefuellt plus ladeliste nr. falls
+     ausgefuellt ist inventur soll".
+
+     ACHTUNG, das steht bewusst ANDERS als auf dem Papier-Vordruck: dort
+     ist "- Bestandserhoehung / + Bestandsverminderung" aufgedruckt. Die
+     Frage wurde Mirko mit beiden Ergebnissen im Zahlenbeispiel vorgelegt
+     (4.100 vs. 4.300), er hat die Formel daraufhin ausgeschrieben. Nicht
+     "korrigieren", ohne vorher nachzufragen. */
   const soll = abrWert("abrEndbestandVortrag")
              - abrWert("abrAutomatenverkauf")
-             - abrWert("abrBestandErhoehung")
-             + abrWert("abrBestandVerminderung")
+             + abrWert("abrBestandErhoehung")
+             - abrWert("abrBestandVerminderung")
              - abrWert("abrEntlastung")
              + abrWert("abrLadeO1") + abrWert("abrLadeO2");
   const ist = abrInventurIst();
   const diffWare = ist - soll;
   const endbestand = ist + abrWert("abrLadeU1") + abrWert("abrLadeU2") + abrWert("abrLadeU3")
                    + abrWert("abrLadeU4") + abrWert("abrLadeU5");
+  return { kasseHaben, kasseSoll, diffGeld, soll, ist, diffWare, endbestand };
+}
+
+function abrRechne() {
+  const { kasseHaben, kasseSoll, diffGeld, soll, ist, diffWare, endbestand } = abrBerechne();
 
   const zeige = (id, wert, nurWenn) =>
     abrSetz(id, nurWenn ? invFmt(wert) : "");
@@ -4402,11 +4426,10 @@ const ABR_SCHRITTE = [
       { id: "abrGiroGo",   label: "GiroGo" }
     ],
     zwischen: () => {
-      const haben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
-      const diff  = abrWert("abrGeldablieferung") - haben;
-      return "Kasse Haben: <b>" + invFmt(haben) + " €</b><br>" +
-             "Differenz: <b>" + invFmt(diff) + " €</b> " +
-             (diff === 0 ? "(stimmt überein)" : diff > 0 ? "(es fehlt Geld in der Kasse)" : "(es ist mehr da als abgeliefert)");
+      const { kasseHaben, diffGeld } = abrBerechne();
+      return "Kasse Haben: <b>" + invFmt(kasseHaben) + " €</b><br>" +
+             "Differenz: <b>" + invFmt(diffGeld) + " €</b> " +
+             (diffGeld === 0 ? "(stimmt überein)" : diffGeld > 0 ? "(es fehlt Geld in der Kasse)" : "(es ist mehr da als abgeliefert)");
     } },
 
   { titel: "Störgeld",
@@ -4420,13 +4443,12 @@ const ABR_SCHRITTE = [
       { id: "abrAutomatenverkauf",  label: "Automatenverkauf", hinweis: "Was Sie diese Woche in die Automaten gefüllt haben." }
     ] },
 
-  { titel: "Bestand und Entlastung",
-    text: "Alles vom externen Zettel. Nur ausfüllen, was zutrifft.",
-    felder: [
-      { id: "abrBestandErhoehung",    label: "Bestandserhöhung", hinweis: "Mehr gefüllt als geplant." },
-      { id: "abrBestandVerminderung", label: "Bestandsverminderung", hinweis: "Weniger gefüllt als geplant." },
-      { id: "abrEntlastung",          label: "Entlastung Sonstiges", hinweis: "Wenn Sie eine Gutschrift erhalten haben." }
-    ] },
+  { titel: "Bestandsänderung", bestand: true,
+    text: "Die Summe vom externen Zettel – genau so, wie sie dort steht. Die App trägt sie in die richtige Zeile ein." },
+
+  { titel: "Entlastung Sonstiges",
+    text: "Nur wenn Sie eine Gutschrift erhalten haben.",
+    felder: [{ id: "abrEntlastung", label: "Entlastung Sonstiges" }] },
 
   { titel: "Ladeliste – diese Woche",
     text: "Nur falls Sie in der laufenden Woche nachbestellt haben (Lieferschein).",
@@ -4450,6 +4472,76 @@ const ABR_SCHRITTE = [
 
 let abrAssiSchritt = 0;
 
+/* ---------- Bestandsaenderung: EIN Feld statt zwei ----------
+   Mirko (05.09.2026): "wenn mann von einem anderen zettel eine minus summe
+   holt wird es plus gerechnet und in der abrechnung zu plus also
+   bestandserhoehung und wenn man von dem anderen zettel eine plus summe
+   holt wird sie minus gerechnet und automatisch die bestandsverminderung."
+
+     Zettel zeigt MINUS -> Zeile "Bestandserhoehung"    (im Soll addiert)
+     Zettel zeigt PLUS  -> Zeile "Bestandsverminderung" (im Soll abgezogen)
+
+   Probe: Beide Wege ergeben denselben Beitrag zum Inventur Soll, naemlich
+   MINUS dem Wert vom Zettel. Zettel -100 -> Soll +100. Zettel +100 ->
+   Soll -100. Daran laesst sich die Umsetzung jederzeit nachrechnen.
+
+   Warum zwei Knoepfe statt eines getippten Minuszeichens: Mit
+   inputmode="decimal" zeigt das Handy eine Zifferntastatur OHNE Minus.
+   Ein negativer Betrag waere dort nicht eintippbar.
+
+   Auf dem Blatt bleiben beide Zeilen einzeln beschreibbar - es ist ein
+   Nachbau des Vordrucks. Der Assistent bietet nur den bequemeren Weg;
+   welche Zeile gefuellt ist, bleibt die Wahrheit. */
+let abrBestandVz = null;   // "-", "+" oder null (noch nicht gewaehlt)
+
+function abrBestandAusBlatt() {
+  const e = String((abrState.felder || {}).abrBestandErhoehung || "").trim();
+  const v = String((abrState.felder || {}).abrBestandVerminderung || "").trim();
+  if (e) return { vz: "-", betrag: e };
+  if (v) return { vz: "+", betrag: v };
+  return { vz: null, betrag: "" };
+}
+
+function abrBestandSchreiben() {
+  const feld = document.getElementById("assiBestandBetrag");
+  const roh = feld ? feld.value : "";
+  const zahl = Math.abs(invZahl(roh));
+  const leer = String(roh).trim() === "" || zahl === 0;
+  const erh     = (!leer && abrBestandVz === "-") ? invFmt(zahl) : "";
+  const vermind = (!leer && abrBestandVz === "+") ? invFmt(zahl) : "";
+  abrState.felder.abrBestandErhoehung    = erh;
+  abrState.felder.abrBestandVerminderung = vermind;
+  abrSetz("abrBestandErhoehung", erh);
+  abrSetz("abrBestandVerminderung", vermind);
+  abrSichern();
+  abrRechne();
+  abrBestandHinweis();
+}
+
+function abrBestandVorzeichen(vz) {
+  abrBestandVz = vz;
+  const m = document.getElementById("assiVzMinus"), p = document.getElementById("assiVzPlus");
+  if (m) m.className = vz === "-" ? "primary" : "ghost";
+  if (p) p.className = vz === "+" ? "primary" : "ghost";
+  abrBestandSchreiben();
+}
+
+function abrBestandHinweis() {
+  const el = document.getElementById("assiZwischen");
+  if (!el) return;
+  const feld = document.getElementById("assiBestandBetrag");
+  const zahl = Math.abs(invZahl(feld ? feld.value : ""));
+  if (!zahl) { el.innerHTML = "Steht auf dem Zettel nichts? Dann einfach weiter."; return; }
+  if (!abrBestandVz) {
+    el.innerHTML = "Bitte oben wählen, ob der Zettel <b>Minus</b> oder <b>Plus</b> zeigt.";
+    return;
+  }
+  const zeile   = abrBestandVz === "-" ? "Bestandserhöhung" : "Bestandsverminderung";
+  const wirkung = abrBestandVz === "-" ? zahl : -zahl;
+  el.innerHTML = "Wird eingetragen als <b>" + zeile + " " + invFmt(zahl) + " €</b><br>" +
+                 "Inventur Soll ändert sich um <b>" + (wirkung > 0 ? "+" : "") + invFmt(wirkung) + " €</b>";
+}
+
 function abrAssistentStart() {
   if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
   abrAssiSchritt = 0;
@@ -4472,15 +4564,8 @@ function abrAssiEingabe(el) {
 }
 
 function abrAssiUebersicht() {
-  const haben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
-  const diffGeld = abrWert("abrGeldablieferung") - haben;
-  const soll = abrWert("abrEndbestandVortrag") - abrWert("abrAutomatenverkauf")
-             - abrWert("abrBestandErhoehung") + abrWert("abrBestandVerminderung")
-             - abrWert("abrEntlastung") + abrWert("abrLadeO1") + abrWert("abrLadeO2");
-  const ist = abrInventurIst();
-  const diffWare = ist - soll;
-  const endbestand = ist + abrWert("abrLadeU1") + abrWert("abrLadeU2") + abrWert("abrLadeU3")
-                   + abrWert("abrLadeU4") + abrWert("abrLadeU5");
+  // Dieselbe Rechenkette wie das Blatt - eine Quelle, kein Nachbau.
+  const { kasseHaben: haben, diffGeld, soll, ist, diffWare, endbestand } = abrBerechne();
   const zeile = (l, w, fett) =>
     '<tr><td style="padding:3px 0; color:#444;">' + l + '</td>' +
     '<td style="padding:3px 0; text-align:right; ' + (fett ? "font-weight:700;" : "") + '">' + invFmt(w) + ' €</td></tr>';
@@ -4510,6 +4595,15 @@ function abrAssiZeige() {
              '<label>Datum</label><input id="assiDatum" placeholder="TT.MM.JJJJ">';
   } else if (s.uebersicht) {
     inhalt = abrAssiUebersicht();
+  } else if (s.bestand) {
+    inhalt =
+      '<div class="assi-vz">' +
+        '<button type="button" class="ghost" id="assiVzMinus" onclick="abrBestandVorzeichen(\'-\')">Zettel zeigt −</button>' +
+        '<button type="button" class="ghost" id="assiVzPlus" onclick="abrBestandVorzeichen(\'+\')">Zettel zeigt +</button>' +
+      '</div>' +
+      '<label>Summe vom Zettel</label>' +
+      '<input class="assi-feld" id="assiBestandBetrag" inputmode="decimal" oninput="abrBestandSchreiben()">' +
+      '<div id="assiZwischen" class="assi-zwischen"></div>';
   } else {
     inhalt = (s.felder || []).map((f) =>
       '<label>' + f.label + '</label>' +
@@ -4536,6 +4630,17 @@ function abrAssiZeige() {
     document.getElementById("assiFahrer").value = kopfFahrer();
     document.getElementById("assiTour").value   = kopfTour();
     document.getElementById("assiDatum").value  = kopfDatum();
+  } else if (s.bestand) {
+    // Vorzeichen und Betrag aus dem Blatt ableiten - welche der beiden
+    // Zeilen gefuellt ist, bleibt die Wahrheit.
+    const b = abrBestandAusBlatt();
+    abrBestandVz = b.vz;
+    document.getElementById("assiBestandBetrag").value = b.betrag;
+    const m = document.getElementById("assiVzMinus"), p = document.getElementById("assiVzPlus");
+    m.className = b.vz === "-" ? "primary" : "ghost";
+    p.className = b.vz === "+" ? "primary" : "ghost";
+    abrBestandHinweis();
+    document.getElementById("assiBestandBetrag").focus();
   } else if (!s.uebersicht) {
     (s.felder || []).forEach((f) => {
       const el = document.querySelector('.assi-feld[data-ziel="' + f.id + '"]');
@@ -8078,7 +8183,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-21"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-22"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
