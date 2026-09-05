@@ -12,9 +12,16 @@
      GRAUEN PLATZHALTER. Genau so ist es am 14.08. bei einem Kollegen
      angekommen. Deshalb stehen die quadratischen Fassungen zuerst; das
      Logo bleibt als Reiter-Symbol fuer den Rechner. -->
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-<link rel="icon" type="image/png" href="hall-logo.png">
+<!-- Browser-Symbol (Adressleiste, Lesezeichen, Tab): das orange H wie auf
+     hall-tabakwaren.de (Mirko, 05.09.2026). Die Firmenwebseite liefert
+     dafuer nur 16x16 - zu grob fuer heutige Bildschirme. Das H ist deshalb
+     aus dem hochaufgeloesten Logo ausgeschnitten (favicon-bauen.py):
+     gleiche Zeichnung, gleiche Farben, nur scharf.
+     Vorher stand hier hall-logo.png - ein 500x309 grosses Bild mit weissem
+     Kasten, das im Tab zu einem unkenntlichen Fleck schrumpfte. -->
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icons/favicon-180.png">
 <meta name="theme-color" content="#de7008">
 
 <!-- Manifest
@@ -642,24 +649,29 @@
     background: url("hall-nachtbild-neon.png") 50% 42%/cover no-repeat;
     mix-blend-mode: screen; will-change: opacity;
     animation: nachtZoom 54s ease-in-out infinite alternate,
-               nachtAufladen 5s ease-in infinite;
+               nachtAtmen 7s ease-in-out infinite;
   }
   .nacht-kern { filter: brightness(1.85) saturate(.55); }
   .nacht-nah  { filter: blur(5px)  brightness(1.70) saturate(1.5); }
   .nacht-weit { filter: blur(20px) brightness(1.50) saturate(2.2); }
   .nacht-raum { filter: blur(55px) brightness(1.35) saturate(2.4); }
 
-  /* "Aufladen": wird stetig heller, stockt kurz beim Anlaufen, leuchtet
-     voll auf und faengt von vorne an (Mirkos Wunsch: "immer etwas heller
-     wird und dann wieder von vorne aufleuchtet"). */
-  @keyframes nachtAufladen {
-    0%   { opacity: calc(.12 * var(--neon)); }
-    8%   { opacity: calc(.30 * var(--neon)); }
-    10%  { opacity: calc(.16 * var(--neon)); }
-    45%  { opacity: calc(.62 * var(--neon)); }
-    85%  { opacity: var(--neon); }
-    92%  { opacity: var(--neon); }
-    100% { opacity: calc(.12 * var(--neon)); }
+  /* Ein gleichmaessiges Atmen: dunkel -> hell -> dunkel, ohne Naht.
+
+     Vorher lief hier "Aufladen" - stetig heller werden und am Ende
+     zurueckspringen. Mirko (05.09.2026): "es waere schoener wenn es
+     smoother von dunklerem neon ins helle uebergeht und dann wieder ins
+     dunkle ... sodass es nach dauerschleife aussieht und nicht
+     widerholung mit zuckung."
+
+     Genau daher kam das Zucken: Der Sprung von voller Helligkeit zurueck
+     auf 12 % war ein harter Schnitt. Jetzt sind Anfang und Ende
+     identisch (beide .30) - damit gibt es keine Naht mehr, egal wie oft
+     die Schleife laeuft. ease-in-out rundet zusaetzlich die Umkehrpunkte
+     ab, sodass es an den Enden weich auslaeuft statt umzuknicken. */
+  @keyframes nachtAtmen {
+    0%, 100% { opacity: calc(.30 * var(--neon)); }
+    50%      { opacity: var(--neon); }
   }
 
   /* Glut am unteren Rand + aufsteigende Funken */
@@ -705,7 +717,7 @@
     color: #fff3e0;
     text-shadow: 0 0 4px #fff2dc, 0 0 12px #ffa53a, 0 0 28px #de7008,
                  0 0 60px #de7008, 0 2px 10px rgba(0,0,0,.75);
-    animation: nachtAufladen 5s ease-in infinite;
+    animation: nachtAtmen 7s ease-in-out infinite;
   }
   #splashScreen.nacht .splash-greeting,
   #splashScreen.nacht .splash-month { text-shadow: 0 2px 8px rgba(0,0,0,.8); }
@@ -724,7 +736,7 @@
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     text-shadow: 0 0 10px #de7008;
     box-shadow: 0 0 18px rgba(222,112,8,.55), inset 0 0 14px rgba(222,112,8,.35);
-    animation: nachtAufladen 5s ease-in infinite;
+    animation: nachtAtmen 7s ease-in-out infinite;
   }
   #splashScreen.nacht .splash-weiter:active { transform: scale(.97); }
 
@@ -760,7 +772,7 @@
   #nachtStartLogo {
     filter: drop-shadow(0 0 4px #fff2dc) drop-shadow(0 0 14px #ffa53a)
             drop-shadow(0 0 34px #de7008) drop-shadow(0 0 70px #de7008);
-    animation: nachtAufladen 5s ease-in infinite;
+    animation: nachtAtmen 7s ease-in-out infinite;
   }
 
   /* Kacheln auf dunklem Grund: kein Weiss mehr (Mirko: "so weiss ist
@@ -1340,6 +1352,49 @@
   .wizard-dots span { width: 8px; height: 8px; border-radius: 50%; background: #e3e6eb; }
   .wizard-dots span.active { background: var(--accent); }
   .wizard-buttons { display: flex; justify-content: space-between; margin-top: 1.25rem; gap: 0.5rem; }
+
+  /* ---- Einrichtungsassistent in den Hausfarben ----
+     Mirko (05.09.2026): "schoen waere wenn neue nutzer die das erste mal
+     einschalten und abgefragt werden nach den daten das das auch optisch
+     angepasst wird mit dem beige ton und den braun und orangen ton von
+     Hall."
+
+     Das ist der ERSTE Eindruck, den ein neuer Kollege von der App
+     bekommt - vorher ein weisser Kasten mit Systemschrift. Jetzt Creme,
+     Braun und Orange wie die Firmenwebseite, mit dem Logo im Kopf.
+     Gilt fuer ALLE, nicht nur fuer Mirko: der Assistent laeuft nur beim
+     allerersten Oeffnen und hat mit den neuen Funktionen nichts zu tun. */
+  .modal-box.wizard-hall {
+    background: var(--bg);
+    border-top: 5px solid var(--accent);
+    box-shadow: 0 12px 44px rgba(97,42,0,.42);
+  }
+  .wizard-hall .wizard-kopf { text-align: center; margin-bottom: .5rem; }
+  .wizard-hall .wizard-kopf img { height: 46px; width: auto; }
+  .wizard-hall h2 { color: var(--brand-dark); text-align: center; font-size: 1.15rem; }
+  .wizard-hall .wizard-text { color: #6b5340; font-size: .9rem; text-align: center; margin: 0 0 1.1rem; }
+  .wizard-hall label { color: var(--brand-dark); font-weight: 700; font-size: .9rem; }
+  .wizard-hall input, .wizard-hall select {
+    width: 100%; font: inherit; font-size: 1rem; padding: .62rem .7rem; margin-top: .25rem;
+    color: var(--brand-dark); background: #fff;
+    border: 1px solid #d9c9b4; border-radius: 9px;
+  }
+  .wizard-hall input:focus, .wizard-hall select:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(222,112,8,.20);
+  }
+  .wizard-hall .wizard-dots span { background: #ddcdb8; }
+  .wizard-hall .wizard-dots span.active { background: var(--accent); }
+  .wizard-hall .wizard-buttons button {
+    font: 700 .98rem 'Montserrat', sans-serif; padding: .7rem 1.4rem;
+    border-radius: 999px; cursor: pointer; min-height: 46px;
+    border: 1px solid var(--accent); background: #fff; color: var(--brand-dark);
+  }
+  .wizard-hall .wizard-buttons button.primary {
+    background: linear-gradient(180deg, #e2820f, #b85c06);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 3px 12px rgba(97,42,0,.28);
+  }
 
   /* Abrechnungs-Assistent: grosse Zahlenfelder, weil im Fahrzeug mit dem
      Daumen getippt wird - dieselbe Ueberlegung wie beim Inventur-Erfassen. */
@@ -2627,12 +2682,12 @@ function initSplash() {
   if (splashEl && istMirko()) {
     splashEl.classList.add("nacht");
     nachtFunkenBauen(document.getElementById("splashFunken"), 20);
-    /* Der Splash steht nur 1,5 Sekunden, ein Aufladen dauert 5. Ohne
-       Vorlauf saehe man ihn immer im dunkelsten Viertel. Mit -2,8 s
-       startet er bei rund zwei Dritteln und wird waehrend der ganzen
-       Standzeit heller - man sieht also genau den Teil, um den es geht. */
+    /* Vorlauf, damit der Splash hell aufgeht statt dunkel: Das Atmen
+       dauert 7 Sekunden und ist bei der Haelfte am hellsten. Mit -3,5 s
+       steht es beim Oeffnen genau auf dem Hoehepunkt und atmet von dort
+       ruhig weiter. */
     splashEl.querySelectorAll(".nacht-kern,.nacht-nah,.nacht-weit,.nacht-raum,.splash-jahr,.splash-weiter")
-      .forEach((el) => { el.style.animationDelay = "-2.8s"; });
+      .forEach((el) => { el.style.animationDelay = "-3.5s"; });
   }
 
   /* Wie der Splash endet, haengt daran, wer davorsitzt:
@@ -3465,9 +3520,11 @@ function maybeShowSetupWizard() {
   const root = document.getElementById("modalRoot");
   root.innerHTML = `
     <div class="modal-overlay">
-      <div class="modal-box">
-        <h2>👋 Willkommen beim Spesen-Rechner!</h2>
-        <p style="font-size:0.9rem; color:#444;">Kurz ein paar Angaben, dann kann es losgehen - alles lässt sich später in den Einstellungen jederzeit ändern.</p>
+      <div class="modal-box wizard-hall">
+        <div class="wizard-kopf"><img src="hall-logo-original.png" alt="Hall Tabakwaren"></div>
+        <h2>Willkommen!</h2>
+        <p class="wizard-text">Kurz ein paar Angaben, dann kann es losgehen –
+           alles lässt sich später in den Einstellungen jederzeit ändern.</p>
 
         <div class="wizard-step active" data-step="1">
           <label>Ihr Name</label>
@@ -8568,7 +8625,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-29"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-30"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
