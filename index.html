@@ -1768,7 +1768,9 @@
     <span id="toolbarKontextInventur" style="display:none;">
       <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
       <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Blatt</button>
-      <button type="button" class="ghost" id="invBtnKaefig" onclick="invSetAnsicht('kaefig')" data-i18n="invKaefig">📦 Ware zählen</button>
+      <!-- "📦 Ware zählen" stand hier als dritte Ansicht. Seit 05.09.2026
+           ist es eine eigene Hauptkategorie und deshalb hier raus - ein
+           Bereich an zwei Stellen ist eine Einladung für zwei Datenstände. -->
       <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
     </span>
   </div>
@@ -1842,6 +1844,11 @@
          (aktualisiereInventurSichtbarkeit()), zusaetzlich nur fuer Fahrer -
          fuer Monteure ist eine KFZ-Bestandsaufnahme gegenstandslos. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
+    <!-- "Neue Ware zählen": eigene Hauptkategorie seit 05.09.2026, vorher
+         eine Ansicht in der Fahrzeug-Inventur. Position zwischen Inventur
+         und Abrechnung nach Mirkos Vorgabe. Sichtbarkeit wie die beiden
+         Nachbarn - nur Mirko, nur Fahrer. -->
+    <button type="button" class="kachel-btn" onclick="zeigeTab('ware')" data-i18n="tabWare">📦 Neue Ware zählen</button>
     <!-- Abrechnung: wie die Inventur nur fuer Mirko und nur fuer Fahrer. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
@@ -1894,6 +1901,7 @@
        und Jahr kommen danach; sie gehoeren nicht zum Wochenabschluss. -->
   <button type="button" class="tab-btn active" data-tab="spesen" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
   <button type="button" class="tab-btn" data-tab="inventur" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
+  <button type="button" class="tab-btn" data-tab="ware" onclick="zeigeTab('ware')" data-i18n="tabWare">📦 Neue Ware zählen</button>
   <button type="button" class="tab-btn" data-tab="abrechnung" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
   <button type="button" class="tab-btn" data-tab="zeit" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
   <button type="button" class="tab-btn" data-tab="urlaub" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
@@ -2203,30 +2211,19 @@
     </div>
   </div>
 
-  <!-- ===================== Käfig zählen =====================
-       Zweiter, eigenständiger Vorgang (Mirko, 04.09.2026): die neu
-       bestellte Ware im Käfig zählen und die Gesamtsumme gegen den
-       Endbetrag auf dem Lieferschein halten. Gezählt werden STANGEN,
-       nicht Päckchen - deshalb ist der Preis hier der Stangenpreis
-       (z.B. 180,00), nicht der Kleinverkaufspreis. -->
-  <div id="invKaefigView" style="display:none;">
-    <div class="inv-summe">
-      <div><div class="inv-l">Gezählte Stangen</div><div class="inv-v" id="kaeSumme">0</div></div>
-      <div class="inv-r"><div class="inv-l">Zeilen</div><div class="inv-v" id="kaeStangen">0</div></div>
-    </div>
-    <div class="card" style="margin-bottom:10px">
-      <table class="inv-fz">
-        <tr><td class="k">Lieferschein:</td><td style="width:150px"><div class="inv-box g"><input id="kaeLieferschein" inputmode="numeric" placeholder="Stangen"></div></td></tr>
-        <tr><td class="k">Differenz:</td><td><div class="inv-box"><input id="kaeDiff" readonly></div></td></tr>
-      </table>
-      <div id="kaeUrteil" class="kae-urteil"></div>
-    </div>
-    <div id="kaeRows"></div>
-    <div class="inv-hint" id="kaeHint"></div>
-    <div class="inv-fussleiste">
-      <button type="button" class="ghost" onclick="kaeNeu()">🗑️ Neue Zählung</button>
-    </div>
-  </div>
+  <!-- "Neue Ware zählen" stand bis zum 05.09.2026 HIER, als dritte Ansicht
+       innerhalb der Fahrzeug-Inventur. Es ist jetzt eine eigene
+       Hauptkategorie (#wareneingangPanel weiter unten).
+
+       Mirko: "käfig zählen und die scan oder video funktion sollte eine
+       eigene hauptkategorie werden." Der Code sagte das schon selbst - im
+       Kommentar stand seit dem 04.09. "zweiter, eigenständiger Vorgang".
+       Nachgesehen: Die beiden teilen keine einzige Zahl.
+
+         Neue Ware zählen   Stangen · Stangenpreis · gegen Lieferschein
+         Fahrzeug-Inventur  Menge × KVP · gegen Soll aus der Abrechnung
+
+       Es lag nur aus Gewohnheit als Reiter daneben. -->
 
   <div id="invBlattView" style="display:none;">
     <div class="inv-blatt" id="invBlatt">
@@ -2355,6 +2352,44 @@
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===================== Neue Ware zählen =====================
+     Eigene Hauptkategorie seit 05.09.2026 (Mirko), vorher eine Ansicht
+     innerhalb der Fahrzeug-Inventur.
+
+     Der Vorgang: die neu bestellte Ware im Käfig zählen und die
+     Gesamtsumme gegen den Endbetrag auf dem Lieferschein halten.
+     Gezählt werden STANGEN, nicht Päckchen - deshalb ist der Preis hier
+     der Stangenpreis (z.B. 180,00), nicht der Kleinverkaufspreis.
+
+     Steht in der Reihenfolge zwischen Fahrzeug-Inventur und Abrechnung
+     (Mirkos Vorgabe: "nach fahrzeug inventur aber vor abrechnung").
+
+     Hier wird auch der Lieferschein-Scan einziehen: Dieser Bereich
+     vergleicht bereits heute gegen den Lieferschein - siehe
+     "Warenzaehler - Lieferschein und Kartonscan (Konzept)". -->
+<div class="panel no-print" id="wareneingangPanel" style="display:none;">
+  <div class="inv-kopfzeile">
+    <h2 data-i18n="tabWare">📦 Neue Ware zählen</h2>
+    <span class="inv-status" id="kaeStatus"></span>
+  </div>
+  <div class="inv-summe">
+    <div><div class="inv-l">Gezählte Stangen</div><div class="inv-v" id="kaeSumme">0</div></div>
+    <div class="inv-r"><div class="inv-l">Zeilen</div><div class="inv-v" id="kaeStangen">0</div></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <table class="inv-fz">
+      <tr><td class="k">Lieferschein:</td><td style="width:150px"><div class="inv-box g"><input id="kaeLieferschein" inputmode="numeric" placeholder="Stangen"></div></td></tr>
+      <tr><td class="k">Differenz:</td><td><div class="inv-box"><input id="kaeDiff" readonly></div></td></tr>
+    </table>
+    <div id="kaeUrteil" class="kae-urteil"></div>
+  </div>
+  <div id="kaeRows"></div>
+  <div class="inv-hint" id="kaeHint"></div>
+  <div class="inv-fussleiste">
+    <button type="button" class="ghost" onclick="kaeNeu()">🗑️ Neue Zählung</button>
   </div>
 </div>
 
@@ -2771,7 +2806,7 @@ function aktualisiereZeitSichtbarkeit() {
 function aktualisiereInventurSichtbarkeit() {
   const istMonteur = config.mitarbeitertyp === "monteur";
   const sichtbar = zeigtSonderbereiche() && !istMonteur;
-  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"], .kachel-btn[onclick="zeigeTab(\'abrechnung\')"], #mainTabs .tab-btn[data-tab="abrechnung"]').forEach((el) => {
+  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"], .kachel-btn[onclick="zeigeTab(\'ware\')"], #mainTabs .tab-btn[data-tab="ware"], .kachel-btn[onclick="zeigeTab(\'abrechnung\')"], #mainTabs .tab-btn[data-tab="abrechnung"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
   // Das Tour-Feld in den Stammdaten gehoert zu diesen beiden Bereichen und
@@ -2782,8 +2817,14 @@ function aktualisiereInventurSichtbarkeit() {
   // Steht das Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
   // Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
   // bliebe ein Bereich offen, den es fuer diesen Nutzer nicht gibt.
-  const panel = document.getElementById("inventurPanel");
-  if (!sichtbar && panel && getComputedStyle(panel).display !== "none") {
+  /* Auch "Neue Ware zählen" gehört zu diesen Bereichen - stand es offen,
+     wenn die Sichtbarkeit wegfällt, muss es genauso zurück auf die
+     Startseite wie die Inventur. */
+  const offenUndVerboten = ["inventurPanel", "wareneingangPanel", "abrechnungPanel"].some((id) => {
+    const p = document.getElementById(id);
+    return p && getComputedStyle(p).display !== "none";
+  });
+  if (!sichtbar && offenUndVerboten) {
     zeigeKachelStartseite();
   }
 }
@@ -2849,7 +2890,7 @@ const I18N = {
     invPdfAnsehen: "👁️ PDF ansehen",
     invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
     invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
-    invKaefig: "📦 Ware zählen",
+    tabWare: "📦 Neue Ware zählen",
     tabAbrechnung: "🧾 Abrechnung",
     btnZurueck: "← Zurück zur Auswahl",
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
@@ -2890,7 +2931,7 @@ const I18N = {
     invPdfAnsehen: "👁️ View PDF",
     invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
     invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
-    invKaefig: "📦 Count goods",
+    tabWare: "📦 Count new goods",
     tabAbrechnung: "🧾 Settlement",
     btnZurueck: "← Back to overview",
     spesenKopfzeileTitel: "📋 Expense report",
@@ -3471,10 +3512,10 @@ function initSettingsUI() {
 
 const ALLE_PANELS = ["settingsPanel", "jahresuebersichtPanel", "archivPanel",
                      "arbeitszeitPanel", "urlaubPanel", "anleitungPanel", "mehrPanel",
-                     "inventurPanel", "abrechnungPanel"];
+                     "inventurPanel", "wareneingangPanel", "abrechnungPanel"];
 /* Diese treten an die Stelle des Spesenblatts statt darueber zu liegen */
 const VOLLANSICHT_PANELS = ["arbeitszeitPanel", "urlaubPanel", "jahresuebersichtPanel", "anleitungPanel", "mehrPanel",
-                            "inventurPanel", "abrechnungPanel"];
+                            "inventurPanel", "wareneingangPanel", "abrechnungPanel"];
 
 function zeigeAnsicht(id) {
   const ziel = document.getElementById(id);
@@ -3498,8 +3539,8 @@ function zeigeAnsicht(id) {
    Klick auf ein bereits offenes Panel ALLES wieder schliesst) waehlt
    zeigeTab() immer deterministisch genau den angeklickten Bereich -
    klassisches Tab-Verhalten statt Auf/Zu-Umschalten. */
-const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel", inventur: "inventurPanel", abrechnung: "abrechnungPanel" };
-const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel, inventur: toggleInventurPanel, abrechnung: toggleAbrechnungPanel };
+const TAB_PANEL_MAP = { zeit: "arbeitszeitPanel", urlaub: "urlaubPanel", jahr: "jahresuebersichtPanel", anleitung: "anleitungPanel", mehr: "mehrPanel", inventur: "inventurPanel", ware: "wareneingangPanel", abrechnung: "abrechnungPanel" };
+const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, jahr: toggleJahresuebersicht, anleitung: toggleAnleitungPanel, mehr: toggleMehrPanel, inventur: toggleInventurPanel, ware: toggleWareneingangPanel, abrechnung: toggleAbrechnungPanel };
 
 /* Ausgelagert aus zeigeTab(), damit auch toggleSettings()/toggleArchivPanel()
    die Tab-Hervorhebung korrigieren koennen, wenn sie ein Panel UEBER dem
@@ -3624,7 +3665,7 @@ function heuteVorschlag() {
     return { tab: "inventur", text: "Fahrzeug-Inventur" + (tour ? " · Tour " + tour : "") +
              " · " + invZ + (invZ === 1 ? " Zeile" : " Zeilen") + " erfasst" };
   }
-  if (ware > 0) return { tab: "inventur", text: "Ware zählen · " + ware.toLocaleString("de-DE") + " Stangen" };
+  if (ware > 0) return { tab: "ware", text: "Neue Ware zählen · " + ware.toLocaleString("de-DE") + " Stangen" };
   if (letzter) {
     const namen = { spesen:"Spesen", zeit:"Zeit", urlaub:"Urlaub", jahr:"Jahresübersicht",
                     inventur:"Fahrzeug-Inventur", abrechnung:"Abrechnung" };
@@ -4468,10 +4509,19 @@ function invRenderMobil() {
     ? "Alle " + INV_FOLGE.length + " Zeilen des Blattes sind angelegt."
     : "Zeile " + n + " von " + INV_FOLGE.length + " · neue kommen von selbst dazu";
 }
-/* ===================== Ware zählen (frueher "Käfig zählen") =====================
-   Umbenannt am 05.09.2026 auf Mirkos Wunsch. Die internen Namen (kae*,
-   KAE_KEY, invKaefigView) bleiben absichtlich stehen: an ihnen haengen die
-   bereits gespeicherten Zaehlungen auf den Geraeten.
+/* ===================== Neue Ware zählen =====================
+   Hiess "Käfig zählen", dann "Ware zählen", seit 05.09.2026 "Neue Ware
+   zählen" - Mirkos Wort, und es trifft die Sache am genauesten: gezaehlt
+   wird die NEU BESTELLTE Ware, nicht der Fahrzeugbestand.
+
+   Seit 05.09.2026 eine eigene HAUPTKATEGORIE (#wareneingangPanel), vorher
+   eine Ansicht innerhalb der Fahrzeug-Inventur. Die beiden teilen keine
+   einzige Zahl - siehe Kommentar am Panel.
+
+   Die internen Namen (kae*, KAE_KEY) bleiben absichtlich stehen: an ihnen
+   haengen die bereits gespeicherten Zaehlungen auf den Geraeten. Ein
+   Umbenennen wuerde sie unerreichbar machen.
+
    Eigener Vorgang, eigener Speicher: die neu bestellte Ware im Käfig
    zählen und gegen den Endbetrag auf dem Lieferschein halten.
 
@@ -4546,11 +4596,13 @@ function kaeRechne() {
   const stk = (n) => n.toLocaleString("de-DE") + (Math.abs(n) === 1 ? " Stange" : " Stangen");
   document.getElementById("kaeSumme").textContent = gezaehlt.toLocaleString("de-DE");
   document.getElementById("kaeStangen").textContent = kaeZeilenMitInhalt();
-  // Kopfzeile mitziehen, solange der Käfig offen ist
-  const st = document.getElementById("invStatus");
-  if (st && getComputedStyle(document.getElementById("invKaefigView")).display !== "none") {
-    st.textContent = "Ware: " + stk(gezaehlt);
-  }
+  /* Eigene Kopfzeile seit 05.09.2026. Vorher schrieb diese Zeile in
+     #invStatus - die Kopfzeile der Fahrzeug-Inventur - und musste dafür
+     prüfen, ob die Käfig-Ansicht gerade offen ist. Mit der eigenen
+     Hauptkategorie hat der Bereich seine eigene Statuszeile, die Abfrage
+     entfällt. */
+  const st = document.getElementById("kaeStatus");
+  if (st) st.textContent = "Ware: " + stk(gezaehlt);
   const lsText = String(kaeState.lieferschein || "").trim();
   const urteil = document.getElementById("kaeUrteil");
   const diffFeld = document.getElementById("kaeDiff");
@@ -4725,24 +4777,24 @@ function invSetAnsicht(a) {
   document.body.classList.remove("druck-abrechnung");
   document.getElementById("invErfassenView").style.display = a === "erfassen" ? "" : "none";
   document.getElementById("invBlattView").style.display    = a === "blatt" ? "" : "none";
-  document.getElementById("invKaefigView").style.display   = a === "kaefig" ? "" : "none";
   document.getElementById("invBtnErfassen").className = a === "erfassen" ? "primary" : "ghost";
   document.getElementById("invBtnBlatt").className    = a === "blatt" ? "primary" : "ghost";
-  document.getElementById("invBtnKaefig").className   = a === "kaefig" ? "primary" : "ghost";
-  /* Die PDF-Werkzeuge gehören zum Inventurblatt. Beim Käfigzählen gibt es
-     kein Blatt und kein PDF - dort wären sie irreführend. */
-  const pdfGruppe = document.getElementById("toolbarInventurPdf");
-  const trenner = document.getElementById("invToolbarTrenner");
-  if (pdfGruppe) pdfGruppe.style.display = a === "kaefig" ? "none" : "";
-  if (trenner) trenner.style.display = a === "kaefig" ? "none" : "";
   if (a === "erfassen") invRenderMobil();
-  if (a === "kaefig") { kaeLaden(); document.getElementById("kaeLieferschein").value = kaeState.lieferschein || ""; kaeRender(); }
-  /* Die Kopfzeile zeigt sonst den Istbestand der Inventur - im Käfig ist
-     das die falsche Zahl und stiftet Verwirrung. */
   const status = document.getElementById("invStatus");
-  if (status) status.textContent = a === "kaefig"
-    ? "Ware: " + invFmt(kaeGesamt()) + " €"
-    : "Istbestand " + invFmt(invIstbestand()) + " €";
+  if (status) status.textContent = "Istbestand " + invFmt(invIstbestand()) + " €";
+}
+
+/* Einstieg in die Kategorie "Neue Ware zählen". Vorher hing das im
+   'kaefig'-Zweig von invSetAnsicht(); mit der eigenen Hauptkategorie
+   braucht es einen eigenen Einstieg - nach demselben Muster wie
+   toggleInventurPanel(). */
+function toggleWareneingangPanel() {
+  const offen = zeigeAnsicht("wareneingangPanel");
+  if (!offen) return;
+  kaeLaden();
+  const ls = document.getElementById("kaeLieferschein");
+  if (ls) ls.value = kaeState.lieferschein || "";
+  kaeRender();
 }
 
 function invHeute() { return new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }); }
@@ -9239,7 +9291,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-44"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-45"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
