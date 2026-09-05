@@ -1710,8 +1710,12 @@
   <div class="nacht-lage nacht-nah"></div>
   <div class="nacht-lage nacht-kern"></div>
   <!-- Eigener Behaelter fuer die Asche. Haengen die Flocken direkt am
-       Splash, werden sie zu Flex-Elementen und schieben den Text hoch. -->
-  <div class="nacht-lage nacht-flocken" id="splashFunken"></div>
+       Splash, werden sie zu Flex-Elementen und schieben den Text hoch.
+       Hiess bis 2026-09-05 "splashFunken" - der Name stammte von den
+       aufsteigenden Funken, die die Asche ersetzt hat. Ein Name, der
+       etwas anderes sagt als der Inhalt, wird beim naechsten Mal falsch
+       verstanden. -->
+  <div class="nacht-lage nacht-flocken" id="splashAsche"></div>
   <div class="nacht-lage nacht-schleier"></div>
   <img src="hall-logo-original.png" alt="Hall Tabakwaren">
   <div>
@@ -2985,7 +2989,7 @@ function initSplash() {
   const splashEl = document.getElementById("splashScreen");
   if (splashEl) {
     splashEl.classList.add("nacht");
-    nachtAscheBauen(document.getElementById("splashFunken"), ASCHE_MENGE);
+    nachtAscheBauen(document.getElementById("splashAsche"), ASCHE_MENGE);
     /* Vorlauf, damit der Splash hell aufgeht statt dunkel: Das Atmen
        dauert 7 Sekunden und ist bei der Haelfte am hellsten. Mit -3,5 s
        steht es beim Oeffnen genau auf dem Hoehepunkt und atmet von dort
@@ -9235,7 +9239,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-43"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-44"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
