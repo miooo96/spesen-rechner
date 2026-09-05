@@ -1752,7 +1752,12 @@
           </tr>
           <tr>
             <td class="lab">Sollbestand:</td><td class="eh">Euro</td>
-            <td class="wert g"><input id="invSoll" inputmode="decimal"></td>
+            <!-- Sollbestand wird NICHT mehr getippt: er kommt aus der
+                 Abrechnung (Mirko, 05.09.2026 - "der soll bestand aus der
+                 abrechnung muss dann automatisch in sollbestand inventur").
+                 readonly, damit es nur EINE Quelle gibt. Gefuellt in
+                 invRechne() aus abrBerechne().soll. -->
+            <td class="wert g"><input id="invSoll" readonly></td>
             <td class="frei"></td><td class="frei"></td><td class="frei"></td><td class="frei"></td>
           </tr>
           <tr>
@@ -3024,15 +3029,21 @@ function heuteAktualisieren() {
   const chips = [];
   if (ist > 0) chips.push('<span class="heute-chip">Istbestand ' + invFmt(ist) + " €</span>");
   if (ware > 0) chips.push('<span class="heute-chip">Ware ' + ware.toLocaleString("de-DE") + " Stangen</span>");
-  const soll = String((inv.fuss || {}).invSoll || inv.soll || "").trim();
-  if (ist > 0) chips.push(soll
-    ? '<span class="heute-chip fertig">Sollbestand eingetragen</span>'
-    : '<span class="heute-chip offen">Sollbestand fehlt</span>');
+  /* Der Sollbestand kommt aus der Abrechnung, nicht mehr aus einem
+     getippten Feld im Inventurspeicher (Mirko, 05.09.2026). */
+  const abr = abrStandLesen();
+  if (ist > 0) chips.push(abr.soll
+    ? '<span class="heute-chip fertig">Sollbestand ' + invFmt(abr.soll) + ' €</span>'
+    : '<span class="heute-chip offen">Sollbestand fehlt – Abrechnung ausfüllen</span>');
   document.getElementById("heuteChips").innerHTML = chips.join("");
 
   // Zahlen auf den Kacheln
   heuteKachelZahl("inventur", ist > 0 ? invFmt(ist) + " €" : "noch nichts erfasst");
-  heuteKachelZahl("abrechnung", "Gerüst – noch nicht in Betrieb");
+  /* Der alte Text "Gerüst – noch nicht in Betrieb" stammte vom Tag des
+     Einbaus und stimmte seit dem 05.09.2026 nicht mehr. */
+  heuteKachelZahl("abrechnung", abr.endbestand
+    ? "Endbestand " + invFmt(abr.endbestand) + " €"
+    : "noch nichts eingetragen");
 }
 /* Haengt eine kleine Zahlenzeile unter die Beschriftung einer Kachel. */
 function heuteKachelZahl(tab, text) {
@@ -3400,6 +3411,24 @@ let invAufgebaut = false;
    regel wird aber nichts reingeschrieben"). */
 const INV_FUSS_FELDER = ["invFDatum", "invFFahrer", "invFGvl", "invFKontrolle", "invFrei1", "invFrei2"];
 
+/* ---------- Stand der Abrechnung lesen, ohne sie zu oeffnen ----------
+   Das Inventurblatt braucht den Sollbestand und die Startseite "Heute"
+   braucht die Zahlen auch dann, wenn der Abrechnungsbereich in dieser
+   Sitzung nie offen war. Einmal aus dem Speicher holen genuegt: danach ist
+   abrState die lebende Wahrheit, jede Eingabe schreibt dort hinein. */
+let abrStandGeladen = false;
+function abrStandLesen() {
+  if (!abrAufgebaut && !abrStandGeladen) {
+    try {
+      const r = localStorage.getItem(ABR_KEY);
+      if (r) { const p = JSON.parse(r) || {}; abrState.felder = p.felder || {}; abrState.sig = p.sig || {}; }
+    } catch (e) {}
+    abrStandGeladen = true;
+  }
+  return abrBerechne();
+}
+function invSollAusAbrechnung() { return abrStandLesen().soll; }
+
 const invKapazitaet = (g) => g.spalten.length * g.zeilen;
 const invGruppe = (id) => INV_GRUPPEN.find((g) => g.id === id);
 const invFeld = (gid, i) => invState.felder[gid + "-" + i] || {};
@@ -3512,12 +3541,23 @@ function invRechne() {
   });
   const ist = invIstbestand();
   document.getElementById("invIstFeld").value = ist ? invFmt(ist) : "";
-  const soll = invZahl(invState.soll);
+  /* Sollbestand kommt aus der Abrechnung (Mirko, 05.09.2026): "der soll
+     bestand aus der abrechnung muss dann automatisch in sollbestand
+     inventur bei fahrzeuginventur". Damit steht auf beiden Zetteln
+     zwangslaeufig dieselbe Zahl - vorher wurde er hier von Hand getippt
+     und konnte vom Verkaufsbericht abweichen. */
+  const soll = invSollAusAbrechnung();
+  document.getElementById("invSoll").value = soll ? invFmt(soll) : "";
   /* Richtung der Differenz: IST minus SOLL (Mirko, 05.09.2026 - "die ist
      inventur wird minus soll gerechnet"). Fehlende Ware erscheint damit als
-     Minus, ueberzaehlige als Plus - dieselbe Richtung wie im
-     Verkaufsbericht. Vorher stand hier soll - ist. */
-  document.getElementById("invDiff").value = String(invState.soll || "").trim() ? invFmt(ist - soll) : "";
+     Minus, ueberzaehlige als Plus.
+
+     Angezeigt wird sie erst, wenn ein Sollbestand da ist. Sonst stuende
+     direkt nach dem Zaehlen der volle Istbestand als "Differenz" im Blatt
+     (2.300 gezaehlt, Soll noch unbekannt -> +2.300) und sähe aus wie ein
+     riesiger Ueberschuss. Ein Sollbestand von exakt 0 kommt nicht vor, der
+     Fahrzeug-Fixbestand allein sind 1.100 EUR. */
+  document.getElementById("invDiff").value = soll !== 0 ? invFmt(ist - soll) : "";
   document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
   document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
 }
@@ -3803,8 +3843,10 @@ document.addEventListener("DOMContentLoaded", function () {
     } else if (el.dataset.invg) {                 // Blattansicht
       invSchreibe(el.dataset.invg, el.dataset.invi, el.dataset.invf, el.value);
       invRechne();
-    } else if (el.id === "invSoll") { invState.soll = el.value; invRechne(); invSichern(); }
-    else if (["invFahrer", "invDatum", "invTour"].includes(el.id)) { invState.kopf[el.id] = el.value; invSichern(); }
+    /* Kein Zweig mehr fuer invSoll: der Sollbestand ist readonly und kommt
+       aus der Abrechnung. Ein Handler waere toter Code, der ein Feld
+       beschreibt, das niemand mehr liest. */
+    } else if (["invFahrer", "invDatum", "invTour"].includes(el.id)) { invState.kopf[el.id] = el.value; invSichern(); }
     else if (INV_FUSS_FELDER.includes(el.id)) {
       invState.fuss[el.id] = el.value;
       if (el.id === "invFKontrolle" || el.id === "invFFahrer") invStempelPflegen(el.id);
@@ -3998,8 +4040,8 @@ function invFuelleKopfFelder() {
     if (el && invState.fuss[id] != null) el.value = invState.fuss[id];
   });
   invStempelZeigen();
-  const s = document.getElementById("invSoll");
-  if (s) s.value = invState.soll || "";
+  // Der Sollbestand wird nicht mehr hier gesetzt - er kommt aus der
+  // Abrechnung und wird in invRechne() gefuellt.
 }
 
 /* PDF: dieselbe Strecke wie beim Spesenblatt (html2canvas + jsPDF, beide
@@ -4352,7 +4394,9 @@ function abrRechne() {
   zeige("abrDiffGeld", diffGeld, String(abrState.felder.abrGeldablieferung || "").trim() !== "" || kasseHaben !== 0);
   zeige("abrInventurSoll", soll, soll !== 0);
   zeige("abrInventurIst", ist, ist !== 0);
-  zeige("abrDiffWare", diffWare, ist !== 0 || soll !== 0);
+  // Wie im Inventurblatt: erst zeigen, wenn ein Sollbestand da ist - sonst
+  // stuende der volle Istbestand als "Differenz" da.
+  zeige("abrDiffWare", diffWare, soll !== 0);
   zeige("abrEndbestandIst", endbestand, endbestand !== 0);
 
   const st = document.getElementById("abrStatus");
@@ -8195,7 +8239,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-23"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-24"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
