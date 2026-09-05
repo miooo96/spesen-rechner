@@ -722,6 +722,64 @@
   .kae-gr { flex:0 0 104px; }
   .kae-gr select { width:100%; padding:12px 6px; font:inherit; font-size:17px; text-align:center;
                    border:1px solid #bbb; border-radius:8px; background:#fff; }
+  /* ===== Verkaufsbericht (Abrechnung) - Blatt im Original-Layout ===== */
+  .abr-blatt { width:210mm; background:#fff; padding:8mm 7mm; color:#000; margin:10px auto;
+               box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  .abr-blatt table { border-collapse:collapse; }
+  .abr-blatt input { -webkit-appearance:none; appearance:none; margin:0; box-sizing:border-box;
+                     border:none; background:transparent; font:inherit; font-size:12px;
+                     width:100%; height:19px; line-height:19px; padding:0 4px;
+                     text-align:right; font-variant-numeric:tabular-nums; }
+  .abr-kopf { width:100%; margin-bottom:6px; }
+  .abr-kopf td { padding:2px 4px; vertical-align:middle; }
+  .abr-logo { width:26%; }
+  .abr-logo img { height:34px; }
+  .abr-titel { width:28%; font-size:13px; line-height:1.35; }
+  .abr-nrlinie { display:inline-block; width:70px; border-bottom:1px solid #000; }
+  .abr-kopf td.abr-k-lab { border:1px solid #000; font-size:12px; text-align:center; white-space:nowrap; }
+  .abr-kopf td.abr-k-feld { border:1px solid #000; }
+  .abr-kopf td.abr-k-feld input { text-align:left; }
+
+  .abr-kunden { width:100%; margin-bottom:8px; }
+  .abr-kunden th { border:1px solid #000; font-size:9.5px; font-weight:400; padding:2px 3px;
+                   text-align:left; vertical-align:top; }
+  .abr-kunden td { border:1px solid #000; height:21px; font-size:11px; padding:0 3px; }
+  .abr-kunden td.nr { width:2%; }
+
+  .abr-mitte { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:start; }
+  .abr-geld, .abr-ware, .abr-stoer, .abr-unterschrift { width:100%; }
+  .abr-geld td { border:1px solid #000; height:21px; font-size:11.5px; padding:0 4px; }
+  .abr-geld td.lab.sum { border:none; width:22%; text-align:right; padding-right:6px; }
+  .abr-geld tr:first-child td.lab.sum { font-size:11.5px; }
+  .abr-geld td:first-child:empty { border:none; }
+  .abr-geld td.lab { width:42%; }
+  .abr-geld td.feld { width:36%; }
+  .abr-geld td.fett, .abr-ware td.fett { font-weight:700; }
+  .abr-geld td.feld.g, .abr-ware td.feld.g { background:#e8e3a8; }
+  .abr-geld td.feld.rechnet, .abr-ware td.feld.rechnet { background:#f2f2f2; }
+
+  .abr-ware td { border:1px solid #000; height:21px; font-size:11.5px; padding:0 4px; }
+  .abr-ware td.titel { text-align:center; font-weight:700; font-size:12.5px; height:24px; }
+  .abr-ware td.lab { width:58%; }
+
+  .abr-stoer { margin-top:10px; }
+  .abr-stoer td { border:1px solid #000; height:24px; font-size:13px; padding:0 5px; }
+  .abr-stoer td.lab { width:52%; text-align:center; font-weight:600; background:#f6c9a0; }
+  .abr-stoer td.feld { background:#f6c9a0; }
+  .abr-erklaerung { border:1px solid #000; border-top:none; background:#f6c9a0;
+                    font-size:10.5px; font-weight:600; text-align:center; padding:7px 9px; }
+
+  .abr-unterschrift { margin-top:14px; }
+  .abr-unterschrift td { padding:6px 4px; font-size:12px; }
+  .abr-unterschrift td.lab { width:32%; white-space:nowrap; }
+  .abr-unterschrift td.linie { border-bottom:1px solid #000; }
+  .abr-sigwrap { display:flex; align-items:center; }
+  .abr-sigwrap input { flex:1 1 auto; text-align:left; }
+
+  @media screen and (max-width:900px) {
+    .abr-blatt { transform:scale(.46); transform-origin:top left; margin:6px; }
+  }
+
   .abr-kette { border:1px solid #ddd; border-radius:10px; padding:10px 12px; background:#fff; margin:10px 0; }
   .abr-zeile { display:flex; gap:8px; align-items:baseline; padding:3px 0; font-size:14px; }
   .abr-op { flex:0 0 18px; text-align:center; font-weight:700; color:#888; }
@@ -1641,29 +1699,114 @@
 </div>
 
 <div class="panel no-print" id="abrechnungPanel" style="display:none;">
-  <h2 style="margin-top:0;">🧾 Abrechnung</h2>
-  <p class="small" style="color:#666; margin-top:0;">
-    Ziel: Inventur und Abrechnung rechnen sich selbst – ohne dass jemand
-    nachrechnen muss.
-  </p>
-  <div class="abr-kette">
-    <div class="abr-zeile"><span class="abr-op"></span>Fahrzeugbestand am Anfang</div>
-    <div class="abr-zeile"><span class="abr-op">+</span>Beladung / Lieferscheine</div>
-    <div class="abr-zeile"><span class="abr-op">−</span>Verkauf laut Automaten</div>
-    <div class="abr-zeile abr-ergebnis"><span class="abr-op">=</span>Sollbestand</div>
-    <div class="abr-zeile abr-pruef"><span class="abr-op">↕</span>gegen den gezählten Istbestand → <b>Differenz Ware</b></div>
-    <div class="abr-luecke"></div>
-    <div class="abr-zeile">Geld aus den Automaten + Scheine und Münzen</div>
-    <div class="abr-zeile abr-pruef"><span class="abr-op">↕</span>gegen den Sollumsatz → <b>Differenz Geld</b></div>
+  <div class="inv-kopfzeile">
+    <h2 style="margin:0;">🧾 Abrechnung</h2>
+    <span class="sp" id="abrStatus" style="margin-left:auto; color:#555;"></span>
   </div>
-  <p class="small" style="color:#666;">
-    Beide Differenzen müssen zusammenpassen. Tun sie das nicht, zeigt die App,
-    <b>an welcher Stelle</b> es auseinanderläuft – das ist der eigentliche Nutzen.
-  </p>
-  <div class="abr-hinweis">
-    <b>Noch nicht in Betrieb.</b> Gebaut wird die Rechenkette erst mit echten
-    Abrechnungen – Mirko fotografiert nach dem Urlaub eine vollständige
-    Abrechnung. Ein erfundenes Rechenwerk wäre wertlos.
+  <div class="inv-bar">
+    <button type="button" class="ghost" onclick="abrSpeichern()">💾 PDF speichern</button>
+    <button type="button" class="ghost" onclick="abrDrucken()">🖨️ Drucken</button>
+    <button type="button" class="ghost" onclick="abrNeu()">🗑️ Neuer Bericht</button>
+  </div>
+
+  <!-- Verkaufsbericht 1:1 nach dem Vordruck (Foto 05.09.2026). Ausgefuellt
+       wird direkt im Blatt, daraus entsteht auch die PDF - es gibt keine
+       zweite Vorlage. -->
+  <div class="abr-blatt" id="abrBlatt">
+    <table class="abr-kopf">
+      <tr>
+        <td class="abr-logo" rowspan="2"><img src="hall-logo.png" alt="Hall Tabakwaren"></td>
+        <td class="abr-titel" rowspan="2">Verkaufsbericht<br>Nr.: <span class="abr-nrlinie"></span></td>
+        <td class="abr-k-lab">Vertreter:</td>
+        <td class="abr-k-feld" colspan="3"><input id="abrVertreter"></td>
+      </tr>
+      <tr>
+        <td class="abr-k-lab">Tour Nr:</td>
+        <td class="abr-k-feld"><input id="abrTour"></td>
+        <td class="abr-k-lab">Datum:</td>
+        <td class="abr-k-feld"><input id="abrDatum"></td>
+      </tr>
+    </table>
+
+    <!-- Kundentabelle: wird auf der Tour nicht gefuellt (Mirko), bleibt aber
+         auf dem Blatt, damit der Ausdruck dem Original entspricht. -->
+    <table class="abr-kunden">
+      <tr>
+        <th>Kunde</th><th>Kunden-<br>Nr.</th><th>Rechng.-Nr.<br>L-schein.-Nr.</th>
+        <th>Barverkauf</th><th>Kreditverkauf</th><th>Rechnungs-<br>KVP</th>
+        <th>Lieferschein<br>KVP</th><th>Rechnungs-<br>inkasso</th><th>Sonstiges-<br>Inkasso</th>
+      </tr>
+      <tr><td class="nr">1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="nr">2</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="nr">3</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="nr">4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="nr">5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="nr">6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+
+    <div class="abr-mitte">
+      <div class="abr-links">
+        <table class="abr-geld">
+          <tr><td class="lab sum">Summe:</td><td class="lab">Barverkauf</td><td class="feld"><input id="abrBarverkauf" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Rechnungs-Inkasso</td><td class="feld"><input id="abrRechInkasso" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Sonstiges-Inkasso</td><td class="feld"><input id="abrSonstInkasso" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Geldablieferung lt.<br>Abrechnung</td><td class="feld g"><input id="abrGeldablieferung" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab fett">Kasse Soll</td><td class="feld"><input id="abrKasseSoll" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Kosten</td><td class="feld"><input id="abrKosten" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Falschgeld</td><td class="feld"><input id="abrFalschgeld" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">A-Konto</td><td class="feld"><input id="abrAKonto" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Hartgeld</td><td class="feld g"><input id="abrHartgeld" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Scheine</td><td class="feld g"><input id="abrScheine" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Restgeld</td><td class="feld"><input id="abrRestgeld" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Geldkarte</td><td class="feld"><input id="abrGeldkarte" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">GiroGo</td><td class="feld g"><input id="abrGiroGo" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Freiverkauf</td><td class="feld"><input id="abrFreiverkauf" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab">Schecks</td><td class="feld"><input id="abrSchecks" inputmode="decimal"></td></tr>
+          <tr><td></td><td class="lab fett">Kasse Haben</td><td class="feld rechnet"><input id="abrKasseHaben" readonly></td></tr>
+          <tr><td></td><td class="lab">Differenz</td><td class="feld rechnet"><input id="abrDiffGeld" readonly></td></tr>
+        </table>
+
+        <table class="abr-stoer">
+          <tr><td class="lab">Störgeld:</td><td class="feld g"><input id="abrStoergeld" inputmode="decimal"></td></tr>
+        </table>
+        <div class="abr-erklaerung">
+          Die Abgabe von Störgeld ist verpflichtend, hiermit bestätige ich, dass
+          ich sämtliches Störgeld und Falschgeld abgegeben habe.
+        </div>
+      </div>
+
+      <div class="abr-rechts">
+        <table class="abr-ware">
+          <tr><td class="titel" colspan="2">Warenabrechnug</td></tr>
+          <tr><td class="lab">Endbestand Vortrag:</td><td class="feld g"><input id="abrEndbestandVortrag" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Automatenverkauf</td><td class="feld g"><input id="abrAutomatenverkauf" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Rechnung KVP</td><td class="feld"><input id="abrRechnungKVP" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Lieferschein KVP</td><td class="feld"><input id="abrLieferscheinKVP" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Bestandserhöhung</td><td class="feld g"><input id="abrBestandErhoehung" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Bestandsverminderung</td><td class="feld g"><input id="abrBestandVerminderung" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Entlastung Sonstiges</td><td class="feld g"><input id="abrEntlastung" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeO1" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeO2" inputmode="decimal"></td></tr>
+          <tr><td class="lab fett">Inventur Soll</td><td class="feld rechnet"><input id="abrInventurSoll" readonly></td></tr>
+          <tr><td class="lab fett">Inventur Ist</td><td class="feld rechnet"><input id="abrInventurIst" readonly></td></tr>
+          <tr><td class="lab fett">Differenz</td><td class="feld rechnet"><input id="abrDiffWare" readonly></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU1" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU2" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU3" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU4" inputmode="decimal"></td></tr>
+          <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld g"><input id="abrLadeU5" inputmode="decimal"></td></tr>
+          <tr><td class="lab">- Entladeschein</td><td class="feld"><input id="abrEntladeschein" inputmode="decimal"></td></tr>
+          <tr><td class="lab fett">Endbestand IST</td><td class="feld rechnet"><input id="abrEndbestandIst" readonly></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <table class="abr-unterschrift">
+      <tr><td class="lab">Unterschrift Fahrer:</td>
+          <td class="linie"><div class="abr-sigwrap"><input id="abrUntFahrer"><span class="inv-stempel" id="abrTs-abrUntFahrer"></span></div></td></tr>
+      <tr><td class="lab">Kontrolliert:</td>
+          <td class="linie"><div class="abr-sigwrap"><input id="abrKontrolliert"><span class="inv-stempel" id="abrTs-abrKontrolliert"></span></div></td></tr>
+    </table>
   </div>
 </div>
 
@@ -3168,7 +3311,11 @@ function invRechne() {
   const ist = invIstbestand();
   document.getElementById("invIstFeld").value = ist ? invFmt(ist) : "";
   const soll = invZahl(invState.soll);
-  document.getElementById("invDiff").value = String(invState.soll || "").trim() ? invFmt(soll - ist) : "";
+  /* Richtung der Differenz: IST minus SOLL (Mirko, 05.09.2026 - "die ist
+     inventur wird minus soll gerechnet"). Fehlende Ware erscheint damit als
+     Minus, ueberzaehlige als Plus - dieselbe Richtung wie im
+     Verkaufsbericht. Vorher stand hier soll - ist. */
+  document.getElementById("invDiff").value = String(invState.soll || "").trim() ? invFmt(ist - soll) : "";
   document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
   document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
 }
@@ -3735,7 +3882,184 @@ function invSchliesseErgebnis() {
   closeModal();
 }
 
-function toggleAbrechnungPanel() { zeigeAnsicht("abrechnungPanel"); }
+/* ===================== Abrechnung / Verkaufsbericht =====================
+   Rechenkette nach Mirkos Beschreibung (Brain Dump 05.09.2026), Rueckfragen
+   geklaert am selben Tag:
+
+     Kasse Haben   = Scheine + Hartgeld + GiroGo
+     Differenz     = Geldablieferung lt. Abrechnung − Kasse Haben
+                     (was laut Papier mitgebracht wurde minus was da ist)
+
+     Inventur Soll = Endbestand Vortrag − Automatenverkauf
+                     − Bestandserhoehung + Bestandsverminderung
+                     − Entlastung Sonstiges + Ladeliste (obere Zeilen)
+     Inventur Ist  = Istbestand aus der Fahrzeug-Inventur (automatisch)
+     Differenz     = Inventur Ist − Inventur Soll
+                     (fehlende Ware negativ, ueberzaehlige positiv)
+     Endbestand IST = Inventur Ist + Ladeliste (untere Zeilen)
+
+   Bewusst NICHT gerechnet: Kasse Soll, Kosten, Falschgeld, A-Konto,
+   Restgeld, Geldkarte, Freiverkauf, Schecks, Rechnung KVP, Lieferschein
+   KVP, Entladeschein - "habe ich in 2 Jahren noch nie ausgefuellt". Die
+   Felder stehen trotzdem auf dem Blatt, damit der Ausdruck dem Original
+   entspricht, und lassen sich von Hand fuellen. */
+const ABR_KEY = "hall-abrechnung-v1";
+let abrState = { felder: {}, sig: {} };
+
+const ABR_EINGABEN = ["abrVertreter","abrTour","abrDatum","abrBarverkauf","abrRechInkasso",
+  "abrSonstInkasso","abrGeldablieferung","abrKasseSoll","abrKosten","abrFalschgeld","abrAKonto",
+  "abrHartgeld","abrScheine","abrRestgeld","abrGeldkarte","abrGiroGo","abrFreiverkauf","abrSchecks",
+  "abrStoergeld","abrEndbestandVortrag","abrAutomatenverkauf","abrRechnungKVP","abrLieferscheinKVP",
+  "abrBestandErhoehung","abrBestandVerminderung","abrEntlastung","abrLadeO1","abrLadeO2",
+  "abrLadeU1","abrLadeU2","abrLadeU3","abrLadeU4","abrLadeU5","abrEntladeschein",
+  "abrUntFahrer","abrKontrolliert"];
+
+function abrWert(id) { return invZahl((abrState.felder || {})[id]); }
+function abrSetz(id, wert) {
+  const el = document.getElementById(id);
+  if (el) el.value = wert;
+}
+function abrSichern() { try { localStorage.setItem(ABR_KEY, JSON.stringify(abrState)); } catch (e) {} }
+function abrLaden() {
+  try { const r = localStorage.getItem(ABR_KEY); if (r) Object.assign(abrState, JSON.parse(r)); } catch (e) {}
+  abrState.felder = abrState.felder || {};
+  abrState.sig = abrState.sig || {};
+  ABR_EINGABEN.forEach((id) => { if (abrState.felder[id] != null) abrSetz(id, abrState.felder[id]); });
+}
+
+/* Istbestand kommt aus der Fahrzeug-Inventur - dieselbe Zahl, die dort
+   unten im Blatt steht. Gelesen wird aus dem Speicher, damit die Inventur
+   dafuer nicht geoeffnet sein muss. */
+function abrInventurIst() {
+  const st = heuteLies(INV_KEY);
+  return heuteIstbestand(st);
+}
+
+function abrRechne() {
+  const kasseHaben = abrWert("abrScheine") + abrWert("abrHartgeld") + abrWert("abrGiroGo");
+  const diffGeld = abrWert("abrGeldablieferung") - kasseHaben;
+
+  const soll = abrWert("abrEndbestandVortrag")
+             - abrWert("abrAutomatenverkauf")
+             - abrWert("abrBestandErhoehung")
+             + abrWert("abrBestandVerminderung")
+             - abrWert("abrEntlastung")
+             + abrWert("abrLadeO1") + abrWert("abrLadeO2");
+  const ist = abrInventurIst();
+  const diffWare = ist - soll;
+  const endbestand = ist + abrWert("abrLadeU1") + abrWert("abrLadeU2") + abrWert("abrLadeU3")
+                   + abrWert("abrLadeU4") + abrWert("abrLadeU5");
+
+  const zeige = (id, wert, nurWenn) =>
+    abrSetz(id, nurWenn ? invFmt(wert) : "");
+  zeige("abrKasseHaben", kasseHaben, kasseHaben !== 0);
+  zeige("abrDiffGeld", diffGeld, String(abrState.felder.abrGeldablieferung || "").trim() !== "" || kasseHaben !== 0);
+  zeige("abrInventurSoll", soll, soll !== 0);
+  zeige("abrInventurIst", ist, ist !== 0);
+  zeige("abrDiffWare", diffWare, ist !== 0 || soll !== 0);
+  zeige("abrEndbestandIst", endbestand, endbestand !== 0);
+
+  const st = document.getElementById("abrStatus");
+  if (st) st.textContent = ist ? "Inventur Ist " + invFmt(ist) + " €" : "";
+}
+
+/* Unterschrift mit Zeitstempel - gleiche Mechanik wie im Inventurblatt. */
+function abrStempelPflegen(id) {
+  const el = document.getElementById(id);
+  const gefuellt = el && String(el.value || "").trim() !== "";
+  if (gefuellt && !abrState.sig[id]) abrState.sig[id] = Date.now();
+  if (!gefuellt) delete abrState.sig[id];
+  abrStempelZeigen();
+}
+function abrStempelZeigen() {
+  ["abrUntFahrer", "abrKontrolliert"].forEach((id) => {
+    const el = document.getElementById("abrTs-" + id);
+    if (el) el.textContent = abrState.sig[id] ? "signiert " + invStempelText(abrState.sig[id]) : "";
+  });
+}
+
+document.addEventListener("input", function (e) {
+  const el = e.target;
+  if (!el || !el.id || ABR_EINGABEN.indexOf(el.id) === -1) return;
+  abrState.felder[el.id] = el.value;
+  if (el.id === "abrUntFahrer" || el.id === "abrKontrolliert") abrStempelPflegen(el.id);
+  abrRechne();
+  abrSichern();
+});
+
+function abrNeu() {
+  if (!confirm("Neuen Verkaufsbericht beginnen?\n\nAlle eingetragenen Werte werden gelöscht.")) return;
+  abrState = { felder: {}, sig: {} };
+  abrSichern();
+  ABR_EINGABEN.forEach((id) => abrSetz(id, ""));
+  abrVorbelegen();
+  abrRechne();
+  abrStempelZeigen();
+}
+
+/* Vertreter, Tour und Datum stehen schon in den Stammdaten bzw. in der
+   Fahrzeug-Inventur - sie werden vorbelegt, lassen sich aber ueberschreiben. */
+function abrVorbelegen() {
+  const inv = heuteLies(INV_KEY);
+  if (!abrState.felder.abrVertreter && config.name) {
+    abrState.felder.abrVertreter = config.name; abrSetz("abrVertreter", config.name);
+  }
+  const tour = (inv.kopf || {}).invTour;
+  if (!abrState.felder.abrTour && tour) { abrState.felder.abrTour = tour; abrSetz("abrTour", tour); }
+  if (!abrState.felder.abrDatum) {
+    const heute = new Date().toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" });
+    abrState.felder.abrDatum = heute; abrSetz("abrDatum", heute);
+  }
+}
+
+let abrAufgebaut = false;
+function toggleAbrechnungPanel() {
+  const offen = zeigeAnsicht("abrechnungPanel");
+  if (!offen) return;
+  if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
+  abrRechne();
+}
+
+/* PDF: dieselbe Machart wie beim Inventurblatt - das Blatt wird
+   aufgenommen und als Bild in eine A4-Seite gelegt. Hier HOCHformat, der
+   Verkaufsbericht ist ein Hochkant-Blatt. */
+async function abrBuildPdf() {
+  const el = document.getElementById("abrBlatt");
+  if (!el) return null;
+  const vorher = el.style.transform;
+  el.style.transform = "none";
+  let canvas;
+  try {
+    canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", windowWidth: 1000 });
+  } finally {
+    el.style.transform = vorher;
+  }
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+  const seiteB = pdf.internal.pageSize.getWidth(), seiteH = pdf.internal.pageSize.getHeight();
+  const rand = 8, maxB = seiteB - rand * 2, maxH = seiteH - rand * 2;
+  let b = maxB, h = (canvas.height * b) / canvas.width;
+  if (h > maxH) { h = maxH; b = (canvas.width * h) / canvas.height; }
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", (seiteB - b) / 2, rand, b, h);
+  const datum = String(abrState.felder.abrDatum || "").replace(/[^0-9]/g, "-");
+  const tour = String(abrState.felder.abrTour || "").trim();
+  return { pdf, filename: "Verkaufsbericht" + (tour ? "_Tour-" + tour : "") + "_" + datum + ".pdf" };
+}
+async function abrSpeichern() { const r = await abrBuildPdf(); if (r) r.pdf.save(r.filename); }
+async function abrDrucken() {
+  const r = await abrBuildPdf();
+  if (!r) return;
+  const url = r.pdf.output("bloburl");
+  const rahmen = document.createElement("iframe");
+  rahmen.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  rahmen.src = url;
+  rahmen.onload = () => {
+    try { rahmen.contentWindow.focus(); rahmen.contentWindow.print(); }
+    catch (e) { window.open(url, "_blank"); }
+  };
+  document.body.appendChild(rahmen);
+  setTimeout(() => { try { rahmen.remove(); URL.revokeObjectURL(url); } catch (e) {} }, 60000);
+}
 
 function toggleInventurPanel() {
   const offen = zeigeAnsicht("inventurPanel");
@@ -7018,7 +7342,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-6"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-7"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
