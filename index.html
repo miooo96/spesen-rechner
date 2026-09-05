@@ -364,11 +364,23 @@
      Kachel-Zeile - dadurch wirkt der gesamte Abstand ueberall gleich, egal
      ob zwei Kacheln im selben oder in getrennten Grids stehen. */
   .kachel-grid + .kachel-grid { margin-top: 1rem; }
+  /* Kacheln in den Hausfarben statt reinem Weiss (Mirko, 05.09.2026:
+     "die kacheln auch nicht einfach nur weiss sein das passt ja nicht zum
+     gesamten ... entweder in den beige ton oder auch in die transparente
+     optik mit eventuell orangener neon umrandung").
+
+     Gewaehlt: warmes, leicht durchscheinendes Creme mit orangem Rand. Auf
+     dem Creme-Hintergrund der Seite hebt sich die Kachel dadurch ab, ohne
+     wie ein aufgeklebtes weisses Rechteck zu wirken. Der Schatten ist
+     braun statt grau eingefaerbt - grauer Schatten auf warmem Grund sieht
+     schmutzig aus. */
   .kachel-btn {
-    background: #fff; border: none; border-radius: 16px; padding: 2rem 1rem;
+    background: linear-gradient(180deg, rgba(255,252,247,.96), rgba(250,242,230,.96));
+    border: 1.5px solid rgba(222,112,8,.42); border-radius: 16px; padding: 2rem 1rem;
     font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
-    box-shadow: 0 4px 16px rgba(24,26,32,0.12); cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 14px rgba(97,42,0,.14), inset 0 1px 0 rgba(255,255,255,.9);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
     /* Ohne dies erbt der Button die globale "button { white-space: nowrap }"
        -Regel und laesst Labels wie "🌴 Urlaub" bei ~320px Breite (iPhone SE
        1. Generation, guenstige Android-Handys) ueber den weissen Kachelrand
@@ -376,7 +388,20 @@
        trotzdem gut aussehen. Bugfix 26.08.2026, siehe Whole-Branch-Review. */
     white-space: normal;
   }
-  .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
+  /* Beim Antippen glimmt der Rand kurz auf - dieselbe Handschrift wie die
+     Leuchtreklame, nur sehr dezent. */
+  .kachel-btn:hover {
+    /* Der Hintergrund MUSS hier stehen: Die allgemeine Regel
+       "button:hover { background: #e6e9ee }" ist eine Kurzform und loescht
+       damit auch das Verlaufsbild. Ohne diese Zeile wurde eine
+       ueberfahrene Kachel schlagartig grau-blau - gesehen am 05.09.2026
+       an der Kachel "Anleitung". */
+    background: linear-gradient(180deg, #fffdfa, rgba(253,246,236,.98));
+    transform: translateY(-2px);
+    border-color: rgba(222,112,8,.85);
+    box-shadow: 0 8px 22px rgba(97,42,0,.22), 0 0 14px rgba(222,112,8,.28),
+                inset 0 1px 0 rgba(255,255,255,.9);
+  }
   /* Zahl unter der Kachel-Beschriftung: zeigt den Stand, statt nur ein Symbol */
   .kachel-zahl { display:block; margin-top:6px; font-size:0.82rem; font-weight:600;
                  color:#8a7a6a; letter-spacing:.2px; }
@@ -8680,7 +8705,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-32"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-33"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
