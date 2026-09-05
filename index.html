@@ -4738,20 +4738,7 @@ window.addEventListener("afterprint", () => {
 
 function invDruckeErgebnis() {
   if (!__invErgebnis) return;
-  /* Zum Drucken wird das PDF in einem unsichtbaren Rahmen geoeffnet und
-     dessen Druckdialog aufgerufen - so druckt der Browser das fertige
-     Dokument im Querformat, nicht die Bildschirmseite. Klappt das nicht
-     (strengere Handy-Browser), oeffnet sich das PDF stattdessen normal. */
-  const url = __invErgebnis.pdf.output("bloburl");
-  const rahmen = document.createElement("iframe");
-  rahmen.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-  rahmen.src = url;
-  rahmen.onload = () => {
-    try { rahmen.contentWindow.focus(); rahmen.contentWindow.print(); }
-    catch (e) { window.open(url, "_blank"); }
-  };
-  document.body.appendChild(rahmen);
-  setTimeout(() => { try { rahmen.remove(); URL.revokeObjectURL(url); } catch (e) {} }, 60000);
+  pdfDrucken(__invErgebnis.pdf);
 }
 function invSchliesseErgebnis() {
   __invErgebnis = null;
@@ -5288,7 +5275,7 @@ async function abrAbschliessen() {
   if (r) {
     r.pdf.save(r.filename);
     if (confirm("Gespeichert: " + r.filename + "\n\n(Seite 1 Inventurblatt, Seite 2 Verkaufsbericht)\n\nBeide Zettel jetzt drucken?")) {
-      abrDruckePdf(r.pdf);
+      pdfDrucken(r.pdf);
     }
   }
 
@@ -5399,20 +5386,48 @@ async function abrBuildBeidePdf() {
 async function abrBeideDrucken() {
   const r = await abrBuildBeidePdf();
   if (!r) { alert("Die Blätter konnten nicht aufgenommen werden."); return; }
-  abrDruckePdf(r.pdf);
+  pdfDrucken(r.pdf);
 }
-function abrDruckePdf(pdf) {
+/* ---------- PDF drucken ----------
+   EINE Stelle fuer alle drei Druckknoepfe (Inventurblatt, Verkaufsbericht,
+   beide Zettel). Vorher stand derselbe Code dreimal im Projekt.
+
+   FEHLER, der dadurch dreimal drinsteckte (Mirko, 05.09.2026: "bei beide
+   seiten drucken kommen nur weisse seiten raus"):
+   Der Rahmen war "width:0;height:0". Gemessen ergab das im Inneren
+   0 x 0 Pixel - der PDF-Betrachter darin hat keine Flaeche, baut also
+   keine Seite auf. print() laeuft fehlerfrei durch und der Drucker
+   bekommt leere Seiten.
+
+   Jetzt hat der Rahmen die Groesse einer A4-Seite und liegt weit links
+   ausserhalb des Sichtfelds: sichtbar fuer den Betrachter, unsichtbar
+   fuer den Nutzer. Dazu eine kurze Pause, damit die Seiten fertig
+   aufgebaut sind, bevor gedruckt wird. */
+function pdfDrucken(pdf) {
   const url = pdf.output("bloburl");
   const rahmen = document.createElement("iframe");
-  rahmen.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+  rahmen.setAttribute("aria-hidden", "true");
+  rahmen.style.cssText =
+    "position:fixed; left:-10000px; top:0; width:794px; height:1123px; border:0;";
   rahmen.src = url;
   rahmen.onload = () => {
-    try { rahmen.contentWindow.focus(); rahmen.contentWindow.print(); }
-    catch (e) { window.open(url, "_blank"); }
+    setTimeout(() => {
+      try {
+        const fenster = rahmen.contentWindow;
+        if (!fenster || !fenster.innerWidth) throw new Error("Rahmen ohne Flaeche");
+        fenster.focus();
+        fenster.print();
+      } catch (e) {
+        // Strengere Handy-Browser: dann das PDF einfach oeffnen, dort
+        // kann ueber "Teilen" gedruckt werden.
+        window.open(url, "_blank");
+      }
+    }, 350);
   };
   document.body.appendChild(rahmen);
   setTimeout(() => { try { rahmen.remove(); URL.revokeObjectURL(url); } catch (e) {} }, 60000);
 }
+
 /* Vor dem Drucken ansehen (Mirko, 05.09.2026) - dieselbe Machart wie beim
    Inventurblatt: Das Blatt wird EINMAL aufgenommen und als Bild gezeigt,
    daraus entsteht auch die PDF. Bewusst ein Bild und kein eingebettetes
@@ -5441,13 +5456,13 @@ function abrSchliesseErgebnis() { document.getElementById("modalRoot").innerHTML
 function abrSpeichereErgebnis() { if (__abrErgebnis) __abrErgebnis.pdf.save(__abrErgebnis.filename); }
 function abrDruckeErgebnis() {
   if (!__abrErgebnis) return;
-  abrDruckePdf(__abrErgebnis.pdf);
+  pdfDrucken(__abrErgebnis.pdf);
 }
 
 async function abrSpeichern() { const r = await abrBuildPdf(); if (r) r.pdf.save(r.filename); }
 async function abrDrucken() {
   const r = await abrBuildPdf();
-  if (r) abrDruckePdf(r.pdf);
+  if (r) pdfDrucken(r.pdf);
 }
 
 /* Aufbau des Inventurblatts, herausgeloest aus toggleInventurPanel():
@@ -8742,7 +8757,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-36"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-37"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
