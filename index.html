@@ -1051,6 +1051,82 @@
     #splashScreen.nacht .splash-jahr { animation: none !important; }
   }
 
+
+  /* ===================== Zigarette ascht das Logo =====================
+     Mirko, 06.09.2026. Beim ersten Oeffnen der Kachelseite ascht eine
+     Zigarette zweimal ab; aus der Asche setzt sich das Leuchtschild
+     zusammen - erst "Hall", dann "TABAKWAREN" und "seit 1903". Danach
+     steht nur noch das Neon und pulsiert. Antippen spielt es erneut ab.
+
+     Kein Bild, kein Video: Die Flocken landen an 230 Punkten, die aus
+     hall-logo-original.png ausgelesen und nach x sortiert wurden -
+     deshalb entsteht die Schrift von links nach rechts. Null Kilobyte. */
+  /* z-index MUSS positiv sein. Mit -1 (wie #nachtStartHg) laege die
+     Buehne hinter dem Hintergrund - die Animation liefe korrekt, waere
+     aber unsichtbar. Genau das war beim ersten Einbau der Fall.
+     pointer-events:none, damit die Kacheln bedienbar bleiben. */
+  #zigiBuehne { position:fixed; inset:0; z-index:40; pointer-events:none; display:none; }
+  body.zigi-laeuft #zigiBuehne { display:block; }
+
+  /* Groesse haengt an der Logobreite, nicht an festen Pixeln - sonst
+     waere sie am Rechner winzig. --zl wird in JS gesetzt. */
+  .zigi { position:absolute; display:flex; align-items:stretch;
+          height:calc(var(--zl,245px) * .0735);
+          transform:rotate(6deg); transform-origin:100% 50%; }
+  .zigi .papier { width:var(--papier,calc(var(--zl,245px) * .551)); border-radius:2px 0 0 2px;
+    transition:width 700ms cubic-bezier(.4,0,.3,1);
+    background:linear-gradient(180deg,#fdfbf7 0%,#f2ece1 42%,#ddd4c6 76%,#c9bfae 100%);
+    box-shadow:0 2px 6px rgba(0,0,0,.7), inset 0 -2px 3px rgba(0,0,0,.14),
+               inset 0 1px 1px rgba(255,255,255,.7); }
+  /* Der Filter brennt nicht - er bleibt gleich lang, nur das Papier
+     verzehrt sich. Deshalb ist sie am Filterende verankert: die Glut
+     wandert auf den Filter zu, nicht umgekehrt. */
+  .zigi .filterteil { width:calc(var(--zl,245px) * .224); border-radius:0 2px 2px 0; position:relative;
+    background:linear-gradient(180deg,#e2c495 0%,#d9bb85 40%,#c19a4a 78%,#ab8438 100%);
+    box-shadow:0 2px 6px rgba(0,0,0,.7), inset 0 -2px 3px rgba(0,0,0,.18),
+               inset 0 1px 1px rgba(255,255,255,.45); }
+  .zigi .filterteil::before { content:""; position:absolute; left:-1px; top:0; bottom:0; width:2px;
+    background:rgba(140,100,44,.7); }
+  .zigi .spitze { position:absolute; right:100%; top:0; height:100%; display:flex; align-items:center; }
+  .zigi .asche { height:calc(var(--zl,245px) * .0735); width:0; border-radius:2px 3px 3px 2px;
+    background:linear-gradient(90deg,#4a443e 0%,#7d746c 40%,#a99e91 72%,#d8b78c 100%);
+    box-shadow:inset 0 0 3px rgba(0,0,0,.6); }
+  .zigi .glut { width:calc(var(--zl,245px) * .053); height:calc(var(--zl,245px) * .086);
+    border-radius:2px; flex:0 0 auto;
+    background:radial-gradient(circle at 42% 50%, #fff6e0, #ff9422 52%, #b04d05);
+    box-shadow:0 0 10px 2px rgba(255,140,20,.95), 0 0 26px 8px rgba(222,112,8,.5); }
+  .zigi .rauch { position:absolute; right:100%; bottom:4px; width:3px; height:3px; }
+  .zigi .rauch i { position:absolute; bottom:0; left:0; width:20px; height:20px; border-radius:50%;
+    background:radial-gradient(circle, rgba(226,216,204,.30), rgba(226,216,204,0) 70%);
+    filter:blur(4px); opacity:0; }
+  @keyframes zigiQualm {
+    0%   { opacity:0; transform:translate(0,0) scale(.5); }
+    18%  { opacity:.75; }
+    100% { opacity:0; transform:translate(var(--dx,-26px), -110px) scale(2.6); }
+  }
+  .zigi-fl { position:absolute; width:3.2px; height:2.6px;
+             border-radius:46% 58% 40% 62%/55% 42% 60% 45%; will-change:transform,opacity; }
+
+  /* Waehrend des Aufbaus zwei beschnittene Kopien des Schildes, danach
+     das ungeteilte. Die Kaesten sind 70 px groesser als das Logo: Eine
+     Maske beschneidet auf die Elementkante, und der aeusserste Schein
+     reicht 70 px weit - ohne die Luft entstuende ein oranger Kasten. */
+  .zigiBand { position:absolute; opacity:0; }
+  .zigiBand .glanz { position:absolute; inset:70px;
+    filter:drop-shadow(0 0 4px #fff2dc) drop-shadow(0 0 14px #ffa53a)
+           drop-shadow(0 0 34px #de7008) drop-shadow(0 0 70px #de7008); }
+  .zigiBand i { position:absolute; inset:0; display:block; background:#fff3e0;
+    -webkit-mask:url("hall-logo-original.png") center/contain no-repeat;
+            mask:url("hall-logo-original.png") center/contain no-repeat; }
+  .zigiBand.b1 { -webkit-mask:linear-gradient(180deg,#000 50%,transparent 57%);
+                         mask:linear-gradient(180deg,#000 50%,transparent 57%); }
+  .zigiBand.b2 { -webkit-mask:linear-gradient(180deg,transparent 52%,#000 59%);
+                         mask:linear-gradient(180deg,transparent 52%,#000 59%); }
+  /* Waehrend die Zigarette laeuft, ist das echte Schild unsichtbar -
+     es uebernimmt erst am Schluss. */
+  body.zigi-laeuft #nachtStartLogo { opacity:0 !important; }
+  @media (prefers-reduced-motion: reduce) { #zigiBuehne { display:none !important; } }
+
   /* ===================== Fahrzeug-Inventur ===================== */
   .inv-kopfzeile { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin:0 0 12px; }
   .inv-kopfzeile h2 { margin:0; font-size:1.15rem; }
@@ -1832,6 +1908,8 @@
        Nachtbild-Auftritt sichtbar. -->
   <button type="button" id="nachtZurueck" onclick="zurueckZumStartbild()">‹ Startbild</button>
   <div id="nachtStartLogo" aria-hidden="true"><span></span></div>
+  <!-- Buehne fuer die Zigaretten-Animation, siehe zigiStart(). -->
+  <div id="zigiBuehne" aria-hidden="true"></div>
   <!-- "Heute": Kopfbereich ueber den Kacheln. Wer die App zum zweiten Mal
        oeffnet, soll seinen Stand sehen statt einer Menuetafel - ein grosser
        Knopf auf die zuletzt offene Aufgabe. Vorerst nur fuer Mirko sichtbar
@@ -3776,6 +3854,181 @@ function heuteKachelZahl(tab, text) {
   el.textContent = text;
 }
 
+
+/* ===================== Zigarette ascht das Logo =====================
+   Mirko, 06.09.2026: "danach soll nur noch das neonfarbene hall logo
+   stehen und pulsieren, animation kann wiederholt werden indem man auf
+   das neon logo drueckt".
+
+   Laeuft NUR beim ersten Oeffnen der Kachelseite je App-Start, nicht bei
+   jeder Rueckkehr aus einem Bereich - sonst wartet man zehnmal am Tag
+   zehn Sekunden. Antippen des Schildes spielt sie erneut ab.
+
+   Die 230 Landepunkte stammen aus hall-logo-original.png: alle deckenden
+   Bildpunkte gelesen, gleichmaessig gezogen, nach x sortiert. Deshalb
+   entsteht die Schrift von links nach rechts. In Prozent gespeichert,
+   also unabhaengig von der Bildschirmgroesse. */
+const LOGO_PUNKTE = {hall:[[0,48.54],[4,9.22],[4,45.63],[4.67,49.51],[5.33,56.31],[6.67,13.59],[7.33,49.03],[7.33,29.61],[8,14.56],[8.67,33.98],[8.67,18.93],[9.33,24.76],[9.33,35.92],[9.33,7.28],[9.33,34.47],[10.67,29.13],[10.67,14.08],[11.33,0],[12,28.64],[12.67,2.91],[12.67,49.03],[13.33,47.57],[17.33,29.61],[18.67,34.47],[20.67,2.43],[22.67,16.5],[23.33,32.04],[23.33,33.01],[23.33,20.39],[26.67,9.71],[27.33,33.5],[29.33,2.91],[31.33,51.94],[32,51.46],[32,52.43],[32.67,35.92],[33.33,19.42],[34,46.6],[37.33,24.27],[38.67,27.18],[40,17.96],[42,17.96],[43.33,48.54],[43.33,54.85],[44,47.57],[44.67,16.5],[44.67,40.29],[44.67,23.79],[45.33,22.82],[45.33,41.26],[46,29.61],[48,43.2],[48.67,49.03],[48.67,25.24],[48.67,16.02],[53.33,16.5],[53.33,33.98],[55.33,42.72],[56,20.39],[56.67,48.06],[57.33,51.46],[60,20.87],[61.33,30.1],[62,10.19],[62.67,38.35],[62.67,17.96],[62.67,31.55],[65.33,45.15],[65.33,13.59],[66,42.72],[66,26.21],[69.33,12.62],[69.33,19.9],[70,0.49],[70,5.34],[72,44.66],[72,0.49],[72.67,46.6],[73.33,38.35],[74,34.95],[74,5.34],[74,55.83],[74.67,51.46],[74.67,47.57],[75.33,8.74],[75.33,10.68],[76,42.72],[76,9.71],[76.67,34.95],[76.67,10.19],[77.33,17.48],[77.33,54.85],[78,54.37],[78,24.27],[78.67,57.28],[78.67,36.41],[78.67,43.69],[79.33,47.09],[79.33,43.69],[80.67,57.28],[82,25.73],[82.67,16.99],[82.67,20.39],[82.67,53.4],[85.33,5.83],[88.67,28.16],[89.33,34.47],[90,55.83],[90,17.48],[91.33,57.28],[92,23.3],[92,2.91],[92,25.24],[92.67,16.99],[93.33,1.94],[94.67,39.32],[97.33,1.94],[98.67,52.91],[98.67,33.5],[98.67,53.4]],rest:[[0.67,67.96],[2,67.96],[2.67,67.96],[12.67,69.42],[12.67,69.9],[14,77.67],[14,68.93],[16.67,79.13],[19.33,77.18],[19.33,78.16],[19.33,68.45],[20,71.36],[20,76.21],[20.67,74.76],[21.33,75.24],[22,82.52],[24.67,82.52],[29.33,79.61],[30,79.61],[31.33,74.76],[32.67,68.93],[33.33,76.7],[37.33,81.07],[44.67,69.9],[46,68.45],[48.67,68.45],[49.33,73.3],[50.67,79.13],[52,80.1],[53.33,74.27],[55.33,72.33],[56.67,76.21],[57.33,81.07],[57.33,80.58],[58.67,77.18],[60,74.27],[60,71.36],[62,81.55],[65.33,70.39],[66,99.03],[66.67,76.7],[66.67,95.63],[67.33,77.67],[67.33,70.87],[67.33,69.42],[67.33,97.57],[68,97.57],[68.67,97.57],[70.67,80.58],[71.33,99.03],[72.67,74.27],[72.67,77.18],[72.67,95.15],[73.33,75.24],[73.33,97.09],[74,75.24],[74.67,95.63],[75.33,68.45],[75.33,97.57],[76.67,94.66],[78,99.51],[78.67,74.76],[80,72.82],[80,79.61],[82.67,68.93],[82.67,71.36],[84,82.04],[84,94.66],[84.67,98.06],[84.67,99.03],[86.67,74.27],[86.67,74.76],[86.67,95.15],[87.33,98.54],[87.33,93.2],[88,99.51],[88.67,74.76],[88.67,68.45],[88.67,98.54],[89.33,97.09],[91.33,76.7],[91.33,77.67],[91.33,80.58],[91.33,96.6],[92,72.82],[92,97.57],[92,93.69],[92,94.66],[92.67,69.9],[92.67,98.54],[92.67,92.72],[93.33,98.54],[94,94.17],[94,93.69],[94,93.2],[94.67,95.15],[94.67,98.06],[94.67,95.63],[95.33,75.24],[95.33,75.73],[96,94.66],[96.67,93.69],[97.33,99.51],[98,99.51],[98,98.06],[98,95.63],[98.67,82.04],[98.67,81.55],[99.33,78.16],[99.33,70.87]]};
+const ZIGI_DAUER = 10000;      // Mirkos Vorgabe
+const ZIGI_RAUCH = 100;        // Mirkos Vorgabe
+let __zigiGelaufen = false, __zigiUhren = [], __zigiZL = 245;
+
+function zigiAufbauen() {
+  const b = document.getElementById("zigiBuehne");
+  if (!b || b.dataset.fertig) return b;
+  b.innerHTML =
+    '<div class="zigiBand b1"><span class="glanz"><i></i></span></div>' +
+    '<div class="zigiBand b2"><span class="glanz"><i></i></span></div>' +
+    '<div class="zigiBand ganz"><span class="glanz"><i></i></span></div>' +
+    '<div class="zigi"><div class="rauch"></div>' +
+      '<div class="spitze"><div class="asche"></div><div class="glut"></div></div>' +
+      '<div class="papier"></div><div class="filterteil"></div></div>' +
+    '<div class="zigiFeld"></div>';
+  /* An den Seitenkoerper haengen. Steckt die Buehne in einem Vorfahren
+     mit transform/filter, ist "position:fixed" nicht mehr am Bildschirm
+     ausgerichtet - die per getBoundingClientRect gemessenen Koordinaten
+     zeigen dann ins Leere und man sieht nichts. */
+  if (b.parentElement !== document.body) document.body.appendChild(b);
+  b.dataset.fertig = "1";
+  return b;
+}
+
+/* Die Buehne legt sich genau ueber das echte Schild. Gemessen, nicht
+   geschaetzt - so sitzt die Asche auf jedem Geraet richtig. */
+function zigiMasse() {
+  const b = document.getElementById("zigiBuehne");
+  const ziel = document.querySelector("#nachtStartLogo span");
+  if (!b || !ziel) return null;
+  const r = ziel.getBoundingClientRect();
+  __zigiZL = r.width * 1.03;
+  b.style.setProperty("--zl", __zigiZL.toFixed(1) + "px");
+  b.querySelectorAll(".zigiBand").forEach((e) => {
+    e.style.left = (r.left - 70) + "px"; e.style.top = (r.top - 70) + "px";
+    e.style.width = (r.width + 140) + "px"; e.style.height = (r.height + 140) + "px";
+  });
+  /* Die Zigarette lag urspruenglich UNTER dem Logo - in der App sitzt
+     dort aber der Gruss mit Datum, und sie deckte ihn zu (Mirko in
+     Chrome). Sie sitzt jetzt ueber dem unteren Logorand: Waehrend der
+     Animation ist das Schild ohnehin unsichtbar, und zum Gruss bleibt
+     Luft. Der Wert wird gegen den Gruss geprueft und notfalls
+     nachgezogen - keine feste Zahl, die auf einem anderen Geraet
+     wieder kollidiert. */
+  const z = b.querySelector(".zigi");
+  z.style.right = (window.innerWidth - r.right + r.width * 0.06) + "px";
+  z.style.top = (r.bottom - r.height * 0.22) + "px";
+  const gruss = document.getElementById("heuteKopf") || document.getElementById("heuteTag");
+  if (gruss) {
+    const gr = gruss.getBoundingClientRect(), zr = z.getBoundingClientRect();
+    const ueberstand = zr.bottom + 10 - gr.top;
+    if (ueberstand > 0) z.style.top = (parseFloat(z.style.top) - ueberstand) + "px";
+  }
+  return r;
+}
+
+function zigiRauch() {
+  const w = document.querySelector("#zigiBuehne .rauch");
+  if (!w) return;
+  w.innerHTML = "";
+  for (let i = 0; i < Math.round(ZIGI_RAUCH / 100 * 7); i++) {
+    const f = document.createElement("i");
+    f.style.setProperty("--dx", (-14 - Math.random() * 30) + "px");
+    f.style.animation = "zigiQualm " + (2.6 + Math.random() * 2).toFixed(1) + "s ease-out infinite";
+    f.style.animationDelay = (-Math.random() * 3).toFixed(1) + "s";
+    w.appendChild(f);
+  }
+}
+
+function zigiSchwung(punkte, marke, dauer, feld) {
+  const b = document.getElementById("zigiBuehne");
+  const g = b.querySelector(".glut").getBoundingClientRect();
+  punkte.forEach((pt, i) => {
+    const fl = document.createElement("div");
+    fl.className = "zigi-fl " + marke;
+    const zx = feld.left + pt[0] / 100 * feld.width, zy = feld.top + pt[1] / 100 * feld.height;
+    fl.style.left = zx + "px"; fl.style.top = zy + "px";
+    fl.style.transform = "translate(" + (g.left + g.width / 2 - zx).toFixed(1) + "px," +
+                                        (g.top + g.height / 2 - zy).toFixed(1) + "px)";
+    fl.style.opacity = 0;
+    fl.style.background = "radial-gradient(circle,#fff3e0 30%,#ffb45c 70%,#de7008)";
+    fl.style.boxShadow = "0 0 6px 2px rgba(255,200,120,.98), 0 0 14px 5px rgba(255,140,20,.7)";
+    b.appendChild(fl);
+    const los = (i / punkte.length) * dauer * 0.62 + Math.random() * 180;
+    const fall = 780 + Math.random() * 620;
+    __zigiUhren.push(setTimeout(() => {
+      fl.style.transition = "transform " + fall + "ms cubic-bezier(.4,.55,.35,1), opacity 200ms linear";
+      fl.style.transform = "translate(0,0)"; fl.style.opacity = 1;
+    }, los));
+  });
+}
+
+function zigiStart() {
+  try {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  } catch (e) {}
+  const b = zigiAufbauen();
+  if (!b) return;
+  __zigiUhren.forEach(clearTimeout); __zigiUhren = [];
+  b.querySelectorAll(".zigi-fl").forEach((e) => e.remove());
+  document.body.classList.add("zigi-laeuft");
+  const feld = zigiMasse();
+  if (!feld) { document.body.classList.remove("zigi-laeuft"); return; }
+  zigiRauch();
+
+  const b1 = b.querySelector(".b1"), b2 = b.querySelector(".b2"), ganz = b.querySelector(".ganz");
+  const zigi = b.querySelector(".zigi"), asche = b.querySelector(".asche"), glut = b.querySelector(".glut");
+  [b1, b2, ganz].forEach((e) => { e.style.transition = ""; e.style.opacity = 0; });
+  zigi.style.transition = ""; zigi.style.opacity = "";
+  zigi.style.setProperty("--papier", (__zigiZL * .551).toFixed(1) + "px");
+
+  const D = ZIGI_DAUER, A1 = D * .20, A2 = D * .58, ENDE = D * .89;
+  const wachsen = (bis, ms) => { asche.style.transition = "width " + ms + "ms linear";
+                                 asche.style.width = (__zigiZL * bis).toFixed(1) + "px"; };
+  asche.style.transition = "none"; asche.style.width = "0px";
+  __zigiUhren.push(setTimeout(() => wachsen(.07, A1 - 200), 60));
+  __zigiUhren.push(setTimeout(() => { glut.style.filter = "brightness(1.7)"; }, A1 - 320));
+  __zigiUhren.push(setTimeout(() => {
+    glut.style.filter = ""; asche.style.transition = "none"; asche.style.width = "0px";
+    zigiSchwung(LOGO_PUNKTE.hall, "s1", D * .30, feld);
+    zigi.style.setProperty("--papier", (__zigiZL * .335).toFixed(1) + "px");
+  }, A1));
+  __zigiUhren.push(setTimeout(() => wachsen(.062, A2 - A1 - 300), A1 + 180));
+  __zigiUhren.push(setTimeout(() => { glut.style.filter = "brightness(1.7)"; }, A2 - 320));
+  __zigiUhren.push(setTimeout(() => {
+    glut.style.filter = ""; asche.style.transition = "none"; asche.style.width = "0px";
+    zigiSchwung(LOGO_PUNKTE.rest, "s2", D * .26, feld);
+    zigi.style.setProperty("--papier", (__zigiZL * .106).toFixed(1) + "px");
+  }, A2));
+
+  const uebergeben = (band, marke, wann) => __zigiUhren.push(setTimeout(() => {
+    band.style.transition = "opacity 800ms ease-out"; band.style.opacity = 1;
+    b.querySelectorAll(".zigi-fl." + marke).forEach((f) => {
+      f.style.transition = "opacity 700ms linear"; f.style.opacity = 0; });
+  }, wann));
+  uebergeben(b1, "s1", A2 - 700);
+  uebergeben(b2, "s2", ENDE);
+
+  __zigiUhren.push(setTimeout(() => {
+    ganz.style.transition = "opacity 500ms linear"; ganz.style.opacity = 1;
+    [b1, b2].forEach((e) => { e.style.transition = "opacity 500ms linear"; e.style.opacity = 0; });
+    zigi.style.setProperty("--papier", "0px");
+    zigi.style.transition = "opacity 700ms ease-out"; zigi.style.opacity = 0;
+  }, ENDE + 900));
+  /* Am Schluss uebernimmt wieder das echte #nachtStartLogo und atmet -
+     die Buehne verschwindet restlos. */
+  __zigiUhren.push(setTimeout(() => {
+    document.body.classList.remove("zigi-laeuft");
+    b.querySelectorAll(".zigi-fl").forEach((e) => e.remove());
+    [b1, b2, ganz].forEach((e) => { e.style.transition = ""; e.style.opacity = 0; });
+  }, ENDE + 1900));
+}
+
+/* Antippen des Schildes spielt sie erneut ab. */
+document.addEventListener("click", (e) => {
+  const logo = e.target.closest && e.target.closest("#nachtStartLogo");
+  if (logo && document.body.classList.contains("nacht-start") && zeigtSonderbereiche()) zigiStart();
+});
+addEventListener("resize", () => { if (document.body.classList.contains("zigi-laeuft")) zigiMasse(); });
+
 /* Funken fuer den Nachtbild-Auftritt. Jeder bekommt eigene Groesse,
    Laufzeit, Drift und einen negativen Start, damit sie schon unterwegs
    sind statt gleichzeitig loszulaufen - sonst sieht man das Muster. */
@@ -3944,6 +4197,20 @@ function zeigeKachelStartseite() {
   document.body.classList.add("nacht-start");
   const hg = document.getElementById("nachtStartHg");
   if (hg) nachtAscheBauen(hg, ASCHE_MENGE);
+  /* Zigaretten-Animation nur beim ERSTEN Oeffnen je App-Start und nur
+     fuer Mirko - der Startbildschirm der Kollegen soll sich nicht
+     ungefragt aendern, und zehn Sekunden bei jeder Rueckkehr aus einem
+     Bereich waeren eine Zumutung. */
+  /* NUR wenn der Splash schon weg ist. zeigeKachelStartseite() laeuft
+     auch beim Laden, waehrend der Splash noch davorliegt - die Animation
+     waere dann hinter dem Startbild abgelaufen und vorbei, bevor der
+     Nutzer "Weiter" drueckt. Genau das ist beim ersten Einbau passiert. */
+  const splashEl2 = document.getElementById("splashScreen");
+  const splashOffen = splashEl2 && getComputedStyle(splashEl2).display !== "none";
+  if (!__zigiGelaufen && !splashOffen && zeigtSonderbereiche()) {
+    __zigiGelaufen = true;
+    setTimeout(zigiStart, 320);
+  }
   heuteAktualisieren();
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "none";
@@ -9305,7 +9572,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-46"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-06-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
