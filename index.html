@@ -370,6 +370,33 @@
     white-space: normal;
   }
   .kachel-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(24,26,32,0.18); }
+  /* Zahl unter der Kachel-Beschriftung: zeigt den Stand, statt nur ein Symbol */
+  .kachel-zahl { display:block; margin-top:6px; font-size:0.82rem; font-weight:600;
+                 color:#8a7a6a; letter-spacing:.2px; }
+
+  /* ---- "Heute"-Kopf ---- */
+  #heuteKopf { margin-bottom: 1.25rem; }
+  .heute-zeile { display:flex; align-items:baseline; gap:8px; margin:0 2px .5rem; }
+  .heute-tag { font-size:1.05rem; font-weight:700; color:var(--brand-dark); }
+  .heute-datum { font-size:0.85rem; color:#8a7a6a; }
+  .heute-weiter {
+    width:100%; text-align:left; border:none; border-radius:16px; cursor:pointer;
+    padding:1.1rem 1.2rem; background:var(--brand-dark); color:#fff;
+    box-shadow:0 6px 20px rgba(97,42,0,.28);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .heute-weiter:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(97,42,0,.34); }
+  .heute-weiter-l { display:block; font-size:1.15rem; font-weight:700; }
+  .heute-weiter-s { display:block; margin-top:3px; font-size:0.9rem; opacity:.85; }
+  .heute-chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:.7rem; }
+  .heute-chip { background:#fff; border-radius:999px; padding:6px 12px; font-size:0.82rem;
+                font-weight:600; color:var(--brand-dark); box-shadow:0 2px 8px rgba(24,26,32,.10); }
+  .heute-chip.offen { color:#b03030; }
+  .heute-chip.fertig { color:#0a7a0a; }
+
+  /* Jahreszahl im Splash: laeuft von 1903 auf heute hoch */
+  #splashScreen .splash-jahr { font-size:1.6rem; font-weight:800; color:#fff; letter-spacing:2px;
+                               font-variant-numeric:tabular-nums; margin-top:4px; min-height:1.7rem; }
 
   .panel {
     background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
@@ -1040,6 +1067,7 @@
   <div>
     <h2 data-i18n="pageTitle">Hall Tabakwaren</h2>
     <div class="splash-subtitle" data-i18n="splashSubtitle">Spesen-Rechner</div>
+    <div class="splash-jahr" id="splashJahr"></div>
     <div class="splash-greeting" id="splashGreeting"></div>
     <div class="splash-month" id="splashMonth"></div>
   </div>
@@ -1114,6 +1142,22 @@
      tabJahr) - ein Label, zwei Darstellungen, keine Duplikate im
      I18N-Dictionary. -->
 <div id="kachelStartseite" class="no-print">
+  <!-- "Heute": Kopfbereich ueber den Kacheln. Wer die App zum zweiten Mal
+       oeffnet, soll seinen Stand sehen statt einer Menuetafel - ein grosser
+       Knopf auf die zuletzt offene Aufgabe. Vorerst nur fuer Mirko sichtbar
+       (heuteAktualisieren), damit der Startbildschirm der Kollegen sich
+       nicht ungefragt aendert. -->
+  <div id="heuteKopf" style="display:none;">
+    <div class="heute-zeile">
+      <span class="heute-tag" id="heuteTag"></span>
+      <span class="heute-datum" id="heuteDatum"></span>
+    </div>
+    <button type="button" class="heute-weiter" id="heuteWeiter" onclick="heuteWeitermachen()">
+      <span class="heute-weiter-l">Weitermachen</span>
+      <span class="heute-weiter-s" id="heuteWeiterText"></span>
+    </button>
+    <div class="heute-chips" id="heuteChips"></div>
+  </div>
   <div class="kachel-grid">
     <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
@@ -2013,6 +2057,28 @@ function initSplash() {
   // z-index:1100 unter dem Splash mit z-index:9999, siehe .modal-overlay-
   // Regel) - sobald sich der Splash ausblendet, wird ein bereits
   // vorhandener Assistent einfach sichtbar, kein Wettlauf noetig.
+  /* "seit 1903": Die Jahreszahl laeuft beim Start von der Gruendung bis
+     heute hoch - eine Sekunde, dann steht sie. Erzaehlt in einem Bild
+     ueber 120 Jahre Firmengeschichte plus moderne Technik. Vorerst nur
+     fuer Mirko, wie der "Heute"-Kopf (05.09.2026). */
+  const jahrEl = document.getElementById("splashJahr");
+  if (jahrEl) {
+    if (!istMirko()) { jahrEl.textContent = ""; }
+    else {
+      const start = 1903, ziel = new Date().getFullYear(), dauer = 1000;
+      const t0 = performance.now();
+      jahrEl.textContent = "seit " + start;
+      const lauf = (t) => {
+        const p = Math.min(1, (t - t0) / dauer);
+        // langsam auslaufend, damit die Zahl am Ende "einrastet"
+        const e = 1 - Math.pow(1 - p, 3);
+        jahrEl.textContent = "seit " + Math.round(start + (ziel - start) * e);
+        if (p < 1) requestAnimationFrame(lauf);
+        else jahrEl.textContent = "seit " + start;
+      };
+      requestAnimationFrame(lauf);
+    }
+  }
   setTimeout(function () {
     const el = document.getElementById("splashScreen");
     if (el) el.style.display = "none";
@@ -2513,6 +2579,7 @@ function zeigeTab(tab) {
   if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit" || tab === "inventur") ? "" : "none";
 
   markiereTab(tab);
+  heuteMerkeBereich(tab);
   // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
   // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
   // innerhalb des Tabs.
@@ -2547,9 +2614,115 @@ function zeigeTab(tab) {
    Werkzeugleiste sind bewusst nur INNERHALB einer Funktion sichtbar, nicht
    hier - sonst haette man zwei Wege zur selben Auswahl gleichzeitig auf
    dem Schirm. */
+/* ===================== "Heute"-Kopf auf der Startseite =====================
+   Bisher war die Startseite eine Kachelwand: alle Funktionen gleichwertig,
+   der Nutzer muss selbst wissen, was ansteht. Jetzt steht darueber, woran
+   zuletzt gearbeitet wurde - ein Knopf, ein Griff.
+
+   Bewusst NUR fuer Mirko sichtbar (05.09.2026), weil der Spesen-Rechner bei
+   den Kollegen im Betrieb laeuft und ihr Startbildschirm sich nicht
+   ungefragt aendern soll. Faellt die Bedingung weg, gilt es fuer alle.
+
+   Gelesen wird direkt aus dem Speicher, nicht aus invState/kaeState: Auf der
+   Startseite ist die Inventur womoeglich noch gar nicht geladen. */
+const HEUTE_KEY = "hall-letzter-bereich";
+
+function heuteLies(key) {
+  try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; }
+}
+/* Spiegelt invZeilenSumme() - Lieferscheine tragen den Betrag direkt,
+   sonst Menge x KVP. */
+function heuteIstbestand(st) {
+  let s = 0;
+  Object.entries(st.felder || {}).forEach(([k, v]) => {
+    const gid = k.slice(0, k.lastIndexOf("-"));
+    s += gid === "lief" ? invZahl(v.su) : invZahl(v.mg) * invZahl(v.kv);
+  });
+  return s;
+}
+function heuteInvZeilen(st) {
+  return Object.values(st.felder || {}).filter((v) =>
+    Object.values(v || {}).some((x) => String(x || "").trim() !== "")).length;
+}
+function heuteWareStangen(st) {
+  let s = 0;
+  Object.values(st.zeilen || {}).forEach((z) => {
+    s += invZahl(z.kar) * (invZahl(z.gr) || 20) + invZahl(z.anz);
+  });
+  return s;
+}
+/* Merkt sich, welcher Bereich zuletzt offen war - Grundlage fuer
+   "Weitermachen". */
+function heuteMerkeBereich(tab) {
+  try { localStorage.setItem(HEUTE_KEY, JSON.stringify({ tab: tab, zeit: Date.now() })); } catch (e) {}
+}
+function heuteVorschlag() {
+  const inv = heuteLies(INV_KEY), kae = heuteLies(KAE_KEY);
+  const invZ = heuteInvZeilen(inv), ware = heuteWareStangen(kae);
+  const letzter = heuteLies(HEUTE_KEY).tab;
+  if (invZ > 0) {
+    const tour = (inv.kopf || {}).invTour;
+    return { tab: "inventur", text: "Fahrzeug-Inventur" + (tour ? " · Tour " + tour : "") +
+             " · " + invZ + (invZ === 1 ? " Zeile" : " Zeilen") + " erfasst" };
+  }
+  if (ware > 0) return { tab: "inventur", text: "Ware zählen · " + ware.toLocaleString("de-DE") + " Stangen" };
+  if (letzter) {
+    const namen = { spesen:"Spesen", zeit:"Zeit", urlaub:"Urlaub", jahr:"Jahresübersicht",
+                    inventur:"Fahrzeug-Inventur", abrechnung:"Abrechnung" };
+    return { tab: letzter, text: namen[letzter] || "Weiter" };
+  }
+  return { tab: "spesen", text: "Spesen erfassen" };
+}
+let __heuteZiel = "spesen";
+function heuteWeitermachen() { zeigeTab(__heuteZiel); }
+
+function heuteAktualisieren() {
+  const kopf = document.getElementById("heuteKopf");
+  if (!kopf) return;
+  if (!istMirko()) { kopf.style.display = "none"; return; }
+  kopf.style.display = "";
+
+  const jetzt = new Date();
+  const tage = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  const stunde = jetzt.getHours();
+  const gruss = stunde < 11 ? "Guten Morgen" : (stunde < 18 ? "Guten Tag" : "Guten Abend");
+  document.getElementById("heuteTag").textContent = gruss + ", " + (config.name || "").split(" ")[0];
+  document.getElementById("heuteDatum").textContent =
+    tage[jetzt.getDay()] + ", " + jetzt.toLocaleDateString("de-DE");
+
+  const v = heuteVorschlag();
+  __heuteZiel = v.tab;
+  document.getElementById("heuteWeiterText").textContent = v.text;
+
+  // Chips: der Stand in Zahlen, nur wo er belegbar ist
+  const inv = heuteLies(INV_KEY), kae = heuteLies(KAE_KEY);
+  const ist = heuteIstbestand(inv), ware = heuteWareStangen(kae);
+  const chips = [];
+  if (ist > 0) chips.push('<span class="heute-chip">Istbestand ' + invFmt(ist) + " €</span>");
+  if (ware > 0) chips.push('<span class="heute-chip">Ware ' + ware.toLocaleString("de-DE") + " Stangen</span>");
+  const soll = String((inv.fuss || {}).invSoll || inv.soll || "").trim();
+  if (ist > 0) chips.push(soll
+    ? '<span class="heute-chip fertig">Sollbestand eingetragen</span>'
+    : '<span class="heute-chip offen">Sollbestand fehlt</span>');
+  document.getElementById("heuteChips").innerHTML = chips.join("");
+
+  // Zahlen auf den Kacheln
+  heuteKachelZahl("inventur", ist > 0 ? invFmt(ist) + " €" : "noch nichts erfasst");
+  heuteKachelZahl("abrechnung", "Gerüst – noch nicht in Betrieb");
+}
+/* Haengt eine kleine Zahlenzeile unter die Beschriftung einer Kachel. */
+function heuteKachelZahl(tab, text) {
+  const btn = document.querySelector('.kachel-btn[onclick="zeigeTab(\'' + tab + '\')"]');
+  if (!btn) return;
+  let el = btn.querySelector(".kachel-zahl");
+  if (!el) { el = document.createElement("span"); el.className = "kachel-zahl"; btn.appendChild(el); }
+  el.textContent = text;
+}
+
 function zeigeKachelStartseite() {
   const kachelEl = document.getElementById("kachelStartseite");
   if (kachelEl) kachelEl.style.display = "";
+  heuteAktualisieren();
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "none";
   const toolbar = document.querySelector(".toolbar");
@@ -6854,7 +7027,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });

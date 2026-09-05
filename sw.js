@@ -34,7 +34,7 @@
    dabei aendern, sonst installiert der Browser den neuen Worker nicht.
 */
 
-const CACHE_VERSION = "2026-09-05-3";
+const CACHE_VERSION = "2026-09-05-4";
 const CACHE_NAME = "hall-spesen-" + CACHE_VERSION;
 
 /* Was beim Installieren mitgenommen wird, damit auch der allererste
