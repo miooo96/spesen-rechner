@@ -730,8 +730,8 @@
                box-shadow:0 1px 6px rgba(0,0,0,.15); }
   .abr-blatt table { border-collapse:collapse; }
   .abr-blatt input { -webkit-appearance:none; appearance:none; margin:0; box-sizing:border-box;
-                     border:none; background:transparent; font:inherit; font-size:12px;
-                     width:100%; height:24px; line-height:24px; padding:0 4px;
+                     border:none; background:transparent; font:inherit; font-size:11px;
+                     width:100%; height:24px; line-height:24px; padding:0 3px;
                      text-align:right; font-variant-numeric:tabular-nums; }
   .abr-kopf { width:100%; margin-bottom:6px; }
   .abr-kopf td { padding:2px 4px; vertical-align:middle; }
@@ -756,7 +756,10 @@
 
   /* Der Geldblock sitzt eingerueckt, die Warenabrechnung rechts und etwas
      tiefer - so steht es auf dem Vordruck. */
-  .abr-mitte { display:grid; grid-template-columns:11% 38% 8% 43%; position:relative; }
+  /* Der Geldblock beginnt unter "Kunden-Nr." und endet auf der rechten
+     Kante von "Barverkauf" - so steht er auf dem Vordruck. Die Warenab-
+     rechnung sitzt rechts daneben, etwas tiefer. */
+  .abr-mitte { display:grid; grid-template-columns:12.9% 33.8% 12.6% 35% auto; position:relative; }
   .abr-links { grid-column:2; }
   .abr-rechts { grid-column:4; padding-top:74px; }
   /* Feste Spaltenbreiten - sonst zieht der laengste Text ("Geldablieferung
@@ -764,41 +767,54 @@
      abgeschnitten. */
   .abr-geld, .abr-ware { width:100%; table-layout:fixed; }
   .abr-stoer, .abr-unterschrift { width:100%; }
-  .abr-geld td { border:1px solid #000; height:26px; font-size:11.5px; padding:0 4px; }
-  .abr-geld td:first-child { border:none; width:20%; }
+  .abr-geld td { border:1px solid #000; height:26px; font-size:10.5px; padding:0 3px; }
+  .abr-geld td:first-child { border:none; width:22.8%; }
   .abr-geld td.sum { border:1px solid #000; text-align:center; }
-  .abr-geld td.lab { width:44%; }
-  .abr-geld td.feld { width:36%; }
+  .abr-geld td.lab { width:43.8%; }
+  .abr-geld td.feld { width:33.4%; }
   .abr-geld td.fett, .abr-ware td.fett { font-weight:700; }
 
-  .abr-ware td { border:1px solid #000; height:26px; font-size:11.5px; padding:0 4px; }
-  .abr-ware td.titel { text-align:center; font-weight:700; font-size:12.5px; height:30px; }
-  .abr-ware td.lab { width:58%; }
+  .abr-ware td { border:1px solid #000; height:26px; font-size:10.5px; padding:0 3px; }
+  .abr-ware td.titel { text-align:center; font-weight:700; font-size:11.5px; height:30px; }
+  /* "+ Bestandsverminderung" ist die laengste Beschriftung - sie muss in
+     eine Zeile passen, sonst rutscht das ganze Raster. */
+  .abr-ware td.lab { width:62%; white-space:nowrap; font-size:10px; }
 
   /* Pfeile aus den KVP-Spalten in den Geldblock */
   .abr-pfeil { position:absolute; pointer-events:none; }
   .abr-pfeil i { position:absolute; display:block; background:#000; }
   .abr-pfeil .waag { height:1px; left:6px; right:0; top:0; }
-  .abr-pfeil .senk { width:1px; right:0; top:-34px; height:34px; }
+  .abr-pfeil .senk { width:1px; right:0; top:calc(-1 * var(--hoch)); height:var(--hoch); }
   .abr-pfeil .spitze { width:0; height:0; background:none; left:0; top:-3px;
                        border-top:3.5px solid transparent; border-bottom:3.5px solid transparent;
                        border-right:7px solid #000; }
-  .abr-pfeil-1 { left:50%; width:19%; top:34px; }
-  .abr-pfeil-2 { left:50%; width:31%; top:56px; }
+  /* Die Pfeile verbinden gleiche Namen: Rechnungs-Inkasso oben mit
+     Rechnungs-Inkasso im Geldblock, darunter Sonstiges-Inkasso mit
+     Sonstiges-Inkasso (Mirko, 05.09.2026). */
+  .abr-pfeil-1 { left:46.7%; width:37.1%; top:41px; }
+  .abr-pfeil-2 { left:46.7%; width:47.7%; top:70px; }
 
   .abr-stoer { margin-top:12px; }
-  .abr-stoer td { border:1px solid #000; height:26px; font-size:13px; padding:0 5px; }
-  .abr-stoer td.lab { width:52%; text-align:center; font-weight:600; background:#f6c9a0; }
+  .abr-stoer td { border:1px solid #000; height:26px; font-size:12px; padding:0 5px; }
+  /* "Störgeld:" steht auf weissem Grund und ist nicht fett - farbig ist
+     nur das Eingabefeld daneben und der Text darunter. Der Kasten sitzt
+     eingerueckt, buendig mit der Beschriftungsspalte des Geldblocks. */
+  .abr-stoer { margin-left:22.8%; width:77.2%; }
+  .abr-stoer td.lab { width:57%; text-align:center; font-weight:400; background:#fff; }
   .abr-stoer td.feld { background:#f6c9a0; }
   .abr-erklaerung { border:1px solid #000; border-top:none; background:#f6c9a0;
-                    font-size:10.5px; font-weight:600; text-align:center; padding:7px 9px; }
+                    font-size:9px; font-weight:400; text-align:center; padding:6px 8px;
+                    margin-left:22.8%; line-height:1.35; }
 
   .abr-unterschrift { margin-top:16px; }
   .abr-unterschrift td { padding:7px 4px; font-size:12px; }
-  .abr-unterschrift td.lab { width:32%; white-space:nowrap; }
+  /* Die Linie laeuft im Original nur bis etwa zur Blattmitte, nicht bis
+     zum rechten Rand. */
+  .abr-unterschrift td.lab { width:24%; white-space:nowrap; }
+  .abr-unterschrift td.rest { border:none; }
   .abr-unterschrift td.linie { border-bottom:1px solid #000; }
-  .abr-sigwrap { display:flex; align-items:center; }
-  .abr-sigwrap input { flex:1 1 auto; text-align:left; }
+  .abr-unterschrift td.linie input { text-align:left; font-size:12px; }
+  .abr-unterschrift td.rest .inv-stempel { padding-left:8px; }
 
   @media screen and (max-width:900px) {
     .abr-blatt { transform:scale(.46); transform-origin:top left; margin:6px; }
@@ -1756,6 +1772,15 @@
     <!-- Kundentabelle: wird auf der Tour nicht gefuellt (Mirko), bleibt aber
          auf dem Blatt, damit der Ausdruck dem Original entspricht. -->
     <table class="abr-kunden">
+      <!-- Spaltenbreiten am Foto des Originals gemessen (05.09.2026):
+           Kunde 12,9 % · Kunden-Nr. 7,7 % · Rechng.-Nr. 14,8 % ·
+           Barverkauf 11,3 % · die restlichen fuenf je 10,6 %.
+           Der Geldblock darunter richtet sich exakt danach aus. -->
+      <colgroup>
+        <col style="width:12.9%"><col style="width:7.7%"><col style="width:14.8%">
+        <col style="width:11.3%"><col style="width:10.6%"><col style="width:10.6%">
+        <col style="width:10.6%"><col style="width:10.6%"><col style="width:10.6%">
+      </colgroup>
       <tr>
         <th>Kunde</th><th>Kunden-<br>Nr.</th><th>Rechng.-Nr.<br>L-schein.-Nr.</th>
         <th>Barverkauf</th><th>Kreditverkauf</th><th>Rechnungs-<br>KVP</th>
@@ -1772,8 +1797,8 @@
     <div class="abr-mitte">
       <!-- Zwei Pfeile wie auf dem Vordruck: sie fuehren von den Spalten
            Rechnungs-KVP und Lieferschein-KVP nach links in den Geldblock. -->
-      <div class="abr-pfeil abr-pfeil-1"><i class="spitze"></i><i class="waag"></i><i class="senk"></i></div>
-      <div class="abr-pfeil abr-pfeil-2"><i class="spitze"></i><i class="waag"></i><i class="senk"></i></div>
+      <div class="abr-pfeil abr-pfeil-1" style="--hoch:41px"><i class="spitze"></i><i class="waag"></i><i class="senk"></i></div>
+      <div class="abr-pfeil abr-pfeil-2" style="--hoch:70px"><i class="spitze"></i><i class="waag"></i><i class="senk"></i></div>
       <div class="abr-links">
         <table class="abr-geld">
           <tr><td class="lab sum">Summe:</td><td class="lab">Barverkauf</td><td class="feld"><input id="abrBarverkauf" inputmode="decimal"></td></tr>
@@ -1816,8 +1841,8 @@
           <tr><td class="lab">- Entlastung Sonstiges</td><td class="feld"><input id="abrEntlastung" inputmode="decimal"></td></tr>
           <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeO1" inputmode="decimal"></td></tr>
           <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeO2" inputmode="decimal"></td></tr>
-          <tr><td class="lab fett">Inventur Soll</td><td class="feld"><input id="abrInventurSoll" readonly></td></tr>
-          <tr><td class="lab fett">Inventur Ist</td><td class="feld"><input id="abrInventurIst" readonly></td></tr>
+          <tr><td class="lab">Inventur Soll</td><td class="feld"><input id="abrInventurSoll" readonly></td></tr>
+          <tr><td class="lab">Inventur Ist</td><td class="feld"><input id="abrInventurIst" readonly></td></tr>
           <tr><td class="lab fett">Differenz</td><td class="feld"><input id="abrDiffWare" readonly></td></tr>
           <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU1" inputmode="decimal"></td></tr>
           <tr><td class="lab">+ Ladeliste Nr.</td><td class="feld"><input id="abrLadeU2" inputmode="decimal"></td></tr>
@@ -1832,9 +1857,11 @@
 
     <table class="abr-unterschrift">
       <tr><td class="lab">Unterschrift Fahrer:</td>
-          <td class="linie"><div class="abr-sigwrap"><input id="abrUntFahrer"><span class="inv-stempel" id="abrTs-abrUntFahrer"></span></div></td></tr>
+          <td class="linie" style="width:26%"><input id="abrUntFahrer"></td>
+          <td class="rest"><span class="inv-stempel" id="abrTs-abrUntFahrer"></span></td></tr>
       <tr><td class="lab">Kontrolliert:</td>
-          <td class="linie"><div class="abr-sigwrap"><input id="abrKontrolliert"><span class="inv-stempel" id="abrTs-abrKontrolliert"></span></div></td></tr>
+          <td class="linie" style="width:26%"><input id="abrKontrolliert"></td>
+          <td class="rest"><span class="inv-stempel" id="abrTs-abrKontrolliert"></span></td></tr>
     </table>
   </div>
 </div>
@@ -7405,7 +7432,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-9"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-10"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
