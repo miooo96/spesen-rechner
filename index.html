@@ -630,7 +630,19 @@
      hier gar nicht erst eingebaut. */
   :root { --neon: .79; }
 
-  .nacht-lage { position: absolute; inset: 0; pointer-events: none; }
+  /* WICHTIG: Die Bildebenen sind standardmaessig AUS und werden nur mit
+     der Klasse "nacht" gezeigt.
+
+     Fehlt dieses display:none, malen sie sich bei jedem - denn ihre
+     Hintergrundbilder und Animationen stehen unbedingt in den Regeln
+     darunter. Genau das war von Version 2026-09-05-28 bis -31 der Fall:
+     Kollegen sahen das Nachtfoto auf ihrem Startbildschirm, obwohl weder
+     die Klasse "nacht" noch body.nacht-start gesetzt war. Aufgefallen
+     ist es erst beim Ansehen eines Bildschirmfotos - alle vorherigen
+     Pruefungen hatten nur Eigenschaften abgefragt (istMirko, Klassen,
+     Hintergrundfarbe) und waren deshalb gruen. */
+  .nacht-lage { display: none; position: absolute; inset: 0; pointer-events: none; }
+  #splashScreen.nacht .nacht-lage { display: block; }
 
   /* Das Foto, sehr langsam heranzoomend */
   .nacht-foto {
@@ -726,19 +738,31 @@
      verschwindet der Splash ohnehin von selbst. Als Leuchtroehre
      gestaltet, damit er zum Rest passt, und mit 52 px Hoehe gross genug
      fuer den Daumen. */
-  .splash-weiter { display: none; }
-  #splashScreen.nacht .splash-weiter {
+  /* Der "Weiter"-Knopf - fuer ALLE sichtbar (Mirko, 05.09.2026: "bei
+     kollegen soll es auch so sein das sie auf weiter gehen muessen um in
+     die einzelnen funktionen zu kommen"). Der Startbildschirm blendet
+     sich damit nicht mehr von selbst aus, sondern wartet auf einen Tipp.
+
+     Grundform: heller Knopf auf dem orangen Verlauf. 52 px hoch, also
+     gross genug fuer den Daumen im Fahrzeug. */
+  .splash-weiter {
     display: block; position: relative; z-index: 6;
     margin: 22px auto 0; padding: .85rem 2.6rem; min-height: 52px;
     font: 800 1.05rem 'Montserrat', sans-serif; cursor: pointer;
+    color: var(--brand-dark); background: #fff;
+    border: 0; border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.30);
+  }
+  .splash-weiter:active { transform: scale(.97); }
+  /* Im Nachtbild-Auftritt als Leuchtroehre, passend zur Reklame. */
+  #splashScreen.nacht .splash-weiter {
     color: #fff3e0; background: rgba(38,18,4,.5);
-    border: 2px solid #ffb35c; border-radius: 999px;
+    border: 2px solid #ffb35c;
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     text-shadow: 0 0 10px #de7008;
     box-shadow: 0 0 18px rgba(222,112,8,.55), inset 0 0 14px rgba(222,112,8,.35);
     animation: nachtAtmen 7s ease-in-out infinite;
   }
-  #splashScreen.nacht .splash-weiter:active { transform: scale(.97); }
 
   /* ---- Kachel-Startseite im Nachtbild-Auftritt ----
      Hier bewusst KEIN Foto: die Startseite sieht man bei jedem Oeffnen
@@ -746,7 +770,13 @@
      unruhig. Stattdessen dunkle Nacht, Glut, Funken - und das Logo als
      weisse Leuchtroehre ueber den Kacheln. */
   body.nacht-start { background: #150900; }
-  #nachtStartHg {
+  /* Ebenfalls standardmaessig AUS - derselbe Fehler wie bei .nacht-lage:
+     Diese Flaeche liegt fest ueber dem ganzen Fenster und wuerde sonst
+     auch bei Kollegen den dunklen Verlauf hinter die helle Oberflaeche
+     legen. */
+  #nachtStartHg { display: none; }
+  body.nacht-start #nachtStartHg {
+    display: block;
     position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
     background: radial-gradient(ellipse at 50% 118%, #3d1d05, #150900 72%);
   }
@@ -2698,22 +2728,17 @@ function initSplash() {
       .forEach((el) => { el.style.animationDelay = "-3.5s"; });
   }
 
-  /* Wie der Splash endet, haengt daran, wer davorsitzt:
+  /* Der Startbildschirm blendet sich NICHT mehr von selbst aus - fuer
+     niemanden. Er wartet auf einen Tipp auf "Weiter".
 
-     Mirko (Nachtbild-Auftritt): Der Bildschirm BLEIBT stehen, bis er
-     "Weiter" antippt. Ausdruecklich so gewaehlt (05.09.2026, Variante E
-     aus fuenf vorgelegten) - er wollte das Startbild sehen koennen statt
-     es nach 1,5 s zu verlieren. Der Preis ist ein zusaetzlicher Tipp bei
-     jedem Oeffnen; das war ihm bekannt.
+     Erst nur fuer Mirko so gebaut (05.09.2026, Variante E aus fuenf
+     vorgelegten), auf seinen Wunsch danach fuer alle: "bei kollegen soll
+     es auch so sein das sie auf weiter gehen muessen um in die einzelnen
+     funktionen zu kommen."
 
-     Kollegen: unveraendert, der Splash blendet sich nach 1,5 Sekunden
-     selbst aus. Fuer sie aendert sich nichts. */
-  if (splashEl && istMirko()) return;
-
-  setTimeout(function () {
-    const el = document.getElementById("splashScreen");
-    if (el) el.style.display = "none";
-  }, 1500);
+     Das kostet jeden Nutzer einen zusaetzlichen Tipp pro Oeffnen - der
+     bisherige 1,5-Sekunden-Timer ist damit ersatzlos entfallen. Es ist
+     die erste Aenderung dieses Tages, die Kollegen unmittelbar merken. */
 }
 
 /* Splash schliessen und auf der Kachel-Startseite landen. */
@@ -8655,7 +8680,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-05-31"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-05-32"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
