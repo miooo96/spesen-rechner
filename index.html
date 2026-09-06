@@ -489,6 +489,14 @@
                          box-shadow:0 3px 10px rgba(222,112,8,.4); }
   .heute-schritt.jetzt .punkt { background:#fff; }
   .heute-schritt .wert { opacity:.8; font-weight:500; }
+
+  /* Live-Rueckmeldung in der Schritt-Fuehrung: was gerade da ist. Abgesetzt
+     vom Erklaertext, damit man Erklaerung und Stand nicht verwechselt. */
+  .fuehrung-stand {
+    background:#f7f8fa; border-left:3px solid var(--accent);
+    border-radius:0 8px 8px 0; padding:9px 12px; margin:.9rem 0 0;
+    font-size:.9rem; font-weight:600; color:var(--brand-dark);
+  }
   /* Auf hellem Grund (Kollegenansicht ohne Nachtbild) muss die Schrift
      dunkel sein - sonst weiss auf weiss. */
   body:not(.nacht-start) .heute-start { color:var(--brand-dark); opacity:1; }
@@ -2363,6 +2371,7 @@
       <!-- Fuehrt bewusst NUR zum Blatt, erzeugt noch kein PDF (Mirko,
            03.09.2026): das Blatt selbst ist das Ergebnis, das man sehen
            will. Das PDF entsteht erst ueber die Werkzeugleiste. -->
+      <button type="button" class="ghost" onclick="fuehrungStart('inventur')">🧭 Schritt für Schritt</button>
       <button type="button" class="primary" onclick="invSetAnsicht('blatt')" data-i18n="invFertig">Fertig → Zettel ansehen</button>
     </div>
   </div>
@@ -2545,6 +2554,7 @@
   <div id="kaeRows"></div>
   <div class="inv-hint" id="kaeHint"></div>
   <div class="inv-fussleiste">
+    <button type="button" class="ghost" onclick="fuehrungStart('ware')">🧭 Schritt für Schritt</button>
     <button type="button" class="ghost" onclick="kaeNeu()">🗑️ Neue Zählung</button>
   </div>
 </div>
@@ -3926,6 +3936,187 @@ function heuteAktualisieren() {
    reichen. rest wird in der firma erledigt." Deshalb keine Abfrage nach dem
    Ort: Der Lauf zeigt einfach, wie weit die Daten tragen. Wer freitags
    zuhause nur zaehlt, sieht einen gefuellten Punkt und drei offene. */
+/* ===================== Schritt-für-Schritt-Führung =====================
+
+   Mirko, 06.09.2026: "in den einzelnen hauptkategorien noch ein werkzeug
+   welches schritt für schritt durch das tool begleitet."
+
+   Gebaut nach dem Muster von ABR_SCHRITTE, das es fuer die Abrechnung schon
+   gibt - dieselbe Datenform, ein gemeinsamer Ablauf. Die Abrechnung behaelt
+   ihren eigenen Assistenten, weil der zusaetzlich Felder ausfuellt; hier
+   wird nur erklaert und hingefuehrt.
+
+   ZWEI REGELN, die nicht verhandelbar sind:
+     1. Die Fuehrung TIPPT NICHTS. Sie erklaert und springt hin - eingetragen
+        wird von Hand. Eine Automatik darf die manuelle Eingabe nie
+        stillschweigend ersetzen.
+     2. Sie rechnet nichts nach. Jede Zahl in "stand" kommt aus derselben
+        Quelle wie der Bildschirm daneben. Sonst entstuende ein zweiter
+        Rechenweg, der irgendwann abweicht.
+
+   "stand" liefert die Live-Rueckmeldung zum Schritt: was gerade da ist.
+   Damit sieht man beim Lesen, ob der Schritt schon erledigt ist - das ist
+   Mirkos "nur soweit wie die daten reichen" auf Schrittebene. */
+const FUEHRUNGEN = {
+  inventur: [
+    { titel: "Wozu dieses Blatt",
+      text: "Hier wird gezählt, was am Ende der Woche noch auf dem Fahrzeug " +
+            "liegt. Der Wert geht als Inventur Ist in die Abrechnung und " +
+            "bildet zusammen mit der neuen Ladung den Endbestand, mit dem " +
+            "Sie losfahren." },
+
+    { titel: "Vorher: Kopfdaten",
+      text: "Fahrer, Tour und Datum gelten für Inventurblatt und " +
+            "Verkaufsbericht gemeinsam. Einmal eintragen genügt — beide " +
+            "Zettel tragen dann dasselbe.",
+      stand: () => {
+        kopfLaden();
+        const t = (kopfState.tour || "").trim(), d = (kopfState.datum || "").trim();
+        return (t || d)
+          ? "Eingetragen: " + (t ? "Tour " + t : "") + (t && d ? " · " : "") + d
+          : "Noch nichts eingetragen — über „📋 Kopfdaten“ nachholen.";
+      } },
+
+    { titel: "Zählen: Warengruppe für Warengruppe",
+      text: "Sechs Gruppen nacheinander: Cigaretten, Zigarren, Tabak/Rolls, " +
+            "RBA, Hülsen/Papier, Sonstiges. Je Zeile <b>Menge × KVP</b> — " +
+            "also Stückzahl mal Preisgruppe, nicht der Artikelname. Die " +
+            "Zeilen laufen durch; ist eine Blattspalte voll, geht es " +
+            "automatisch in der nächsten weiter.",
+      stand: () => {
+        const z = heuteInvZeilen(invState);
+        return z ? z + (z === 1 ? " Zeile" : " Zeilen") + " erfasst · Istbestand "
+                    + invFmt(heuteIstbestand(invState)) + " €"
+                 : "Noch keine Zeile erfasst.";
+      } },
+
+    { titel: "Lieferscheine",
+      text: "Die Lieferschein-Spalte ist anders aufgebaut als die " +
+            "Warengruppen: Dort steht der Betrag direkt, nicht Menge × KVP. " +
+            "Sie ist deshalb nicht Teil der durchlaufenden Zeilenfolge." },
+
+    { titel: "Der Sollbestand kommt von allein",
+      text: "Er wird nicht getippt. Die App übernimmt den in der Abrechnung " +
+            "berechneten Inventur Soll — so können die beiden Zettel nicht " +
+            "auseinanderlaufen. Steht dort noch nichts, bleibt das Feld leer.",
+      stand: () => {
+        const soll = invSollAusAbrechnung();
+        return soll === null
+          ? "Noch keine Abrechnung — Sollbestand und Differenz bleiben leer."
+          : "Sollbestand aus der Abrechnung: " + invFmt(soll) + " €";
+      } },
+
+    { titel: "Differenz lesen",
+      text: "Gerechnet wird <b>Ist minus Soll</b>. Ein <b>Minus</b> heißt: " +
+            "es fehlt Ware. Ein <b>Plus</b> heißt: es ist zu viel da. Auf " +
+            "beiden Zetteln bedeutet ein Minus dasselbe.",
+      stand: () => {
+        const soll = invSollAusAbrechnung();
+        if (soll === null) return "Noch nicht berechenbar.";
+        const d = heuteIstbestand(invState) - soll;
+        return d === 0 ? "Stimmt genau überein."
+             : d > 0   ? "Aktuell " + invFmt(d) + " € zu viel auf dem Fahrzeug."
+                       : "Aktuell fehlen " + invFmt(Math.abs(d)) + " €.";
+      } },
+
+    { titel: "Fertig",
+      text: "Über „Fertig → Zettel ansehen“ wechseln Sie auf das Blatt, wie " +
+            "es gedruckt wird. Das PDF entsteht erst über die Werkzeugleiste." }
+  ],
+
+  ware: [
+    { titel: "Wozu dieser Bildschirm",
+      text: "Hier wird die <b>neue</b> Ware gezählt, die aufs Fahrzeug " +
+            "kommt. Sie ist die Ladeliste — zusammen mit dem gezählten " +
+            "Restbestand ergibt sie den Endbestand, mit dem Sie losfahren." },
+
+    { titel: "Nicht jede Stange einzeln",
+      text: "Eine Zeile trägt <b>Kartons × Kartongröße + lose Stangen</b>. " +
+            "Die Größen sind unterschiedlich — 12, 16, 20, 25 oder 30. Aus " +
+            "97 einzeln gezählten Stangen werden so zwei Eingaben.",
+      stand: () => {
+        const s = heuteWareStangen(kaeState);
+        return s ? "Bisher gezählt: " + s.toLocaleString("de-DE") + " Stangen"
+                 : "Noch nichts gezählt.";
+      } },
+
+    { titel: "Der Zählmodus",
+      text: "Für den Rest im Käfig: eine große Fläche, ein Tipp ist eine " +
+            "Stange, das Gerät vibriert als Rückmeldung. „Zurück“ nimmt " +
+            "einen Fehltipp weg, „+10“ springt in Zehnerschritten. So " +
+            "schauen Sie die Ware an und nicht das Display." },
+
+    { titel: "Gegen den Lieferschein",
+      text: "Tragen Sie oben ein, was laut Lieferschein kommen soll. Die " +
+            "App vergleicht mit dem, was Sie gezählt haben. <b>Eine " +
+            "Abweichung klärt sich an der Rampe</b> — dort steht der " +
+            "Lagerkollege noch daneben. Freitag erinnert sich niemand mehr.",
+      stand: () => {
+        const soll = invZahl(kaeState.lieferschein);
+        const ist = heuteWareStangen(kaeState);
+        if (!soll) return "Kein Lieferschein-Wert eingetragen.";
+        const d = ist - soll;
+        return d === 0 ? "Stimmt genau überein: " + ist + " Stangen."
+             : d > 0   ? d + " Stangen mehr im Käfig als auf dem Schein."
+                       : Math.abs(d) + " Stangen fehlen gegenüber dem Schein.";
+      } },
+
+    { titel: "Danach",
+      text: "Der gezählte Wert geht als Ladeliste in die Abrechnung. Dort " +
+            "wird daraus zusammen mit dem Inventur Ist der Endbestand — und " +
+            "der ist der Startbestand der nächsten Woche." }
+  ]
+};
+
+let fuehrungBereich = null, fuehrungSchritt = 0;
+
+function fuehrungStart(bereich) {
+  if (!FUEHRUNGEN[bereich]) return;
+  fuehrungBereich = bereich;
+  fuehrungSchritt = 0;
+  fuehrungZeige();
+}
+
+function fuehrungBlaettern(richtung) {
+  const liste = FUEHRUNGEN[fuehrungBereich] || [];
+  fuehrungSchritt = Math.max(0, Math.min(liste.length - 1, fuehrungSchritt + richtung));
+  fuehrungZeige();
+}
+
+function fuehrungSchliessen() {
+  document.getElementById("modalRoot").innerHTML = "";
+}
+
+function fuehrungZeige() {
+  const liste = FUEHRUNGEN[fuehrungBereich] || [];
+  const s = liste[fuehrungSchritt];
+  if (!s) return;
+
+  /* Live-Rueckmeldung. Faellt sie aus, darf der ganze Schritt nicht
+     mitfallen - die Erklaerung ist auch ohne Zahl noch nuetzlich. */
+  let stand = "";
+  if (s.stand) { try { stand = s.stand(); } catch (e) { stand = ""; } }
+
+  document.getElementById("modalRoot").innerHTML =
+    '<div class="modal-overlay" onclick="if(event.target===this) fuehrungSchliessen()">' +
+      '<div class="modal-box">' +
+        '<p class="hinweis-text" style="margin:0 0 .35rem;">Schritt ' +
+          (fuehrungSchritt + 1) + ' von ' + liste.length + '</p>' +
+        '<h2 style="margin-top:0;">🧭 ' + s.titel + '</h2>' +
+        '<p style="line-height:1.5;">' + s.text + '</p>' +
+        (stand ? '<p class="fuehrung-stand">' + stand + '</p>' : '') +
+        '<div class="modal-close-row">' +
+          '<button type="button" class="ghost" onclick="fuehrungSchliessen()">Schließen</button>' +
+          (fuehrungSchritt > 0
+            ? '<button type="button" class="ghost" onclick="fuehrungBlaettern(-1)">Zurück</button>' : '') +
+          (fuehrungSchritt < liste.length - 1
+            ? '<button type="button" class="primary" onclick="fuehrungBlaettern(1)">Weiter</button>'
+            : '<button type="button" class="primary" onclick="fuehrungSchliessen()">Fertig</button>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
 /* Hat jemand die Abrechnung wirklich angefasst?
 
    Diese drei Felder fuellt die App selbst und sind deshalb kein Beleg:
