@@ -3813,9 +3813,20 @@ function heuteIstbestand(st) {
   });
   return s;
 }
+/* Zaehlt NUR Zeilen mit einer Menge, nicht solche, in denen bloss ein KVP
+   steht.
+
+   Seit dem 06.09.2026 nimmt der Abschluss die KVP-Spalte in die neue Woche
+   mit. Wuerde hier weiterhin jedes nicht-leere Feld zaehlen, meldete ein
+   frisches, noch voellig ungezaehltes Blatt "22 Zeilen erfasst" - der
+   Wochenlauf haette die Inventur als erledigt angezeigt und der
+   "Weitermachen"-Knopf ins Leere gefuehrt. */
 function heuteInvZeilen(st) {
-  return Object.values(st.felder || {}).filter((v) =>
-    Object.values(v || {}).some((x) => String(x || "").trim() !== "")).length;
+  return Object.values(st.felder || {}).filter((v) => {
+    const f = v || {};
+    return String(f.mg == null ? "" : f.mg).trim() !== "" ||
+           String(f.su == null ? "" : f.su).trim() !== "";
+  }).length;
 }
 function heuteWareStangen(st) {
   let s = 0;
@@ -4128,11 +4139,19 @@ function fuehrungZeige() {
 
 /* Hat jemand die Abrechnung wirklich angefasst?
 
-   Diese drei Felder fuellt die App selbst und sind deshalb kein Beleg:
-     abrVertreter, abrDatum          - aus abrVorbelegen()
-     abrEndbestandVortrag            - aus dem letzten Abschluss
-   Alles andere muss jemand eingetippt haben. */
-const ABR_VORBELEGT = ["abrVertreter", "abrDatum", "abrEndbestandVortrag"];
+   Diese Felder fuellt die App selbst und sind deshalb kein Beleg:
+     abrVertreter, abrTour, abrDatum  - aus abrVorbelegen(), gespeist aus
+                                        den Kopfdaten
+     abrEndbestandVortrag             - aus dem letzten Abschluss
+
+   Die Liste muss VOLLSTAENDIG mit abrVorbelegen() uebereinstimmen. Fehlt
+   auch nur ein Feld, meldet der Wochenlauf nach jedem Abschluss
+   "Abrechnung fertig" fuer eine voellig leere Woche - genau das ist am
+   06.09.2026 mit abrTour passiert, nachdem derselbe Fehler kurz zuvor
+   schon einmal behoben worden war. Wer abrVorbelegen() erweitert, muss
+   hier nachziehen. */
+const ABR_VORBELEGT = ["abrVertreter", "abrTour", "abrDatum",
+                       "abrEndbestandVortrag"];
 function abrSelbstAusgefuellt() {
   const f = (abrState && abrState.felder) || {};
   return Object.keys(f).some((k) =>
@@ -6455,7 +6474,33 @@ async function abrAbschliessen() {
   abrSetz("abrEndbestandVortrag", invFmt(endbestand));
   abrSichern();
 
-  invState = { kopf: {}, felder: {}, soll: "", fuss: {}, sicht: {} };
+  /* KVP-Spalte in die neue Woche mitnehmen, nur die Mengen leeren.
+
+     Mirko, 06.09.2026: "das ziel ist die inventur einfach gezaehlt
+     erfassen, denn bei der inventur interessieren die sorten nicht sondern
+     der gesamte endbetrag."
+
+     Die Mengen aendern sich jede Woche, die Preisgruppen nicht. Bisher warf
+     der Abschluss beide weg - also wurde jede Woche dieselbe Preisspalte
+     neu getippt, bis zu 22 Zeilen. Das ist die halbe Tipparbeit, und sie
+     ist vermeidbar.
+
+     Warum das aus den EIGENEN Eingaben kommt und nicht aus einer
+     abgetippten Tabelle: Eine externe Preistabelle veraltet (Mirko, selber
+     Tag: "es kommen immer andere kippen, verkaufspreise, artikelnummern
+     dazu oder aendern sich"). Diese hier kann nicht veralten - aendert sich
+     ein Preis, wird er einmal ueberschrieben und traegt sich ab dann selbst
+     weiter. Eine Tabelle, die durch Benutzung waechst.
+
+     Lieferscheine tragen keinen KVP, sondern den Betrag direkt (su) - die
+     werden vollstaendig geleert. */
+  const invKvpVortrag = {};
+  Object.keys(invState.felder || {}).forEach((k) => {
+    const f = invState.felder[k] || {};
+    const kv = String(f.kv == null ? "" : f.kv).trim();
+    if (kv !== "") invKvpVortrag[k] = { kv: kv };
+  });
+  invState = { kopf: {}, felder: invKvpVortrag, soll: "", fuss: {}, sicht: {} };
   invSichern();
   invAufgebaut = false;
   kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
