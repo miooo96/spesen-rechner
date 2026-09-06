@@ -461,6 +461,43 @@
   .heute-chip.offen { color:#b03030; }
   .heute-chip.fertig { color:#0a7a0a; }
 
+  /* ===== Wochenlauf =====
+     Zeigt den Kreislauf Inventur -> Ware -> Abrechnung -> Abschliessen als
+     Folge, nicht als vier gleichrangige Kacheln. Rein anzeigend: Der
+     Zustand existiert laengst (invState, kaeState, abrState), er war nur
+     nirgends als Weg dargestellt.
+
+     Mirko, 06.09.2026: "die fuehrung wuerde nur soweit machen wie die daten
+     reichen." Genau so: gefuellte Punkte bis dorthin, wo Daten liegen, der
+     naechste offene wird hervorgehoben. Es wird nichts abgefragt und nichts
+     erzwungen - die Reihenfolge erzwingt ohnehin schon der Abschluss-Knopf,
+     der ohne Endbestand verweigert. */
+  .heute-start { margin-top:.7rem; font-size:.82rem; color:#fff; opacity:.85; }
+  .heute-start b { font-variant-numeric:tabular-nums; }
+  .heute-lauf { display:flex; flex-wrap:wrap; gap:6px; margin-top:.5rem; }
+  .heute-schritt {
+    display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+    border-radius:999px; padding:5px 11px; font-size:.8rem; font-weight:600;
+    color:#fff; cursor:pointer;
+  }
+  .heute-schritt .punkt { width:9px; height:9px; border-radius:50%;
+                          background:rgba(255,255,255,.35); flex:none; }
+  .heute-schritt.fertig .punkt { background:#5fd35f; }
+  .heute-schritt.fertig { background:rgba(95,211,95,.14); border-color:rgba(95,211,95,.35); }
+  .heute-schritt.jetzt { background:var(--accent); border-color:var(--accent);
+                         box-shadow:0 3px 10px rgba(222,112,8,.4); }
+  .heute-schritt.jetzt .punkt { background:#fff; }
+  .heute-schritt .wert { opacity:.8; font-weight:500; }
+  /* Auf hellem Grund (Kollegenansicht ohne Nachtbild) muss die Schrift
+     dunkel sein - sonst weiss auf weiss. */
+  body:not(.nacht-start) .heute-start { color:var(--brand-dark); opacity:1; }
+  body:not(.nacht-start) .heute-schritt { color:var(--brand-dark);
+    background:#fff; border-color:#e3e6eb; }
+  body:not(.nacht-start) .heute-schritt .punkt { background:#d6dae0; }
+  body:not(.nacht-start) .heute-schritt.fertig .punkt { background:#0a7a0a; }
+  body:not(.nacht-start) .heute-schritt.jetzt { color:#fff; }
+
   /* Jahreszahl im Splash: laeuft von 1903 auf heute hoch */
   #splashScreen .splash-jahr { font-size:1.6rem; font-weight:800; color:#fff; letter-spacing:2px;
                                font-variant-numeric:tabular-nums; margin-top:4px; min-height:1.7rem; }
@@ -1940,6 +1977,9 @@
       <span class="heute-weiter-s" id="heuteWeiterText"></span>
     </button>
     <div class="heute-chips" id="heuteChips"></div>
+    <!-- Wochenlauf: der Kreislauf als Folge. Gefuellt in heuteAktualisieren(). -->
+    <div class="heute-start" id="heuteStart" style="display:none;"></div>
+    <div class="heute-lauf" id="heuteLauf"></div>
   </div>
   <div class="kachel-grid">
     <!-- Reihenfolge nach dem Arbeitsablauf (Mirko, 05.09.2026): Spesen,
@@ -3850,6 +3890,8 @@ function heuteAktualisieren() {
   if (!zeigtSonderbereiche()) {
     if (weiterKnopf) weiterKnopf.style.display = "none";
     document.getElementById("heuteChips").innerHTML = "";
+    document.getElementById("heuteLauf").innerHTML = "";
+    document.getElementById("heuteStart").style.display = "none";
     return;
   }
   if (weiterKnopf) weiterKnopf.style.display = "";
@@ -3865,6 +3907,7 @@ function heuteAktualisieren() {
     ? '<span class="heute-chip fertig">Sollbestand ' + invFmt(abr.soll) + ' €</span>'
     : '<span class="heute-chip offen">Sollbestand fehlt – Abrechnung ausfüllen</span>');
   document.getElementById("heuteChips").innerHTML = chips.join("");
+  heuteWochenlauf(ist, ware, abr);
 
   // Zahlen auf den Kacheln
   heuteKachelZahl("inventur", ist > 0 ? invFmt(ist) + " €" : "");
@@ -3872,6 +3915,83 @@ function heuteAktualisieren() {
      Einbaus und stimmte seit dem 05.09.2026 nicht mehr. */
   heuteKachelZahl("abrechnung", abr.endbestand ? invFmt(abr.endbestand) + " €" : "");
 }
+/* Der Wochenlauf: Inventur -> Ware -> Abrechnung -> Abschliessen.
+
+   Reine ANZEIGE. Es wird nichts abgefragt, nichts erzwungen, nichts
+   gerechnet - alle Werte kommen aus denselben Quellen wie die Chips
+   darueber. Die Reihenfolge erzwingt ohnehin schon der Abschluss-Knopf,
+   der ohne Endbestand verweigert.
+
+   Mirko, 06.09.2026: "die fuehrung wuerde nur soweit machen wie die daten
+   reichen. rest wird in der firma erledigt." Deshalb keine Abfrage nach dem
+   Ort: Der Lauf zeigt einfach, wie weit die Daten tragen. Wer freitags
+   zuhause nur zaehlt, sieht einen gefuellten Punkt und drei offene. */
+/* Hat jemand die Abrechnung wirklich angefasst?
+
+   Diese drei Felder fuellt die App selbst und sind deshalb kein Beleg:
+     abrVertreter, abrDatum          - aus abrVorbelegen()
+     abrEndbestandVortrag            - aus dem letzten Abschluss
+   Alles andere muss jemand eingetippt haben. */
+const ABR_VORBELEGT = ["abrVertreter", "abrDatum", "abrEndbestandVortrag"];
+function abrSelbstAusgefuellt() {
+  const f = (abrState && abrState.felder) || {};
+  return Object.keys(f).some((k) =>
+    ABR_VORBELEGT.indexOf(k) === -1 &&
+    String(f[k] == null ? "" : f[k]).trim() !== "");
+}
+
+function heuteWochenlauf(ist, ware, abr) {
+  const lauf = document.getElementById("heuteLauf");
+  const startZeile = document.getElementById("heuteStart");
+  if (!lauf || !startZeile) return;
+
+  /* Womit die Woche begonnen hat - der Endbestand der Vorwoche, den der
+     Abschluss uebernommen hat. Steht sonst nur im Abrechnungsblatt und ist
+     montags frueh genau die Zahl, die man wissen will. */
+  const vortrag = invZahl((abrState.felder || {}).abrEndbestandVortrag);
+  if (vortrag) {
+    startZeile.style.display = "";
+    startZeile.innerHTML = "Startbestand aus der Vorwoche: <b>" +
+                           invFmt(vortrag) + " €</b>";
+  } else {
+    startZeile.style.display = "none";
+  }
+
+  const schritte = [
+    { tab: "inventur",   name: "Inventur",
+      fertig: ist > 0,   wert: ist > 0 ? invFmt(ist) + " €" : "" },
+    { tab: "ware",       name: "Ware geladen",
+      fertig: ware > 0,  wert: ware > 0 ? ware.toLocaleString("de-DE") + " Stangen" : "" },
+    { tab: "abrechnung", name: "Abrechnung",
+      /* NICHT abr.endbestand pruefen! Der Endbestand IST leitet sich aus
+         der Inventur ab (Inventur Ist + Ladeliste) und steht deshalb schon,
+         bevor jemand die Abrechnung geoeffnet hat. Gemessen am 06.09.2026:
+         nach reinem Zaehlen meldete der Lauf "Abrechnung fertig". Ein
+         Kollege haette einen Haken gesehen fuer etwas, das er nie gemacht
+         hat - die schlechteste Sorte Anzeige.
+
+         Beleg ist stattdessen eine ECHTE Eingabe im Abrechnungsblatt. Die
+         drei automatisch vorbelegten Felder zaehlen dafuer nicht: Vertreter
+         und Datum setzt abrVorbelegen(), den Vortrag der letzte Abschluss. */
+      fertig: abrSelbstAusgefuellt(),
+      wert: abr.endbestand ? invFmt(abr.endbestand) + " €" : "" },
+    { tab: "abrechnung", name: "Abschließen", fertig: false, wert: "" }
+  ];
+
+  /* Der erste noch offene Schritt ist der, an dem man steht. Sind alle drei
+     davor erledigt, ist es der Abschluss. */
+  let jetzt = schritte.findIndex((s) => !s.fertig);
+
+  lauf.innerHTML = schritte.map((s, i) => {
+    const klasse = "heute-schritt" + (s.fertig ? " fertig" : "") +
+                   (i === jetzt ? " jetzt" : "");
+    return '<span class="' + klasse + '" onclick="zeigeTab(\'' + s.tab + '\')">' +
+           '<span class="punkt"></span>' + s.name +
+           (s.wert ? ' <span class="wert">' + s.wert + '</span>' : '') +
+           '</span>';
+  }).join("");
+}
+
 /* Haengt eine kleine Zahlenzeile unter die Beschriftung einer Kachel. */
 function heuteKachelZahl(tab, text) {
   const btn = document.querySelector('.kachel-btn[onclick="zeigeTab(\'' + tab + '\')"]');
