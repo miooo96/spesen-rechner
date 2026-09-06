@@ -4046,11 +4046,20 @@ const FUEHRUNGEN = {
             "einen Fehltipp weg, „+10“ springt in Zehnerschritten. So " +
             "schauen Sie die Ware an und nicht das Display." },
 
+    /* Der zweite Absatz ist wichtiger als er aussieht. Ohne ihn wuerde ein
+       Kollege bei JEDER Abweichung klingeln - auch wenn die Antwort schon
+       auf seinem Lieferschein steht. Mirko, 06.09.2026: "manchmal sind aber
+       auch zigaretten nicht lieferbar, steht dann aber auf dem
+       lieferschein." */
     { titel: "Gegen den Lieferschein",
       text: "Tragen Sie oben ein, was laut Lieferschein kommen soll. Die " +
             "App vergleicht mit dem, was Sie gezählt haben. <b>Eine " +
-            "Abweichung klärt sich an der Rampe</b> — dort steht der " +
-            "Lagerkollege noch daneben. Freitag erinnert sich niemand mehr.",
+            "Abweichung klärt sich an der Rampe</b> — klingeln und " +
+            "nachfragen, was los ist. Der Lagerkollege steht noch daneben; " +
+            "am Freitag erinnert sich niemand mehr.<br><br>" +
+            "<b>Nicht jede Abweichung ist ein Fehler:</b> Manchmal sind " +
+            "Sorten schlicht nicht lieferbar. Dann steht das aber auf dem " +
+            "Lieferschein — dort zuerst nachsehen, bevor Sie klingeln.",
       stand: () => {
         const soll = invZahl(kaeState.lieferschein);
         const ist = heuteWareStangen(kaeState);
