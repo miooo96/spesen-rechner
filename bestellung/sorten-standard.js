@@ -48,10 +48,29 @@
     { nr: "350", kuerzel: "10CFI", art: "06069", wgr: "1", ps: 10, preis: 100 },
     { nr: "379", kuerzel: "WRD10", art: "00454", wgr: "",  ps: 10, preis: 100 },
     { nr: "397", kuerzel: "9CAYE", art: "00406", wgr: "1", ps: 10, preis: 90 },
-    /* ArtNr. 00454 steht bei 379 UND 398 - vermutlich eine der beiden
-       falsch gelesen. Die Pruefsumme faengt das nicht, weil
-       Artikelnummern nicht aufsummiert werden. Von Mirko zu bestaetigen. */
-    { nr: "398", kuerzel: "9WIRD", art: "00454", wgr: "",  ps: 10, preis: 90,  pruefen: true, auslauf: true },
+    /* ArtNr. 00454 steht bei 379 UND 398 - AM PAPIER BESTAETIGT.
+
+       Kein Lesefehler. Auf dem Vordruck 17.08.-23.08. stehen beide Zeilen
+       zwei Zeilen auseinander, beide mit 00454:
+
+         379    18   70,00  10   7   700,00           00454  WRD10
+         398     3   22,00  10   3   270,00 AUSLAUF   00454  9WIRD
+
+       Die Preise bestaetigen es: 700/7 = 100 EUR (10 EUR je Packung,
+       daher "10" im Kuerzel), 270/3 = 90 EUR (9 EUR je Packung, daher
+       die "9"). Es ist dieselbe Zigarette in zwei Preisfassungen.
+
+       DARAUS FOLGT FUER DIE TABELLE: Die ArtNr bezeichnet das PRODUKT und
+       bleibt bei einer Preiserhoehung stehen; die SORTENNUMMER bezeichnet
+       die Preisfassung und wechselt (Mirko: "sortennummer aendert sich").
+       Wer spaeter "dieselbe Zigarette ueber die Zeit" braucht, nimmt die
+       ArtNr - nicht die Sortennummer.
+
+       EINSCHRAENKUNG: 398 steht nur auf diesem einen der drei vorliegenden
+       Blaetter (in 24.-30.08. und 31.08.-06.09. fehlt die Zeile). Fuer 379
+       ist 00454 dreifach belegt, fuer 398 einfach. Die Lesung ist eindeutig,
+       aber sie hat nur eine Quelle. */
+    { nr: "398", kuerzel: "9WIRD", art: "00454", wgr: "",  ps: 10, preis: 90,  artDoppeltBestaetigt: true, auslauf: true },
     { nr: "423", kuerzel: "75TRU", art: "10407", wgr: "",  ps: 10, preis: 75,  auslauf: true },
     { nr: "424", kuerzel: "8TTUR", art: "09292", wgr: "",  ps: 10, preis: 80 },
     { nr: "425", kuerzel: "75TAM", art: "10401", wgr: "",  ps: 10, preis: 75,  auslauf: true },
