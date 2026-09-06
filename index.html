@@ -137,7 +137,7 @@
   /* Der "Mehr"-Knopf existiert nur am Handy - am Rechner ist Platz genug. */
   #mehrKnopf { display: none; }
 
-  /* ===== Fenster "Als App einrichten" ===== */
+  /* ===== Fenster "Am Handy als App einrichten" ===== */
   .install-weg {
     border: 1px solid var(--linie, #e3e6eb); border-radius: 10px;
     padding: 12px 14px; margin: 12px 0;
@@ -8517,7 +8517,7 @@ function openInstallModal() {
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box">
-        <h2>📱 Als App einrichten</h2>
+        <h2>📱 Am Handy als App einrichten</h2>
         <p>Danach liegt der Spesen-Rechner als eigenes Symbol auf dem Startbildschirm,
            öffnet <b>ohne Browserleiste</b> und funktioniert auch <b>ohne Empfang</b> –
            im Lager, im Lkw, im Funkloch.</p>
@@ -10102,7 +10102,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-06-9"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-06-10"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
