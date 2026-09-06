@@ -3996,7 +3996,10 @@ function zigiStart() {
   __zigiUhren.push(setTimeout(() => {
     glut.style.filter = ""; asche.style.transition = "none"; asche.style.width = "0px";
     zigiSchwung(LOGO_PUNKTE.rest, "s2", D * .26, feld);
-    zigi.style.setProperty("--papier", (__zigiZL * .106).toFixed(1) + "px");
+    /* Der zweite Schwung verzehrt den Rest VOLLSTAENDIG (Mirko,
+       06.09.2026). Vorher blieb ein Stummel stehen, der eine Sekunde
+       spaeter separat ausblendete - das wirkte wie ein Nachklapp. */
+    zigi.style.setProperty("--papier", "0px");
   }, A2));
 
   const uebergeben = (band, marke, wann) => __zigiUhren.push(setTimeout(() => {
@@ -4007,11 +4010,15 @@ function zigiStart() {
   uebergeben(b1, "s1", A2 - 700);
   uebergeben(b2, "s2", ENDE);
 
+  /* Sie geht MIT der Glut, nicht danach: Waehrend sich das Leuchten des
+     zweiten Bandes ausbreitet, loest sich die Zigarette auf. Dieselbe
+     Dauer, derselbe Moment - eine Bewegung statt zweier. */
+  __zigiUhren.push(setTimeout(() => {
+    zigi.style.transition = "opacity 800ms ease-out"; zigi.style.opacity = 0;
+  }, ENDE));
   __zigiUhren.push(setTimeout(() => {
     ganz.style.transition = "opacity 500ms linear"; ganz.style.opacity = 1;
     [b1, b2].forEach((e) => { e.style.transition = "opacity 500ms linear"; e.style.opacity = 0; });
-    zigi.style.setProperty("--papier", "0px");
-    zigi.style.transition = "opacity 700ms ease-out"; zigi.style.opacity = 0;
   }, ENDE + 900));
   /* Am Schluss uebernimmt wieder das echte #nachtStartLogo und atmet -
      die Buehne verschwindet restlos. */
@@ -9577,7 +9584,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-06-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-06-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
