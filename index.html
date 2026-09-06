@@ -1065,7 +1065,22 @@
      Buehne hinter dem Hintergrund - die Animation liefe korrekt, waere
      aber unsichtbar. Genau das war beim ersten Einbau der Fall.
      pointer-events:none, damit die Kacheln bedienbar bleiben. */
-  #zigiBuehne { position:fixed; inset:0; z-index:40; pointer-events:none; display:none; }
+  /* Mirko, 06.09.2026: "wenn zigaretten animation startet ist die nicht
+     oben am bildschirm fest fixiert, scrolle ich runter wandert die
+     animation mit."
+
+     Ursache war "position:fixed": Die Buehne klebte am Fenster und ist
+     beim Scrollen mitgewandert. Jetzt "absolute" - sie gehoert zur Seite
+     und bleibt beim Runterscrollen oben zurueck.
+
+     Die Koordinaten kommen weiter aus getBoundingClientRect(), sind also
+     fensterbezogen. Deshalb setzt zigiStart() top auf die Scroll-Position
+     beim Start; damit fallen Buehnenoberkante und Fensteroberkante in dem
+     Moment zusammen und die Messwerte stimmen unveraendert. Kontrolliert
+     gegengemessen: alle fuenf Elemente sitzen auf den Pixel dort, wo sie
+     mit "fixed" sassen. */
+  #zigiBuehne { position:absolute; top:0; left:0; width:100%; height:100vh;
+                z-index:40; pointer-events:none; display:none; }
   body.zigi-laeuft #zigiBuehne { display:block; }
 
   /* Groesse haengt an der Logobreite, nicht an festen Pixeln - sonst
@@ -3665,6 +3680,10 @@ function zeigeTab(tab) {
   if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit" || tab === "inventur") ? "" : "none";
 
   markiereTab(tab);
+  /* Die Animation gehoert auf die Kachel-Startseite und nirgendwo sonst.
+     Wer waehrend der zehn Sekunden eine Kachel antippt, soll sie nicht
+     ueber dem Arbeitsbereich weiterlaufen sehen. */
+  zigiStop();
   heuteMerkeBereich(tab);
   /* Druckklassen am Bereichswechsel setzen, nicht in den toggle*-Funktionen:
      die laufen nur, wenn das Panel vorher zu war. Stand es schon offen,
@@ -3961,12 +3980,34 @@ function zigiSchwung(punkte, marke, dauer, feld) {
   });
 }
 
+/* Animation sofort beenden und aufraeumen.
+
+   Mirko, 06.09.2026: "die animation soll auch nicht seitenuebergreifend
+   sein, sondern nur in dem zweiten bildschirm wo alle hauptfunktionen
+   liegen. bei umschalten waehrend animation soll die nicht auf einer
+   anderen seite weitermachen."
+
+   Die Zeitgeber sind der eigentliche Punkt: Die Buehne haengt am body und
+   liegt mit z-index 40 ueber allem. Sie nur auszublenden haette die elf
+   laufenden Zeitschaltungen nicht gestoppt - es haette weiter geascht,
+   nur unsichtbar. */
+function zigiStop() {
+  __zigiUhren.forEach(clearTimeout);
+  __zigiUhren = [];
+  const b = document.getElementById("zigiBuehne");
+  if (b) b.querySelectorAll(".zigi-fl").forEach((e) => e.remove());
+  document.body.classList.remove("zigi-laeuft");
+}
+
 function zigiStart() {
   try {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   } catch (e) {}
   const b = zigiAufbauen();
   if (!b) return;
+  /* Buehnenoberkante auf die Fensteroberkante legen (siehe Stil oben).
+     Ab hier bleibt sie an der Seite haengen, nicht am Fenster. */
+  b.style.top = (window.scrollY || window.pageYOffset || 0) + "px";
   __zigiUhren.forEach(clearTimeout); __zigiUhren = [];
   b.querySelectorAll(".zigi-fl").forEach((e) => e.remove());
   document.body.classList.add("zigi-laeuft");
@@ -9584,7 +9625,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-06-3"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-06-4"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
