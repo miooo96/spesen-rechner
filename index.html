@@ -4025,7 +4025,7 @@ function zigiStart() {
 /* Antippen des Schildes spielt sie erneut ab. */
 document.addEventListener("click", (e) => {
   const logo = e.target.closest && e.target.closest("#nachtStartLogo");
-  if (logo && document.body.classList.contains("nacht-start") && zeigtSonderbereiche()) zigiStart();
+  if (logo && document.body.classList.contains("nacht-start")) zigiStart();
 });
 addEventListener("resize", () => { if (document.body.classList.contains("zigi-laeuft")) zigiMasse(); });
 
@@ -4204,10 +4204,15 @@ function zeigeKachelStartseite() {
   /* NUR wenn der Splash schon weg ist. zeigeKachelStartseite() laeuft
      auch beim Laden, waehrend der Splash noch davorliegt - die Animation
      waere dann hinter dem Startbild abgelaufen und vorbei, bevor der
-     Nutzer "Weiter" drueckt. Genau das ist beim ersten Einbau passiert. */
+     Nutzer "Weiter" drueckt. Genau das ist beim ersten Einbau passiert.
+
+     FUER ALLE, nicht nur fuer Mirko (06.09.2026: "darf bei kollegen auch
+     laufen"). Sie blockiert nichts: Die Buehne hat pointer-events:none,
+     die Kacheln sind waehrenddessen bedienbar. Wer sofort arbeiten will,
+     tippt einfach eine an. */
   const splashEl2 = document.getElementById("splashScreen");
   const splashOffen = splashEl2 && getComputedStyle(splashEl2).display !== "none";
-  if (!__zigiGelaufen && !splashOffen && zeigtSonderbereiche()) {
+  if (!__zigiGelaufen && !splashOffen) {
     __zigiGelaufen = true;
     setTimeout(zigiStart, 320);
   }
@@ -9572,7 +9577,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-06-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-06-2"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
