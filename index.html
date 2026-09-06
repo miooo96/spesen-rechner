@@ -252,8 +252,8 @@
        bedachte: Mirko richtet die App bei Kollegen ein und braucht die
        Anleitung dafuer auf SEINEM Geraet - dort laeuft sie laengst als
        App, also war sie genau dann verschwunden, wenn er sie brauchte.
-       Der Knopf bleibt jetzt ueberall stehen und heisst in der App
-       "Auf weiterem Geraet einrichten" (aktualisiereInstallBeschriftung()).
+       Der Knopf bleibt jetzt ueberall stehen und heisst ueberall gleich:
+       "Am Handy als App einrichten" (seit 06.09.2026, Mirkos Vorgabe).
 
        Die Klasse selbst ist damit unbenutzt und deshalb ebenfalls weg -
        eine Regel, die nichts mehr trifft, wird beim naechsten Mal falsch
@@ -2025,9 +2025,10 @@
          nichts mehr einzurichten") - das stimmt nur, solange man sie fuer
          sich selbst braucht. Mirko zeigt sie Kollegen auf deren Geraeten,
          und dafuer muss er sie in seiner eigenen App oeffnen koennen. Die
-         Beschriftung wechselt dann zu "Auf weiterem Geraet einrichten",
-         siehe aktualisiereInstallBeschriftung(). -->
-    <button type="button" class="kachel-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+         Die Beschriftung ist dabei ueberall dieselbe: "Am Handy als App
+         einrichten" - seit 06.09.2026, davor wechselte sie in der App auf
+         "Auf weiterem Geraet einrichten". -->
+    <button type="button" class="kachel-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Am Handy als App einrichten</button>
   </div>
   <!-- "Mehr" steht allein in einem eigenen Grid. Als einziges Element ist
        die Anzahl IMMER 1 (ungerade) - aktualisiereKachelGridLayout() gibt
@@ -2065,7 +2066,7 @@
   <!-- Ebenfalls ohne "nur-webseite" (05.09.2026) - damit die Anleitung an
        beiden Stellen erreichbar bleibt, auch aus der installierten App
        heraus. Begruendung siehe Kachel weiter oben. -->
-  <button type="button" class="tab-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Als App einrichten</button>
+  <button type="button" class="tab-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Am Handy als App einrichten</button>
   <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
 </nav>
 
@@ -3066,12 +3067,14 @@ const I18N = {
     spesenKopfzeileTitel: "📋 Spesenabrechnung",
     btnArbeitszeit: "⏱️ Arbeitszeit", btnUrlaub: "🌴 Urlaubskalender",
     btnQr: "📱 QR-Code", btnReset: "🗑️ Zurücksetzen", btnHelp: "❓ Anleitung", btnFeedback: "💬 Feedback",
-    btnInstall: "📱 Als App einrichten",
-    /* Zweite Beschriftung fuer denselben Knopf, sichtbar NUR in der
-       installierten App. "Als App einrichten" waere dort falsch - sie
-       laeuft ja bereits als App. Gemeint ist das Einrichten auf einem
-       weiteren Geraet, etwa beim Kollegen. */
-    btnInstallApp: "📱 Auf weiterem Gerät einrichten",
+    /* EINE Beschriftung fuer alle Faelle - Browser wie installierte App.
+       Vom 05.09. bis 06.09.2026 wechselte der Knopf in der App auf
+       "Auf weiterem Geraet einrichten", mit der Begruendung, "Als App
+       einrichten" sei dort falsch. Mirko hat das gekippt: Der Knopf soll
+       ueberall dasselbe heissen. "Am Handy" sagt konkret, worum es geht,
+       und trifft beide Faelle - das eigene Geraet wie das des Kollegen.
+       Ein Knopf, ein Text, nichts kann mehr umspringen. */
+    btnInstall: "📱 Am Handy als App einrichten",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
     confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
@@ -3107,8 +3110,7 @@ const I18N = {
     spesenKopfzeileTitel: "📋 Expense report",
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
-    btnInstall: "📱 Install as app",
-    btnInstallApp: "📱 Set up on another device",
+    btnInstall: "📱 Set up as app on your phone",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
     confirmReset: "Really reset all entries (including saved ones)?",
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
@@ -3129,28 +3131,21 @@ function applyI18n() {
   document.title = t("pageTitle");
   const langSel = document.getElementById("langSwitch");
   if (langSel) langSel.value = currentLang;
-  aktualisiereInstallBeschriftung();
 }
-/* Der Install-Knopf traegt zwei Beschriftungen, je nachdem WO er steht:
+/* HIER STAND BIS ZUM 06.09.2026 aktualisiereInstallBeschriftung().
+   Sie tauschte die Beschriftung des Install-Knopfes je nach Umgebung:
+   im Browser "Als App einrichten", in der installierten App "Auf weiterem
+   Geraet einrichten".
 
-     im Browser          -> "Als App einrichten"
-     in der App          -> "Auf weiterem Geraet einrichten"
+   Ersatzlos entfernt. Mirko: "das soll wieder am Handy als App einrichten
+   heissen." Der Knopf traegt jetzt ueberall denselben Text (btnInstall),
+   und der kommt wie bei jedem anderen Knopf aus data-i18n - keine
+   Sonderbehandlung, kein Umspringen, keine Reihenfolge-Abhaengigkeit
+   zwischen applyI18n() und setzeAppKennung() mehr.
 
-   Bis zum 05.09.2026 war der Knopf in der installierten App ausgeblendet
-   (.nur-webseite). Das war folgerichtig gedacht - "dort ist nichts mehr
-   einzurichten" -, uebersah aber den haeufigeren Fall: Mirko richtet die
-   App bei Kollegen ein und braucht die Anleitung dafuer auf SEINEM Geraet,
-   auf dem sie laengst installiert ist.
-
-   Muss am Ende von applyI18n() stehen und nicht daneben: Die Schleife
-   darueber setzt textContent aus data-i18n und wuerde eine vorher
-   gesetzte Beschriftung bei jedem Sprachwechsel wieder ueberschreiben. */
-function aktualisiereInstallBeschriftung() {
-  const alsApp = document.body.classList.contains("als-app");
-  document.querySelectorAll('[data-i18n="btnInstall"]').forEach((el) => {
-    el.textContent = alsApp ? t("btnInstallApp") : t("btnInstall");
-  });
-}
+   Falls hier je wieder eine zweite Beschriftung eingebaut wird: Sie muss
+   NACH der data-i18n-Schleife in applyI18n() gesetzt werden, sonst
+   ueberschreibt die Schleife sie bei jedem Sprachwechsel. */
 /* Startbildschirm: zeigt den echten aktuellen Kalendermonat (nicht den in
    der App gerade ausgewaehlten Abrechnungsmonat) und eine personalisierte
    Begruessung (mit Namen oder "Willkommen!"). Der Splash blendet sich nach
@@ -4673,14 +4668,11 @@ function setzeAppKennung() {
              || window.navigator.standalone === true;
   } catch (e) { alsApp = false; }
   document.body.classList.toggle("als-app", !!alsApp);
-  /* Die Beschriftung des Install-Knopfes haengt an genau dieser Klasse und
-     MUSS hier mitgesetzt werden: Beim Start laeuft applyI18n() (Zeile
-     ~8863) VOR setzeAppKennung() - zu diesem Zeitpunkt weiss die App noch
-     nicht, ob sie im Browser oder als App laeuft, und wuerde in der
-     installierten App faelschlich "Als App einrichten" anzeigen.
-     Zweiter Grund: Der Zustand kann sich im Betrieb aendern (siehe
-     matchMedia-Zuhoerer weiter unten); dann muss die Beschriftung mit. */
-  if (typeof aktualisiereInstallBeschriftung === "function") aktualisiereInstallBeschriftung();
+  /* Hier stand bis zum 06.09.2026 ein Aufruf von
+     aktualisiereInstallBeschriftung() - noetig, weil die Beschriftung des
+     Install-Knopfes von dieser Klasse abhing und applyI18n() beim Start
+     VOR setzeAppKennung() laeuft. Diese Abhaengigkeit gibt es nicht mehr:
+     Der Knopf heisst ueberall gleich. */
   /* Frueher blendete body.als-app den Install-Knopf per .nur-webseite ganz
      aus; dann konnte die verbleibende "Mehr"-Kachel allein in der Zeile
      stehen, weshalb hier neu umbrochen wurde. Seit dem 05.09.2026 bleibt
@@ -10110,7 +10102,7 @@ oeffneAusAnker();
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
    im Browser und gehen dabei NICHT verloren. */
 (function () {
-  const APP_VERSION = "2026-09-06-8"; // bei jeder Änderung zusammen mit version.txt hochzählen
+  const APP_VERSION = "2026-09-06-9"; // bei jeder Änderung zusammen mit version.txt hochzählen
   async function checkForUpdate() {
     try {
       const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
