@@ -2057,6 +2057,15 @@
         <label>Tour-Nr.</label>
         <input id="cfgTour" placeholder="z.B. 12" oninput="saveConfig();">
         <p class="hinweis-text" style="margin:0.35rem 0 0;">Füllt Inventurblatt und Verkaufsbericht vor. Beim Start eines Durchgangs änderbar.</p>
+        <!-- Fixbestand: Mirko am 06.09.2026 - "jeder fahrer nimmt einen
+             fixbestand an kleingeld mit, in den meisten faellen 1.100 euro,
+             in manch anderen andere betraege, muss individuell anpassbar
+             sein." Stand vorher fest im Inventurblatt-Markup; Kollegen mit
+             abweichendem Betrag haetten eine falsche Zahl gedruckt. -->
+        <label style="margin-top:0.75rem;">Fzg.-Fixbestand (Kleingeld)</label>
+        <input id="cfgFixbestand" placeholder="1.100" inputmode="decimal"
+               oninput="saveConfig(); invFixbestandZeigen();">
+        <p class="hinweis-text" style="margin:0.35rem 0 0;">Das Kleingeld, das im Fahrzeug mitgeführt wird. Steht so auf dem Inventurblatt. Leer = 1.100.</p>
       </div>
       <div>
         <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
@@ -2381,7 +2390,7 @@
           </tr>
           <tr>
             <td class="frei"></td><td class="frei"></td><td class="frei"></td>
-            <td class="fix" colspan="2">Fzg.Fixbestand überprüft 1.100 EURO</td>
+            <td class="fix" colspan="2" id="invFixbestandZelle">Fzg.Fixbestand überprüft 1.100 EURO</td>
             <!-- Fest auf "ja" (Mirko, 03.09.2026) -->
             <td class="jn kreuz">X</td><td class="jn"></td>
           </tr>
@@ -3257,6 +3266,7 @@ function saveConfig() {
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
   config.tour = val("cfgTour");
+  config.fixbestand = val("cfgFixbestand");
   config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
   config.eigeneEmail = val("cfgEigeneEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
@@ -3568,6 +3578,8 @@ function initSettingsUI() {
   document.getElementById("cfgOrt").value = config.ort;
   document.getElementById("cfgNiederlassung").value = config.niederlassung;
   document.getElementById("cfgTour").value = config.tour || "";
+  document.getElementById("cfgFixbestand").value = config.fixbestand || "";
+  invFixbestandZeigen();
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
   document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
@@ -4660,7 +4672,43 @@ function abrStandLesen() {
   }
   return abrBerechne();
 }
-function invSollAusAbrechnung() { return abrStandLesen().soll; }
+/* Schreibt den Fixbestand aus den Stammdaten ins Inventurblatt. Leer
+   bedeutet 1.100 - das ist der Betrag, den die meisten Fahrer mitfuehren. */
+function invFixbestandZeigen() {
+  const zelle = document.getElementById("invFixbestandZelle");
+  if (!zelle) return;
+  const roh = String((config && config.fixbestand) || "").trim();
+  zelle.textContent = "Fzg.Fixbestand überprüft " + (roh || "1.100") + " EURO";
+}
+
+/* Gibt es ueberhaupt schon eine Abrechnung? Wird gebraucht, um "noch nichts
+   gerechnet" von "gerechnet, Ergebnis null" zu unterscheiden. */
+function abrHatEingaben() {
+  const f = (abrState && abrState.felder) || {};
+  return Object.keys(f).some((k) => String(f[k] == null ? "" : f[k]).trim() !== "");
+}
+
+/* Liefert den Inventur-Soll aus der Abrechnung - oder null, wenn es noch
+   gar keine gibt.
+
+   WARUM NICHT EINFACH 0 (Mirko, 06.09.2026):
+   Vorher gab die Funktion immer eine Zahl zurueck, und der Aufrufer deutete
+   0 als "noch keine Abrechnung". Begruendet war das mit "ein Sollbestand von
+   exakt 0 kommt nicht vor, der Fahrzeug-Fixbestand allein sind 1.100 EUR".
+
+   Diese Begruendung traegt nicht: "der fixbestand wird nirgends
+   mitgerechnet, nur im haeckchen bestaetigt". Er ist Kleingeld, der
+   Inventur-Soll ist Ware. Ein Soll von genau 0 ist damit ein moeglicher
+   echter Wert - etwa bei leerem Fahrzeug.
+
+   Die Folge waere still gewesen: Wer auf ein Fahrzeug mit Soll 0 dreihundert
+   Euro Ware zaehlt, haette KEINE Differenz angezeigt bekommen. Kein Hinweis,
+   keine Warnung. Wie ein leeres Feld auf dem Vordruck gegen eine
+   hingeschriebene Null - zwei verschiedene Aussagen, eine Zahl. */
+function invSollAusAbrechnung() {
+  const stand = abrStandLesen();
+  return abrHatEingaben() ? stand.soll : null;
+}
 
 const invKapazitaet = (g) => g.spalten.length * g.zeilen;
 const invGruppe = (id) => INV_GRUPPEN.find((g) => g.id === id);
@@ -4779,18 +4827,23 @@ function invRechne() {
      inventur bei fahrzeuginventur". Damit steht auf beiden Zetteln
      zwangslaeufig dieselbe Zahl - vorher wurde er hier von Hand getippt
      und konnte vom Verkaufsbericht abweichen. */
+  /* null = es gibt noch gar keine Abrechnung. Das ist etwas anderes als
+     ein gerechneter Soll von 0 - siehe invSollAusAbrechnung(). */
   const soll = invSollAusAbrechnung();
-  document.getElementById("invSoll").value = soll ? invFmt(soll) : "";
+  document.getElementById("invSoll").value = soll === null ? "" : invFmt(soll);
   /* Richtung der Differenz: IST minus SOLL (Mirko, 05.09.2026 - "die ist
      inventur wird minus soll gerechnet"). Fehlende Ware erscheint damit als
      Minus, ueberzaehlige als Plus.
 
-     Angezeigt wird sie erst, wenn ein Sollbestand da ist. Sonst stuende
-     direkt nach dem Zaehlen der volle Istbestand als "Differenz" im Blatt
-     (2.300 gezaehlt, Soll noch unbekannt -> +2.300) und sähe aus wie ein
-     riesiger Ueberschuss. Ein Sollbestand von exakt 0 kommt nicht vor, der
-     Fahrzeug-Fixbestand allein sind 1.100 EUR. */
-  document.getElementById("invDiff").value = soll !== 0 ? invFmt(ist - soll) : "";
+     Angezeigt wird sie erst, wenn ueberhaupt eine Abrechnung da ist. Sonst
+     stuende direkt nach dem Zaehlen der volle Istbestand als "Differenz" im
+     Blatt (2.300 gezaehlt, Soll noch unbekannt -> +2.300) und saehe aus wie
+     ein riesiger Ueberschuss.
+
+     Geprueft wird dafuer auf null, NICHT auf 0 (korrigiert 06.09.2026): Ein
+     Soll von genau 0 ist ein moeglicher echter Wert, und er muss eine
+     Differenz erzeugen wie jeder andere auch. */
+  document.getElementById("invDiff").value = soll === null ? "" : invFmt(ist - soll);
   document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
   document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
 }
