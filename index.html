@@ -2921,6 +2921,10 @@
 
 <div id="modalRoot"></div>
 
+<!-- Vorschlaege fuer die Preisfelder der Inventur. Gefuellt aus dem Vorrat
+     der tatsaechlich benutzten Preisgruppen, siehe invKvpVorratSichern(). -->
+<datalist id="invKvpListe"></datalist>
+
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
 const APP_VERSION = "2.9";
@@ -3816,11 +3820,10 @@ function heuteIstbestand(st) {
 /* Zaehlt NUR Zeilen mit einer Menge, nicht solche, in denen bloss ein KVP
    steht.
 
-   Seit dem 06.09.2026 nimmt der Abschluss die KVP-Spalte in die neue Woche
-   mit. Wuerde hier weiterhin jedes nicht-leere Feld zaehlen, meldete ein
-   frisches, noch voellig ungezaehltes Blatt "22 Zeilen erfasst" - der
-   Wochenlauf haette die Inventur als erledigt angezeigt und der
-   "Weitermachen"-Knopf ins Leere gefuehrt. */
+   Ein leeres Blatt darf nie als "erfasst" gelten - sonst meldete der
+   Wochenlauf die Inventur als erledigt und "Weitermachen" fuehrte ins
+   Leere. Die Unterscheidung bleibt auch dann richtig, wenn jemand einen
+   Preis eintraegt, bevor er gezaehlt hat. */
 function heuteInvZeilen(st) {
   return Object.values(st.felder || {}).filter((v) => {
     const f = v || {};
@@ -5044,6 +5047,52 @@ function abrHatEingaben() {
    Euro Ware zaehlt, haette KEINE Differenz angezeigt bekommen. Kein Hinweis,
    keine Warnung. Wie ein leeres Feld auf dem Vordruck gegen eine
    hingeschriebene Null - zwei verschiedene Aussagen, eine Zahl. */
+/* ---- Vorrat an Preisgruppen ----
+   Die Preisgruppen, die tatsaechlich benutzt werden. Bewusst eine MENGE
+   ohne Zeilenbezug: Das Fahrzeug wird jede Woche anders eingeraeumt, eine
+   feste Zuordnung "Zeile 1 = 80 EUR" waere falsch und gefaehrlich. */
+const INV_KVP_KEY = "spesen_inv_kvp_vorrat";
+
+function invKvpVorratLesen() {
+  try {
+    const l = JSON.parse(localStorage.getItem(INV_KVP_KEY) || "[]");
+    return Array.isArray(l) ? l : [];
+  } catch (e) { return []; }
+}
+
+function invKvpVorratSichern(liste) {
+  /* Nach Zahlenwert sortieren, damit die Auswahl immer gleich aussieht -
+     im Fahrzeug sucht man sonst jedes Mal neu. */
+  const sauber = [...new Set(liste.map((x) => String(x).trim()).filter(Boolean))]
+    .sort((a, b) => invZahl(a) - invZahl(b));
+  try { localStorage.setItem(INV_KVP_KEY, JSON.stringify(sauber)); } catch (e) {}
+  invKvpListeSchreiben();
+}
+
+/* Fuellt die <datalist>, aus der die Preisfelder ihre Vorschlaege ziehen.
+   Bewusst eine Vorschlagsliste und kein Vorbelegen: Der Wert steht erst im
+   Feld, wenn ihn jemand ausgewaehlt hat. Die App schlaegt vor, sie
+   entscheidet nicht. */
+function invKvpListeSchreiben() {
+  const el = document.getElementById("invKvpListe");
+  if (!el) return;
+  el.innerHTML = invKvpVorratLesen()
+    .map((w) => '<option value="' + invEsc(w) + '">').join("");
+}
+
+/* Beim Zaehlen benutzte Preise laufend mitschreiben, nicht erst beim
+   Abschluss - wer eine neue Preisgruppe eintraegt, hat sie sofort in der
+   Auswahl. */
+function invKvpVorratAusBlatt() {
+  const vorrat = new Set(invKvpVorratLesen());
+  let neu = false;
+  Object.values(invState.felder || {}).forEach((f) => {
+    const kv = String((f || {}).kv == null ? "" : f.kv).trim();
+    if (kv !== "" && !vorrat.has(kv)) { vorrat.add(kv); neu = true; }
+  });
+  if (neu) invKvpVorratSichern([...vorrat]);
+}
+
 function invSollAusAbrechnung() {
   const stand = abrStandLesen();
   return abrHatEingaben() ? stand.soll : null;
@@ -5100,7 +5149,12 @@ function invStempelZeigen() {
   }
 }
 
-function invSichern() { try { localStorage.setItem(INV_KEY, JSON.stringify(invState)); } catch (e) {} }
+function invSichern() {
+  try { localStorage.setItem(INV_KEY, JSON.stringify(invState)); } catch (e) {}
+  /* Neu eingetragene Preisgruppen sofort in den Vorrat - dann stehen sie
+     schon in der naechsten Zeile zur Auswahl, nicht erst naechste Woche. */
+  invKvpVorratAusBlatt();
+}
 function invLaden() {
   try { const r = localStorage.getItem(INV_KEY); if (r) Object.assign(invState, JSON.parse(r)); } catch (e) {}
   invState.sicht = invState.sicht || {};
@@ -5131,7 +5185,7 @@ function invBaueRaster() {
             '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="wgr"></td>' +
             '<td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="su" inputmode="decimal"></td></tr>'
           : '<tr><td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="mg" inputmode="numeric"></td>' +
-            '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="kv" inputmode="decimal"></td>' +
+            '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="kv" inputmode="decimal" list="invKvpListe"></td>' +
             '<td class="su" id="invsu-'+g.id+'-'+gi+'"></td></tr>';
       }
       // Im Original steht bei den Lieferscheinen vor "Summe:" noch eine Leerzeile
@@ -5225,7 +5279,10 @@ function invRenderMobil() {
     const f = invFeld(g.id, eintrag.gi), s = invZeilenSumme(g, eintrag.gi);
     html += '<div class="inv-row' + (invHatInhalt(g, eintrag.gi) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
       '<div class="inv-f"><label>' + t("invStueck") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="mg" inputmode="numeric" value="'+invEsc(f.mg||"")+'"></div>' +
-      '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="kv" inputmode="decimal" value="'+invEsc(f.kv||"")+'"></div>' +
+      /* list= zieht die Vorschlaege aus dem Vorrat der benutzten
+         Preisgruppen. Vorschlag, keine Vorbelegung - das Feld bleibt leer,
+         bis jemand waehlt oder tippt. */
+      '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="kv" inputmode="decimal" list="invKvpListe" value="'+invEsc(f.kv||"")+'"></div>' +
       '<div class="ms">' + (s ? invFmt(s) : "") + "</div>" +
       "</div>";
   }
@@ -6474,33 +6531,40 @@ async function abrAbschliessen() {
   abrSetz("abrEndbestandVortrag", invFmt(endbestand));
   abrSichern();
 
-  /* KVP-Spalte in die neue Woche mitnehmen, nur die Mengen leeren.
+  /* Den VORRAT an Preisgruppen merken - NICHT die Zuordnung zu Zeilen.
 
      Mirko, 06.09.2026: "das ziel ist die inventur einfach gezaehlt
      erfassen, denn bei der inventur interessieren die sorten nicht sondern
-     der gesamte endbetrag."
+     der gesamte endbetrag." Und kurz darauf, entscheidend:
 
-     Die Mengen aendern sich jede Woche, die Preisgruppen nicht. Bisher warf
-     der Abschluss beide weg - also wurde jede Woche dieselbe Preisspalte
-     neu getippt, bis zu 22 Zeilen. Das ist die halbe Tipparbeit, und sie
-     ist vermeidbar.
+       "die preisspalte variiert in der spalte und wird nicht immer in der
+        selben zeile notiert, weil das fahrzeug ja immer anders eingeraeumt
+        wird ... das eingeraeumte fahrzeug aendert sich bei jedem, egal ob
+        fester tourenfahrer oder springer"
 
-     Warum das aus den EIGENEN Eingaben kommt und nicht aus einer
-     abgetippten Tabelle: Eine externe Preistabelle veraltet (Mirko, selber
-     Tag: "es kommen immer andere kippen, verkaufspreise, artikelnummern
-     dazu oder aendern sich"). Diese hier kann nicht veralten - aendert sich
-     ein Preis, wird er einmal ueberschrieben und traegt sich ab dann selbst
-     weiter. Eine Tabelle, die durch Benutzung waechst.
+     Ein erster Entwurf hat die KVP-Werte an ihren ZEILEN festgehalten. Das
+     waere gefaehrlich gewesen: Zeile 1 haette wieder 80 getragen, obwohl
+     dort naechste Woche etwas ganz anderes liegt. Wer den vorbelegten Preis
+     uebersieht, bekommt einen still falschen Warenwert - genau die Sorte
+     Fehler, die eine Inventur unbrauchbar macht.
 
-     Lieferscheine tragen keinen KVP, sondern den Betrag direkt (su) - die
-     werden vollstaendig geleert. */
-  const invKvpVortrag = {};
-  Object.keys(invState.felder || {}).forEach((k) => {
-    const f = invState.felder[k] || {};
-    const kv = String(f.kv == null ? "" : f.kv).trim();
-    if (kv !== "") invKvpVortrag[k] = { kv: kv };
+     Uebernommen wird deshalb nur die MENGE der benutzten Preisgruppen. Sie
+     sind ueber die Wochen dieselben, nur anders verteilt. Beim Erfassen
+     stehen sie zur Auswahl; welcher Preis in welche Zeile gehoert,
+     entscheidet weiterhin der Mensch.
+
+     Der Vorrat kann nicht veralten: Er entsteht aus den eigenen Eingaben.
+     Kommt eine neue Preisgruppe dazu, ist sie ab der naechsten Woche dabei.
+
+     Lieferscheine tragen keinen KVP, sondern den Betrag direkt (su). */
+  const kvpVorrat = new Set(invKvpVorratLesen());
+  Object.values(invState.felder || {}).forEach((f) => {
+    const kv = String((f || {}).kv == null ? "" : f.kv).trim();
+    if (kv !== "") kvpVorrat.add(kv);
   });
-  invState = { kopf: {}, felder: invKvpVortrag, soll: "", fuss: {}, sicht: {} };
+  invKvpVorratSichern([...kvpVorrat]);
+
+  invState = { kopf: {}, felder: {}, soll: "", fuss: {}, sicht: {} };
   invSichern();
   invAufgebaut = false;
   kaeState = { zeilen: {}, lieferschein: "", sicht: 0 };
@@ -6758,6 +6822,9 @@ async function abrDrucken() {
 function invAufbauen() {
   if (invAufgebaut) return;
   invLaden();
+  /* Vorschlagsliste fuellen, bevor die Felder entstehen - sonst zeigt das
+     erste geoeffnete Blatt noch keine Preisgruppen an. */
+  invKvpListeSchreiben();
   invBaueRaster();
   // Werte aus dem Speicher in die Blattfelder zurueckschreiben
   Object.entries(invState.felder || {}).forEach(([k, v]) => {
