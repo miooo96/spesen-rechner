@@ -866,14 +866,56 @@
   .mehr-werkzeuge-liste { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; max-width: 320px; }
   .mehr-werkzeuge-liste select { width: 100%; }
   label { display: block; font-size: 0.8rem; color: #444; margin-bottom: 3px; }
+  /* ================================================================
+     REDESIGN - SCHRITT 8, 20.09.2026: die Eingabefelder
+     ----------------------------------------------------------------
+     #d8dce2 ist wieder ein KUEHLES Grau - dieselbe Sorte wie beim
+     Kartenrand (Schritt 5) und beim Knopf (Schritt 6). Auf Creme traegt
+     es kaum und wirkt kalt. Jetzt derselbe braune Rand wie die Karten.
+
+     min-height 48 px (--griff): Ein Zeitfeld, das man im Fahrerhaus mit
+     Handschuhen treffen muss, war vorher rund 33 px hoch.
+
+     Der Fokusrahmen wechselt von Orange auf Braun. Grund: Orange ist in
+     dieser App die AUSNAHME ("etwas stimmt nicht"), siehe Schritt 6.
+     Ein Feld anzutippen ist keine Ausnahme, sondern der Normalfall.
+     ================================================================ */
   input, select {
-    width: 100%; padding: 7px 10px; border: 1px solid #d8dce2; border-radius: 7px;
-    font-size: 0.9rem; background: #fff; color: #1a1a1a;
+    width: 100%; padding: 0 14px; min-height: var(--griff);
+    border: 2px solid var(--kartenrand); border-radius: 9px;
+    font-family: inherit; font-size: 0.95rem; background: #fff; color: var(--brand-dark);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
-  input:hover, select:hover { border-color: #b9c0cb; }
+  input::placeholder { color: var(--leise); opacity: .75; }
+  input:hover, select:hover { border-color: var(--orange-linie); }
   input:focus, select:focus {
-    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(254,92,1,0.15);
+    outline: none; border-color: var(--brand-dark); box-shadow: 0 0 0 3px rgba(97,42,0,0.18);
+  }
+
+  /* ⛔ DER VORDRUCK BLEIBT UNBERUEHRT - Entscheidung 12 vom 19.09.2026:
+     "#formular wird nicht angefasst - und ebenso der Verkaufsbericht."
+
+     Das ist keine Geschmacksfrage. buildPdf() rastert #formular mit
+     html2canvas; was dort steht, geht als PDF an die Niederlassung.
+     Eine Aenderung am Rand oder an der Feldhoehe wuerde das Dokument
+     aendern, das Mirkos Arbeitgeber bekommt - und niemand wuerde es
+     merken, bis es dort auffaellt.
+
+     Die Regel oben ist allgemein und trifft JEDES input auf der Seite,
+     auch die im Vordruck. Deshalb stellt diese Regel den alten Zustand
+     dort ausdruecklich wieder her. Dasselbe gilt fuer den
+     Verkaufsbericht (#abrechnungBlatt). */
+  #formular input, #formular select,
+  #abrechnungBlatt input, #abrechnungBlatt select {
+    padding: 7px 10px; min-height: 0;
+    border: 1px solid #d8dce2; border-radius: 7px;
+    font-size: 0.9rem; color: #1a1a1a;
+  }
+  #formular input:hover, #formular select:hover,
+  #abrechnungBlatt input:hover, #abrechnungBlatt select:hover { border-color: #b9c0cb; }
+  #formular input:focus, #formular select:focus,
+  #abrechnungBlatt input:focus, #abrechnungBlatt select:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(254,92,1,0.15);
   }
   .weekday-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 4px; }
   .weekday-row span { width: 28px; font-weight: bold; font-size: 0.85rem; }
