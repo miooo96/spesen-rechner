@@ -343,11 +343,29 @@
      Browser: feste Reihe oben, wie Reiter. Installierte App (body.als-app,
      siehe setzeAppKennung()): feste Leiste unten, wie eine Handy-App -
      siehe Design-Spec "Navigation & Hauptbereiche Redesign". */
+  /* ================================================================
+     REDESIGN - SCHRITT 4, 20.09.2026: die Reiterleiste
+     ----------------------------------------------------------------
+     Aus der umbrechenden Kachelbox wird EINE Zeile, die seitlich laeuft.
+     Der Entwurf dazu: "Die heutige App bricht sie in ein zerrissenes
+     Gitter um - das sieht nach Unfall aus." Bei neun Reitern wurde die
+     Leiste am Handy zweizeilig, und die zweite Zeile war halb leer.
+
+     Statt der weissen Kachel mit Schatten traegt die Leiste jetzt nur
+     einen Strich unter sich - so macht es die Firmenseite. Der laufende
+     Reiter steht auf Weiss und bekommt einen orangen Balken darunter.
+
+     ⚠ scrollbar-width/::-webkit-scrollbar: Die Rollleiste wird
+     ausgeblendet, NICHT das Rollen selbst. Am Handy schiebt man die
+     Leiste mit dem Finger; am Rechner passen alle neun nebeneinander. */
   #mainTabs {
-    display: flex; flex-wrap: wrap; gap: 0.5rem; background: #fff; padding: 0.5rem;
-    border-radius: 14px; box-shadow: 0 2px 12px rgba(24,26,32,0.08);
+    display: flex; gap: 4px; background: transparent; padding: 0 0 9px;
+    border-radius: 0; box-shadow: none;
+    border-bottom: 2px solid var(--kartenrand);
     margin-bottom: 1.25rem;
+    overflow-x: auto; scrollbar-width: none;
   }
+  #mainTabs::-webkit-scrollbar { display: none; }
   #mainTabs .tab-btn {
     /* Ergaenzung 28.08.2026 (Task 12): Nach Task 7-11 sind es bis zu 7
        Kategorien + Zurueck-Button = 8 Tabs. Das bisherige min-width:0
@@ -357,22 +375,46 @@
        flex-wrap:wrap auf #mainTabs - ein Tab, der kleiner als 84px
        wuerde, rutscht stattdessen in die naechste Zeile. Desktop bleibt
        einzeilig (genug Platz), 393px wird i.d.R. zweizeilig. */
-    flex: 1 1 auto; min-width: 84px; text-align: center; background: transparent; color: var(--brand-dark);
-    box-shadow: none; border-radius: 10px; padding: 10px 6px;
-    /* overflow/text-overflow faengt den Rest sauber mit "…" ab, statt Text
-       zu umbrechen (das wuerde die Zeile hoeher machen, siehe
-       .pdf-check/diff-task8-highlight.png). */
-    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    /* flex: none statt "1 1 auto": In einer rollenden Zeile soll jeder
+       Reiter so breit sein wie sein Wort - nicht auf gleiche Breite
+       gedehnt und nicht gequetscht. Dadurch faellt auch das Abschneiden
+       mit "…" weg; es gibt nichts mehr abzuschneiden. */
+    flex: none; min-width: 0; text-align: center; background: transparent; color: var(--leise);
+    box-shadow: none; border-radius: 9px; padding: 0 15px;
+    min-height: var(--griff); display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.82rem; font-weight: 600;
+    white-space: nowrap; position: relative;
   }
+  #mainTabs .tab-btn:hover { color: var(--brand-dark); background: rgba(255,255,255,.65); }
   #mainTabs .tab-btn.active {
-    background: linear-gradient(135deg, var(--accent), #ff8a3d); color: #fff;
-    box-shadow: 0 3px 10px rgba(222,112,8,0.35);
+    background: #fff; color: var(--brand-dark); font-weight: 700; box-shadow: none;
   }
+  /* Der orange Balken sitzt AUF dem Strich der Leiste - deshalb genau so
+     weit nach unten wie das Polster der Leiste (9 px) plus die 2 px des
+     Strichs. Steht er hoeher, schwebt er; steht er tiefer, verdeckt ihn
+     der naechste Block. */
+  #mainTabs .tab-btn.active::after {
+    content: ''; position: absolute; left: 12px; right: 12px; bottom: -11px;
+    height: 3px; border-radius: 2px; background: var(--orange-linie);
+  }
+  /* ⚠ DER HINTERGRUND MUSS HIER STEHEN.
+     Die Grundregel oben hat "background: transparent" - in der Seite ist
+     das richtig, dort traegt die Creme-Seite. In der INSTALLIERTEN APP
+     haengt dieselbe Leiste aber fixiert am unteren Rand, und der Inhalt
+     rollt darunter durch. Ohne eigenen Hintergrund liefe die Schrift der
+     Seite durch die Reiter hindurch.
+     ⛔ Nicht entfernen. Dieser Fall laesst sich NUR auf einem echten
+     Geraet nachsehen (zweite Achse, siehe CLAUDE.md) - kein Skript in
+     diesem Projekt kann ihn pruefen. */
   body.als-app #mainTabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 500;
+    background: #fff; border-bottom: 0;
     margin-bottom: 0; border-radius: 0; box-shadow: 0 -2px 12px rgba(24,26,32,0.12);
     padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
   }
+  /* In der fixierten Leiste gibt es keinen Strich, auf dem der Balken
+     sitzen koennte - dort rueckt er direkt unter den Reiter. */
+  body.als-app #mainTabs .tab-btn.active::after { bottom: -2px; }
   /* Bugfix (finale Whole-Branch-Review, Befund 2): 76px war fuer GENAU eine
      Zeile #mainTabs ausgelegt. Task 12 macht die Leiste umbruchfaehig (bis
      zu 7 Kategorien + Zurueck-Button) - bei 2 Zeilen auf schmalen Breiten
@@ -402,7 +444,15 @@
      "Jahr" lief komplett aus dem Viewport heraus). Kleinere Schriftgroesse
      als die 4 echten Tabs, damit der Button trotz laengerem Text klar als
      "Ausgang", nicht als 5. Tab, erkennbar bleibt. */
-  #mainTabs .tab-back { flex: 0 1 auto; font-size: 0.85rem; font-weight: 700; padding: 10px 12px; }
+  /* ⚠ flex: none, seit die Leiste rollt statt umzubrechen (20.09.2026).
+     Vorher durfte dieser Knopf schrumpfen, damit er die Reiter nicht aus
+     dem Bild draengt - das war richtig, solange alles in eine feste
+     Breite passen musste. In einer rollenden Zeile ist es falsch: Der
+     Knopf wurde auf 84 px gequetscht, sein Text laeuft aber nicht mehr
+     mit "…" aus (das Abschneiden ist mit der festen Breite entfallen) -
+     und stand dadurch quer ueber dem ersten Reiter.
+     Gesehen im Bild vom 20.09.2026: "← Z...swahl" lag auf "Spesen". */
+  #mainTabs .tab-back { flex: none; font-size: 0.85rem; font-weight: 700; padding: 0 12px; }
 
   /* Schmale Handy-Breiten (z.B. 393px, Referenz-Geraetebreite dieses
      Projekts - siehe "Kartenansicht (Handy) erzwingen"): ohne diese Regel
@@ -414,10 +464,13 @@
      4 Tabs den noetigen Platz zurueck; er zeigt dann ggf. nur noch einen
      abgeschnittenen Teil des Labels (Ellipsis, siehe overflow-Regel oben)
      statt des vollen Satzes - okay fuer einen sekundaeren Ausgang-Knopf. */
+  /* Am Handy nur enger setzen. Die Breiten-Vorgaben von frueher sind weg:
+     Die Leiste rollt jetzt seitlich, es muss nichts mehr hineingequetscht
+     werden. */
   @media (max-width: 480px) {
     #mainTabs { gap: 0.3rem; }
-    #mainTabs .tab-btn { padding: 11px 4px; font-size: 0.8rem; }
-    #mainTabs .tab-back { flex: 0 1 84px; font-size: 0.66rem; padding: 11px 6px; }
+    #mainTabs .tab-btn { padding: 0 10px; font-size: 0.78rem; }
+    #mainTabs .tab-back { font-size: 0.72rem; padding: 0 10px; }
   }
 
   /* ===== Kachel-Startseite =====
@@ -4367,9 +4420,31 @@ const TAB_OPEN_FN = { zeit: toggleArbeitszeitPanel, urlaub: toggleUrlaubPanel, j
    hervorgehoben, obwohl laengst "Spesen bearbeiten" ueber dem Spesenblatt
    offen war). */
 function markiereTab(tab) {
+  let laufend = null;
   document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.tab === tab);
+    const an = b.dataset.tab === tab;
+    b.classList.toggle("active", an);
+    if (an) laufend = b;
   });
+
+  /* Den laufenden Reiter ins Bild rollen.
+     ⚠ Noetig seit dem 20.09.2026: Die Leiste bricht nicht mehr um, sie
+     rollt seitlich. Bei neun Reitern passen am Handy nur drei ins Bild -
+     wer auf "Jahr" steht, sah "Spesen" und "Fahrzeug-Inventur" und
+     wusste nicht mehr, wo er ist. Gesehen im Bild vom 20.09.2026.
+
+     inline:"nearest" statt "center": Steht der Reiter schon im Bild,
+     passiert nichts. Sonst ruckte die Leiste bei jedem Wechsel, auch
+     wenn es gar nicht noetig war. */
+  if (laufend && laufend.scrollIntoView) {
+    try {
+      laufend.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+    } catch (e) {
+      /* Aeltere Browser kennen das Objekt-Argument nicht - dann eben
+         ohne. Ein harter Sprung ist besser als gar kein Mitlaufen. */
+      try { laufend.scrollIntoView(); } catch (e2) { /* dann eben nicht */ }
+    }
+  }
 }
 
 function zeigeTab(tab) {
