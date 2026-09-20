@@ -104,6 +104,54 @@
     --accent: #de7008;      /* Hall Tabakwaren Orange (Webseite) */
     --brand-dark: #612a00;  /* Hall Tabakwaren Dunkelbraun (Webseite) */
     --bg: #f0e7d8;          /* Hall Tabakwaren Creme-Hintergrund (Webseite) */
+
+    /* ================================================================
+       REDESIGN - SCHRITT 1 von ?, eingebaut am 20.09.2026
+       ----------------------------------------------------------------
+       ⚠ DIESER SCHRITT AENDERT ABSICHTLICH NICHTS AM AUSSEHEN.
+       Es werden nur Werte HINZUGEFUEGT; keine bestehende Zeile wird
+       angefasst, und noch benutzt sie niemand. Belegt durch
+       ist-bilder.sh: alle 20 Ansichten bleiben pixelgleich.
+
+       Warum trotzdem ein eigener Schritt: Die folgenden Schritte
+       brauchen diese Werte. Sie zuerst und allein einzubauen heisst,
+       dass ein spaeterer Fehler nie an der Palette liegen kann - sie
+       ist dann schon bewiesen unschaedlich.
+
+       DIE DREI GRUNDFARBEN STEHEN SCHON OBEN und bleiben unangetastet:
+       Orange #de7008, Braun #612a00, Creme #f0e7d8 - am 24.08.2026 von
+       halltabakwaren.de ausgelesen. Der Entwurf benutzt exakt dieselben.
+
+       Die Toene hier darunter sind ABGELEITET und mit kontrast-pruefen.py
+       gemessen, nicht geschaetzt. Grund: Die Firmenseite setzt Orange
+       auch fuer kleine Labels und duenne Striche ein - auf Creme ergibt
+       das nur 2,66:1 und ist damit unlesbar. Statt die Farbfamilie zu
+       verlassen, wird derselbe Ton abgedunkelt, bis er traegt.
+       ================================================================ */
+    --braun-tief:   #471f00;  /* dunkler als --brand-dark, fuer Flaechen */
+    --auf-orange:   #2a1200;  /* Schrift AUF Orange        5,42:1 */
+    --leise:        #7d5c3c;  /* Nebentext                 4,94:1 auf Creme */
+    --orange-text:  #a45002;  /* kleine Labels             4,60:1 auf Creme */
+    --orange-linie: #cc6505;  /* Striche, Rahmen           3,15:1 auf Creme */
+    --kartenrand:   #8a6a49;  /* Kartenrahmen              4,04:1 auf Creme */
+
+    /* Diagramm Ueber-/Unterstunden. Gruen/Rot ist hier unbrauchbar: hell
+       genug fuer Farbsicherheit ist zu hell fuer Kontrast, dunkel genug
+       fuer Kontrast bringt den Farbabstand auf 5,9. Diese beiden haben
+       einen Abstand von 20,3 und liegen beide ueber 3:1 - und beide
+       stammen aus Halls eigenem Baukasten. (validate_palette.js) */
+    --diagramm-plus:  #a45002;
+    --diagramm-minus: #0086ad;
+
+    /* Formen und Bewegung des Entwurfs. --griff sind 48 px: die kleinste
+       Flaeche, die sich mit Arbeitshandschuhen im Fahrerhaus noch sicher
+       treffen laesst. */
+    --r-knopf: 999px;
+    --r-karte: 16px;
+    --r-wahl:  12px;
+    --griff:   48px;
+    --tempo:   200ms;
+    --kurve:   cubic-bezier(.22,.68,.32,1);
   }
   * { box-sizing: border-box; }
   body {
