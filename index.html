@@ -424,7 +424,115 @@
      Landing-Screen zwischen Splash und den 4 Funktionsbereichen - siehe
      Design-Spec "Navigation & Hauptbereiche Redesign", Abschnitt
      "Entscheidung 26.08.2026 im Detail". */
-  #kachelStartseite { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  /* ================================================================
+     REDESIGN - SCHRITT 2, eingebaut am 20.09.2026
+     DAS HERO-BAND loest den dunklen Nachtbild-Auftritt ab
+     ----------------------------------------------------------------
+     ENTSCHEIDEND, gemessen an halltabakwaren.de am 19.09.2026:
+     Die Firma macht das Foto NICHT bildschirmfuellend.
+        Handy   393 px breit  ->  Band 502 px hoch
+        Browser 1280 px       ->  Band 700 px hoch
+     Darunter laeuft die Creme-Seite weiter.
+
+     Daraus folgt etwas Groesseres: Die Firma hat gar KEIN Startbild.
+     Sie hat eine Startseite, deren oberer Teil das Foto ist. Splash und
+     Kachelseite fallen damit zu EINEM Bildschirm zusammen - genau das
+     war Entscheidung 2 vom 19.09.2026 ("Ein Bildschirm statt zwei").
+
+     Im Entwurf war eine erste Fassung daran gescheitert, das Foto ueber
+     die vollen 760 px zu ziehen: Der Schleier traf dann andere
+     Bildstellen, die Ueberschrift landete auf den hellen Schaufenstern
+     und war kaum lesbar. Deshalb die festen Hoehen.
+
+     ⛔ Die gezeichnete Zigarette faellt hier weg. Mirko am 19.09.2026:
+     "sieht aus wie selbstgebastelt." Der Grund stand schon im eigenen
+     Quelltext: Ein gezeichnetes Objekt vor einem Foto hat weder Massstab
+     noch Halter. Das Foto selbst bleibt - es ist Halls eigenes. */
+  /* Volle Breite, egal in welchem Behaelter das Band steckt. Die
+     Startseite sitzt in einer 640-px-Bahn mit Polster, der <body> hat
+     noch einmal 1.5rem - mit negativen Rand-Werten haette man beide
+     einzeln treffen muessen und es sah aus wie ein gerahmtes Bild.
+     50% ist die Mitte des Behaelters, 50vw die halbe Fensterbreite:
+     die Differenz schiebt das Band genau an den Fensterrand. */
+  .hero {
+    position: relative; height: 502px; overflow: hidden;
+    width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+  }
+  .hero-foto {
+    position: absolute; inset: 0;
+    background: url('hall-nachtbild.jpg') 50% 50%/cover no-repeat;
+  }
+  /* Exakt die Schicht der Firmenseite - ausgelesen, nicht nachempfunden.
+     Das Foto wird NICHT aufgehellt; der Schleier liegt darueber. */
+  .hero-schleier {
+    position: absolute; inset: 0;
+    background: linear-gradient(to right bottom,
+      rgba(240,231,216,.8), rgba(240,231,216,.6), rgba(97,42,0,.2));
+  }
+  .hero-inhalt {
+    position: relative; z-index: 2; height: 100%;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 30px 22px;
+  }
+  /* Die Groessen sind auf die 502 px gerechnet, nicht geraten: Logo
+     150 px breit = 103 px hoch (das Logo ist 300x206), dazu Ueberschrift
+     und Unterzeile. In der ersten Entwurfsfassung war das Logo 208 px
+     breit - damit stiess der Inhalt oben in die Kopfleiste und unten aus
+     dem Band heraus. */
+  .hero-logo { width: 150px; height: auto; margin-bottom: 14px; }
+  .hero h2 {
+    font-size: 22px; font-weight: 700; line-height: 1.22; letter-spacing: -.012em;
+    margin: 0 0 6px; color: var(--brand-dark); max-width: 18ch;
+  }
+  /* Dunkler als --leise: Die Unterzeile steht auf dem FOTO, nicht auf
+     ruhiger Creme. Was auf glattem Grund reicht, verschwindet hier. */
+  .hero .hero-zusatz { font-size: 14px; color: #6f4a22; margin: 0; font-weight: 500; }
+
+  @media (min-width: 900px) {
+    .hero { height: 700px; }
+    /* ⚠ NICHT senkrecht zentriert, anders als im Entwurf - und das hat
+       einen gemessenen Grund. Im Entwurf sitzt unter der Unterzeile die
+       Zahlenkarte; sie traegt rund 120 px und schiebt den Text dadurch
+       nach oben. Die Karte ist eine neue Funktion und bleibt vorerst
+       aussen vor (siehe "Was darf an die Kollegen").
+
+       Ohne sie rutschte der Block tiefer, und die Unterzeile landete
+       genau auf der hellen Leuchtschrift "GROSSVERTRIEB ZIGARREN" - der
+       Fehler, vor dem der Entwurf an dieser Stelle ausdruecklich warnt.
+       Im Bild vom 20.09.2026 war sie dort kaum zu lesen.
+
+       Der feste Abstand oben setzt den Text wieder dorthin, wo das Foto
+       ruhig ist. Kommt die Zahlenkarte spaeter dazu, gehoert hier wieder
+       "justify-content: center" hin. */
+    .hero-inhalt {
+      justify-content: flex-start; padding: 120px 64px 56px;
+      max-width: 1180px; margin: 0 auto;
+    }
+    .hero-logo { width: 230px; margin-bottom: 20px; }
+    .hero h2 { font-size: 34px; max-width: 24ch; }
+  }
+
+  /* Die Reste des Nachtbild-Auftritts. Sie bleiben im Markup, weil
+     zigiStart(), nachtAscheBauen() und zurueckZumStartbild() sie noch
+     ansprechen - ausgebaut wird das in einem eigenen Schritt, damit
+     dieser hier klein und pruefbar bleibt. Unsichtbar sind sie ab jetzt. */
+  #nachtStartHg, #nachtZurueck, #nachtStartLogo, #zigiBuehne { display: none !important; }
+
+  /* Das Band sitzt ganz oben und traegt selbst kein Polster - deshalb
+     beginnt die Seite buendig und der Abstand kommt erst darunter. */
+  #kachelStartseite { max-width: 640px; margin: -1.5rem auto 2rem; padding: 0 1rem; }
+  #kachelStartseite .hero { margin-bottom: 1.6rem; }
+  @media (min-width: 900px) {
+    #kachelStartseite { max-width: 1080px; }
+  }
+
+  /* Die Ueberschrift "Spesen-Rechner – Pauschalspesen fuer Dienstreisen"
+     steht auf der Startseite ein zweites Mal - das Hero-Band sagt
+     dasselbe, groesser und mit Logo. Sie war bis zum 20.09.2026 unter
+     body.nacht-start ausgeblendet; diese Klasse gibt es nicht mehr,
+     also braucht es eine eigene. In den Arbeitsbereichen bleibt sie
+     stehen, dort gibt es kein Band. */
+  body.hero-start h1 { display: none; }
   .kachel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   /* Bugfix (Live-Feedback Mirko, 28.08.2026): #kachelStartseite besteht aus
      mehreren separaten .kachel-grid-Elementen nebeneinander (Spesen-Gruppe,
@@ -552,7 +660,22 @@
     background:#fff; border-color:#e3e6eb; }
   body:not(.nacht-start) .heute-schritt .punkt { background:#d6dae0; }
   body:not(.nacht-start) .heute-schritt.fertig .punkt { background:#0a7a0a; }
-  body:not(.nacht-start) .heute-schritt.jetzt { color:#fff; }
+  /* ⚠ Hier stand bis zum 20.09.2026 nur "color:#fff" - ohne Hintergrund.
+     Die Regel eine Zeile hoeher setzt fuer JEDEN Schritt background:#fff,
+     auch fuer ".jetzt", und ueberschreibt damit das Orange aus der
+     Grundregel. Ergebnis: weisse Schrift auf weissem Grund, der laufende
+     Schritt war unlesbar.
+
+     Aufgefallen ist es erst am 20.09.2026, als das Hero-Band den dunklen
+     Nachtbild-Auftritt abloeste - vorher trug die Startseite IMMER
+     body.nacht-start, also griff "body:not(.nacht-start)" dort nie.
+     Ein Fehler, der jahrelang danebenlag und nie zu sehen war.
+
+     Gefunden im Vorher/Nachher-Bild (ist-bilder.sh), nicht durch Nachdenken:
+     Im Bild stand ein leerer weisser Chip, wo vorher "Inventur" stand. */
+  body:not(.nacht-start) .heute-schritt.jetzt {
+    color:#fff; background:var(--accent); border-color:var(--accent);
+  }
 
   /* Jahreszahl im Splash: laeuft von 1903 auf heute hoch */
   #splashScreen .splash-jahr { font-size:1.6rem; font-weight:800; color:#fff; letter-spacing:2px;
@@ -2043,6 +2166,22 @@
      tabJahr) - ein Label, zwei Darstellungen, keine Duplikate im
      I18N-Dictionary. -->
 <div id="kachelStartseite" class="no-print">
+  <!-- ===== HERO-BAND (Redesign Schritt 2, 20.09.2026) =====
+       Loest den dunklen Nachtbild-Auftritt ab. Aufbau wie die
+       Firmenseite: Foto, darueber der ausgelesene Schleier, darauf Logo,
+       Ueberschrift und Unterzeile. Darunter laeuft die Creme-Seite mit
+       den Kacheln weiter - ein Bildschirm statt zwei.
+       Das Foto ist Halls eigenes (hall-nachtbild.jpg) und wird NICHT
+       aufgehellt; der Schleier macht die Schrift lesbar. -->
+  <div class="hero">
+    <div class="hero-foto" aria-hidden="true"></div>
+    <div class="hero-schleier" aria-hidden="true"></div>
+    <div class="hero-inhalt">
+      <img class="hero-logo" src="hall-logo-original.png" alt="Hall Tabakwaren, seit 1903">
+      <h2>Ihr Spesennachweis. In drei Minuten fertig.</h2>
+      <p class="hero-zusatz">Läuft auf Ihrem Gerät · keine Anmeldung</p>
+    </div>
+  </div>
   <!-- Hintergrund und Leuchtschild des Nachtbild-Auftritts. Beide liegen
        INNERHALB der Kachel-Startseite und verschwinden dadurch von selbst,
        sobald ein Bereich geoeffnet wird. Sichtbar nur mit body.nacht-start
@@ -4178,6 +4317,7 @@ function zeigeTab(tab) {
   if (kachelEl) kachelEl.style.display = "none";
   // Nachtbild nur auf der Startseite - die Arbeitsbereiche bleiben hell.
   document.body.classList.remove("nacht-start");
+  document.body.classList.remove("hero-start");
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "";
   // Bugfix (finale Whole-Branch-Review, Befund 4): Auf Urlaub/Jahresuebersicht/
@@ -5040,7 +5180,22 @@ function zeigeKachelStartseite() {
      am body, weil auch Kopfzeile und Kacheln umgefaerbt werden muessen;
      sie faellt in zeigeTab() wieder weg, damit die Arbeitsbereiche hell
      bleiben. */
-  document.body.classList.add("nacht-start");
+  /* ⛔ Hier stand bis zum 20.09.2026:
+         document.body.classList.add("nacht-start");
+     Das faerbte die ganze Startseite dunkel ein - Kopfzeile, Kacheln,
+     Fusszeile. Seit Redesign Schritt 2 traegt das Hero-Band das Foto,
+     und darunter laeuft die Creme-Seite weiter (Entscheidung 2 vom
+     19.09.2026: "Ein Bildschirm statt zwei").
+
+     ⚠ Der Kommentar darueber behauptete "nur fuer Mirko". Das stimmte
+     nicht: Die Zeile lief ohne jede Bedingung, Kollegen sahen denselben
+     dunklen Bildschirm. Nachgesehen am 20.09.2026 im aufgenommenen Bild
+     eines Kollegen-Startbildschirms, nicht aus dem Kommentar geschlossen.
+
+     Die Klasse wird NICHT mehr gesetzt. Die Regeln dazu stehen noch im
+     Stylesheet und greifen ins Leere - sie fallen in einem eigenen
+     Schritt weg, damit dieser hier klein und pruefbar bleibt. */
+  document.body.classList.add("hero-start");
   const hg = document.getElementById("nachtStartHg");
   if (hg) nachtAscheBauen(hg, ASCHE_MENGE);
   /* Zigaretten-Animation nur beim ERSTEN Oeffnen je App-Start und nur
