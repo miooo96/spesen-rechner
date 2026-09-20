@@ -767,9 +767,26 @@
   #splashScreen .splash-jahr { font-size:1.6rem; font-weight:800; color:#fff; letter-spacing:2px;
                                font-variant-numeric:tabular-nums; margin-top:4px; min-height:1.7rem; }
 
+  /* ================================================================
+     REDESIGN - SCHRITT 5, 20.09.2026: die Karten der Arbeitsbereiche
+     ----------------------------------------------------------------
+     Aus der weissen Box mit grauem Rand und orangem Deckelstrich wird
+     die Karte der Firmenseite: ein durchgehender brauner Rand, 2 px
+     stark. Zehn Stellen im Markup, alle neun Arbeitsbereiche.
+
+     ⚠ DER GRAUE RAND WAR DAS EIGENTLICHE PROBLEM, nicht der Deckel.
+     #ccc auf Creme ergibt 1,71:1 - die Karte hatte gar keine sichtbare
+     Kante, sie schwamm auf dem Grund. --kartenrand (#8a6a49) ist auf
+     denselben Creme-Grund gemessen und traegt 4,04:1. Gemessen mit
+     kontrast-pruefen.py, nicht nach Gefuehl gewaehlt.
+
+     Der orange Strich oben faellt weg: Die Firma setzt Orange als
+     Akzent ein, nicht als Rahmen. Wo eine Ueberschrift Orange braucht,
+     bekommt sie einen kurzen Strich DARUNTER - das ist Halls Muster.
+     ================================================================ */
   .panel {
-    background: #fff; border: 1px solid #ccc; border-top: 3px solid var(--accent);
-    border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+    background: #fff; border: 2px solid var(--kartenrand);
+    border-radius: var(--r-wahl); padding: 18px; margin-bottom: 1.25rem;
   }
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
