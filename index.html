@@ -3915,9 +3915,30 @@ function computeDay(date, holidaysMap) {
      (ov[startKey]) gilt weiter, egal wie weit sie in der Zukunft liegt.
      Nur die automatische Vorgabe hoert bei heute auf. Wer den Rest des
      Monats vorausfuellen will, hat dafuer einen eigenen Knopf - siehe
-     restDesMonatsFuellen(). */
+     restDesMonatsFuellen().
+
+     ⚠⚠ NUR FUER MIRKO - Stand 20.09.2026. Mirko an diesem Tag: "die
+     aktuellen Nutzer sollen naemlich keine Aenderung wahrnehmen zum
+     jetzigen Zeitpunkt."
+
+     Diese Reparatur ist die EINZIGE der fuenf, die ein Kollege sofort
+     sehen wuerde: Wer am 20. sein Blatt oeffnet, saehe statt 22 Tagen /
+     308 € nur noch 14 Tage / 196 € - acht Zeilen weniger. Alle uebrigen
+     Reparaturen (vollstaendiges Backup, Urlaubsbilanz je Jahr,
+     Jahreswechsel, Sicherung vor dem Zuruecksetzen) sind im Alltag
+     unsichtbar und gelten deshalb weiter fuer alle.
+
+     Abgewogen und von Mirko entschieden: Kollegen behalten das Blatt
+     unveraendert und damit auch die Luecke - wer mitten im Monat
+     einreicht oder krank wird und es nicht nachtraegt, fordert weiter
+     14 € je nicht gefahrenem Tag. Das ist bewusst in Kauf genommen,
+     bis der Chef die Aenderungen gesehen hat.
+
+     ⛔ Wer diese Bedingung entfernt, aendert das Spesenblatt JEDES
+     Kollegen - ohne dass es jemandem auffaellt, bis die Niederlassung
+     nachfragt. vorausfuellen-test.sh prueft beide Faelle. */
   const zukunft = iso > fmtISO(new Date());
-  const vorgabeGilt = !zukunft;
+  const vorgabeGilt = !zukunft || !zeigtNeuerungen();
 
   if (config.zeitenVariieren && wd < 5 && !hasStartOv && !hasEndOv && !isHoliday && vorgabeGilt) {
     const v = variedTimes(iso, startDefault, isMonteur, wd);
