@@ -9162,10 +9162,45 @@ function openInstallModal() {
            öffnet <b>ohne Browserleiste</b> und funktioniert auch <b>ohne Empfang</b> –
            im Lager, im Lkw, im Funkloch.</p>
         ${inhalt}
+        <!-- ⛔ HIER STAND BIS ZUM 20.09.2026 DAS GEGENTEIL:
+               "Es entsteht kein zweiter Datenstand. Die App ist dieselbe
+                Seite: Ihre Abrechnung, Arbeitszeiten und Urlaubstage sind
+                darin dieselben wie im Browser. Sie koennen jederzeit
+                wechseln."
+
+             Das war falsch. App und Browser sind zwar DIESELBE DATEI
+             (eine einzige index.html, am 20.09.2026 per Pruefsumme
+             bestaetigt) - aber der Browser gibt einer installierten App
+             einen EIGENEN localStorage. Dieselbe Seite, getrennte Daten.
+
+             ⚠ BEWIESEN, NICHT VERMUTET - zweimal:
+               1. Mirko hat es am 19./20.09.2026 selbst gemessen.
+               2. Sein Backup-Test am 20.09.2026 zeigt es ein zweites Mal,
+                  ohne dass das die Absicht war: Er fuellte im Browser
+                  aus, machte ein Backup, las es in der App ein - "zack
+                  war in der app dasselbe wie im webtool". Haetten beide
+                  dieselben Daten, waere kein Backup noetig gewesen.
+
+             WAS DER FALSCHE SATZ ANGERICHTET HAETTE: Ein Kollege fuellt
+             abends im Browser aus, installiert danach die App, sieht ein
+             leeres Blatt - und haelt das Werkzeug fuer kaputt. Oder
+             schlimmer: Er traegt in beiden ein und hat seinen Monat an
+             zwei Stellen halb stehen.
+
+             Ein falscher Satz ist eine FEHLERBEHEBUNG, gilt also fuer
+             alle (Regel vom 20.09.2026).
+
+             Die Knopfnamen unten stehen wortgleich so in der App
+             (gegengeprueft, nicht aus dem Kopf geschrieben) - wer sie
+             sucht, findet sie. -->
         <div class="hinweis-box">
-          <b>Es entsteht kein zweiter Datenstand.</b> Die App ist dieselbe Seite:
-          Ihre Abrechnung, Arbeitszeiten und Urlaubstage sind darin dieselben wie im
-          Browser. Sie können jederzeit wechseln.
+          <b>App und Browser speichern getrennt.</b> Die App ist zwar dieselbe
+          Seite &ndash; ihre Daten sind es nicht. Was Sie im Browser eintragen,
+          erscheint nicht in der App, und umgekehrt.
+          <b>Bleiben Sie bei einem Weg</b>, sonst ist Ihr Monat an beiden
+          Stellen nur halb ausgefüllt.<br><br>
+          Wechseln geht trotzdem: mit &bdquo;📦 Backup als Datei speichern&ldquo;
+          sichern und über &bdquo;📂 Backup wiederherstellen&ldquo; wieder einlesen.
         </div>
         <div class="modal-close-row">
           <button class="primary" onclick="closeModal()">Schließen</button>
