@@ -5036,12 +5036,42 @@ function maybeShowSetupWizard() {
           <label>Bundesland (für automatische Feiertage)</label>
           <select id="wizBundesland"></select>
         </div>
+        <!-- Schritt 5, neu am 20.09.2026. Mirko: "manche haben 30, manche
+             28 - deshalb muss man seinen Anspruch selbst eintragen
+             koennen." Das Feld gab es zwar im Urlaubsbereich, aber der
+             Assistent fragte nicht danach: Wer 28 hat, lief mit 30 los
+             und merkte es erst, wenn die Bilanz zwei Tage danebenlag.
+
+             Der Hinweis darunter beantwortet Mirkos Folgefrage - was ist,
+             wenn jemand mitten im Jahr anfaengt und schon Urlaub hatte?
+             NICHT den Anspruch kleinrechnen (das verfaelscht die Zahl
+             dauerhaft und der automatische Uebertrag rechnet im Folgejahr
+             auf falscher Grundlage weiter), sondern den Urlaub nachtragen.
+             Das ist auch die teurere Frage: Ein Urlaubstag traegt
+             pauschale 0 - wer zwei Wochen nicht eintraegt und dann
+             "Zeiten fuer alle Tage" benutzt, hat 10 Arbeitstage a 14 €
+             auf dem Zettel, an denen er im Urlaub war. -->
+        <div class="wizard-step" data-step="5">
+          <label>Urlaubstage pro Jahr</label>
+          <input id="wizUrlaubsanspruch" type="number" step="0.5" min="0" value="30">
+          <p class="wizard-text" style="margin-top:0.6rem;">
+            Bei Hall haben manche 30, manche 28 – tragen Sie ein, was für Sie gilt.
+            Änderbar bleibt es jederzeit unter „🌴 Urlaub“.
+          </p>
+          <p class="wizard-text" style="margin-top:0.6rem;">
+            <b>Dieses Jahr schon Urlaub gehabt?</b> Tragen Sie ihn unter „🌴 Urlaub“
+            als Zeitraum nach – zwei Wochen sind ein einziger Eintrag.
+            Dann stimmt nicht nur die Bilanz: An Urlaubstagen entsteht
+            <b>keine Pauschale</b>, und der Zettel an die Niederlassung wird sonst zu hoch.
+          </p>
+        </div>
 
         <div class="wizard-dots">
           <span class="dot active" data-dot="1"></span>
           <span class="dot" data-dot="2"></span>
           <span class="dot" data-dot="3"></span>
           <span class="dot" data-dot="4"></span>
+          <span class="dot" data-dot="5"></span>
         </div>
         <div class="wizard-buttons">
           <button id="wizBack" onclick="wizardBack()" style="visibility:hidden;">Zurück</button>
@@ -5054,7 +5084,9 @@ function maybeShowSetupWizard() {
     Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === "HE" ? "selected" : ""}>${v}</option>`).join("");
 }
 
-const WIZARD_STEPS = 4;
+/* 5 seit dem 20.09.2026: Schritt 5 fragt den Urlaubsanspruch ab.
+   Vorher lief jeder mit 30 los - auch die Kollegen mit 28. */
+const WIZARD_STEPS = 5;
 
 function wizardShowStep(n) {
   document.querySelectorAll(".wizard-step").forEach((el) => el.classList.toggle("active", el.dataset.step == n));
@@ -5071,6 +5103,16 @@ function wizardNext() {
     config.niederlassung = document.getElementById("wizNiederlassung").value.trim();
     config.mitarbeitertyp = document.getElementById("wizTyp").value;
     config.bundesland = document.getElementById("wizBundesland").value;
+    /* Urlaubsanspruch (seit 20.09.2026). Wird als Grundwert UND als
+       Eintrag fuer das laufende Jahr gesetzt - sonst stuende er zwar in
+       der Konfiguration, die Jahresbilanz zoege ihn aber erst heran,
+       wenn man den Urlaubsbereich einmal geoeffnet hat. */
+    const anspruch = parseFloat(document.getElementById("wizUrlaubsanspruch").value);
+    if (!isNaN(anspruch) && anspruch >= 0) {
+      config.urlaubsanspruch = anspruch;
+      config.urlaubJahre = config.urlaubJahre || {};
+      config.urlaubJahre[String(new Date().getFullYear())] = { anspruch: anspruch, uebertrag: 0 };
+    }
     localStorage.setItem("spesen_config", JSON.stringify(config));
     closeModal();
     initSettingsUI();
