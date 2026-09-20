@@ -601,6 +601,15 @@
     .nicht-heute { margin-left: 0; margin-top: 0.4rem; width: 100%; justify-content: center; }
   }
 
+  /* Hinweis unter den Urlaubsfeldern: woher der automatische Übertrag
+     kommt. Eigene Regel, weil die frühere ".trend-satz" mit dem
+     Auswertungs-Bereich entfallen ist. */
+  .uebertrag-hinweis {
+    background: #FDE9DC; border-left: 4px solid var(--accent); border-radius: 4px;
+    padding: 0.55rem 0.85rem; font-size: 0.85rem; line-height: 1.5;
+    color: var(--brand-dark); margin-top: 0.75rem;
+  }
+
   /* PIN-Eingabe. Hiess bis zum 20.09.2026 ".auswertung-pin-input" und
      gehoerte zum Chef-/Auswertungsbereich. Der ist entfernt (Mirko,
      20.09.2026: "der Chef-Bereich Auswertung kann ganz raus") - die
@@ -2852,6 +2861,9 @@
         <select id="urlaubJahr" onchange="urlaubRender()"></select>
       </label>
     </div>
+    <!-- Erklaert den automatisch errechneten Uebertrag. Siehe
+         urlaubUebertragAus() - erscheint nur, wenn es einen gibt. -->
+    <div id="urlaubUebertragHinweis" style="display:none;"></div>
     <div id="urlaubBilanz" style="margin-top:0.75rem;"></div>
   </div>
 
@@ -9868,6 +9880,47 @@ function urlaubAnspruchFuer(jahr) {
   };
 }
 
+/* ---- Resturlaub wandert von selbst ins Folgejahr ----------------------
+   Mirkos Idee vom 19.09.2026: "cool waere auch, wenn man seine 28 oder 30
+   Urlaubstage nicht voll genutzt hat, dass sie im Folgejahr zu den neuen
+   dazugerechnet werden, OHNE dass man ueberlegen muss, wie viele man
+   mitgenommen hat."
+
+   Regel bei Hall, nachgefragt am 19.09.2026: alles wird mitgenommen, ohne
+   Frist. Also kein Deckel und keine 31.-Maerz-Warnung.
+
+   ⚠ DIE WICHTIGE SICHERUNG: Nur rechnen, wenn die App das Vorjahr
+   ueberhaupt KENNT - also wenn dort Abwesenheiten stehen oder ein eigener
+   Anspruch gesetzt wurde. Sonst bekaeme jeder neue Nutzer im ersten Jahr
+   einen Uebertrag von 30 Tagen schenkt, weil "30 zugestanden, 0 genommen"
+   gerechnet wuerde. Das waere schlimmer als gar kein Uebertrag.
+
+   Gibt null zurueck, wenn nichts zu uebertragen ist. */
+function urlaubUebertragAus(vorjahr) {
+  const praefix = String(vorjahr);
+  const hatAbwesenheiten = Object.keys(overrides).some(
+    (iso) => iso.startsWith(praefix) && overrides[iso] && overrides[iso].status);
+  const hatEigenenAnspruch = !!(config.urlaubJahre || {})[praefix];
+  if (!hatAbwesenheiten && !hatEigenenAnspruch) return null;
+
+  const map = feiertage(vorjahr, config.bundesland);
+  let genommen = 0;
+  Object.keys(overrides).forEach((iso) => {
+    if (!iso.startsWith(praefix)) return;
+    if (!overrides[iso] || overrides[iso].status !== "urlaub") return;
+    if (urlaubZaehltTag(iso, map)) genommen++;
+  });
+
+  const v = urlaubAnspruchFuer(vorjahr);
+  const stand = v.anspruch + v.uebertrag;
+  return {
+    jahr: vorjahr, stand: stand, genommen: genommen,
+    /* Nie negativ: Wer mehr genommen hat als ihm zustand, faengt im
+       neuen Jahr bei 0 an und nicht mit einem Minus. */
+    rest: Math.max(0, stand - genommen),
+  };
+}
+
 function urlaubSaveAnspruch() {
   const jahr = urlaubJahrWert();
   const anspruch = parseFloat(document.getElementById("urlaubAnspruch").value) || 0;
@@ -9990,7 +10043,18 @@ function urlaubRender() {
   // Jahresauswahl
   const sel = document.getElementById("urlaubJahr");
   const jetzt = new Date().getFullYear();
-  const jahre = Array.from(new Set([config.jahr, jetzt, jetzt + 1])).sort();
+  /* Auch Jahre anbieten, von denen die App etwas WEISS - sonst ist das
+     Vorjahr unerreichbar, obwohl der Uebertrag daraus stammt. Seit das
+     Jahr beim Start nachgezogen wird (jahrNachziehen), waere es sonst nie
+     mehr in der Liste.
+     Mirko am 20.09.2026: "trotzdem soll man auch die Möglichkeit haben,
+     sich einzelne Tage auch aus dem Vorjahr auszuwählen." */
+  const bekannt = new Set([config.jahr, jetzt, jetzt + 1]);
+  Object.keys(overrides).forEach((iso) => {
+    if (overrides[iso] && overrides[iso].status) bekannt.add(parseInt(iso.slice(0, 4), 10));
+  });
+  Object.keys(config.urlaubJahre || {}).forEach((j) => bekannt.add(parseInt(j, 10)));
+  const jahre = Array.from(bekannt).filter((j) => j > 1900).sort();
   const vorher = sel.value;
   sel.innerHTML = jahre.map((j) => `<option value="${j}">${j}</option>`).join("");
   sel.value = jahre.includes(parseInt(vorher, 10)) ? vorher : String(config.jahr);
@@ -9999,8 +10063,33 @@ function urlaubRender() {
      hier immer dieselben zwei Zahlen, egal welches Jahr oben stand. */
   const jahr = urlaubJahrWert();
   const gilt = urlaubAnspruchFuer(jahr);
+
+  /* Uebertrag aus dem Vorjahr - aber nur VORSCHLAGEN, solange fuer dieses
+     Jahr nichts von Hand eingetragen wurde. Wer eine eigene Zahl gesetzt
+     hat, behaelt sie; eine Automatik darf eine bewusste Eingabe nicht
+     ueberschreiben. */
+  const eigenerEintrag = !!(config.urlaubJahre || {})[String(jahr)];
+  const uebertragVor = eigenerEintrag ? null : urlaubUebertragAus(jahr - 1);
+  if (uebertragVor) gilt.uebertrag = uebertragVor.rest;
+
   document.getElementById("urlaubAnspruch").value = gilt.anspruch;
   document.getElementById("urlaubUebertrag").value = gilt.uebertrag;
+
+  /* Zeigen, WOHER die Zahl kommt. Mirko muss nichts nachrechnen - aber
+     bei Urlaubstagen haengt zu viel dran, um sie im Hintergrund still zu
+     setzen. Das Feld bleibt ueberschreibbar. */
+  const hinweis = document.getElementById("urlaubUebertragHinweis");
+  if (uebertragVor && uebertragVor.rest > 0) {
+    hinweis.style.display = "block";
+    hinweis.className = "uebertrag-hinweis";
+    hinweis.innerHTML = "🎁 <b>" + String(uebertragVor.rest).replace(".", ",")
+      + " Tage automatisch aus " + uebertragVor.jahr + " übernommen.</b> Dort standen Ihnen "
+      + String(uebertragVor.stand).replace(".", ",") + " Tage zu, genommen haben Sie "
+      + String(uebertragVor.genommen).replace(".", ",")
+      + " – der Rest wandert mit. Sie können die Zahl überschreiben.";
+  } else {
+    hinweis.style.display = "none";
+  }
   const holidaysMap = feiertage(jahr, config.bundesland);
 
   // Alle gesetzten Abwesenheiten des Jahres einsammeln
