@@ -684,6 +684,29 @@
      ================================================================ */
   .kachel-btn {
     display: flex; flex-direction: column; gap: 8px; text-align: left;
+    /* ⛔ DIESE ZWEI ZEILEN NICHT WEGLASSEN - sie sehen ueberfluessig aus,
+       weil sie nur die Flex-Vorgaben wiederholen. Genau darum fehlten sie.
+
+       Schritt 6 (die Knoepfe) gab der allgemeinen Regel "button, .btn"
+       ein "align-items:center; justify-content:center". Diese Regel steht
+       weiter oben, .kachel-btn gewinnt also fuer alles, was es SELBST
+       nennt - align-items und justify-content nannte es nicht. Ergebnis:
+       Symbolkasten, Name und Unterzeile standen mittig statt links, und
+       der Inhalt schwebte senkrecht in der Kartenmitte.
+
+       "text-align:left" allein reicht nicht: Es richtet Text aus, nicht
+       Flex-Elemente. Der 36-px-Symbolkasten ist ein Flex-Element.
+
+       Der Entwurf (Design-Vorschau.html, .kachel) setzt beides nicht und
+       faehrt damit die Vorgaben stretch/flex-start - hier stehen sie
+       ausgeschrieben, damit die allgemeine Regel sie nicht wieder kippt.
+       Schritt 3 woertlich: "eine Karte, die man von links liest".
+
+       Gefunden am 20.09.2026 im Bild, nicht in einer Zahl. Es ist
+       derselbe Mechanismus, den der Schritt-6-Commit selbst beschreibt
+       (die Reiter standen in eigenen Kaestchen) - dort behoben, bei den
+       Kacheln uebersehen. */
+    align-items: stretch; justify-content: flex-start;
     min-height: 98px; padding: 15px 14px;
     background: linear-gradient(180deg, rgba(255,252,247,.96), rgba(250,242,230,.96));
     border: 1.5px solid rgba(222,112,8,.42); border-radius: 16px;
@@ -740,6 +763,25 @@
   .heute-tag { font-size:1.05rem; font-weight:700; color:var(--brand-dark); }
   .heute-datum { font-size:0.85rem; color:#8a7a6a; }
   .heute-weiter {
+    /* ⛔ "display:block" MUSS hier stehen - dasselbe Versehen aus Schritt 6
+       wie bei .kachel-btn, nur schlimmer.
+
+       Der Knopf traegt zwei Spans, beide "display:block":
+           <span class="heute-weiter-l">Weitermachen</span>
+           <span class="heute-weiter-s">Spesen erfassen</span>
+       Gedacht sind sie UNTEREINANDER - "margin-top:3px" auf dem zweiten
+       ergibt sonst keinen Sinn.
+
+       Mit dem geerbten "display:inline-flex" der allgemeinen Knopfregel
+       wurden die beiden Spans zu Flex-Elementen in einer ZEILE. Aus zwei
+       Zeilen wurde eine, mittig ausgerichtet - gegen das eigene
+       "text-align:left" eine Zeile darunter. Der Entwurf zeigt zwei
+       Zeilen: "WEITERMACHEN" klein darueber, die Aufgabe gross darunter.
+
+       Gesehen am 20.09.2026 in bilder-ist/01-start-h.png. Die Hoehe der
+       Seite aenderte sich dabei kaum - der Hoehenvergleich haette es
+       nicht gemeldet. */
+    display:block;
     width:100%; text-align:left; border:none; border-radius:16px; cursor:pointer;
     padding:1.1rem 1.2rem; background:var(--brand-dark); color:#fff;
     box-shadow:0 6px 20px rgba(97,42,0,.28);
