@@ -553,9 +553,24 @@
      wie ein aufgeklebtes weisses Rechteck zu wirken. Der Schatten ist
      braun statt grau eingefaerbt - grauer Schatten auf warmem Grund sieht
      schmutzig aus. */
+  /* ================================================================
+     REDESIGN - SCHRITT 3, 20.09.2026: die Kacheln
+     ----------------------------------------------------------------
+     Aus mittiger Beschriftung wird eine Karte, die man von links liest:
+     Symbolkasten, Name, darunter eine Unterzeile. So steht es im Entwurf.
+
+     ⚠ EINE ABWEICHUNG VOM ENTWURF, und zwar mit Absicht:
+     Der Entwurf setzt die Kacheln auf reines Weiss. Mirko hat am
+     05.09.2026 ausdruecklich das Gegenteil gesagt - "die kacheln auch
+     nicht einfach nur weiss sein das passt ja nicht zum gesamten ...
+     entweder in den beige ton oder auch in die transparente optik".
+     Deshalb bleibt der warme Creme-Verlauf. Struktur neu, Farbe seine.
+     ================================================================ */
   .kachel-btn {
+    display: flex; flex-direction: column; gap: 8px; text-align: left;
+    min-height: 98px; padding: 15px 14px;
     background: linear-gradient(180deg, rgba(255,252,247,.96), rgba(250,242,230,.96));
-    border: 1.5px solid rgba(222,112,8,.42); border-radius: 16px; padding: 2rem 1rem;
+    border: 1.5px solid rgba(222,112,8,.42); border-radius: 16px;
     font-size: 1.15rem; font-weight: 700; color: var(--brand-dark);
     box-shadow: 0 4px 14px rgba(97,42,0,.14), inset 0 1px 0 rgba(255,255,255,.9);
     cursor: pointer;
@@ -581,6 +596,24 @@
     box-shadow: 0 8px 22px rgba(97,42,0,.22), 0 0 14px rgba(222,112,8,.28),
                 inset 0 1px 0 rgba(255,255,255,.9);
   }
+  /* Der Symbolkasten. Das Zeichen steht nicht im Markup - es wird aus der
+     Beschriftung herausgeloest (kachelSymboleTrennen), damit es weiter
+     genau EINE Quelle gibt: das I18N-Verzeichnis. Sonst stuende jedes
+     Symbol zweimal da und liefe beim naechsten Sprachwechsel auseinander. */
+  .kachel-kasten {
+    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    background: rgba(222,112,8,.12);
+    display: grid; place-items: center; font-size: 19px; line-height: 1;
+  }
+  .kachel-name { display: block; font-size: 1rem; font-weight: 700; line-height: 1.25; }
+  .kachel-zusatz {
+    display: block; font-size: .78rem; font-weight: 500;
+    color: var(--leise); line-height: 1.35;
+  }
+  @media (min-width: 900px) {
+    .kachel-grid { grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  }
+
   /* Zahl unter der Kachel-Beschriftung: zeigt den Stand, statt nur ein Symbol */
   .kachel-zahl { display:block; margin-top:6px; font-size:0.82rem; font-weight:600;
                  color:#8a7a6a; letter-spacing:.2px; }
@@ -2218,21 +2251,21 @@
          Fahrzeug-Inventur, Abrechnung - so werden sie im Fahrzeug benutzt.
          Zeit, Urlaub und Jahr danach; sie gehoeren nicht zum
          Wochenabschluss. -->
-    <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')" data-i18n="tabSpesen">📋 Spesen</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabSpesen"></span></button>
     <!-- Fahrzeug-Inventur: wie die Zeit-Kachel nur fuer Mirko sichtbar
          (aktualisiereInventurSichtbarkeit()), zusaetzlich nur fuer Fahrer -
          fuer Monteure ist eine KFZ-Bestandsaufnahme gegenstandslos. -->
-    <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')" data-i18n="tabInventur">🚚 Fahrzeug-Inventur</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabInventur"></span><span class="kachel-zusatz">KFZ Bestandsaufnahme</span></button>
     <!-- "Neue Ware zählen": eigene Hauptkategorie seit 05.09.2026, vorher
          eine Ansicht in der Fahrzeug-Inventur. Position zwischen Inventur
          und Abrechnung nach Mirkos Vorgabe. Sichtbarkeit wie die beiden
          Nachbarn - nur Mirko, nur Fahrer. -->
-    <button type="button" class="kachel-btn" onclick="zeigeTab('ware')" data-i18n="tabWare">📦 Neue Ware zählen</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('ware')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabWare"></span><span class="kachel-zusatz">Gezählte Stangen und Lieferschein</span></button>
     <!-- Abrechnung: wie die Inventur nur fuer Mirko und nur fuer Fahrer. -->
-    <button type="button" class="kachel-btn" onclick="zeigeTab('abrechnung')" data-i18n="tabAbrechnung">🧾 Abrechnung</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')" data-i18n="tabZeit">⏱️ Zeit</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')" data-i18n="tabUrlaub">🌴 Urlaub</button>
-    <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')" data-i18n="tabJahr">📊 Jahr</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('abrechnung')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabAbrechnung"></span><span class="kachel-zusatz">Verkaufsbericht</span></button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabZeit"></span><span class="kachel-zusatz">Stempeln &amp; Stunden</span></button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabUrlaub"></span><span class="kachel-zusatz">Kalender &amp; Reste</span></button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('jahr')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabJahr"></span><span class="kachel-zusatz">Alle Monate</span></button>
     <!-- "Als App einrichten" steht seit 05.09.2026 HIER, im ersten Grid,
          statt weiter unten im zweiten (Mirko: "zur app hinzufuegen ist
          irgendwie weggefallen oder? ich finde den schritt nicht mehr").
@@ -2252,7 +2285,7 @@
          Die Beschriftung ist dabei ueberall dieselbe: "Am Handy als App
          einrichten" - seit 06.09.2026, davor wechselte sie in der App auf
          "Auf weiterem Geraet einrichten". -->
-    <button type="button" class="kachel-btn" onclick="openInstallModal()" data-i18n="btnInstall">📱 Am Handy als App einrichten</button>
+    <button type="button" class="kachel-btn" onclick="openInstallModal()"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="btnInstall"></span></button>
   </div>
   <!-- "Mehr" steht allein in einem eigenen Grid. Als einziges Element ist
        die Anzahl IMMER 1 (ungerade) - aktualisiereKachelGridLayout() gibt
@@ -2260,7 +2293,7 @@
        einrichten" gepaart (28.08.2026); dieses Paar ist mit dem Umzug der
        Install-Kachel nach oben aufgeloest. -->
   <div class="kachel-grid">
-    <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('mehr')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabMehr"></span></button>
   </div>
   <!-- "Anleitung" bewusst als eigenes, drittes kachel-grid mit nur einer
        Kachel, ganz unten (Live-Feedback Mirko, 28.08.2026 - vorher stand
@@ -2269,7 +2302,7 @@
        ist die Anzahl IMMER 1 (ungerade) - aktualisiereKachelGridLayout()
        gibt ihr dadurch automatisch, ohne Sonderfall, immer volle Breite. -->
   <div class="kachel-grid">
-    <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')" data-i18n="tabAnleitung">❓ Anleitung</button>
+    <button type="button" class="kachel-btn" onclick="zeigeTab('anleitung')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabAnleitung"></span></button>
   </div>
 </div>
 
@@ -3422,8 +3455,38 @@ const I18N = {
 };
 let currentLang = "de";
 function t(key) { return (I18N[currentLang] && I18N[currentLang][key]) || I18N.de[key] || key; }
+/* Loest das fuehrende Zeichen aus der Kachel-Beschriftung und legt es in
+   den Symbolkasten. "📋 Spesen" wird damit zu [📋] + "Spesen".
+
+   WARUM NICHT EINFACH BEIDES INS MARKUP SCHREIBEN: Dann stuende jedes
+   Symbol zweimal da - einmal im HTML, einmal im I18N-Verzeichnis - und
+   beim naechsten Sprachwechsel liefen die beiden auseinander. So bleibt
+   das Verzeichnis die einzige Quelle.
+
+   Erkannt wird das Zeichen daran, dass vor dem ersten Leerzeichen KEIN
+   Buchstabe und keine Ziffer steht. Das trifft 📋 ⏱️ 🌴 📊 🚚 📦 🧾 ❓ ☰
+   und laesst eine Beschriftung ohne Symbol unangetastet.
+
+   Laeuft nach applyI18n(), weil das dort gesetzte textContent die
+   Grundlage ist. */
+function kachelSymboleTrennen() {
+  document.querySelectorAll(".kachel-btn").forEach((btn) => {
+    const name = btn.querySelector(".kachel-name");
+    const kasten = btn.querySelector(".kachel-kasten");
+    if (!name || !kasten) return;
+    const text = (name.textContent || "").trim();
+    const luecke = text.indexOf(" ");
+    if (luecke <= 0) return;
+    const vorn = text.slice(0, luecke);
+    if (/[\p{L}\p{N}]/u.test(vorn)) return;   // kein Symbol, nichts tun
+    kasten.textContent = vorn;
+    name.textContent = text.slice(luecke + 1);
+  });
+}
+
 function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  kachelSymboleTrennen();
   document.title = t("pageTitle");
   const langSel = document.getElementById("langSwitch");
   if (langSel) langSel.value = currentLang;
