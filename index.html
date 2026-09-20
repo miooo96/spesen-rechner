@@ -3304,7 +3304,13 @@ const DEFAULT_CONFIG = {
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
   nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
+  /* Grundwerte - gelten fuer jedes Jahr, das keinen eigenen Eintrag in
+     urlaubJahre hat. Siehe urlaubAnspruchFuer(). */
   urlaubsanspruch: 30, urlaubUebertrag: 0,
+  /* Anspruch und Uebertrag JE JAHR: { "2026": {anspruch, uebertrag} }.
+     Muss in DEFAULT_CONFIG stehen, damit das Zuruecksetzen des
+     Urlaubsbereichs es auf einen sauberen Wert bringen kann. */
+  urlaubJahre: {},
   samstagAktiv: false,
   zeitenVariieren: false,
   lang: "de",
@@ -3469,7 +3475,11 @@ function ruecksetzBereiche() {
     { id: "zeit", name: "Arbeitszeit",
       schluessel: ["spesen_az_tage", "spesen_az_lauf", "spesen_az_cfg"] },
     { id: "urlaub", name: "Urlaub & Abwesenheit",
-      tagFelder: ["status"], configFelder: ["urlaubsanspruch", "urlaubUebertrag"] },
+      /* urlaubJahre traegt seit dem 20.09.2026 Anspruch und Uebertrag JE
+         JAHR - ohne diesen Eintrag ueberlebten die Jahreswerte jedes
+         Zuruecksetzen, und die Bilanz stuende danach wieder da. */
+      tagFelder: ["status"],
+      configFelder: ["urlaubsanspruch", "urlaubUebertrag", "urlaubJahre"] },
     { id: "inventur", name: "Fahrzeug-Inventur",
       schluessel: [INV_KEY, INV_KVP_KEY, "inventur_signature", "inventur_signature_ts"] },
     { id: "ware", name: "Neue Ware zählen", schluessel: [KAE_KEY], ohneSicherung: true },
@@ -9831,9 +9841,48 @@ function urlaubZaehltTag(iso, holidaysMap) {
   return true;
 }
 
+/* ---- Urlaubsanspruch JE JAHR -----------------------------------------
+   Bis zum 20.09.2026 gab es genau EIN Wertepaar fuer alle Jahre
+   (config.urlaubsanspruch / config.urlaubUebertrag). Die Jahresauswahl
+   darueber schaltete es nicht um. Folge: Stellte man auf 2027, stand in
+   der Kachel "Anspruch 2027" - die Zahl darunter war aber die von 2026.
+   Und trug man fuer 2027 einen neuen Anspruch ein, aenderte sich
+   rueckwirkend auch die Bilanz von 2026, obwohl das Jahr abgeschlossen
+   war. Dazu wurde ein Uebertrag im Folgejahr ein zweites Mal mitgezaehlt.
+
+   Jetzt liegt je Jahr ein eigenes Paar in config.urlaubJahre.
+
+   RUECKFALL auf die alten Einzelwerte: Jahre ohne eigenen Eintrag
+   benutzen weiter config.urlaubsanspruch/urlaubUebertrag. Damit bleibt
+   die Bilanz bestehender Nutzer beim Aktualisieren unveraendert - nichts
+   springt ploetzlich auf 30. Die alten Felder wirken also als Grundwert,
+   bis ein Jahr ausdruecklich gesetzt wird. */
+function urlaubAnspruchFuer(jahr) {
+  const eigen = (config.urlaubJahre || {})[String(jahr)];
+  if (eigen && typeof eigen.anspruch === "number") {
+    return { anspruch: eigen.anspruch, uebertrag: eigen.uebertrag || 0 };
+  }
+  return {
+    anspruch: config.urlaubsanspruch ?? 30,
+    uebertrag: config.urlaubUebertrag ?? 0,
+  };
+}
+
 function urlaubSaveAnspruch() {
-  config.urlaubsanspruch = parseFloat(document.getElementById("urlaubAnspruch").value) || 0;
-  config.urlaubUebertrag = parseFloat(document.getElementById("urlaubUebertrag").value) || 0;
+  const jahr = urlaubJahrWert();
+  const anspruch = parseFloat(document.getElementById("urlaubAnspruch").value) || 0;
+  const uebertrag = parseFloat(document.getElementById("urlaubUebertrag").value) || 0;
+  config.urlaubJahre = config.urlaubJahre || {};
+  config.urlaubJahre[String(jahr)] = { anspruch: anspruch, uebertrag: uebertrag };
+  /* Der Grundwert wandert mit, solange man im LAUFENDEN Jahr steht -
+     dann gilt "so viel Urlaub habe ich ueblich" auch fuer kuenftige
+     Jahre, die noch nicht gesetzt sind. Ein Eintrag fuer ein
+     vergangenes Jahr aendert den Grundwert NICHT: sonst faerbte eine
+     Korrektur von 2025 auf alles ab. */
+  if (jahr === new Date().getFullYear()) {
+    config.urlaubsanspruch = anspruch;
+    config.urlaubUebertrag = uebertrag;
+  }
   localStorage.setItem("spesen_config", JSON.stringify(config));
   urlaubRender();
 }
@@ -9946,10 +9995,12 @@ function urlaubRender() {
   sel.innerHTML = jahre.map((j) => `<option value="${j}">${j}</option>`).join("");
   sel.value = jahre.includes(parseInt(vorher, 10)) ? vorher : String(config.jahr);
 
-  document.getElementById("urlaubAnspruch").value = config.urlaubsanspruch ?? 30;
-  document.getElementById("urlaubUebertrag").value = config.urlaubUebertrag ?? 0;
-
+  /* Die Felder zeigen die Werte DES GEWAEHLTEN JAHRES - vorher standen
+     hier immer dieselben zwei Zahlen, egal welches Jahr oben stand. */
   const jahr = urlaubJahrWert();
+  const gilt = urlaubAnspruchFuer(jahr);
+  document.getElementById("urlaubAnspruch").value = gilt.anspruch;
+  document.getElementById("urlaubUebertrag").value = gilt.uebertrag;
   const holidaysMap = feiertage(jahr, config.bundesland);
 
   // Alle gesetzten Abwesenheiten des Jahres einsammeln
@@ -9961,8 +10012,8 @@ function urlaubRender() {
     if (urlaubZaehltTag(iso, holidaysMap)) zaehler[st]++;
   });
 
-  // Bilanz
-  const anspruch = (config.urlaubsanspruch ?? 30) + (config.urlaubUebertrag ?? 0);
+  // Bilanz - aus den Werten DES GEWAEHLTEN JAHRES
+  const anspruch = gilt.anspruch + gilt.uebertrag;
   const rest = anspruch - zaehler.urlaub;
   const kachel = (label, wert, farbe) => `
     <div style="flex:1; min-width:120px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fff;">
