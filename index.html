@@ -586,20 +586,27 @@
   .archiv-row .archiv-meta { font-size: 0.8rem; color: #888; margin-top: 2px; }
   .archiv-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
-  /* Auswertung (versteckter Chef-/Buchhaltungs-Bereich) */
-  .mitarbeiter-card {
-    background: #fff; border: 1px solid #e3e6eb; border-radius: 10px;
-    padding: 1rem 1.1rem; margin-bottom: 1rem;
+  /* Hinweis "Sie sind nicht im laufenden Monat". Warnfarbe, aber kein
+     Alarm - es ist ja erlaubt, in einen alten Monat zu sehen. Er soll nur
+     auffallen, damit niemand versehentlich dort eintraegt. */
+  .nicht-heute {
+    display: none; align-items: center; gap: 6px; cursor: pointer;
+    margin-left: 0.6rem; padding: 4px 12px; border-radius: 999px;
+    background: #FDE9DC; border: 1px solid var(--accent);
+    color: var(--brand-dark); font-size: 0.78rem; font-weight: 600;
+    font-family: inherit; line-height: 1.3; text-align: left;
   }
-  .mitarbeiter-card h4 { margin: 0 0 0.5rem; color: var(--brand-dark); font-size: 1rem; }
-  .mitarbeiter-card table { border-collapse: collapse; font-size: 0.85rem; margin-bottom: 0.75rem; }
-  .mitarbeiter-card th, .mitarbeiter-card td { border: 1px solid #e3e6eb; padding: 4px 10px; text-align: right; }
-  .mitarbeiter-card th:first-child, .mitarbeiter-card td:first-child { text-align: left; }
-  .trend-satz {
-    background: #FDE9DC; border-left: 4px solid var(--accent); border-radius: 4px;
-    padding: 0.5rem 0.8rem; font-size: 0.85rem; color: var(--brand-dark); margin-bottom: 0.75rem;
+  .nicht-heute:hover { background: #fbdcc7; }
+  @media (max-width: 480px) {
+    .nicht-heute { margin-left: 0; margin-top: 0.4rem; width: 100%; justify-content: center; }
   }
-  .auswertung-pin-input {
+
+  /* PIN-Eingabe. Hiess bis zum 20.09.2026 ".auswertung-pin-input" und
+     gehoerte zum Chef-/Auswertungsbereich. Der ist entfernt (Mirko,
+     20.09.2026: "der Chef-Bereich Auswertung kann ganz raus") - die
+     PIN-Eingabe bleibt, weil das WIEDER-OEFFNEN eines abgeschlossenen
+     Monats sie weiterhin braucht. */
+  .pin-eingabe {
     text-align: center; font-size: 1.6rem; letter-spacing: 0.6rem; width: 150px;
     margin: 0.5rem auto; display: block;
   }
@@ -1803,10 +1810,9 @@
 
   /* Versionsnummer/Sprache im Footer */
   footer .footer-link { color: #888; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 0.75rem; padding: 0; }
-  /* Chef-Funktionen (Auswertung, CSV-Export) - fuer Mitarbeiter unsichtbar.
-     Werden nur im Chef-Modus (geheimer Link, siehe unten) eingeblendet. */
-  .chef-only { display: none !important; }
-  body.chef-mode .chef-only { display: inline-block !important; }
+  /* ".chef-only" und der Chef-Modus sind am 20.09.2026 entfallen - sie
+     blendeten ausschliesslich den Auswertungs-Knopf ein, und den gibt es
+     nicht mehr. */
   footer .footer-sep { margin: 0 6px; }
 
   /* Monat-gesperrt-Banner */
@@ -2290,7 +2296,7 @@
         <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importBackupFile(this)">
       </div>
     </div>
-    <p class="hinweis-text">💡 Da alle Daten nur in diesem Browser gespeichert werden, gehen sie beim Löschen des Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern" wird alles (Einstellungen, alle Monate, beide Unterschriften) als Datei gesichert - regelmäßig empfehlenswert, z.B. einmal im Monat. Über „Backup wiederherstellen" lässt sich diese Datei später wieder einlesen, auch auf einem anderen Gerät/Browser.</p>
+    <p class="hinweis-text">💡 Da alle Daten nur in diesem Browser gespeichert werden, gehen sie beim Löschen des Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern" wird alles als Datei gesichert: Einstellungen, alle Monate, Arbeitszeiten, Urlaub, Fahrzeug-Inventur, Abrechnung, Kopfdaten und alle Unterschriften - regelmäßig empfehlenswert, z.B. einmal im Monat. (Nicht dabei: „Neue Ware zählen" - das ist jede Woche neu und kein Nachweis.) Über „Backup wiederherstellen" lässt sich diese Datei später wieder einlesen, auch auf einem anderen Gerät/Browser.</p>
   </div>
 
   <p style="font-size:0.8rem; color:#666;">
@@ -2333,7 +2339,10 @@
       <option value="de">🇩🇪 Deutsch</option>
       <option value="en">🇬🇧 English</option>
     </select>
-    <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
+    <!-- Fuehrt seit dem 20.09.2026 in einen Dialog mit Einzel-Auswahl,
+         statt sofort alles zu loeschen (Mirko: einzelne Bereiche sollen
+         auch gehen). Das grosse Zuruecksetzen steht dort unten. -->
+    <button class="danger" onclick="openRuecksetzenModal();" data-i18n="btnReset">🗑️ Zurücksetzen</button>
   </div>
 </div>
 
@@ -2905,6 +2914,10 @@
 <div id="spesenKopfzeile" class="no-print">
   <span class="spesen-kopfzeile-titel" data-i18n="spesenKopfzeileTitel">📋 Spesenabrechnung</span>
   <select id="monthPicker" onchange="renderFormular()"></select>
+  <!-- Erscheint nur, wenn der gewaehlte Monat nicht der laufende ist.
+       Siehe zeitraumHinweisAktualisieren(). -->
+  <button type="button" id="nichtHeute" class="nicht-heute" style="display:none;"
+          onclick="zurueckZuHeute()"></button>
 </div>
 
 <div id="formular-scroll"><div id="formular"></div></div>
@@ -2912,13 +2925,7 @@
 <footer class="no-print">
   Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built for Hall Tabakwaren by Mirko Rieb
   <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
-  <span class="footer-sep chef-only">&middot;</span><button class="footer-link chef-only" onclick="openAuswertungGate()">Auswertung</button>
 </footer>
-
-<div class="panel no-print" id="auswertungPanel" style="display:none;">
-  <h2 style="margin-top:0;">📈 Auswertung</h2>
-  <div id="auswertungContent"></div>
-</div>
 
 <div id="modalRoot"></div>
 
@@ -3076,7 +3083,15 @@ const I18N = {
        Ein Knopf, ein Text, nichts kann mehr umspringen. */
     btnInstall: "📱 Am Handy als App einrichten",
     btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
-    confirmReset: "Alle Eingaben (auch gespeicherte) wirklich zurücksetzen?",
+    /* Ausfuehrlicher seit 20.09.2026: Das Zuruecksetzen loescht jetzt
+       WIRKLICH alles - vorher ueberlebten Inventur, Ware, Abrechnung und
+       Kopfdaten unbemerkt. Wer die alte Fassung kennt, muss sehen, dass
+       diesmal mehr weg ist. */
+    confirmReset: "Wirklich ALLES zurücksetzen?\n\n" +
+      "Gelöscht werden: alle Monate, Arbeitszeiten, Urlaub, Fahrzeug-Inventur, " +
+      "gezählte Ware, Abrechnung, Stammdaten und alle Unterschriften.\n\n" +
+      "✅ Vorher wird automatisch eine Sicherungsdatei erzeugt und in Ihren " +
+      "Download-Ordner gelegt – damit lässt sich alles zurückholen.",
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
     colStd: "Stunden", colPauschale: "Pauschale", colStatus: "Status",
     colWorkStart: "Arbeitsbeginn", colWorkEnd: "Arbeitsende", colDepart: "Abfahrt WP", colArrive: "Ankunft WP",
@@ -3112,7 +3127,11 @@ const I18N = {
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Set up as app on your phone",
     btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
-    confirmReset: "Really reset all entries (including saved ones)?",
+    confirmReset: "Really reset EVERYTHING?\n\n" +
+      "This deletes: all months, working times, holidays, vehicle inventory, " +
+      "counted goods, settlement, master data and all signatures.\n\n" +
+      "✅ A backup file is created automatically beforehand and saved to your " +
+      "downloads folder - everything can be restored from it.",
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
     colStd: "Hours", colPauschale: "Allowance", colStatus: "Status",
     colWorkStart: "Work start", colWorkEnd: "Work end", colDepart: "Departure (home)", colArrive: "Arrival (home)",
@@ -3271,7 +3290,12 @@ const DEFAULT_CONFIG = {
      uebereinstimmt"). Dient nur als Vorschlag - der Durchgang kann eine
      andere Tour tragen, siehe kopfState. */
   name: "", strasse: "", ort: "", niederlassung: "", tour: "", arbeitgeberEmail: "", eigeneEmail: "",
-  jahr: 2026, startMonat: 1, endMonat: 12,
+  /* Das laufende Jahr, nicht eine feste Zahl. Hier stand bis zum
+     20.09.2026 "jahr: 2026" - und nichts zog das je nach. Am 1. Januar
+     2027 haette die App weiter auf 2026 gestanden; weil der Monatswaehler
+     nur dann auf heute springt, wenn das Jahr stimmt, waeren die
+     Januar-Fahrten im Dezember 2026 gelandet. Siehe jahrNachziehen(). */
+  jahr: new Date().getFullYear(), startMonat: 1, endMonat: 12,
   bundesland: "HE",
   pauschale8: 14, pauschale24: 28,
   mitarbeitertyp: "fahrer",
@@ -3293,6 +3317,39 @@ function loadConfig() {
     const parsed = JSON.parse(raw);
     return Object.assign(structuredClone(DEFAULT_CONFIG), parsed);
   } catch { return structuredClone(DEFAULT_CONFIG); }
+}
+
+/* ---- Der Kalender laeuft einfach weiter -------------------------------
+   Mirko am 20.09.2026: "Es müsste ja möglich sein, dass sowohl in der App
+   als auch im Webtool immer der aktuelle echte Tag aufgelistet wird und es
+   einfach quasi weiterläuft - heißt, wenn heute zum Beispiel der
+   31.12.2026 ist und morgen der 1.1.2027, soll es auch umschlagen."
+
+   Das eingestellte Jahr war eine gespeicherte Einstellung, die niemand je
+   hochzaehlte. Beim Start wird es deshalb nachgezogen, wenn es hinter dem
+   Kalender zurueckliegt.
+
+   NUR nach vorne: Wer bewusst ein kuenftiges Jahr eingestellt hat (Urlaub
+   fuers naechste Jahr planen), wird nicht zurueckgeholt.
+   Vergangene Monate und Jahre bleiben ueber den Monatswaehler und die
+   Einstellungen jederzeit erreichbar - sie werden nur nicht mehr zum
+   Startzustand. */
+function jahrNachziehen() {
+  const jetzt = new Date().getFullYear();
+  if (!(config.jahr < jetzt)) return false;
+  const vorher = config.jahr;
+  config.jahr = jetzt;
+  /* Der eingestellte Monatsbereich gehoerte zum alten Jahr. Ist er eng
+     (z.B. nur September bis Dezember), laege der laufende Monat im neuen
+     Jahr ausserhalb - der Monatswaehler wuerde dann auf den Rand springen
+     statt auf heute, und das Nachziehen liefe halb ins Leere.
+     Deshalb den Bereich so weit oeffnen, dass der heutige Monat hineinpasst. */
+  const monat = new Date().getMonth() + 1;
+  if (config.startMonat > monat) config.startMonat = monat;
+  if (config.endMonat < monat) config.endMonat = monat;
+  localStorage.setItem("spesen_config", JSON.stringify(config));
+  console.info("Jahr nachgezogen: " + vorher + " → " + jetzt);
+  return true;
 }
 
 function loadOverrides() {
@@ -3341,21 +3398,211 @@ function saveOverrides() {
 
 function val(id) { return document.getElementById(id).value; }
 
+/* Was loescht "Alles zuruecksetzen"?
+   KORRIGIERT am 20.09.2026, derselbe Fehler wie beim Backup: Es wurden nur
+   "spesen_"- und "bezahlt_"-Schluessel geloescht. Fahrzeug-Inventur, Neue
+   Ware zaehlen, Abrechnung, Kopfdaten und die Inventur-Unterschrift
+   ueberlebten jedes Zuruecksetzen - Mirko hat es am 20.09.2026 gesehen:
+   nach "Alles zuruecksetzen" standen dort weiter Zahlen.
+   Der Kommentar hier sagte "Wirklich ALLES loeschen". Das stimmte, als er
+   geschrieben wurde - die drei Bereiche kamen erst am 05.09.2026 dazu.
+
+   Jetzt dieselbe Regel wie beim Backup, nur loeschend: alles ausser dem
+   ausdruecklich Ausgenommenen.
+   Mirko, 20.09.2026: "Zuruecksetzen soll es geben, dass alles
+   zurueckgesetzt wird, aber ebenfalls soll es moeglich sein, nur einzelne
+   Dokumente zurueckzusetzen." Das Einzelne steht noch aus (Entwurf), das
+   Ganze hier stimmt ab jetzt. */
+/* Gegenstueck zu gehoertInsBackup(): Wird dieser Schluessel vom
+   "Alles zuruecksetzen" geloescht?
+   Als eigene Funktion, damit die Regel benannt und pruefbar ist - die
+   Pruefung laeuft ueber backup-test.sh gegen genau diese beiden
+   Funktionen statt gegen nachgebaute Schleifen. */
+function gehoertZumZuruecksetzen(key) {
+  /* Keine Ausnahmen mehr. Bis zum 20.09.2026 blieb "auswertung_..."
+     stehen, weil es dem Chef-Bereich gehoerte - den gibt es nicht mehr. */
+  return true;
+}
+
+/* Restmaterial des entfernten Auswertungs-Bereichs vom Geraet raeumen.
+   Dort lagen der PIN-Hash und - wichtiger - importierte Daten ANDERER
+   Mitarbeiter. Ohne den Bereich sind sie nicht mehr lesbar und haetten
+   keinen Zweck; fremde Personendaten unbenutzt liegen zu lassen waere
+   das Gegenteil von sauber. Laeuft still, meldet sich nur in der
+   Konsole, und hat nach dem ersten Start nichts mehr zu tun. */
+function alteAuswertungsdatenEntfernen() {
+  const weg = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith("auswertung_")) weg.push(key);
+  }
+  weg.forEach((k) => localStorage.removeItem(k));
+  if (weg.length) console.info("Reste des entfernten Auswertungsbereichs gelöscht:", weg);
+}
+
+/* ---- Einzelne Bereiche zuruecksetzen ----------------------------------
+   Mirko am 20.09.2026: "Zurücksetzen soll es geben, dass alles
+   zurückgesetzt wird, aber ebenfalls soll es möglich sein, nur einzelne
+   Dokumente zurückzusetzen."
+
+   Das Wort auf dem Bildschirm ist BEREICH, nicht Dokument: "Dokument"
+   meint in dieser App durchgehend das gedruckte Blatt (Spesenblatt,
+   Inventurblatt, Verkaufsbericht), und Stammdaten oder Unterschriften
+   sind keine Blaetter.
+
+   Zwei Bereiche loeschen keine ganzen Schluessel, sondern einzelne FELDER:
+   Spesen und Urlaub liegen beide in spesen_overrides, nur in verschiedenen
+   Feldern je Tag. "Urlaub zurücksetzen" nimmt deshalb die Statusangaben
+   heraus und laesst die Zeiten stehen.
+
+   Zwei Ueberschneidungen, beide mit Mirko am 20.09.2026 geklaert:
+   - Kopfdaten (Fahrer/Tour/Datum) gelten fuer Inventurblatt UND
+     Verkaufsbericht -> eigene Zeile, gehoert zu keinem allein.
+   - Die Unterschrift auf dem Inventurblatt loeschen BEIDE Bereiche
+     (Inventur und Unterschriften). Doppelt erfasst, aber beide Wege
+     fuehren zu dem Ergebnis, das man erwartet. */
+function ruecksetzBereiche() {
+  return [
+    { id: "spesen", name: "Spesen",
+      tagFelder: ["abfahrt", "ankunft", "arbeitsbeginn", "arbeitsende", "orte", "nl", "notiz", "samstagEin"],
+      praefixe: ["bezahlt_"] },
+    { id: "zeit", name: "Arbeitszeit",
+      schluessel: ["spesen_az_tage", "spesen_az_lauf", "spesen_az_cfg"] },
+    { id: "urlaub", name: "Urlaub & Abwesenheit",
+      tagFelder: ["status"], configFelder: ["urlaubsanspruch", "urlaubUebertrag"] },
+    { id: "inventur", name: "Fahrzeug-Inventur",
+      schluessel: [INV_KEY, INV_KVP_KEY, "inventur_signature", "inventur_signature_ts"] },
+    { id: "ware", name: "Neue Ware zählen", schluessel: [KAE_KEY], ohneSicherung: true },
+    { id: "abrechnung", name: "Abrechnung", schluessel: [ABR_KEY, ABR_ARCHIV_KEY] },
+    { id: "kopfdaten", name: "Kopfdaten", schluessel: [KOPF_KEY] },
+    { id: "stammdaten", name: "Stammdaten",
+      configFelder: ["name", "strasse", "ort", "niederlassung", "tour", "arbeitgeberEmail", "eigeneEmail"] },
+    { id: "unterschriften", name: "Unterschriften",
+      schluessel: ["spesen_signature", "spesen_signature_nll", "inventur_signature", "inventur_signature_ts"] },
+  ];
+}
+
+function bereichZuruecksetzen(id) {
+  const b = ruecksetzBereiche().find((x) => x.id === id);
+  if (!b) return;
+  if (!confirm("„" + b.name + "\" zurücksetzen?\n\n"
+    + (b.ohneSicherung
+        ? "Dieser Bereich ist Wochenmaterial und wird nicht gesichert – er ist danach endgültig leer."
+        : "Vorher wird automatisch eine Sicherungsdatei in Ihren Download-Ordner gelegt."))) return;
+
+  /* Sicherung wie beim grossen Zuruecksetzen - ausser bei Bereichen, die
+     ohnehin in keinem Backup stehen. Eine Datei zu erzeugen, in der der
+     geloeschte Bereich gar nicht vorkommt, waere eine leere Geste. */
+  if (!b.ohneSicherung) {
+    try { exportBackup("vor-" + b.id); }
+    catch (e) {
+      if (!confirm("⚠️ Die Sicherung konnte nicht erzeugt werden.\n\nTrotzdem zurücksetzen?")) return;
+    }
+  }
+
+  (b.schluessel || []).forEach((k) => localStorage.removeItem(k));
+  (b.praefixe || []).forEach((p) => {
+    const weg = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith(p)) weg.push(k);
+    }
+    weg.forEach((k) => localStorage.removeItem(k));
+  });
+
+  /* Einzelne Felder je Tag - hier liegen Spesen und Urlaub nebeneinander. */
+  if (b.tagFelder) {
+    Object.keys(overrides).forEach((iso) => {
+      b.tagFelder.forEach((f) => { delete overrides[iso][f]; });
+      if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
+    });
+    saveOverrides();
+  }
+  if (b.configFelder) {
+    b.configFelder.forEach((f) => { config[f] = structuredClone(DEFAULT_CONFIG)[f]; });
+    localStorage.setItem("spesen_config", JSON.stringify(config));
+  }
+
+  alert("„" + b.name + "\" wurde zurückgesetzt."
+    + (b.ohneSicherung ? "" : "\n\nDie Sicherung liegt in Ihrem Download-Ordner."));
+  setTimeout(() => location.reload(), 300);
+}
+
+function openRuecksetzenModal() {
+  const zeilen = ruecksetzBereiche().map((b) =>
+    `<div style="display:flex; align-items:center; gap:0.6rem; padding:9px 0; border-bottom:1px solid #eee;">
+       <span style="flex:1; font-weight:600; color:var(--brand-dark);">${b.name}</span>
+       <button class="ghost" style="flex:none; font-size:0.8rem; padding:5px 14px;"
+               aria-label="${b.name} zurücksetzen"
+               onclick="bereichZuruecksetzen('${b.id}')">Zurücksetzen</button>
+     </div>`).join("");
+
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) azSchliesseModal()">
+      <div class="modal-box">
+        <h2 style="margin-top:0;">🗑️ Zurücksetzen</h2>
+        <p class="hinweis-text">Vor jedem Zurücksetzen wird automatisch eine Sicherungsdatei
+          in Ihren Download-Ordner gelegt – damit lässt sich alles zurückholen.</p>
+
+        <h3 style="margin:1rem 0 0.3rem; font-size:0.95rem;">Einzelnen Bereich zurücksetzen</h3>
+        ${zeilen}
+
+        <p class="hinweis-text" style="margin-top:0.9rem;">🔒 Ein <b>abgeschlossener Monat</b>
+          lässt sich nicht zurücksetzen. Er wurde bereits eingereicht – die Niederlassung hat ihn.</p>
+
+        <h3 style="margin:1.3rem 0 0.3rem; font-size:0.95rem; color:#c0392b;">Alle Bereiche auf einmal zurücksetzen</h3>
+        <p class="hinweis-text">Löscht jeden Bereich gleichzeitig: alle Monate, Zeiten,
+          Abwesenheiten, Stammdaten und alle Unterschriften.</p>
+        <div style="display:flex; gap:0.5rem; justify-content:space-between; margin-top:1rem; flex-wrap:wrap;">
+          <button class="ghost" onclick="azSchliesseModal()">Abbrechen</button>
+          <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll();">Sicherung erzeugen und alles zurücksetzen</button>
+        </div>
+      </div>
+    </div>`;
+}
+
 function resetAll() {
-  // Wirklich ALLES loeschen (Einstellungen, Tages-Overrides, beide
-  // Unterschriften+Zeitstempel, "eingereicht/gesperrt"-Status jedes Monats,
-  // "bereits bezahlt"-Werte) - vorher wurden nur Einstellungen/Overrides
-  // geloescht, der Rest blieb unbemerkt bestehen. Gleiche Logik wie
-  // exportBackup() (alle spesen_*/bezahlt_*-Schluessel), nur loeschend statt
-  // exportierend. Danach neu laden, damit auch der Einrichtungsassistent
-  // beim naechsten Mal wieder von vorne beginnt.
+  /* SICHERUNG VOR DEM LOESCHEN (beschlossen mit Mirko, 19.09.2026;
+     eingebaut am 20.09.2026).
+     Begruendung: Ein Fingertipp loescht sonst ein ganzes Jahr - bei einem
+     vollen Jahr sind das ueber 3.000 € an Nachweisen. Seit dem 20.09.2026
+     loescht das Zuruecksetzen ausserdem WIRKLICH alles (vorher ueberlebten
+     Inventur, Ware und Abrechnung unbemerkt) - es ist also gruendlicher
+     geworden und braucht das Netz darunter umso mehr.
+     Die Datei heisst absichtlich anders als die normale Sicherung, damit
+     sie im Download-Ordner sofort auffaellt. */
+  let gesichert = 0;
+  try {
+    gesichert = exportBackup("vor-zuruecksetzen");
+  } catch (e) {
+    /* Laesst der Browser den Download nicht zu (privater Modus, blockierte
+       Downloads), wird NICHT stillschweigend geloescht. Lieber einmal
+       nachfragen als Daten ohne Netz wegwerfen. */
+    if (!confirm(
+      "⚠️ Die automatische Sicherung konnte NICHT erzeugt werden.\n\n" +
+      "Grund: " + (e && e.message ? e.message : "unbekannt") + "\n\n" +
+      "Wenn Sie jetzt fortfahren, sind die Daten unwiderruflich weg.\n" +
+      "Trotzdem zurücksetzen?")) return;
+  }
+
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key.startsWith("spesen_") || key.startsWith("bezahlt_")) keysToRemove.push(key);
+    if (gehoertZumZuruecksetzen(key)) keysToRemove.push(key);
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k));
-  location.reload();
+
+  if (gesichert) {
+    alert("Zurückgesetzt.\n\n" + gesichert + " Bereiche wurden vorher automatisch gesichert – " +
+          "die Datei liegt in Ihrem Download-Ordner und beginnt mit " +
+          "„spesen-rechner-SICHERUNG-vor-zuruecksetzen\".\n\n" +
+          "Über „Backup wiederherstellen\" lässt sich alles zurückholen.");
+  }
+  /* Neu laden, damit auch der Einrichtungsassistent wieder von vorne
+     beginnt. Kurz verzoegert, damit der Download sicher angestossen ist -
+     ein Neustart mitten im Speichern waere genau der Fehler, den diese
+     Sicherung verhindern soll. */
+  setTimeout(() => location.reload(), 300);
 }
 
 /* ===================== Feiertage (bewegliche + fixe) ===================== */
@@ -6929,9 +7176,20 @@ async function submitCurrentMonth() {
   }
 }
 
+/* Fest vorgegebene PIN fuer das Wieder-Oeffnen eines abgeschlossenen Monats.
+   Bewusst simpel und im Quelltext sichtbar: ein Riegel gegen beilaeufiges
+   Aendern, keine echte Zugangssperre. Die eigentliche Kontrolle ist, dass
+   die Niederlassung das Original hat und Korrekturen gekennzeichnet
+   ankommen.
+   ⚠ STAND BIS 20.09.2026 im Auswertungs-Block und wurde von dort
+   mitbenutzt. Der Block ist entfernt (Mirko: "der Chef-Bereich Auswertung
+   kann ganz raus") - die Konstante musste mit heraus, sonst haette das
+   Wieder-Oeffnen eines Monats stillschweigend aufgehoert zu funktionieren. */
+const VORGEGEBENE_PIN = "1903";
+
 function reopenMonth(jahr, monat) {
-  // Wieder-Oeffnen nur mit PIN (nutzt dieselbe PIN wie der Chef-/Auswertungsbereich).
-  // So laesst sich ein abgeschlossener Monat nicht mehr mit einem Klick aendern.
+  // Wieder-Oeffnen nur mit PIN. So laesst sich ein abgeschlossener Monat
+  // nicht mehr mit einem Klick aendern.
   const hasPin = true; // feste PIN vorgegeben (VORGEGEBENE_PIN)
   const root = document.getElementById("modalRoot");
   root.innerHTML = `
@@ -6940,7 +7198,7 @@ function reopenMonth(jahr, monat) {
         <h2>🔒 Monat wieder öffnen</h2>
         <p style="font-size:0.9rem; color:#444;">Dieser Monat ist abgeschlossen. Zum erneuten Bearbeiten
           ${hasPin ? "bitte die PIN eingeben:" : "zuerst einen 4-stelligen PIN festlegen (schützt künftig das Wieder-Öffnen):"}</p>
-        <input id="reopenPinInput" class="auswertung-pin-input" type="password" inputmode="numeric" maxlength="4"
+        <input id="reopenPinInput" class="pin-eingabe" type="password" inputmode="numeric" maxlength="4"
           pattern="[0-9]*" autocomplete="off">
         <p id="reopenPinError" style="color:#c0392b; font-size:0.85rem; min-height:1.2em;"></p>
         <div class="modal-close-row" style="justify-content:center; gap:8px;">
@@ -7076,319 +7334,6 @@ async function openArchivedMonth(jahr, monat, alsoDownloadPdf) {
   if (alsoDownloadPdf) await downloadPDF();
 }
 
-/* ===================== Auswertung (versteckter Chef-/Buchhaltungs-Bereich) =====================
-   Kein Server, keine automatische Uebertragung: der Chef zieht hier die
-   Backup-Dateien rein, die er von jedem Mitarbeiter sowieso per E-Mail
-   bekommt (siehe "Per E-Mail an Arbeitgeber weiterleiten"). Alles bleibt
-   lokal auf SEINEM Geraet, unter einem eigenen localStorage-Namensraum
-   ("auswertung_..."), komplett getrennt von den "spesen_..."-Schluesseln der
-   eigenen Spesenerfassung - damit weder "Zurücksetzen" noch ein normales
-   Spesen-Backup versehentlich vermischt werden.
-   Der 4-stellige PIN ist bewusst NICHT im Quellcode hinterlegt (der waere in
-   jeder ausgelieferten Kopie sichtbar), sondern wird beim ersten Aufruf vom
-   Chef selbst festgelegt und nur als SHA-256-Hash lokal gespeichert. Das ist
-   "Verschleierung vor zufaelligem Entdecken", keine echte Verschluesselung -
-   wer gezielt die Browser-Konsole nutzt, koennte die Pruefung umgehen. Das ist
-   hier unkritisch, weil dabei nichts Sensibles zu holen ist: die eigentlichen
-   Mitarbeiter-Daten existieren nur auf dem Geraet, auf dem der Chef sie
-   selbst importiert hat. */
-const AUSWERTUNG_PIN_KEY = "auswertung_pin_hash";
-// Fest vom Chef vorgegebene PIN - gilt fuer Wieder-Oeffnen UND Auswertungsbereich.
-// Bewusst simpel gehalten (steht im Quelltext) = Riegel gegen beilaeufiges Aendern,
-// keine bankenechte Sicherheit - passend zum uebrigen "Verschleierungs"-Modell.
-const VORGEGEBENE_PIN = "1903";
-const AUSWERTUNG_STORE_KEY = "auswertung_mitarbeiter";
-
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function openAuswertungGate() {
-  const hasPin = true; // feste PIN vorgegeben (VORGEGEBENE_PIN)
-  const root = document.getElementById("modalRoot");
-  root.innerHTML = `
-    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
-      <div class="modal-box" style="max-width:320px; text-align:center;">
-        <h2>🔐 Auswertung</h2>
-        <p style="font-size:0.9rem; color:#444;">${hasPin
-          ? "PIN eingeben:"
-          : "Noch kein PIN festgelegt - jetzt einen eigenen 4-stelligen PIN wählen (nur auf diesem Gerät gültig):"}</p>
-        <input id="auswertungPinInput" class="auswertung-pin-input" type="password" inputmode="numeric" maxlength="4"
-          pattern="[0-9]*" autocomplete="off">
-        <p id="auswertungPinError" style="color:#c0392b; font-size:0.85rem; min-height:1.2em;"></p>
-        <div class="modal-close-row" style="justify-content:center;">
-          <button class="primary" onclick="submitAuswertungPin(${!hasPin})">${hasPin ? "Entsperren" : "PIN festlegen"}</button>
-        </div>
-      </div>
-    </div>
-  `;
-  const input = document.getElementById("auswertungPinInput");
-  input.focus();
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuswertungPin(!hasPin); });
-}
-
-async function submitAuswertungPin(isSetup) {
-  const val = document.getElementById("auswertungPinInput").value;
-  if (!/^\d{4}$/.test(val)) {
-    document.getElementById("auswertungPinError").textContent = "Bitte genau 4 Ziffern eingeben.";
-    return;
-  }
-  const hash = await sha256Hex(val);
-  if (isSetup) {
-    localStorage.setItem(AUSWERTUNG_PIN_KEY, hash);
-    closeModal();
-    openAuswertungPanel();
-    return;
-  }
-  if (val === VORGEGEBENE_PIN) {
-    closeModal();
-    openAuswertungPanel();
-  } else {
-    document.getElementById("auswertungPinError").textContent = "Falscher PIN.";
-    document.getElementById("auswertungPinInput").value = "";
-    document.getElementById("auswertungPinInput").focus();
-  }
-}
-
-function openAuswertungPanel() {
-  document.getElementById("settingsPanel").style.display = "none";
-  document.getElementById("jahresuebersichtPanel").style.display = "none";
-  document.getElementById("archivPanel").style.display = "none";
-  document.getElementById("auswertungPanel").style.display = "block";
-  renderAuswertungPanel();
-}
-
-function loadAuswertungStore() {
-  const raw = localStorage.getItem(AUSWERTUNG_STORE_KEY);
-  if (!raw) return {};
-  try { return JSON.parse(raw); } catch { return {}; }
-}
-
-function saveAuswertungStore(store) {
-  localStorage.setItem(AUSWERTUNG_STORE_KEY, JSON.stringify(store));
-}
-
-/* Liest eine importierte Backup-Datei aus, zaehlt Abwesenheits-Tage pro Jahr
-   direkt aus den Overrides (unabhaengig von Wochenende/Feiertag - ein
-   eingetragener Status zaehlt so oder so) und berechnet zusaetzlich die
-   Jahres-Pauschale ueber die bestehende computeMonth()-Logik (dafuer werden
-   die globalen config/overrides kurz getauscht und danach sofort wieder
-   zurueckgesetzt). */
-function processImportedBackup(backup, store) {
-  const cfgRaw = backup.data["spesen_config"];
-  if (!cfgRaw) throw new Error("Enthält keine Konfiguration/keinen Namen.");
-  const importedConfig = Object.assign(structuredClone(DEFAULT_CONFIG), JSON.parse(cfgRaw));
-  const ovRaw = backup.data["spesen_overrides"];
-  const importedOverrides = ovRaw ? JSON.parse(ovRaw) : {};
-  const name = importedConfig.name || "Unbekannt";
-
-  if (!store[name]) store[name] = { jahre: {} };
-  const jahre = store[name].jahre;
-
-  const ensureJahr = (j) => {
-    if (!jahre[j]) jahre[j] = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0, pauschale: 0 };
-  };
-
-  Object.entries(importedOverrides).forEach(([iso, ov]) => {
-    if (!ov.status || !ABWESENHEITS_STATUS.includes(ov.status)) return;
-    const jahr = iso.slice(0, 4);
-    ensureJahr(jahr);
-    jahre[jahr][ov.status]++;
-  });
-
-  const savedConfig = config, savedOverrides = overrides;
-  try {
-    config = importedConfig;
-    overrides = importedOverrides;
-    const jahreZuBerechnen = new Set(Object.keys(jahre));
-    jahreZuBerechnen.add(String(importedConfig.jahr));
-    jahreZuBerechnen.forEach((jahrStr) => {
-      const jahr = parseInt(jahrStr);
-      ensureJahr(jahrStr);
-      let pauschale = 0;
-      for (let m = 1; m <= 12; m++) pauschale += computeMonth(jahr, m).total;
-      jahre[jahrStr].pauschale = Math.round(pauschale * 100) / 100;
-    });
-  } finally {
-    config = savedConfig;
-    overrides = savedOverrides;
-  }
-}
-
-function importAuswertungFiles(fileInput) {
-  const files = [...fileInput.files];
-  if (files.length === 0) return;
-  const store = loadAuswertungStore();
-  let pending = files.length;
-  let importedNames = [];
-  let errors = [];
-  files.forEach((file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const backup = JSON.parse(e.target.result);
-        if (!backup || backup._type !== "spesen-rechner-backup" || !backup.data) {
-          throw new Error("keine gültige Spesen-Rechner-Backup-Datei");
-        }
-        const before = Object.keys(store).length;
-        processImportedBackup(backup, store);
-        importedNames.push(Object.keys(store).length !== before ? "(neu)" : "");
-      } catch (err) {
-        errors.push(`"${file.name}": ${err.message}`);
-      } finally {
-        pending--;
-        if (pending === 0) {
-          saveAuswertungStore(store);
-          renderAuswertungPanel();
-          if (errors.length) alert("Einige Dateien konnten nicht eingelesen werden:\n" + errors.join("\n"));
-        }
-      }
-    };
-    reader.readAsText(file);
-  });
-  fileInput.value = "";
-}
-
-function removeMitarbeiterAusAuswertung(name) {
-  if (!confirm(`"${name}" wirklich aus der Auswertung entfernen?`)) return;
-  const store = loadAuswertungStore();
-  delete store[name];
-  saveAuswertungStore(store);
-  renderAuswertungPanel();
-}
-
-/* Durchschnitt der Krankheitstage ueber ALLE vorliegenden Jahre - vom ersten
-   bis zum aktuellsten. Wird sowohl im Auswertungssatz als auch als Linie im
-   Diagramm verwendet, damit ein einzelnes Ausreisser-Jahr nicht den Eindruck
-   bestimmt. */
-function krankDurchschnitt(jahre) {
-  const keys = Object.keys(jahre).map(Number);
-  if (!keys.length) return 0;
-  const summe = keys.reduce((s, j) => s + (jahre[j].krank || 0), 0);
-  return summe / keys.length;
-}
-
-/* Formuliert den automatisch erzeugten Auswertungssatz: aktuelles Jahr im
-   Vergleich zum Durchschnitt aller erfassten Jahre. */
-function buildTrendSatz(name, jahre) {
-  const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
-  if (jahrKeys.length < 2) {
-    return `Für ${name} liegt bisher nur ein Jahr vor - noch kein Durchschnitt über mehrere Jahre berechenbar.`;
-  }
-  const first = jahrKeys[0], last = jahrKeys[jahrKeys.length - 1];
-  const aktuell = jahre[last].krank || 0;
-  const schnitt = krankDurchschnitt(jahre);
-  const schnittTxt = schnitt.toFixed(1).replace(".", ",");
-  const diff = aktuell - schnitt;
-  const diffTxt = Math.abs(diff).toFixed(1).replace(".", ",");
-
-  let bewertung;
-  if (Math.abs(diff) < 0.05) {
-    bewertung = `genau im Durchschnitt`;
-  } else if (diff > 0) {
-    bewertung = `${diffTxt} Tag(e) über dem Durchschnitt`;
-  } else {
-    bewertung = `${diffTxt} Tag(e) unter dem Durchschnitt`;
-  }
-
-  return `Krankheitstage bei ${name}: ${aktuell} im Jahr ${last}. `
-    + `Durchschnitt ${first}-${last} (${jahrKeys.length} Jahre): ${schnittTxt} Tage. `
-    + `Das aktuelle Jahr liegt damit ${bewertung}.`;
-}
-
-/* Kleines, abhaengigkeitsfreies SVG-Balkendiagramm - generische Variante des
-   Diagramms aus der Jahresuebersicht, hier fuer Krankheitstage pro Jahr. */
-function buildTrendBarChart(jahre) {
-  const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
-  const maxVal = Math.max(1, ...jahrKeys.map((j) => jahre[j].krank));
-  const barWidth = 26, gap = 12, chartHeight = 120, leftPad = 8;
-  const width = jahrKeys.length * (barWidth + gap) + leftPad;
-  const bars = jahrKeys.map((jahr, i) => {
-    const val = jahre[jahr].krank;
-    const h = Math.round((val / maxVal) * (chartHeight - 34));
-    const x = leftPad + i * (barWidth + gap);
-    const y = chartHeight - h - 18;
-    return `
-      <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(h, 1)}" rx="3" fill="#c0392b"></rect>
-      <text x="${x + barWidth / 2}" y="${y - 4}" font-size="9" text-anchor="middle" fill="#370F06">${val || ""}</text>
-      <text x="${x + barWidth / 2}" y="${chartHeight - 4}" font-size="9" text-anchor="middle" fill="#666">${jahr}</text>
-    `;
-  }).join("");
-
-  // Durchschnittslinie ueber alle Jahre - macht auf einen Blick sichtbar,
-  // welche Jahre darueber und welche darunter liegen.
-  let schnittLinie = "";
-  if (jahrKeys.length >= 2) {
-    const schnitt = krankDurchschnitt(jahre);
-    const hS = Math.round((schnitt / maxVal) * (chartHeight - 34));
-    const yS = chartHeight - hS - 18;
-    const label = schnitt.toFixed(1).replace(".", ",");
-    schnittLinie = `
-      <line x1="${leftPad - 4}" y1="${yS}" x2="${width - 4}" y2="${yS}"
-            stroke="#370F06" stroke-width="1.5" stroke-dasharray="5 4"></line>
-      <text x="${width - 4}" y="${yS - 4}" font-size="9" text-anchor="end"
-            fill="#370F06">&#216; ${label}</text>
-    `;
-  }
-  return `<svg width="${width}" height="${chartHeight}" viewBox="0 0 ${width} ${chartHeight}" style="max-width:100%; display:block;">${bars}${schnittLinie}</svg>`;
-}
-
-function renderAuswertungPanel() {
-  const store = loadAuswertungStore();
-  const names = Object.keys(store).sort();
-
-  let html = `
-    <div class="settings-card neutral">
-      <h3>📂 Backup-Dateien importieren</h3>
-      <p class="hinweis-text">Die von Mitarbeitern per E-Mail erhaltenen Backup-Dateien (.json, über
-        „💾 Backup als Datei speichern" erzeugt) hier auswählen - mehrere Dateien und mehrere Mitarbeiter
-        gleichzeitig möglich. Ein erneuter Import desselben Mitarbeiters ergänzt/aktualisiert nur die
-        jeweiligen Jahre, nichts geht verloren.</p>
-      <input type="file" id="auswertungFileInput" accept=".json" multiple onchange="importAuswertungFiles(this)">
-    </div>
-    <div class="settings-card neutral">
-      <h3>💾 Auswertungsdaten sichern</h3>
-      <p class="hinweis-text">Diese importierten/aggregierten Daten liegen nur auf diesem Gerät. Bei einem
-        Geräte- oder Browserwechsel vorher sichern (eigene Datei, getrennt vom normalen Spesen-Backup).</p>
-      <button class="primary" onclick="exportAuswertungBackup()">📦 Backup als Datei speichern</button>
-    </div>
-  `;
-
-  if (names.length === 0) {
-    html += `<p class="hinweis-text">Noch keine Mitarbeiter importiert.</p>`;
-  } else {
-    html += names.map((name) => {
-      const jahre = store[name].jahre;
-      const jahrKeys = Object.keys(jahre).map(Number).sort((a, b) => a - b);
-      const rows = jahrKeys.map((j) => `
-        <tr>
-          <td>${j}</td>
-          <td>${jahre[j].urlaub || 0}</td>
-          <td>${jahre[j].krank || 0}</td>
-          <td>${jahre[j].frei || 0}</td>
-          <td>${jahre[j].sonderurlaub || 0}</td>
-          <td>${jahre[j].elternzeit || 0}</td>
-          <td>${(jahre[j].pauschale || 0).toFixed(2).replace(".", ",")} €</td>
-        </tr>
-      `).join("");
-      return `
-        <div class="mitarbeiter-card">
-          <h4>👤 ${name} <button class="ghost archiv-actions" style="font-size:0.75rem; padding:2px 10px; color:#c0392b;" onclick="removeMitarbeiterAusAuswertung('${name}')">✕ entfernen</button></h4>
-          <div class="trend-satz">${buildTrendSatz(name, jahre)}</div>
-          ${buildTrendBarChart(jahre)}
-          <table>
-            <tr><th>Jahr</th><th>Urlaub</th><th>Krank</th><th>Frei</th><th>Sonderurl.</th><th>Elternzeit</th><th>Pauschale</th></tr>
-            ${rows}
-          </table>
-        </div>
-      `;
-    }).join("");
-  }
-
-  document.getElementById("auswertungContent").innerHTML = html;
-}
-
 /* ===================== Abwesenheiten am Stueck (Urlaub/Krank/etc.) ===================== */
 function eachDateInRange(vonISO, bisISO, callback) {
   const von = new Date(vonISO + "T00:00:00");
@@ -7511,21 +7456,58 @@ function removeAbsenceRange(von, bis) {
    beide Unterschriften, und die "bereits bezahlt"-Werte jedes Monats (deren
    Schluessel dynamisch pro Monat/Jahr entstehen - deshalb ueber ALLE
    localStorage-Schluessel iterieren statt eine feste Liste zu pflegen). */
-function exportBackup() {
+/* ---- Was gehoert in ein Backup? --------------------------------------
+   UMGEDREHT am 20.09.2026. Vorher wurde nur gesichert, was mit "spesen_"
+   oder "bezahlt_" anfing. Fahrzeug-Inventur, Neue Ware zaehlen, Abrechnung,
+   Kopfdaten und die Unterschrift auf dem Inventurblatt kamen am 05.09.2026
+   dazu und heissen anders (kfz-, hall-, inventur_) - sie standen deshalb in
+   KEINEM Backup, obwohl der Hinweistext "alles" versprach. Wer sein Geraet
+   verliert und das Backup einspielt, haette diese Haelfte verloren.
+   Gefunden von Mirko am 20.09.2026, als er nach einem Zuruecksetzen noch
+   Zahlen in Inventur und Abrechnung stehen sah.
+
+   Deshalb jetzt andersherum: Gesichert wird ALLES, ausser dem, was
+   ausdruecklich nicht hineingehoert. Ein Bereich, der spaeter dazukommt,
+   ist damit automatisch dabei - eine Aufzaehlung waere derselbe Fehler
+   noch einmal. Fremde Bibliotheken schreiben hier nicht hinein (geprueft:
+   vendor/ benutzt localStorage nirgends). */
+function gehoertInsBackup(key) {
+  /* "auswertung_..." braucht hier keine Ausnahme mehr - der Bereich ist am
+     20.09.2026 entfallen und altes Restmaterial wird beim Start geloescht
+     (siehe alteAuswertungsdatenEntfernen). Die Regel bliebe sonst als
+     toter Schutz fuer etwas stehen, das es nicht mehr gibt. */
+  // Reine Anzeige-Erinnerung ("welcher Bereich war zuletzt offen"), keine
+  // Daten. Gehoert nicht in eine Sicherung und nicht auf ein anderes Geraet.
+  if (key === HEUTE_KEY) return false;
+  /* "Neue Ware zaehlen" bleibt draussen - Mirko, 20.09.2026: "muss nicht
+     mit ins Backup, das ist jede Woche anders. Das dient nur der
+     Vereinfachung vom Zaehlen der bestellten Ware fuer die kommende
+     Woche." Es ist Arbeitsmaterial einer Woche, kein Nachweis. Eine alte
+     Zaehlung zurueckzuholen waere sogar schaedlich: Sie gehoerte zu einer
+     Lieferung, die laengst verraeumt ist.
+     ⚠ Zuruecksetzen loescht es weiterhin - nur gesichert wird es nicht. */
+  if (key === KAE_KEY) return false;
+  return true;
+}
+
+/* anlass: nur fuer den Dateinamen. Ohne Angabe die normale Sicherung,
+   mit "vor-zuruecksetzen" die automatische Rettung aus resetAll() - die
+   soll im Download-Ordner sofort als solche erkennbar sein und nicht
+   zwischen den regulaeren Sicherungen untergehen. */
+function exportBackup(anlass) {
   const backup = {
     _type: "spesen-rechner-backup",
-    _version: 1,
+    // 2 = seit 20.09.2026, enthaelt auch Inventur/Ware/Abrechnung/Kopfdaten
+    // und die Inventur-Unterschrift. Aeltere Dateien (_version 1) lassen
+    // sich unveraendert weiter einlesen - importBackupFile() prueft die
+    // Fassung nicht, es schreibt zurueck, was drinsteht.
+    _version: 2,
     _exportedAt: new Date().toISOString(),
     data: {},
   };
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    // Bewusst OHNE "auswertung_"-Schluessel: ein normales Spesen-Backup soll
-    // niemals versehentlich den Auswertung-PIN-Hash oder importierte
-    // Mitarbeiterdaten von einem anderen Geraet (z.B. dem Chef-Geraet)
-    // mit exportieren. Die Auswertung hat dafuer eine eigene Backup-Funktion,
-    // siehe exportAuswertungBackup().
-    if (key.startsWith("spesen_") || key.startsWith("bezahlt_")) {
+    if (gehoertInsBackup(key)) {
       backup.data[key] = localStorage.getItem(key);
     }
   }
@@ -7534,35 +7516,14 @@ function exportBackup() {
   const a = document.createElement("a");
   const dateStr = new Date().toISOString().slice(0, 10);
   a.href = url;
-  a.download = `spesen-rechner-backup-${dateStr}.json`;
+  a.download = anlass
+    ? `spesen-rechner-SICHERUNG-${anlass}-${dateStr}.json`
+    : `spesen-rechner-backup-${dateStr}.json`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-/* Eigene Backup-Funktion nur fuer die Auswertung (PIN-Hash + importierte
-   Mitarbeiterdaten) - getrennt von exportBackup(), damit ein normales
-   Spesen-Backup diese Daten nie mit exportiert. Laesst sich ueber die
-   normale "Backup wiederherstellen"-Funktion in den Einstellungen wieder
-   einlesen (gleiches Dateiformat/_type, keine eigene Import-Funktion noetig). */
-function exportAuswertungBackup() {
-  const backup = {
-    _type: "spesen-rechner-backup",
-    _version: 1,
-    _exportedAt: new Date().toISOString(),
-    data: {},
-  };
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith("auswertung_")) backup.data[key] = localStorage.getItem(key);
-  }
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const dateStr = new Date().toISOString().slice(0, 10);
-  a.href = url;
-  a.download = `auswertung-backup-${dateStr}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  // Anzahl gesicherter Bereiche zurueckgeben - resetAll() prueft damit,
+  // ob ueberhaupt etwas zu retten war.
+  return Object.keys(backup.data).length;
 }
 
 function importBackupFile(fileInput) {
@@ -7857,6 +7818,41 @@ function renderFormular() {
   document.getElementById("formular").innerHTML = html;
   renderHandyBlatt(entries, submittedAt, startLabel, endLabel);
   setupSignatureFields();
+  zeitraumHinweisAktualisieren();
+}
+
+/* Zeigt an, wenn der gewaehlte Monat NICHT der laufende ist - mit einem
+   Weg zurueck in einem Griff.
+   Mirko am 20.09.2026: "einfach dass der Mitarbeiter, der das System
+   nutzt, nicht drauf achten muss: bin ich gerade im richtigen Monat und
+   Jahr." Das Nachziehen beim Start sorgt dafuer, dass man richtig
+   ANFAENGT. Dieser Hinweis sorgt dafuer, dass man es merkt, wenn man
+   waehrend der Arbeit woanders gelandet ist - etwa nach einem Blick in
+   einen alten Monat. */
+function zeitraumHinweisAktualisieren() {
+  const el = document.getElementById("nichtHeute");
+  if (!el) return;
+  const heute = new Date();
+  const monat = parseInt(document.getElementById("monthPicker").value, 10);
+  const aktuell = config.jahr === heute.getFullYear() && monat === heute.getMonth() + 1;
+  if (aktuell) { el.style.display = "none"; return; }
+  el.style.display = "inline-flex";
+  el.textContent = "Sie sind nicht im laufenden Monat · zu " +
+    MONTH_NAMES[heute.getMonth()] + " " + heute.getFullYear();
+}
+
+/* Springt zurueck auf heute - Jahr, Monatsbereich und Auswahl zusammen. */
+function zurueckZuHeute() {
+  const heute = new Date();
+  const monat = heute.getMonth() + 1;
+  config.jahr = heute.getFullYear();
+  if (config.startMonat > monat) config.startMonat = monat;
+  if (config.endMonat < monat) config.endMonat = monat;
+  saveConfig();
+  initSettingsUI();
+  rebuildMonthPicker();
+  document.getElementById("monthPicker").value = String(monat);
+  renderFormular();
 }
 
 /* ===================== Handy-Ansicht des Spesenblatts =====================
@@ -10070,13 +10066,16 @@ function oeffneAusAnker() {
   }
 }
 window.addEventListener("hashchange", oeffneAusAnker);
-// Chef-Modus: nur ueber den geheimen Link (…/#chef) sichtbar. Mitarbeiter, die
-  // die normale Adresse oeffnen, sehen keine Chef-Funktionen (Auswertung, CSV).
-  // Die Auswertung selbst bleibt zusaetzlich per PIN geschuetzt.
-  if (/(^|[#?&])chef\b/i.test(location.hash + location.search)) {
-    document.body.classList.add("chef-mode");
-  }
+/* Der Chef-Modus (…/#chef) ist am 20.09.2026 entfallen - er blendete
+   ausschliesslich den Auswertungs-Knopf ein, und den gibt es nicht mehr.
+   Kuenftig bekommt der Chef laut Mirko einen eigenen Zugang, falls das
+   Werkzeug je ueber einen Server laeuft. */
   document.getElementById("footerVersion").textContent = "v" + APP_VERSION;
+alteAuswertungsdatenEntfernen();
+/* VOR initSettingsUI() und rebuildMonthPicker(): Die Einstellungsfelder
+   und der Monatswaehler lesen config.jahr - wird es erst danach
+   nachgezogen, zeigen beide noch das alte Jahr. */
+jahrNachziehen();
 initSettingsUI();
 rebuildMonthPicker();
 renderFormular();
