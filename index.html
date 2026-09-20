@@ -5075,18 +5075,19 @@ function maybeShowSetupWizard() {
             <button type="button" id="wizUrlaubJa" class="ghost" style="flex:1;"
                     onclick="wizardUrlaubSchonGehabt(true)">Ja</button>
           </div>
+          <!-- MEHRERE Zeitraeume, seit 20.09.2026. Vorher gab es genau ein
+               Von/Bis-Paar. Mirko: "was, wenn verschiedene Zeitraeume
+               bereits Urlaub eingereicht worden ist, quasi im Februar und
+               im April - dann kann man nur 1 Zeitraum eingeben?" Stimmte,
+               und das haette die Haelfte des Urlaubs verschluckt. -->
           <div id="wizUrlaubFelder" style="display:none; margin-top:0.6rem;">
-            <div class="grid">
-              <label>Von
-                <input id="wizUrlaubVon" type="date">
-              </label>
-              <label>Bis
-                <input id="wizUrlaubBis" type="date">
-              </label>
-            </div>
+            <div id="wizUrlaubZeitraeume"></div>
+            <button type="button" class="ghost" style="width:100%; margin-top:0.4rem;"
+                    onclick="wizardZeitraumHinzu()">+ Weiterer Zeitraum</button>
             <p class="wizard-text" style="margin-top:0.5rem;">
-              Zwei Wochen sind <b>ein</b> Eintrag. Wochenenden und Feiertage zählen
-              nicht mit. Weitere Zeiträume tragen Sie später unter „🌴 Urlaub“ nach.
+              Zwei Wochen am Stück sind <b>ein</b> Eintrag. Für getrennte Urlaube –
+              etwa Februar und April – fügen Sie einen weiteren Zeitraum hinzu.
+              Wochenenden und Feiertage zählen nicht mit.
             </p>
           </div>
           <p class="wizard-text" style="margin-top:0.6rem;">
@@ -5125,6 +5126,27 @@ function wizardUrlaubSchonGehabt(ja) {
   document.getElementById("wizUrlaubFelder").style.display = ja ? "block" : "none";
   document.getElementById("wizUrlaubJa").className = ja ? "primary" : "ghost";
   document.getElementById("wizUrlaubNein").className = ja ? "ghost" : "primary";
+  // Beim ersten "Ja" die erste Zeile anlegen, damit nicht ins Leere gezeigt wird.
+  if (ja && !document.querySelector("#wizUrlaubZeitraeume .wiz-zeitraum")) wizardZeitraumHinzu();
+}
+
+/* Eine weitere Von/Bis-Zeile. Getrennte Urlaube - Februar UND April -
+   brauchen getrennte Zeitraeume; mit nur einem Paar waere die Haelfte
+   unter den Tisch gefallen (Mirko, 20.09.2026). */
+function wizardZeitraumHinzu() {
+  const wo = document.getElementById("wizUrlaubZeitraeume");
+  const nr = wo.querySelectorAll(".wiz-zeitraum").length + 1;
+  const zeile = document.createElement("div");
+  zeile.className = "wiz-zeitraum";
+  zeile.style.marginBottom = "0.5rem";
+  zeile.innerHTML =
+    '<div class="grid">'
+    + '<label>Von' + (nr > 1 ? " (" + nr + ")" : "")
+    + '<input type="date" data-wiz-von></label>'
+    + '<label>Bis' + (nr > 1 ? " (" + nr + ")" : "")
+    + '<input type="date" data-wiz-bis></label>'
+    + '</div>';
+  wo.appendChild(zeile);
 }
 
 /* Traegt den im Assistenten genannten Zeitraum als Urlaub ein - ueber
@@ -5134,21 +5156,40 @@ function wizardUrlaubSchonGehabt(ja) {
 function wizardUrlaubUebernehmen() {
   const felder = document.getElementById("wizUrlaubFelder");
   if (!felder || felder.style.display === "none") return null;
-  const von = document.getElementById("wizUrlaubVon").value;
-  const bis = document.getElementById("wizUrlaubBis").value;
-  if (!von || !bis) return null;
-  if (bis < von) return "Das Bis-Datum liegt vor dem Von-Datum – der Urlaub wurde NICHT eingetragen. Sie können ihn jederzeit unter „🌴 Urlaub“ nachtragen.";
 
+  const zeilen = Array.from(document.querySelectorAll("#wizUrlaubZeitraeume .wiz-zeitraum"))
+    .map((z) => ({
+      von: z.querySelector("[data-wiz-von]").value,
+      bis: z.querySelector("[data-wiz-bis]").value,
+    }))
+    .filter((z) => z.von && z.bis);
+  if (!zeilen.length) return null;
+
+  /* Erst ALLE pruefen, dann eintragen. Sonst waere bei einem Tippfehler
+     in der zweiten Zeile die erste schon geschrieben und der Nutzer
+     wuesste nicht, was gilt. */
+  const verdreht = zeilen.filter((z) => z.bis < z.von);
+  if (verdreht.length) {
+    return "Bei " + (verdreht.length === 1 ? "einem Zeitraum" : verdreht.length + " Zeiträumen")
+      + " liegt das Bis-Datum vor dem Von-Datum – es wurde NICHTS eingetragen. "
+      + "Sie können den Urlaub jederzeit unter „🌴 Urlaub“ nachtragen.";
+  }
+
+  const kalender = {};
   let tage = 0;
-  const map = feiertage(new Date(von + "T00:00:00").getFullYear(), config.bundesland);
-  eachDateInRange(von, bis, (iso) => {
-    overrides[iso] = overrides[iso] || {};
-    overrides[iso].status = "urlaub";
-    if (urlaubZaehltTag(iso, map)) tage++;
+  zeilen.forEach((z) => {
+    const jahr = new Date(z.von + "T00:00:00").getFullYear();
+    if (!kalender[jahr]) kalender[jahr] = feiertage(jahr, config.bundesland);
+    eachDateInRange(z.von, z.bis, (iso) => {
+      overrides[iso] = overrides[iso] || {};
+      overrides[iso].status = "urlaub";
+      if (urlaubZaehltTag(iso, kalender[jahr])) tage++;
+    });
   });
   saveOverrides();
-  return tage + (tage === 1 ? " Urlaubstag wurde" : " Urlaubstage wurden")
-    + " eingetragen. Weitere Zeiträume können Sie jederzeit unter „🌴 Urlaub“ nachtragen.";
+  return tage + (tage === 1 ? " Urlaubstag wurde" : " Urlaubstage wurden") + " eingetragen"
+    + (zeilen.length > 1 ? " (" + zeilen.length + " Zeiträume)" : "")
+    + ". Weitere können Sie jederzeit unter „🌴 Urlaub“ nachtragen.";
 }
 
 function wizardShowStep(n) {
