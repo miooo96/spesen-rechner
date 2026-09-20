@@ -2974,8 +2974,17 @@
 
 <div id="formular-scroll"><div id="formular"></div></div>
 
+<!-- Die Fusszeile war bis zum 20.09.2026 die EINZIGE Stelle der App, die
+     duzte ("in deinem Browser", "dein Geraet") - alle 18 anderen Textstellen
+     siezen. Gefunden beim Nachzaehlen, nicht vermutet. Jetzt siezt sie auch.
+     Der Entwurf (Design-Analyse/Firmenlogik.html) hatte die Entscheidung
+     bereits so getroffen: "Keine Daten verlassen Ihr Geraet".
+
+     Die Aussage selbst stimmt und soll stehenbleiben: Seit die drei
+     Bibliotheken im Repo liegen statt auf cdnjs, meldet sich beim Oeffnen
+     wirklich nichts mehr nach draussen (siehe Kommentar im <head>). -->
 <footer class="no-print">
-  Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in deinem Browser, keine Daten verlassen dein Gerät &middot; Built for Hall Tabakwaren by Mirko Rieb
+  Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in Ihrem Browser, keine Daten verlassen Ihr Gerät &middot; Built for Hall Tabakwaren by Mirko Rieb
   <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
 </footer>
 
@@ -3014,6 +3023,35 @@ function istMirko() {
    Vorher war beides an istMirko() gekoppelt; deshalb sahen Kollegen auch
    das neue Aussehen nicht. */
 function zeigtSonderbereiche() { return istMirko(); }
+
+/* ---- Die Neuerungen vom 20.09.2026 -------------------------------
+   Mirko am 20.09.2026: "Alle Mitarbeiter nur die Funktion die sie jetzt
+   bereits nutzen können. Nur unter Mirko Rieb alle extra Funktion."
+
+   ABSICHTLICH EINE EIGENE FUNKTION, nicht zeigtSonderbereiche():
+   Die alte Sperre bewacht Zeit, Inventur, Ware und Abrechnung - ganze
+   Arbeitsbereiche, die der Chef erst freigeben muss. Diese hier bewacht
+   die fuenf Neuerungen vom 20.09. Beides kann zu verschiedenen Zeiten
+   fallen; mit einer gemeinsamen Funktion muesste man sie wieder
+   auseinanderfriemeln.
+
+   WAS HIER BEWUSST NICHT DRANHAENGT - es sind Reparaturen, keine neuen
+   Funktionen, und sie kosten heute Geld:
+     · Backup nimmt alle Bereiche mit (vorher fehlten Inventur, Ware,
+       Abrechnung - unbemerkt)
+     · Urlaubsbilanz gilt je Jahr (vorher stand in jedem Jahr dieselbe
+       Zahl, ein abgeschlossenes Jahr aenderte sich rueckwirkend)
+     · Standardzeiten laufen dem Kalender nicht voraus (gemessen 112 €
+       fuer Tage, die noch niemand gefahren hatte)
+     · Der Kalender laeuft ins neue Jahr (am 01.01.2027 landet sonst
+       jeder im Dezember 2026)
+     · Die Sicherung vor dem Zuruecksetzen (ein Fingertipp loescht sonst
+       ein ganzes Jahr - ueber 3.000 € an Nachweisen)
+
+   Geprueft wird das von sperre-pruefen.sh: Es nimmt jede betroffene
+   Stelle zweimal auf, einmal als Mirko und einmal als Kollege, und
+   vergleicht die Hoehen. */
+function zeigtNeuerungen() { return istMirko(); }
 
 function aktualisiereZeitSichtbarkeit() {
   const sichtbar = zeigtSonderbereiche();
@@ -3596,13 +3634,27 @@ function bereichZuruecksetzen(id) {
 }
 
 function openRuecksetzenModal() {
-  const zeilen = ruecksetzBereiche().map((b) =>
+  /* "Einzeln je Bereich" ist eine Neuerung vom 20.09.2026 und damit
+     vorerst nur fuer Mirko (zeigtNeuerungen). Kollegen sehen denselben
+     Dialog wie bisher: eine Erklaerung und den einen roten Knopf.
+
+     ⚠ Die automatische Sicherung davor bleibt fuer ALLE - sie ist keine
+     Funktion zum Benutzen, sondern das Netz darunter. Ohne sie loescht
+     ein Fingertipp ein ganzes Jahr (ueber 3.000 € an Nachweisen), und
+     seit dem 20.09. loescht das Zuruecksetzen wirklich alles. */
+  const einzeln = zeigtNeuerungen() ? `
+        <h3 style="margin:1rem 0 0.3rem; font-size:0.95rem;">Einzelnen Bereich zurücksetzen</h3>
+        ${ruecksetzBereiche().map((b) =>
     `<div style="display:flex; align-items:center; gap:0.6rem; padding:9px 0; border-bottom:1px solid #eee;">
        <span style="flex:1; font-weight:600; color:var(--brand-dark);">${b.name}</span>
        <button class="ghost" style="flex:none; font-size:0.8rem; padding:5px 14px;"
                aria-label="${b.name} zurücksetzen"
                onclick="bereichZuruecksetzen('${b.id}')">Zurücksetzen</button>
-     </div>`).join("");
+     </div>`).join("")}
+
+        <p class="hinweis-text" style="margin-top:0.9rem;">🔒 Ein <b>abgeschlossener Monat</b>
+          lässt sich nicht zurücksetzen. Er wurde bereits eingereicht – die Niederlassung hat ihn.</p>
+  ` : "";
 
   document.getElementById("modalRoot").innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) azSchliesseModal()">
@@ -3610,13 +3662,7 @@ function openRuecksetzenModal() {
         <h2 style="margin-top:0;">🗑️ Zurücksetzen</h2>
         <p class="hinweis-text">Vor jedem Zurücksetzen wird automatisch eine Sicherungsdatei
           in Ihren Download-Ordner gelegt – damit lässt sich alles zurückholen.</p>
-
-        <h3 style="margin:1rem 0 0.3rem; font-size:0.95rem;">Einzelnen Bereich zurücksetzen</h3>
-        ${zeilen}
-
-        <p class="hinweis-text" style="margin-top:0.9rem;">🔒 Ein <b>abgeschlossener Monat</b>
-          lässt sich nicht zurücksetzen. Er wurde bereits eingereicht – die Niederlassung hat ihn.</p>
-
+${einzeln}
         <h3 style="margin:1.3rem 0 0.3rem; font-size:0.95rem; color:#c0392b;">Alle Bereiche auf einmal zurücksetzen</h3>
         <p class="hinweis-text">Löscht jeden Bereich gleichzeitig: alle Monate, Zeiten,
           Abwesenheiten, Stammdaten und alle Unterschriften.</p>
@@ -5185,6 +5231,27 @@ function maybeShowSetupWizard() {
    bereits genommenem Urlaub. */
 const WIZARD_STEPS = 6;
 
+/* ---- Wie weit laeuft der Assistent? ------------------------------
+   Schritt 5 (Urlaubsanspruch) und Schritt 6 (schon genommener Urlaub)
+   sind Neuerungen vom 20.09.2026 und vorerst nur fuer Mirko. Ein Kollege
+   ist nach Schritt 4 fertig - genau wie in der Fassung, die er heute
+   kennt.
+
+   Gelesen wird der Name AUS DEM FELD, nicht aus config: Waehrend der
+   Assistent laeuft, ist noch nichts gespeichert - wizardNext() schreibt
+   config.name erst ganz am Ende. istMirko() waere hier also immer falsch,
+   auch bei Mirko selbst.
+
+   Kollegen verlieren dadurch nichts: Anspruch und Uebertrag stehen im
+   Urlaubsbereich als Eingabefelder (urlaubAnspruch / urlaubUebertrag),
+   Vorgabe 30 und 0 wie bisher. */
+const WIZARD_STEPS_KOLLEGE = 4;
+function wizardLetzterSchritt() {
+  const feld = document.getElementById("wizName");
+  const name = (feld ? feld.value : "").trim().toLowerCase();
+  return name === MIRKO_NAME.toLowerCase() ? WIZARD_STEPS : WIZARD_STEPS_KOLLEGE;
+}
+
 /* Schritt 6: Ja/Nein umschalten. Die Datumsfelder erscheinen nur bei Ja -
    wer keinen Urlaub hatte, soll nicht an leeren Feldern vorbeiklicken. */
 function wizardUrlaubSchonGehabt(ja) {
@@ -5258,14 +5325,20 @@ function wizardUrlaubUebernehmen() {
 }
 
 function wizardShowStep(n) {
+  const letzter = wizardLetzterSchritt();
   document.querySelectorAll(".wizard-step").forEach((el) => el.classList.toggle("active", el.dataset.step == n));
-  document.querySelectorAll(".wizard-dots span").forEach((el) => el.classList.toggle("active", el.dataset.dot == n));
+  /* Punkte hinter dem letzten Schritt ausblenden - sonst zaehlte der
+     Kollege sechs Punkte ab und waere nach dem vierten ueberrascht. */
+  document.querySelectorAll(".wizard-dots span").forEach((el) => {
+    el.style.display = Number(el.dataset.dot) > letzter ? "none" : "";
+    el.classList.toggle("active", el.dataset.dot == n);
+  });
   document.getElementById("wizBack").style.visibility = n === 1 ? "hidden" : "visible";
-  document.getElementById("wizNext").textContent = n === WIZARD_STEPS ? "Fertig" : "Weiter";
+  document.getElementById("wizNext").textContent = n === letzter ? "Fertig" : "Weiter";
 }
 
 function wizardNext() {
-  if (wizardStep === WIZARD_STEPS) {
+  if (wizardStep === wizardLetzterSchritt()) {
     config.name = document.getElementById("wizName").value.trim();
     config.strasse = document.getElementById("wizStrasse").value.trim();
     config.ort = document.getElementById("wizOrt").value.trim();
@@ -8179,6 +8252,16 @@ function vorausRueckgaengig() {
 function vorausHinweisAktualisieren() {
   const el = document.getElementById("vorausHinweis");
   if (!el) return;
+
+  /* Neuerung vom 20.09.2026 - vorerst nur fuer Mirko (zeigtNeuerungen).
+     ⚠ Die dazugehoerige REPARATUR gilt weiter fuer alle: Die
+     Standardzeiten hoeren bei heute auf, auch beim Kollegen. Der hat
+     damit keinen Knopf, um den Rest des Monats auf einmal zu fuellen -
+     er traegt kuenftige Tage wie bisher einzeln ein. Das ist die
+     Absicht: lieber Handarbeit als 14 € je Tag fuer eine Tour, die
+     niemand gefahren ist. */
+  if (!zeigtNeuerungen()) { el.style.display = "none"; return; }
+
   const offen = vorausTage();
   const gefuellt = vorausGefuellte();
 
@@ -10406,7 +10489,16 @@ function urlaubRender() {
      hat, behaelt sie; eine Automatik darf eine bewusste Eingabe nicht
      ueberschreiben. */
   const eigenerEintrag = !!(config.urlaubJahre || {})[String(jahr)];
-  const uebertragVor = eigenerEintrag ? null : urlaubUebertragAus(jahr - 1);
+  /* zeigtNeuerungen(): Das automatische Mitwandern des Resturlaubs ist
+     eine Neuerung vom 20.09.2026 und vorerst nur fuer Mirko. Kollegen
+     tragen den Uebertrag wie bisher selbst ein - das Feld steht ja da.
+     ⚠ Die REPARATUR darunter gilt weiter fuer alle: Anspruch und
+     Uebertrag werden je Jahr gemerkt (config.urlaubJahre). Vorher stand
+     in jedem Jahr dieselbe Zahl, und ein abgeschlossenes Jahr aenderte
+     sich rueckwirkend, sobald man fuer das neue etwas eintrug. */
+  const uebertragVor = (eigenerEintrag || !zeigtNeuerungen())
+    ? null
+    : urlaubUebertragAus(jahr - 1);
   if (uebertragVor) gilt.uebertrag = uebertragVor.rest;
 
   document.getElementById("urlaubAnspruch").value = gilt.anspruch;
