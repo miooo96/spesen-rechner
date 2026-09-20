@@ -604,25 +604,74 @@
      ruhiger Creme. Was auf glattem Grund reicht, verschwindet hier. */
   .hero .hero-zusatz { font-size: 14px; color: #6f4a22; margin: 0; font-weight: 500; }
 
+  /* ===== Zahlenkarte im Hero-Band (21.09.2026) =====
+     Uebernommen aus dem Entwurf (Firmenlogik.html, .zahlenkarte). Vier
+     Werte auf einen Blick, bevor man irgendwo hintippt.
+
+     ⚠ NEUE FUNKTION - nur fuer Mirko, bis das Go der Chefs vorliegt.
+     Die Sperre sitzt in heroZahlenAktualisieren(), nicht hier: CSS kann
+     man im Browser abschalten, eine Bedingung im Code nicht.
+
+     Weiss auf dem Foto, nicht transparent: Der Entwurf setzt hier
+     ausdruecklich eine weisse Flaeche. Auf dem Nachtfoto braucht es den
+     Kontrast, sonst verschwinden die Zahlen zwischen den Leuchtreklamen -
+     derselbe Grund, aus dem die Unterzeile #6f4a22 traegt und nicht
+     --leise. */
+  .zahlenkarte {
+    background: rgba(255,253,250,.95); border: 1px solid rgba(97,42,0,.14);
+    border-radius: 14px; box-shadow: 0 4px 14px rgba(97,42,0,.16);
+    display: grid; grid-template-columns: 1fr 1fr;
+    max-width: 420px; margin: 18px 0 0;
+  }
+  .zahlenkarte > div {
+    padding: 11px 12px; text-align: center;
+    border-right: 1px solid rgba(97,42,0,.1);
+    border-bottom: 1px solid rgba(97,42,0,.1);
+  }
+  .zahlenkarte > div:nth-child(2n) { border-right: 0; }
+  .zahlenkarte > div:nth-last-child(-n+2) { border-bottom: 0; }
+  /* nowrap: „3.514,00 €" bricht am Handy sonst in Zahl und Währung
+     auseinander. Lieber eine Spur kleiner als gebrochen. (Entwurf) */
+  .zahlenkarte .wert {
+    font-size: 20px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; letter-spacing: -.015em; white-space: nowrap;
+  }
+  .zahlenkarte .was { font-size: 12px; color: var(--leise); margin-top: 2px; }
+  @media (min-width: 900px) {
+    .zahlenkarte { grid-template-columns: repeat(4, 1fr); max-width: 660px; margin-top: 24px; }
+    .zahlenkarte > div { padding: 16px 14px; border-bottom: 0; }
+    .zahlenkarte > div:nth-child(2n) { border-right: 1px solid rgba(97,42,0,.1); }
+    .zahlenkarte > div:last-child { border-right: 0; }
+    .zahlenkarte .wert { font-size: 23px; }
+  }
+
   @media (min-width: 900px) {
     .hero { height: 700px; }
-    /* ⚠ NICHT senkrecht zentriert, anders als im Entwurf - und das hat
-       einen gemessenen Grund. Im Entwurf sitzt unter der Unterzeile die
-       Zahlenkarte; sie traegt rund 120 px und schiebt den Text dadurch
-       nach oben. Die Karte ist eine neue Funktion und bleibt vorerst
-       aussen vor (siehe "Was darf an die Kollegen").
+    /* ⚠ DIE AUSRICHTUNG HAENGT AN DER ZAHLENKARTE - beides gehoert
+       zusammen und darf nicht einzeln geaendert werden.
 
-       Ohne sie rutschte der Block tiefer, und die Unterzeile landete
-       genau auf der hellen Leuchtschrift "GROSSVERTRIEB ZIGARREN" - der
-       Fehler, vor dem der Entwurf an dieser Stelle ausdruecklich warnt.
-       Im Bild vom 20.09.2026 war sie dort kaum zu lesen.
+       Bis zum 20.09.2026 stand hier "flex-start" mit 120 px festem
+       Abstand, weil die Zahlenkarte fehlte: Ohne sie rutschte der Block
+       tiefer, und die Unterzeile landete genau auf der hellen
+       Leuchtschrift "GROSSVERTRIEB ZIGARREN" - kaum noch zu lesen.
 
-       Der feste Abstand oben setzt den Text wieder dorthin, wo das Foto
-       ruhig ist. Kommt die Zahlenkarte spaeter dazu, gehoert hier wieder
-       "justify-content: center" hin. */
+       Seit dem 21.09.2026 ist die Karte da (heroZahlenAktualisieren).
+       Sie traegt rund 120 px und schiebt den Text von selbst nach oben,
+       also gilt wieder "center" wie im Entwurf.
+
+       ⛔ ABER: Die Karte ist eine NEUE FUNKTION und fuer Kollegen
+       gesperrt. Bei ihnen ist das Band leerer, und ohne den festen
+       Abstand rutschte ihre Unterzeile wieder auf die Leuchtschrift.
+       Deshalb bekommt nur die Fassung MIT Karte "center" - gesteuert
+       ueber body.hat-zahlenkarte, gesetzt in heroZahlenAktualisieren().
+       Wer die Karte je fuer alle freigibt, kann die Unterscheidung
+       ersatzlos streichen. */
     .hero-inhalt {
       justify-content: flex-start; padding: 120px 64px 56px;
       max-width: 1180px; margin: 0 auto;
+    }
+    body.hat-zahlenkarte .hero-inhalt {
+      justify-content: center; padding: 56px 64px;
     }
     .hero-logo { width: 230px; margin-bottom: 20px; }
     .hero h2 { font-size: 34px; max-width: 24ch; }
@@ -2292,6 +2341,12 @@
       <img class="hero-logo" src="hall-logo-original.png" alt="Hall Tabakwaren, seit 1903">
       <h2>Ihr Spesennachweis. In drei Minuten fertig.</h2>
       <p class="hero-zusatz">Läuft auf Ihrem Gerät · keine Anmeldung</p>
+      <!-- Die Zahlenkarte. Gefuellt von heroZahlenAktualisieren(), und nur
+           fuer Mirko sichtbar - sie ist eine NEUE FUNKTION und wartet auf
+           das Go der Geschaeftsfuehrung (Regel vom 20.09.2026).
+           Bleibt leer und unsichtbar, solange zeigtNeuerungen() falsch
+           ist; deshalb steht hier kein Platzhalter. -->
+      <div class="zahlenkarte" id="heroZahlen" style="display:none;"></div>
     </div>
   </div>
   <!-- Hier standen bis zum 20.09.2026 vier Elemente des
@@ -5150,6 +5205,77 @@ function nachtAscheBauen(behaelter, anzahl) {
   behaelter.dataset.asche = "1";
 }
 
+/* ===================== Zahlenkarte im Hero-Band =====================
+   Vier Werte auf einen Blick, bevor man irgendwo hintippt. So steht es
+   im Entwurf (Firmenlogik.html) - und die Zahlen dort beweisen ihre
+   eigene Bedeutung: 12 Tage erfasst × 14 € Pauschale = 168 €.
+
+   ⛔ KEINE EINZIGE ZAHL WIRD HIER NEU BERECHNET. Alle vier kommen aus
+   Funktionen, die es laengst gibt:
+
+     Tage erfasst  computeMonth().workdays   Tage mit Pauschale > 0
+     Betrag        computeMonth().total      dieselbe Summe wie unten
+                                             auf dem Blatt
+     Tage offen    vorausTage().length       kuenftige Werktage ohne
+                                             Eintrag (kein Wochenende,
+                                             kein Feiertag, kein Urlaub)
+     Urlaub übrig  urlaubRestFuer()          Anspruch + Uebertrag minus
+                                             genommene Tage
+
+   Eine eigene Rechnung an dieser Stelle waere eine zweite Wahrheit -
+   genau der Fehler, den dieses Projekt bei den Beispielzahlen des
+   Entwurfs schon einmal hatte.
+
+   ⚠ NEUE FUNKTION, nur fuer Mirko bis zum Go der Chefs. */
+function heroZahlenAktualisieren() {
+  const el = document.getElementById("heroZahlen");
+  if (!el) return;
+
+  if (!zeigtNeuerungen()) {
+    el.style.display = "none"; el.innerHTML = "";
+    document.body.classList.remove("hat-zahlenkarte");
+    return;
+  }
+
+  /* Der laufende Monat, nicht der im Monatswaehler gewaehlte: Die Karte
+     steht auf der STARTSEITE und soll sagen, wo man heute steht. Wer
+     einen anderen Monat ansieht, tut das im Spesenblatt. */
+  const heute = new Date();
+  const jahr = heute.getFullYear();
+  const monat = heute.getMonth() + 1;
+
+  let erfasst = 0, betrag = 0;
+  try {
+    const m = computeMonth(jahr, monat);
+    erfasst = m.workdays;
+    betrag = m.total;
+  } catch (e) { /* Ohne Stammdaten rechnet computeMonth nicht - dann 0. */ }
+
+  /* vorausTage() liest den Monatswaehler und gibt [] zurueck, wenn ein
+     anderer Monat gewaehlt ist. Auf der Startseite ist das der Normalfall
+     beim Blaettern - deshalb abgefangen statt "0 Tage offen" zu behaupten. */
+  let offen = 0;
+  try { offen = vorausTage().length; } catch (e) {}
+
+  let urlaub = 0;
+  try { urlaub = urlaubRestFuer(jahr); } catch (e) {}
+
+  const monatsname = (MONTH_NAMES && MONTH_NAMES[monat - 1]) || String(monat);
+  const geld = betrag.toFixed(2).replace(".", ",") + " €";
+
+  const feld = (wert, was) =>
+    '<div><div class="wert">' + wert + '</div><div class="was">' + was + '</div></div>';
+
+  el.innerHTML = feld(erfasst, "Tage erfasst")
+               + feld(geld, monatsname)
+               + feld(offen, "Tage offen")
+               + feld(urlaub, "Urlaub übrig");
+  el.style.display = "";
+  /* Sagt dem Stylesheet, dass das Band jetzt voll ist - erst dann darf
+     der Hero-Text am Browser mittig stehen (siehe .hero-inhalt oben). */
+  document.body.classList.add("hat-zahlenkarte");
+}
+
 function zeigeKachelStartseite() {
   const kachelEl = document.getElementById("kachelStartseite");
   if (kachelEl) kachelEl.style.display = "";
@@ -5195,6 +5321,10 @@ function zeigeKachelStartseite() {
      vor wie nach dem Ausbau. Weg ist nur dieser eine Aufruf auf dem
      unsichtbaren Behaelter. */
 
+  /* Bei JEDEM Anzeigen neu rechnen, nicht nur beim Laden: Wer aus dem
+     Spesenblatt zurueckkommt, hat womoeglich gerade Tage eingetragen -
+     eine Karte mit dem Stand von vorhin waere schlimmer als keine. */
+  heroZahlenAktualisieren();
   heuteAktualisieren();
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "none";
@@ -10495,6 +10625,38 @@ const URLAUB_FARBEN = {
   elternzeit:   { bg: "#e67e22", txt: "#fff", label: "Elternzeit" },
 };
 
+/* Zaehlt die gesetzten Abwesenheiten EINES Jahres.
+ *
+ * ⚠ Steht hier als eigene Funktion, seit die Zahlenkarte im Hero-Band
+ * denselben Wert braucht (21.09.2026). Vorher stand die Schleife direkt
+ * in urlaubRender(). Eine zweite Abschrift waere genau der Fehler, den
+ * dieses Projekt schon zweimal hatte - zuletzt bei den Beispielzahlen
+ * des Entwurfs: dieselbe Rechnung an zwei Stellen laeuft frueher oder
+ * spaeter auseinander, und niemand merkt welche stimmt.
+ *
+ * Wer das hier aendert, aendert BEIDE Anzeigen. Das ist der Zweck.
+ */
+function urlaubZaehlerFuer(jahr, holidaysMap) {
+  const map = holidaysMap || feiertage(jahr, config.bundesland);
+  const zaehler = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
+  Object.keys(overrides).forEach((iso) => {
+    const st = overrides[iso] && overrides[iso].status;
+    if (!st || zaehler[st] === undefined) return;
+    if (!iso.startsWith(String(jahr))) return;
+    if (urlaubZaehltTag(iso, map)) zaehler[st]++;
+  });
+  return zaehler;
+}
+
+/* Wie viele Urlaubstage sind im Jahr noch uebrig?
+   Dieselbe Rechnung wie die Bilanz im Urlaubsbereich:
+       Anspruch + Uebertrag - genommene Urlaubstage */
+function urlaubRestFuer(jahr) {
+  const gilt = urlaubAnspruchFuer(jahr);
+  const zaehler = urlaubZaehlerFuer(jahr);
+  return (gilt.anspruch + gilt.uebertrag) - zaehler.urlaub;
+}
+
 function urlaubJahrWert() {
   const sel = document.getElementById("urlaubJahr");
   return sel && sel.value ? parseInt(sel.value, 10) : config.jahr;
@@ -10759,13 +10921,7 @@ function urlaubRender() {
   const holidaysMap = feiertage(jahr, config.bundesland);
 
   // Alle gesetzten Abwesenheiten des Jahres einsammeln
-  const zaehler = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
-  Object.keys(overrides).forEach((iso) => {
-    const st = overrides[iso] && overrides[iso].status;
-    if (!st || zaehler[st] === undefined) return;
-    if (!iso.startsWith(String(jahr))) return;
-    if (urlaubZaehltTag(iso, holidaysMap)) zaehler[st]++;
-  });
+  const zaehler = urlaubZaehlerFuer(jahr, holidaysMap);
 
   // Bilanz - aus den Werten DES GEWAEHLTEN JAHRES
   const anspruch = gilt.anspruch + gilt.uebertrag;
