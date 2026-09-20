@@ -597,6 +597,28 @@
     font-family: inherit; line-height: 1.3; text-align: left;
   }
   .nicht-heute:hover { background: #fbdcc7; }
+
+  /* "Ab 21.09. noch nicht erfasst - [Rest des Monats mitfüllen]".
+     Ein Hinweis MIT Knopf, deshalb kein reiner Text: Die Lücke und ihre
+     Lösung stehen im selben Blick. Grün, sobald vorausgefüllt wurde -
+     dann ist es keine Aufforderung mehr, sondern eine Feststellung. */
+  .voraus-hinweis {
+    display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-left: 0.6rem; padding: 4px 6px 4px 12px; border-radius: 999px;
+    background: #FDE9DC; border: 1px solid var(--accent);
+    color: var(--brand-dark); font-size: 0.78rem; font-weight: 600;
+  }
+  .voraus-hinweis button {
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    padding: 4px 12px; border-radius: 999px; border: 0;
+    background: var(--accent); color: #fff;
+  }
+  .voraus-hinweis button:hover { filter: brightness(1.08); }
+  .voraus-hinweis.gefuellt { background: #e7f4e9; border-color: #1a7f37; }
+  .voraus-hinweis.gefuellt button { background: #1a7f37; }
+  @media (max-width: 480px) {
+    .voraus-hinweis { margin-left: 0; margin-top: 0.4rem; width: 100%; justify-content: space-between; }
+  }
   @media (max-width: 480px) {
     .nicht-heute { margin-left: 0; margin-top: 0.4rem; width: 100%; justify-content: center; }
   }
@@ -2943,6 +2965,11 @@
        Siehe zeitraumHinweisAktualisieren(). -->
   <button type="button" id="nichtHeute" class="nicht-heute" style="display:none;"
           onclick="zurueckZuHeute()"></button>
+  <!-- Zeigt die Lücke am Monatsende - und den Knopf, sie zu schließen.
+       Steht bewusst HIER und nicht in einem Menü: Wer auf sein Blatt
+       schaut, sieht die Lücke und die Lösung im selben Blick.
+       Siehe vorausHinweisAktualisieren(). -->
+  <span id="vorausHinweis" class="voraus-hinweis" style="display:none;"></span>
 </div>
 
 <div id="formular-scroll"><div id="formular"></div></div>
@@ -3495,7 +3522,12 @@ function alteAuswertungsdatenEntfernen() {
 function ruecksetzBereiche() {
   return [
     { id: "spesen", name: "Spesen",
-      tagFelder: ["abfahrt", "ankunft", "arbeitsbeginn", "arbeitsende", "orte", "nl", "notiz", "samstagEin"],
+      /* "voraus" markiert vorausgefuellte Tage (restDesMonatsFuellen).
+         Ohne diesen Eintrag ueberlebte die Markierung das Zuruecksetzen
+         und die App haette Tage als vorausgefuellt gemeldet, die es gar
+         nicht mehr gibt. */
+      tagFelder: ["abfahrt", "ankunft", "arbeitsbeginn", "arbeitsende",
+                  "orte", "nl", "notiz", "samstagEin", "voraus"],
       praefixe: ["bezahlt_"] },
     { id: "zeit", name: "Arbeitszeit",
       schluessel: ["spesen_az_tage", "spesen_az_lauf", "spesen_az_cfg"] },
@@ -3821,12 +3853,32 @@ function computeDay(date, holidaysMap) {
   let abfahrtStr, ankunftStr;
   const hasStartOv = ov[startKey] && ov[startKey] !== "";
   const hasEndOv = ov[endKey] && ov[endKey] !== "";
-  if (config.zeitenVariieren && wd < 5 && !hasStartOv && !hasEndOv && !isHoliday) {
+
+  /* ---- Die Standardzeiten laufen dem Kalender nicht voraus -------------
+     Bis zum 20.09.2026 legte "Zeiten fuer alle Tage" die Standardzeiten
+     auf JEDEN Werktag des Monats - auch auf die, die noch nicht waren.
+     Gemessen am 20.09.2026 (zukunftstage-pruefen.sh): Der September wies
+     22 Tage / 308 € aus, davon 8 Tage / 112 € fuer Touren, die noch
+     niemand gefahren hatte.
+
+     Das Arbeitszeit-Modul zieht die Grenze schon lange, Begruendung im
+     Code: "Die Arbeitszeit ist ein Nachweis ueber geleistete Arbeit
+     (§ 16 Abs. 2 ArbZG), kein Dienstplan."
+
+     ⚠ Es wird NICHTS gesperrt: Eine ausdrueckliche Eingabe an diesem Tag
+     (ov[startKey]) gilt weiter, egal wie weit sie in der Zukunft liegt.
+     Nur die automatische Vorgabe hoert bei heute auf. Wer den Rest des
+     Monats vorausfuellen will, hat dafuer einen eigenen Knopf - siehe
+     restDesMonatsFuellen(). */
+  const zukunft = iso > fmtISO(new Date());
+  const vorgabeGilt = !zukunft;
+
+  if (config.zeitenVariieren && wd < 5 && !hasStartOv && !hasEndOv && !isHoliday && vorgabeGilt) {
     const v = variedTimes(iso, startDefault, isMonteur, wd);
     abfahrtStr = v.abfahrt; ankunftStr = v.ankunft;
   } else {
-    abfahrtStr = ov[startKey] || (wd >= 5 ? "" : startDefault) || "";
-    ankunftStr = ov[endKey] || (wd >= 5 ? "" : endDefault) || "";
+    abfahrtStr = ov[startKey] || (wd >= 5 || !vorgabeGilt ? "" : startDefault) || "";
+    ankunftStr = ov[endKey] || (wd >= 5 || !vorgabeGilt ? "" : endDefault) || "";
   }
   let hours = null, pauschale = 0, pauseAbgezogen = false;
   if (abfahrtStr && ankunftStr) {
@@ -8004,6 +8056,7 @@ function renderFormular() {
   renderHandyBlatt(entries, submittedAt, startLabel, endLabel);
   setupSignatureFields();
   zeitraumHinweisAktualisieren();
+  vorausHinweisAktualisieren();
 }
 
 /* Zeigt an, wenn der gewaehlte Monat NICHT der laufende ist - mit einem
@@ -8024,6 +8077,127 @@ function zeitraumHinweisAktualisieren() {
   el.style.display = "inline-flex";
   el.textContent = "Sie sind nicht im laufenden Monat · zu " +
     MONTH_NAMES[heute.getMonth()] + " " + heute.getFullYear();
+}
+
+/* ---- Rest des Monats vorausfuellen ------------------------------------
+   Mirko am 20.09.2026: "mit der Option, wenn man Spesen vorzeitig abgeben
+   will, dass diese Tage trotzdem ausgefuellt werden, weil man weiss, dass
+   man sie eh arbeitet." Und: "es muss idiotensicher sein, ohne grossen
+   Mehraufwand."
+
+   Die Niederlassung nimmt solche Blaetter an (Mirko, nachgefragt) - sie
+   weiss, dass der Fahrer die Tage noch faehrt, und erfaehrt es, wenn er
+   krank wird.
+
+   IDIOTENSICHER heisst hier:
+   - ein Knopf, genau dort wo die Luecke sichtbar ist, nicht in einem Menue
+   - er erscheint nur, wenn es wirklich etwas zu fuellen gibt
+   - bestehende Eintraege und Abwesenheiten werden NIE ueberschrieben
+   - die Tage werden mit "voraus" markiert, sind also hinterher als
+     vorausgefuellt erkennbar und mit einem Griff wieder weg
+   - Wochenenden und Feiertage bleiben aussen vor, wie ueberall sonst */
+
+/* Welche Tage des laufenden Monats liegen noch vor uns und sind leer? */
+function vorausTage() {
+  const heute = new Date();
+  const heuteIso = fmtISO(heute);
+  const jahr = config.jahr, monat = parseInt(document.getElementById("monthPicker").value, 10);
+  if (!monat) return [];
+  // Nur im laufenden Monat - vergangene Monate sind ohnehin vollstaendig,
+  // kuenftige Monate vorauszufuellen waere keine verspaetete Abgabe mehr.
+  if (jahr !== heute.getFullYear() || monat !== heute.getMonth() + 1) return [];
+
+  const map = feiertage(jahr, config.bundesland);
+  const raus = [];
+  const letzter = new Date(jahr, monat, 0).getDate();
+  for (let t = 1; t <= letzter; t++) {
+    const d = new Date(jahr, monat - 1, t);
+    const iso = fmtISO(d);
+    if (iso <= heuteIso) continue;               // nur die Zukunft
+    const wd = (d.getDay() + 6) % 7;
+    if (wd >= 5) continue;                       // kein Wochenende
+    if (map[iso]) continue;                      // kein Feiertag
+    const ov = overrides[iso] || {};
+    if (ov.status) continue;                     // Urlaub/Krank stehen lassen
+    const start = config.mitarbeitertyp === "monteur" ? "arbeitsbeginn" : "abfahrt";
+    if (ov[start]) continue;                     // schon von Hand eingetragen
+    raus.push(iso);
+  }
+  return raus;
+}
+
+/* Bereits vorausgefuellte Tage - fuer das Rueckgaengigmachen. */
+function vorausGefuellte() {
+  return Object.keys(overrides).filter((iso) => overrides[iso] && overrides[iso].voraus);
+}
+
+function restDesMonatsFuellen() {
+  const start = config.mitarbeitertyp === "monteur" ? "arbeitsbeginn" : "abfahrt";
+  const ende = config.mitarbeitertyp === "monteur" ? "arbeitsende" : "ankunft";
+  const vonZeit = config.mitarbeitertyp === "monteur" ? config.arbeitsbeginnDefault : config.abfahrtDefault;
+  const bisZeit = config.mitarbeitertyp === "monteur" ? config.arbeitsendeDefault : config.ankunftDefault;
+  if (!vonZeit || !bisZeit) {
+    alert("Dafür braucht es erst Standardzeiten.\n\nTragen Sie sie über „⏰ Zeiten für alle Tage“ ein – danach lässt sich der Rest des Monats mitfüllen.");
+    return;
+  }
+  const tage = vorausTage();
+  if (!tage.length) return;
+  if (!confirm("Die restlichen " + tage.length + " Arbeitstage dieses Monats mit "
+    + vonZeit + " – " + bisZeit + " ausfüllen?\n\n"
+    + "Diese Tage waren noch nicht. Wenn sich etwas ändert – Krankheit, kurzfristiger "
+    + "Urlaub –, ändern Sie den Tag und schicken eine Korrektur nach.\n\n"
+    + "Rückgängig geht jederzeit mit einem Klick.")) return;
+
+  tage.forEach((iso) => {
+    overrides[iso] = overrides[iso] || {};
+    overrides[iso][start] = vonZeit;
+    overrides[iso][ende] = bisZeit;
+    overrides[iso].voraus = "1";     // Merkmal zum Zurücknehmen
+  });
+  saveOverrides();
+  renderFormular();
+}
+
+function vorausRueckgaengig() {
+  const tage = vorausGefuellte();
+  if (!tage.length) return;
+  if (!confirm("Die " + tage.length + " vorausgefüllten Tage wieder leeren?\n\n"
+    + "Von Hand eingetragene Tage bleiben unberührt.")) return;
+  const start = config.mitarbeitertyp === "monteur" ? "arbeitsbeginn" : "abfahrt";
+  const ende = config.mitarbeitertyp === "monteur" ? "arbeitsende" : "ankunft";
+  tage.forEach((iso) => {
+    delete overrides[iso][start];
+    delete overrides[iso][ende];
+    delete overrides[iso].voraus;
+    if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
+  });
+  saveOverrides();
+  renderFormular();
+}
+
+/* Die Zeile ueber der Tabelle: zeigt die Luecke oder das Vorausgefuellte. */
+function vorausHinweisAktualisieren() {
+  const el = document.getElementById("vorausHinweis");
+  if (!el) return;
+  const offen = vorausTage();
+  const gefuellt = vorausGefuellte();
+
+  if (gefuellt.length) {
+    el.style.display = "inline-flex";
+    el.className = "voraus-hinweis gefuellt";
+    el.innerHTML = "<span>" + gefuellt.length + " Tage vorausgefüllt</span>"
+      + '<button type="button" onclick="vorausRueckgaengig()">rückgängig</button>';
+    return;
+  }
+  if (offen.length) {
+    const ab = offen[0].slice(8, 10) + "." + offen[0].slice(5, 7) + ".";
+    el.style.display = "inline-flex";
+    el.className = "voraus-hinweis";
+    el.innerHTML = "<span>Ab " + ab + " noch nicht erfasst</span>"
+      + '<button type="button" onclick="restDesMonatsFuellen()">Rest des Monats mitfüllen</button>';
+    return;
+  }
+  el.style.display = "none";
 }
 
 /* Springt zurueck auf heute - Jahr, Monatsbereich und Auswahl zusammen. */
