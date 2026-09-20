@@ -167,7 +167,31 @@
      bisherige Schrift gepinnt, unabhaengig davon was <body> tut. */
   #formular { font-family: -apple-system, Helvetica, Arial, sans-serif; }
   h1 { font-size: 1.4rem; margin: 0 0 1rem; color: var(--brand-dark); }
-  h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: var(--brand-dark); }
+  /* ================================================================
+     REDESIGN - SCHRITT 7, 20.09.2026: Halls Ueberschriften-Muster
+     ----------------------------------------------------------------
+     Die Firmenseite setzt unter jede Abschnitts-Ueberschrift einen
+     KURZEN orangen Strich - nicht ueber die ganze Breite, sondern 88 px.
+     Genau das war der Grund, den orangen Deckelstrich der Karten in
+     Schritt 5 zu entfernen: Orange ist bei Hall der Akzent UNTER der
+     Ueberschrift, nicht der Rahmen um den Kasten.
+
+     1,1 rem war fuer eine Abschnitts-Ueberschrift zu leise - sie hob
+     sich kaum vom Fliesstext ab. 1,35 rem mit engerem Buchstabenabstand
+     ist Halls Verhaeltnis, auf die Breiten dieser App gerechnet.
+     ================================================================ */
+  h2 {
+    font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em;
+    margin: 1.5rem 0 0.5rem; color: var(--brand-dark);
+  }
+  /* Der Strich nur dort, wo eine Ueberschrift wirklich einen Abschnitt
+     eroeffnet - in Karten und Fenstern. NICHT im Hero-Band: dort steht
+     die Ueberschrift auf einem Foto, ein Strich darunter waere ein
+     zweiter Akzent auf ohnehin unruhigem Grund. */
+  .panel h2::after, .modal-box h2::after {
+    content: ''; display: block; width: 88px; height: 3px;
+    background: var(--orange-linie); border-radius: 2px; margin-top: 9px;
+  }
   .toolbar {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
     margin-bottom: 1.25rem; background: #fff; padding: 0.7rem 0.85rem;
