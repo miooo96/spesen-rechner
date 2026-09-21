@@ -382,6 +382,24 @@
     background: #c96305; border-color: #c96305;
     box-shadow: 0 6px 16px rgba(222,112,8,0.40);
   }
+  /* ---- Zuruecksetzen am Ende eines Bereichs --------------------
+     Mirko am 21.09.2026: "ich finde die zurücksetzen funktion müsste
+     im einzelnen reiter im selbst auch da sein, nicht unter mehr …
+     sonst müsste man immer unter mehr suchen was man zurücksetzen
+     will."
+
+     Der Knopf steht normal sichtbar (seine Wahl), aber ganz am Ende
+     des Bereichs und hinter einem Trennstrich - nicht neben einem
+     Knopf, den man oft drueckt. Es ist die einzige Funktion, die
+     Daten loescht, und sie wird im Fahrerhaus mit Handschuhen
+     bedient. Die Ja/Nein-Abfrage und die automatische Sicherung
+     davor gibt es bereits in bereichZuruecksetzen(). */
+  .bereich-ruecksetzen {
+    margin-top: 1.8rem; padding-top: 1rem;
+    border-top: 1px solid var(--kartenrand);
+    display: flex; justify-content: flex-end;
+  }
+
   /* Riskante Aktion (Zurücksetzen) - dezent rot, damit man zweimal hinschaut. */
   button.danger { background: #fff; color: #c0392b; border: 1px solid #f3c9c1; }
   button.danger:hover { background: #fdecea; box-shadow: 0 4px 10px rgba(192,57,43,0.15); }
@@ -4245,6 +4263,67 @@ function bereichZuruecksetzen(id) {
   alert("„" + b.name + "\" wurde zurückgesetzt."
     + (b.ohneSicherung ? "" : "\n\nDie Sicherung liegt in Ihrem Download-Ordner."));
   setTimeout(() => location.reload(), 300);
+}
+
+/* Welcher Bereich gehoert an das Ende welchen Bildschirms?
+   Nur Bildschirme mit EIGENEN Daten stehen hier. Jahresuebersicht,
+   Anleitung und Mehr fehlen mit Absicht: Die Jahresuebersicht rechnet
+   nur aus den Spesen, dort gibt es nichts eigenes zurueckzusetzen.
+   Kopfdaten, Stammdaten und Unterschriften sind ebenfalls keine
+   eigenen Bildschirme - sie bleiben im Dialog unter "Mehr". */
+const RUECKSETZ_AM_BILDSCHIRM = {
+  settingsPanel:     "spesen",
+  arbeitszeitPanel:  "zeit",
+  urlaubPanel:       "urlaub",
+  inventurPanel:     "inventur",
+  wareneingangPanel: "ware",
+  abrechnungPanel:   "abrechnung",
+};
+
+/* Haengt den Zuruecksetzen-Knopf ans Ende jedes dieser Bildschirme.
+   An EINER Stelle statt sechsmal im Markup - so kann keine Kopie
+   vergessen werden und die Regel ist an einem Ort nachlesbar.
+
+   ⚠ BEWUSSTE AUSNAHME VON DER REGEL "neue Funktionen nur fuer Mirko"
+   (Mirko, 21.09.2026): "zurücksetzen reiter bei mir in jedem reiter,
+   bei den kollegen nur in denen die sie bereits haben."
+
+   Zuruecksetzen JE BEREICH war bis heute eine gesperrte Neuerung vom
+   20.09. - Kollegen hatten nur den einen roten Knopf "alles loeschen".
+   Mit diesen Knoepfen bekommen sie es fuer IHRE Bereiche doch. Das ist
+   vorgelegt und ausdruecklich entschieden worden, nicht durchgerutscht.
+
+   Eine Sperre braucht es hier nicht: Wer einen Bildschirm nicht
+   erreicht, sieht auch dessen Knopf nicht. Gemessen am 21.09.2026
+   (reiter-je-rolle.sh):
+       Mirko    6 Knoepfe - Spesen, Inventur, Ware, Abrechnung, Zeit, Urlaub
+       Kollege  2 Knoepfe - Spesen, Urlaub
+
+   Die Einzel-Liste im Dialog unter "Mehr" bleibt gesperrt. Sie wuerde
+   dem Kollegen auch Bereiche anbieten, die er gar nicht hat. */
+function ruecksetzKnoepfeEinhaengen() {
+  const namen = {};
+  ruecksetzBereiche().forEach((b) => { namen[b.id] = b.name; });
+
+  Object.keys(RUECKSETZ_AM_BILDSCHIRM).forEach((panelId) => {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    if (panel.querySelector(".bereich-ruecksetzen")) return;   // nicht doppelt
+    const bereichId = RUECKSETZ_AM_BILDSCHIRM[panelId];
+    const name = namen[bereichId];
+    if (!name) return;
+
+    const zeile = document.createElement("div");
+    zeile.className = "bereich-ruecksetzen no-print";
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.className = "danger";
+    knopf.textContent = "🗑️ " + name + " zurücksetzen";
+    knopf.setAttribute("aria-label", name + " zurücksetzen");
+    knopf.addEventListener("click", function () { bereichZuruecksetzen(bereichId); });
+    zeile.appendChild(knopf);
+    panel.appendChild(zeile);
+  });
 }
 
 function openRuecksetzenModal() {
@@ -11293,6 +11372,11 @@ alteAuswertungsdatenEntfernen();
    nachgezogen, zeigen beide noch das alte Jahr. */
 jahrNachziehen();
 initSettingsUI();
+/* Der Zuruecksetzen-Knopf am Ende jedes Bereichs (Mirko, 21.09.2026).
+   Muss VOR zeigeKachelStartseite() laufen - danach sind die Panels
+   ausgeblendet, angehaengt wird trotzdem korrekt, aber so steht es
+   fertig, bevor der erste Bereich geoeffnet werden kann. */
+ruecksetzKnoepfeEinhaengen();
 rebuildMonthPicker();
 renderFormular();
 aktualisiereZeitSichtbarkeit();
