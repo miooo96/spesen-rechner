@@ -1531,9 +1531,44 @@
      Ein Umweg im Kreis. Wer ihn zurueck will: er steht in main
      (d9f63b0) und in jedem Commit bis Redesign Schritt 1. */
 
+  /* ---- Das Startbild zieht sich zum Hero-Band zusammen -----------
+     Mirko am 21.09.2026, nach dem Ansehen der Vorschau:
+     "der uebergang durch das weiterdruecken ist ganz cool geworden".
+
+     Vorher verschwand das Startbild hart (display:none) und die
+     Kachelseite war schlagartig da. Jetzt schrumpft das Vollbild auf
+     die Hoehe des Hero-Bands - und WIRD dadurch das Hero-Band.
+
+     Warum das wie eine Kamerafahrt aussieht, ohne dass eine gebaut
+     wurde: Startbild und Hero-Band zeigen DASSELBE Foto mit "cover".
+     Gemessen mit startbild-geometrie.sh:
+         393 x 760  zeigt 478 von 1400 px Bildbreite
+         393 x 502  zeigt 723 von 1400 px Bildbreite
+     Schrumpft der Kasten, rechnet "cover" von selbst weiter und das
+     Bild oeffnet sich. Die Kamera faehrt zurueck, ohne dass etwas
+     bewegt wird. Beide haben 0 px Ueberstand nach oben/unten, deshalb
+     sitzt der Ausschnitt am Ende exakt aufeinander.
+
+     ⚠ pointer-events:none ist kein Beiwerk, sondern der Kern:
+     Die Startseite ist waehrend der Bewegung bereits bedienbar. Wer
+     sofort auf eine Kachel tippt, wird nicht aufgehalten. Damit kann
+     der Uebergang nie zur Wartezeit werden - und genau das entscheidet,
+     ob eine Animation, die 760 Leute taeglich sehen, auf Dauer
+     ertraeglich bleibt. Mirko am 21.09.: "es soll schon gesehen werden
+     aber nicht zu lange dauern."
+
+     Die DAUER steht nicht hier, sondern in ZUSAMMENZIEHEN_MS in
+     splashSchliessen() - eine Zahl an einer Stelle. */
+  #splashScreen.zieht-zusammen {
+    bottom: auto;          /* inset:0 loesen, sonst haelt bottom die Hoehe fest */
+    overflow: hidden;
+    pointer-events: none;
+  }
+
   /* Wer am Geraet "Bewegung reduzieren" eingeschaltet hat, bekommt ein
      ruhiges Standbild statt der Animation - gehoert zu jeder Animation
-     dazu. */
+     dazu. Das Zusammenziehen faellt dann ebenfalls weg; das entscheidet
+     splashSchliessen() selbst per matchMedia. */
   @media (prefers-reduced-motion: reduce) {
     .nacht-foto, .nacht-kern, .nacht-nah, .nacht-weit, .nacht-raum,
     .nacht-asche, .nacht-flocke, .nacht-quelle,
@@ -3754,10 +3789,105 @@ function initSplash() {
    auch keiner: Das Startbild erscheint bei jedem neuen Oeffnen der App.
    Zurueckholen aus main (d9f63b0), falls je gewuenscht. */
 
+/* Wie lange das Zusammenziehen dauert. Die EINE Zahl dafuer.
+   600 ms, mit einer bremsenden Kurve: Der groesste Teil des Weges ist
+   frueh geschafft, dadurch liest es sich als Antwort auf den Tipp und
+   nicht als Wartezeit. Laenger wird bei taeglichem Gebrauch zur Geduld,
+   kuerzer sieht man nicht mehr als Bewegung. */
+const ZUSAMMENZIEHEN_MS = 600;
+
+/* Splash schliessen.
+   Bis zum 21.09.2026 stand hier nur display:none - ein harter Schnitt.
+   Jetzt zieht sich das Startbild auf das Hero-Band zusammen und die
+   Startseite waechst darunter hervor (Begruendung im Stylesheet bei
+   "#splashScreen.zieht-zusammen").
+
+   Harter Schnitt bleibt in drei Faellen:
+     - ohne Nachtbild-Auftritt (dann gibt es kein Foto zum Zusammenziehen)
+     - "Bewegung reduzieren" am Geraet
+     - beim allerersten Start, solange der Einrichtungsassistent
+       darueber liegt - dann gibt es noch keine Startseite zum
+       Hervorwachsen. */
 function splashSchliessen() {
   const el = document.getElementById("splashScreen");
-  if (el) el.style.display = "none";
+  if (!el) { zeigeKachelStartseite(); return; }
+
+  /* ⚠ Reihenfolge umgedreht: Die Startseite muss VOR der Bewegung
+     dastehen, sonst zieht sich das Bild auf etwas zusammen, das es noch
+     gar nicht gibt. Frueher stand dieser Aufruf hinter dem Ausblenden. */
   zeigeKachelStartseite();
+
+  const band = document.querySelector(".hero");
+  const ruhig = window.matchMedia
+             && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const assistent = document.querySelector("#modalRoot .modal-overlay");
+  const ziel = band ? Math.round(band.getBoundingClientRect().height) : 0;
+
+  if (!el.classList.contains("nacht") || !ziel || ruhig || assistent) {
+    el.style.display = "none";
+    return;
+  }
+
+  /* Laufende Animationen einfrieren. Eine laufende Animation schlaegt
+     JEDE Transition auf derselben Eigenschaft - ohne das hier bliebe
+     der Text stehen und das Foto spraenge auf seine Ausgangsgroesse
+     zurueck. (Genau dieser Fehler steckte am 21.09. zuerst in der
+     Vorschau; die Messung war gruen, sichtbar wurde er erst im Bild.)
+     Eingefroren wird auf den AKTUELLEN Wert, nicht auf den Grundwert -
+     sonst blitzt die Leuchtschrift beim Antippen kurz hell auf. */
+  const bildebenen = el.querySelectorAll(".nacht-lage");
+  const texte = el.querySelectorAll(
+    "img, h2, .splash-subtitle, .splash-jahr, .splash-greeting," +
+    " .splash-month, .splash-weiter, .splash-credit");
+
+  [].forEach.call(bildebenen, function (n) {
+    const s = getComputedStyle(n);
+    if (s.transform !== "none") n.style.transform = s.transform;
+    n.style.opacity = s.opacity;
+    n.style.animation = "none";
+  });
+  [].forEach.call(texte, function (n) {
+    const s = getComputedStyle(n);
+    n.style.opacity = s.opacity;
+    n.style.animation = "none";
+  });
+
+  el.style.height = Math.round(el.getBoundingClientRect().height) + "px";
+  el.classList.add("zieht-zusammen");
+  void el.offsetHeight;                 /* Reflow - sonst springt es ohne Uebergang */
+
+  el.style.transition = "height " + ZUSAMMENZIEHEN_MS + "ms cubic-bezier(.2,.7,.3,1)";
+
+  /* Das Foto atmet dauerhaft (nachtZoom, 1.04 -> 1.17), das Hero-Band
+     nicht. Ohne dieses Herausfahren auf 1 waere das Bild beim
+     Uebergeben bis zu 17 % zu gross und wuerde am Ende springen -
+     der Fehler, an dem Fassung 2 des Entwurfs gescheitert ist. */
+  /* ⚠ Und der senkrechte Anschnitt muss mitwandern.
+     Das Startbild zeigt das Foto bei "50% 42%", das Hero-Band bei
+     "50% 50%". Am Handy ist das folgenlos: dort deckt das Foto die
+     Hoehe genau ab, es gibt 0 px Ueberstand, und ein Prozentwert ohne
+     Ueberstand bewegt nichts. Im BROWSER hat das Band 145 px
+     Ueberstand - dort sind die 8 Prozentpunkte Unterschied 11,8 px,
+     und das Bild wuerde beim Uebergeben sichtbar springen.
+     Gemessen mit startbild-uebergang-pruefen.sh am 21.09.2026.
+     Ein reiner Handy-Test haette das nie gezeigt (CLAUDE.md: es sind
+     zwei Achsen, nicht eine). */
+  [].forEach.call(bildebenen, function (n) {
+    n.style.transition = "transform " + ZUSAMMENZIEHEN_MS + "ms cubic-bezier(.2,.7,.3,1)"
+                       + ", background-position " + ZUSAMMENZIEHEN_MS + "ms cubic-bezier(.2,.7,.3,1)";
+    n.style.transform = "scale(1)";
+    n.style.backgroundPositionY = "50%";
+  });
+  [].forEach.call(texte, function (n) {
+    n.style.transition = "opacity 160ms ease-out, transform 160ms ease-out";
+    n.style.opacity = "0";
+    n.style.transform = "translateY(-8px)";
+  });
+
+  el.style.height = ziel + "px";
+
+  window.setTimeout(function () { el.style.display = "none"; },
+                    ZUSAMMENZIEHEN_MS + 40);
 }
 
 function setLang(lang) {
