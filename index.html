@@ -3183,8 +3183,23 @@
   <div class="settings-card neutral">
     <h3>⚙️ Vorgaben</h3>
     <div class="grid">
-      <label>Regulärer Arbeitstag (Std.)
-        <input id="azSoll" type="number" step="0.25" min="0" value="8.5" oninput="azSaveCfg()">
+      <!-- ⚠ DIE BESCHRIFTUNG IST DER EIGENTLICHE PUNKT, nicht die Zahl.
+           "Regulaerer Arbeitstag" laesst beides zu: die reine Arbeitszeit
+           oder die Anwesenheit samt Pause. Mirko am 21.09.2026: "die
+           arbeitszeit ist nur 8,5 wenn man pause macht ansonsten regulaer
+           8 std" - genau diese zwei Lesarten.
+
+           Verglichen wird hier aber immer die NETTO-Zeit (azNettoFuer,
+           also nach Pausenabzug). Der Wert muss deshalb die reine
+           Arbeitszeit sein. Steht dort die Anwesenheit, stehen Arbeitszeit
+           und Anwesenheit gegeneinander - und jeder Tag faellt um die
+           Pausenlaenge zu kurz aus. -->
+      <label>Regulärer Arbeitstag (Std.) <span style="font-weight:normal; color:#666;">– reine Arbeitszeit, ohne Pause</span>
+        <input id="azSoll" type="number" step="0.25" min="0" value="8" oninput="azSaveCfg()">
+        <span style="display:block; font-weight:normal; font-size:0.8rem; color:#666; margin-top:0.25rem;">
+          Bei Hall: <b>8 Std.</b> Arbeit. Mit den 30 Minuten Pause sind das
+          8:30 Anwesenheit – <b>hier gehören die 8 hinein, nicht die 8,5.</b>
+        </span>
       </label>
       <label style="display:flex; align-items:center; gap:0.6rem;">
         <input id="azGesetzlichePause" type="checkbox" onchange="azSaveCfg()" style="width:auto; flex:none;">
@@ -9735,9 +9750,22 @@ const AZ = {
   set lauf(v) { azSchreibe("spesen_az_lauf", v ? v : null); },
   get tage() { try { return JSON.parse(localStorage.getItem("spesen_az_tage") || "[]"); } catch (e) { return []; } },
   set tage(v) { azSchreibe("spesen_az_tage", JSON.stringify(v)); },
+  /* ⚠ soll = 8, NICHT 8,5. Das ist die reine ARBEITSZEIT, denn verglichen
+     wird die Netto-Zeit nach Pausenabzug (siehe azNettoFuer).
+
+     Bis zum 21.09.2026 stand hier 8.5 - die Anwesenheit MIT Pause. Damit
+     stand Arbeitszeit gegen Anwesenheit, und jeder Tag fiel um eine halbe
+     Stunde zu kurz aus. Gefunden hat es Mirko selbst: 06:00-14:15 ohne
+     Pause meldete -0:15 statt +0:15.
+
+     Sein Wort dazu: "die arbeitszeit ist nur 8,5 wenn man pause macht
+     ansonsten regulaer 8 std."
+
+     ⛔ Wer das aendert, aendert die Bedeutung des Feldes. Anwesenheit und
+     Arbeitszeit sind hier nicht dasselbe. */
   get cfg() {
-    try { return Object.assign({ soll: 8.5, pause: 0, ab6: false }, JSON.parse(localStorage.getItem("spesen_az_cfg") || "{}")); }
-    catch (e) { return { soll: 8.5, pause: 0, ab6: false }; }
+    try { return Object.assign({ soll: 8, pause: 0, ab6: false }, JSON.parse(localStorage.getItem("spesen_az_cfg") || "{}")); }
+    catch (e) { return { soll: 8, pause: 0, ab6: false }; }
   },
   set cfg(v) { azSchreibe("spesen_az_cfg", JSON.stringify(v)); },
 };
