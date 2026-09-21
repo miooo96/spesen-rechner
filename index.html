@@ -3789,12 +3789,23 @@ function initSplash() {
    auch keiner: Das Startbild erscheint bei jedem neuen Oeffnen der App.
    Zurueckholen aus main (d9f63b0), falls je gewuenscht. */
 
-/* Wie lange das Zusammenziehen dauert. Die EINE Zahl dafuer.
-   600 ms, mit einer bremsenden Kurve: Der groesste Teil des Weges ist
-   frueh geschafft, dadurch liest es sich als Antwort auf den Tipp und
-   nicht als Wartezeit. Laenger wird bei taeglichem Gebrauch zur Geduld,
-   kuerzer sieht man nicht mehr als Bewegung. */
-const ZUSAMMENZIEHEN_MS = 600;
+/* Wie lange das Zusammenziehen dauert - die EINE Zahl dafuer, und die
+   Kurve dazu.
+
+   780 ms mit cubic-bezier(.4,0,.2,1): exakt die Werte der Vorschau
+   Startbild-Zusammenziehen.html, zu der Mirko am 21.09.2026 sagte
+   "der uebergang durch das weiterdruecken ist ganz cool geworden".
+
+   ⚠ Hier standen zwischenzeitlich 600 ms mit einer bremsenden Kurve -
+   von mir gewaehlt, nicht von ihm, mit der Begruendung "sonst wird es
+   auf Dauer nervig". Beim Ansehen in der App fiel ihm genau das auf:
+   "im browser kommt es nicht so gut zur geltung wie deine vorschau."
+   Die Vorschau war nicht nur schmaler, sie war auch LANGSAMER. Eine
+   Zahl, die der Nutzer nicht bestellt hat, gehoert nicht still
+   geaendert - seine Entscheidung am 21.09.: "so wie in der vorschau
+   langsam zusammen ziehen". */
+const ZUSAMMENZIEHEN_MS = 780;
+const ZUSAMMENZIEHEN_KURVE = "cubic-bezier(.4,0,.2,1)";
 
 /* Splash schliessen.
    Bis zum 21.09.2026 stand hier nur display:none - ein harter Schnitt.
@@ -3856,7 +3867,7 @@ function splashSchliessen() {
   el.classList.add("zieht-zusammen");
   void el.offsetHeight;                 /* Reflow - sonst springt es ohne Uebergang */
 
-  el.style.transition = "height " + ZUSAMMENZIEHEN_MS + "ms cubic-bezier(.2,.7,.3,1)";
+  el.style.transition = "height " + ZUSAMMENZIEHEN_MS + "ms " + ZUSAMMENZIEHEN_KURVE;
 
   /* Das Foto atmet dauerhaft (nachtZoom, 1.04 -> 1.17), das Hero-Band
      nicht. Ohne dieses Herausfahren auf 1 waere das Bild beim
@@ -3873,8 +3884,8 @@ function splashSchliessen() {
      Ein reiner Handy-Test haette das nie gezeigt (CLAUDE.md: es sind
      zwei Achsen, nicht eine). */
   [].forEach.call(bildebenen, function (n) {
-    n.style.transition = "transform " + ZUSAMMENZIEHEN_MS + "ms cubic-bezier(.2,.7,.3,1)"
-                       + ", background-position " + ZUSAMMENZIEHEN_MS + "ms cubic-bezier(.2,.7,.3,1)";
+    n.style.transition = "transform " + ZUSAMMENZIEHEN_MS + "ms " + ZUSAMMENZIEHEN_KURVE
+                       + ", background-position " + ZUSAMMENZIEHEN_MS + "ms " + ZUSAMMENZIEHEN_KURVE;
     n.style.transform = "scale(1)";
     n.style.backgroundPositionY = "50%";
   });
