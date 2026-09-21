@@ -448,6 +448,24 @@
     font-size: 0.82rem; font-weight: 600;
     white-space: nowrap; position: relative;
   }
+  /* ---- Knopf mit grauem Zusatz-Hinweis -------------------------
+     "✍️ Zeiten von Hand eintragen   z. B. 6:00 – 15:30"
+
+     Der Grundknopf oben steht auf white-space:nowrap und ist ein
+     inline-flex. Beides zusammen heisst: Der Hinweis kann weder
+     umbrechen noch schrumpfen - er laeuft einfach aus dem Knopf
+     heraus. Am Handy hing er 20 px im Freien, gemessen am 21.09.2026
+     bei 402 px; Mirko hatte es auf seinem Bildschirmfoto gezeigt.
+
+     Hier darf der Knopf zweizeilig werden. row-gap statt nur gap,
+     damit die zweite Zeile nicht klebt, und die Polsterung etwas
+     grosszuegiger, weil zwei Zeilen mehr Hoehe brauchen. */
+  button.mit-hinweis {
+    white-space: normal; flex-wrap: wrap; row-gap: 2px;
+    padding-top: 10px; padding-bottom: 10px; text-align: center;
+  }
+  button.mit-hinweis .knopf-hinweis { color: #888; font-weight: normal; }
+
   #mainTabs .tab-btn:hover { color: var(--brand-dark); background: rgba(255,255,255,.65); }
   #mainTabs .tab-btn.active {
     background: #fff; color: var(--brand-dark); font-weight: 700; box-shadow: none;
@@ -1671,7 +1689,23 @@
   .inv-fz .k { font-weight:700; white-space:nowrap; }
   .inv-box { border:1px solid #000; height:20px; }
   .inv-box.g { background:#e8e3a8; }
-  .inv-box input, .inv-sig input { width:100%; height:100%; border:none; background:transparent; font:inherit; font-size:13px; padding:0 4px; }
+  /* ⛔ min-height:0 ist Pflicht, nicht Feinschliff.
+     Redesign Schritt 8 (1776476) gab JEDEM input auf der Seite
+     min-height:48px (--griff), damit man Felder mit Handschuhen trifft.
+     Fuer die Vordrucke wurde ausdruecklich eine Ausnahme gebaut - aber
+     nur fuer ZWEI von dreien: #formular und #abrechnungBlatt. Das
+     Inventur-Blatt hier wurde vergessen.
+
+     Folge: Der Kasten ist 20 px hoch, das Feld darin war 48 - es stand
+     29 px unten heraus, und der Wert lag unter statt in seinem Feld.
+     Mirko hat es am 21.09.2026 im Browser gefunden ("895" und "675"
+     standen unter den Kaesten). Gemessen mit inv-feldhoehe-pruefen.sh.
+
+     Und es betraf nicht nur den Bildschirm: Fuer dieses Blatt gibt es
+     KEINE eigene Druckregel, die Hoehe wirkte also bis ins gedruckte
+     Blatt, das per "An Niederlassung senden" das Haus verlaesst.
+     height:100% allein genuegt nicht - min-height schlaegt height. */
+  .inv-box input, .inv-sig input { width:100%; height:100%; min-height:0; border:none; background:transparent; font:inherit; font-size:13px; padding:0 4px; }
   .inv-box input { text-align:right; font-variant-numeric:tabular-nums; }
   .inv-fix { border:1px solid #000; font-size:12px; font-weight:700; padding:2px 4px; white-space:nowrap; }
   .inv-jn td { border:1px solid #000; text-align:center; font-size:12px; height:19px; width:52px; background:#e8e3a8; }
@@ -1708,6 +1742,28 @@
   /* Auf Handybreite passen drei Felder nebeneinander nur knapp - die
      Zeilensumme bekommt deshalb eine eigene Zeile darunter. */
   #kaeRows .inv-row { flex-wrap:wrap; }
+  /* ⚠ Ohne Mindestbreite bringt flex-wrap oben gar nichts.
+     .inv-f steht auf "flex:1 1 0; min-width:0" - die Felder schrumpfen
+     dadurch lieber bis zur Unkenntlichkeit, als umzubrechen. Gemessen
+     am 21.09.2026 mit kae-beschriftung-pruefen.sh:
+
+         Fenster 402 px → Feld  40 px   Fenster 360 px → Feld 19 px
+
+     In ein 40-px-Feld passt weder eine Zahl noch die Beschriftung:
+     "KARTONS" braucht 50 px, "LOSE STANGEN" 83 - beide liefen in die
+     Nachbarspalte, sichtbar als "KARTONSE KARTON". Mirko hat es am
+     21.09.2026 auf seinen Bildschirmfotos gezeigt.
+
+     Nur diese Zeilen brauchen es: Die Fahrzeug-Inventur hat zwei
+     Felder und keinen 104-px-Waehler, dort ist genug Platz.
+     96 px deckt die breiteste Beschriftung (83 px) mit Luft ab.
+
+     :not(.kae-gr) ist wichtig - der Groessenwaehler steht bewusst auf
+     festen 104 px (.kae-gr). Ohne die Ausnahme haette diese Regel ihn
+     wegen hoeherer Spezifitaet still flexibel gemacht; gemessen wurde
+     er danach 125 px breit. Eine fremde Entscheidung nicht nebenbei
+     umwerfen. */
+  #kaeRows .inv-f:not(.kae-gr) { flex:1 1 96px; min-width:96px; }
   .kae-gr { flex:0 0 104px; }
   .kae-gr select { width:100%; padding:12px 6px; font:inherit; font-size:17px; text-align:center;
                    border:1px solid #bbb; border-radius:8px; background:#fff; }
@@ -3203,8 +3259,8 @@
     <div style="display:flex; align-items:center; gap:0.6rem; margin:0.85rem 0 0.6rem; color:#999; font-size:0.8rem;">
       <span style="flex:1; height:1px; background:#ddd;"></span>oder<span style="flex:1; height:1px; background:#ddd;"></span>
     </div>
-    <button class="ghost" style="width:100%; padding:0.7rem;" onclick="azNachtragenModal()">✍️ Zeiten von Hand eintragen &nbsp;<span style="color:#888; font-weight:normal;">z. B. 6:00 – 15:30</span></button>
-    <button class="ghost" style="width:100%; padding:0.7rem; margin-top:0.5rem;" onclick="azMonatFuellenModal()">⏰ Zeiten für alle Tage &nbsp;<span style="color:#888; font-weight:normal;">ganzer Monat auf einmal</span></button>
+    <button class="ghost mit-hinweis" style="width:100%; padding:0.7rem;" onclick="azNachtragenModal()">✍️ Zeiten von Hand eintragen <span class="knopf-hinweis">z. B. 6:00 – 15:30</span></button>
+    <button class="ghost mit-hinweis" style="width:100%; padding:0.7rem; margin-top:0.5rem;" onclick="azMonatFuellenModal()">⏰ Zeiten für alle Tage <span class="knopf-hinweis">ganzer Monat auf einmal</span></button>
     <p class="hinweis-text" style="margin-bottom:0;">
       Alle drei Wege führen in denselben Kalender. Stempeln ist bequemer, wenn Sie
       das Handy dabei haben – von Hand eintragen ist der Weg für vergessene Tage
