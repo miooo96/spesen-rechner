@@ -2425,7 +2425,43 @@
     <button type="button" class="ghost" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
     <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
   </div>
-  <span class="toolbar-divider"></span>
+  <!-- ===== Drucken fuer Jahresuebersicht und Urlaub =====
+       Bestellt von Mirko am 21.09.2026: "jahres und urlaub braucht auch
+       eine druck moeglichkeit".
+
+       ⚠ Das ist eine NEUE FUNKTION und gilt trotzdem fuer ALLE. Das ist
+       eine BEWUSSTE AUSNAHME von Mirkos eigener Regel ("neue Funktionen
+       nur fuer mich, bis das Go der Chefs vorliegt") - sie wurde ihm mit
+       genau diesem Hinweis vorgelegt und er hat sie am 21.09.2026 so
+       entschieden. Dieser Knopf gehoert also NICHT hinter zeigtNeuerungen().
+       Wer das spaeter aendern will, aendert eine Entscheidung, keinen Fehler.
+
+       Vorher gab es hier nichts zu verschieben: Auf Urlaub und
+       Jahresuebersicht war die Werkzeugleiste komplett ausgeblendet
+       (zeigeTab()), weder #toolbarKontextGruppe noch #toolbarPdfGruppe
+       hatten dort Inhalt.
+
+       EIN Knopf statt drei: Das Uebergabe-Fenster danach bietet ohnehin
+       Drucken, Speichern und - wo das Geraet es kann - Weitergeben.
+
+       ⚠ BEWUSST OHNE eigenen Trennstrich davor. Auf beiden Bereichen ist
+       alles Vorhergehende ausgeblendet - ein <span class="toolbar-divider">
+       waere dort der ERSTE sichtbare Strich und stuende vor dem einzigen
+       Knopf statt zwischen zwei Gruppen. Am Handy (<=700 px) sind
+       Trennstriche ohnehin per CSS ausgeblendet. -->
+  <div class="toolbar-group" id="toolbarJahrPdf" style="display:none;">
+    <button type="button" class="primary" onclick="jahrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+  </div>
+  <div class="toolbar-group" id="toolbarUrlaubPdf" style="display:none;">
+    <button type="button" class="primary" onclick="urlaubDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+  </div>
+  <!-- Bekam am 22.09.2026 eine Kennung, damit er sich ausblenden laesst.
+       Auf Jahresuebersicht und Urlaub steht rechts von ihm NICHTS mehr
+       (die Spesen-Gruppe ist dort aus) - er waere ein Strich ins Leere,
+       gefolgt von einem leeren weissen Balken. Genau der Fehler, den
+       "Befund 4" hier schon einmal behoben hat.
+       Auf Spesen, Zeit und Inventur bleibt alles wie bisher. -->
+  <span class="toolbar-divider" id="spesenToolbarTrenner"></span>
   <div class="toolbar-group" id="toolbarPdfGruppe">
     <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
     <button class="handy-mehr" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
@@ -2446,7 +2482,8 @@
     <button class="handy-mehr" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
     <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
   </div>
-  <span class="toolbar-divider"></span>
+  <!-- Ebenfalls am 22.09.2026 benannt, gleicher Grund wie oben. -->
+  <span class="toolbar-divider" id="mehrToolbarTrenner"></span>
   <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
   <div class="toolbar-group">
     <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
@@ -4868,14 +4905,23 @@ function zeigeTab(tab) {
   document.body.classList.remove("hero-start");
   const mainTabsEl = document.getElementById("mainTabs");
   if (mainTabsEl) mainTabsEl.style.display = "";
-  // Bugfix (finale Whole-Branch-Review, Befund 4): Auf Urlaub/Jahresuebersicht/
-  // Anleitung/Mehr haben weder #toolbarKontextGruppe noch #toolbarPdfGruppe
-  // Inhalt (siehe zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() unten)
-  // - die .toolbar selbst blieb trotzdem sichtbar und zeigte nur einen
-  // leeren weissen Balken mit Trennstrich. Nur auf Spesen/Zeit gibt es
-  // tatsaechlich Inhalt zum Anzeigen.
+  // Bugfix (finale Whole-Branch-Review, Befund 4): Auf Anleitung/Mehr haben
+  // weder #toolbarKontextGruppe noch #toolbarPdfGruppe Inhalt (siehe
+  // zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() unten) - die
+  // .toolbar selbst blieb trotzdem sichtbar und zeigte nur einen leeren
+  // weissen Balken mit Trennstrich. Sie darf also nur dort erscheinen, wo
+  // sie tatsaechlich etwas zu zeigen hat.
+  //
+  // ⚠ GEAENDERT am 22.09.2026: "jahr" und "urlaub" kamen dazu. Bis dahin
+  // stand hier, auf beiden Bereichen gebe es keinen Inhalt - das stimmt
+  // seit dem Druck-Knopf nicht mehr (#toolbarJahrPdf/#toolbarUrlaubPdf).
+  // Der alte Kommentar ist deshalb mit korrigiert worden und nicht nur
+  // die Bedingung: ein Kommentar, der dem Code widerspricht, ist die
+  // naechste Fehlerquelle.
   const toolbar = document.querySelector(".toolbar");
-  if (toolbar) toolbar.style.display = (tab === "spesen" || tab === "zeit" || tab === "inventur") ? "" : "none";
+  if (toolbar) toolbar.style.display =
+    (tab === "spesen" || tab === "zeit" || tab === "inventur"
+     || tab === "jahr" || tab === "urlaub") ? "" : "none";
 
   markiereTab(tab);
   /* Hier stand zigiStop() - es hielt die Zigaretten-Animation an, wenn
@@ -7917,7 +7963,22 @@ async function abrBeideDrucken() {
    danach gilt der urspruengliche Fingertipp als abgelaufen und das Teilen
    wird abgewiesen. Der Knopf im Fenster ist die neue Nutzeraktion. */
 let __pdfUebergabe = null;
-function pdfUebergabe(pdf, dateiname) {
+/* ⚠ ERWEITERT am 22.09.2026 um "titel" und "beschreibung" - beide
+   OPTIONAL. Ohne sie verhaelt sich die Funktion exakt wie vorher; die
+   zwei bisherigen Aufrufer (Abrechnung abschliessen, "Beide Zettel
+   drucken") uebergeben nichts und bekommen denselben Text wie zuvor.
+
+   Gebraucht wird das fuer die neuen Druckknoepfe auf Jahresuebersicht
+   und Urlaub: dort liegt ein EINSEITIGES Dokument im Fenster, und
+   "Seite 1 Inventurblatt / Seite 2 Verkaufsbericht" waere dort schlicht
+   gelogen.
+
+   Aus demselben Grund haengen die beiden Hinweise zum mehrseitigen
+   Druck jetzt an "seiten > 1", statt fest im Text zu stehen: Bei einem
+   einseitigen Blatt gibt es keine zweite Seite, die am Handy verloren
+   gehen koennte - der Hinweis haette dort nur Sorge gemacht, wo keine
+   noetig ist. */
+function pdfUebergabe(pdf, dateiname, titel, beschreibung) {
   const blob = pdf.output("blob");
   let datei = null;
   try { datei = new File([blob], dateiname, { type: "application/pdf" }); } catch (e) { datei = null; }
@@ -7930,9 +7991,9 @@ function pdfUebergabe(pdf, dateiname) {
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box">
-        <h2>📄 Beide Zettel sind fertig</h2>
-        <p><b>${seiten} Seiten</b> in einer Datei:<br>
-           Seite 1 Inventurblatt (quer) &middot; Seite 2 Verkaufsbericht (hoch)</p>
+        <h2>${titel || "📄 Beide Zettel sind fertig"}</h2>
+        <p>${beschreibung || `<b>${seiten} Seiten</b> in einer Datei:<br>
+           Seite 1 Inventurblatt (quer) &middot; Seite 2 Verkaufsbericht (hoch)`}</p>
         ${kannTeilen ? `
         <div class="modal-close-row" style="margin-bottom:.6rem;">
           <button class="primary" onclick="pdfUebergabeTeilen()">📤 An Druck-App übergeben</button>
@@ -7940,14 +8001,14 @@ function pdfUebergabe(pdf, dateiname) {
         <div class="hinweis-box">
           <b>Empfohlen bei Epson iPrint.</b> Der Knopf reicht die komplette
           Datei an Ihr Gerät weiter – dort wählen Sie „Drucken" oder direkt
-          die Epson-App. So kommen <b>beide</b> Seiten an.
+          die Epson-App.${seiten > 1 ? ` So kommen <b>beide</b> Seiten an.` : ``}
         </div>` : ``}
         <div class="modal-close-row" style="gap:.5rem; flex-wrap:wrap;">
           <button class="ghost" onclick="pdfUebergabeDrucken()">🖨️ Direkt drucken</button>
           <button class="ghost" onclick="pdfUebergabeSpeichern()">💾 PDF speichern</button>
           <button class="ghost" onclick="closeModal()">Schließen</button>
         </div>
-        ${kannTeilen ? `
+        ${kannTeilen && seiten > 1 ? `
         <p class="small" style="margin-top:.8rem;">„Direkt drucken" geht über den
            Browser. Am Handy kann dabei nur die erste Seite ankommen – dafür
            gibt es den Knopf oben.</p>` : ``}
@@ -7973,6 +8034,179 @@ function pdfUebergabeDrucken() {
 function pdfUebergabeSpeichern() {
   const u = __pdfUebergabe; if (!u) return;
   u.pdf.save(u.dateiname); closeModal();
+}
+
+/* ===================== Drucken: Jahresuebersicht und Urlaub =====================
+   Bestellt von Mirko am 21.09.2026: "jahres und urlaub braucht auch eine
+   druck moeglichkeit."
+
+   ⚠ NEUE FUNKTION, die trotzdem fuer ALLE gilt. Das ist eine BEWUSSTE
+   AUSNAHME von Mirkos eigener Regel ("Aussehen fuer alle, Fehler fuer
+   alle, neue Funktionen nur fuer mich, bis das Go der Chefs vorliegt").
+   Sie wurde ihm mit genau diesem Hinweis vorgelegt, er hat sie am
+   21.09.2026 so entschieden. Deshalb steht hier KEIN zeigtNeuerungen().
+   Wer das spaeter sperrt, aendert eine Entscheidung, keinen Fehler.
+
+   Was auf die Blaetter gehoert, hat Mirko am 22.09.2026 festgelegt -
+   vorher gefragt, weil es beide Dokumente noch nirgends gab:
+     Jahresuebersicht : Kopf (Name, Jahr, Niederlassung) + Balken + Tabelle
+     Urlaub           : Kopf (Name, Jahr) + Bilanz + Legende + Kalender
+
+   Beide A4 QUER: Die Jahrestabelle hat acht Spalten, der Urlaubskalender
+   zwoelf Monate nebeneinander - hochkant wuerde beides gequetscht.
+
+   WARUM html2canvas UND NICHT window.print():
+   Beide Bereiche tragen class="no-print" (#jahresuebersichtPanel und
+   #urlaubPanel). Der Browser wuerde leere Seiten ausgeben. Ausserdem ist
+   das der Weg, den Inventurblatt und Verkaufsbericht laengst gehen:
+   aufnehmen, in eine PDF legen, uebergeben. Eine Sorte Weg statt zwei. */
+
+/* Kopfzeile beider Blaetter. Mirko wollte sie "wie das Spesenblatt",
+   damit das Blatt abgegeben und abgeheftet werden kann und nicht nur zum
+   Nachsehen taugt.
+
+   Bewusst OHNE Emoji im Titel, anders als die Ueberschrift im Programm:
+   Das hier ist ein Dokument zum Abheften. Inventurblatt und
+   Verkaufsbericht fuehren aus demselben Grund keine.
+
+   Die zwei Farben sind die Hausfarben aus dem Kopf dieser Datei
+   (--accent #de7008, --brand-dark #612a00). Sie stehen hier als feste
+   Werte, weil das Blatt ausserhalb des Sichtfelds aufgebaut und
+   abfotografiert wird - dort soll nichts von der Vererbung abhaengen. */
+function druckKopfHtml(titel, felder) {
+  const zeile = felder
+    .filter((f) => f[1])
+    .map((f) => `<span style="margin-right:26px; white-space:nowrap;">`
+      + `<span style="color:#666;">${f[0]}:</span> <b>${f[1]}</b></span>`)
+    .join("");
+  return `
+    <div style="border-bottom:3px solid #de7008; padding-bottom:10px; margin-bottom:18px;">
+      <div style="display:flex; align-items:baseline; justify-content:space-between; gap:24px;">
+        <div style="font-size:21px; font-weight:700; color:#612a00;">${titel}</div>
+        <div style="font-size:12px; color:#888; white-space:nowrap;">Hall Tabakwaren &middot; Spesen-Rechner</div>
+      </div>
+      ${zeile ? `<div style="margin-top:9px; font-size:13px; color:#222;">${zeile}</div>` : ``}
+    </div>`;
+}
+
+/* Baut ein Blatt kurz ausserhalb des Sichtfelds auf, fotografiert es und
+   raeumt es wieder weg.
+
+   ⚠ Der Halter wird NICHT in den normalen Seitenfluss gehaengt, sondern
+   absolut nach links aus dem Bild geschoben. Sonst verschoebe er
+   waehrend der Aufnahme die Hoehen, die ist-bilder.sh und
+   sperre-pruefen.sh messen - und zwei Pruefwerkzeuge meldeten einen
+   Fehler, den es nie gab. Das "finally" raeumt auch dann auf, wenn
+   html2canvas mitten im Bild aussteigt. */
+async function druckblattCanvas(innenHtml, breite, vorbereiten) {
+  const halter = document.createElement("div");
+  halter.setAttribute("aria-hidden", "true");
+  halter.style.cssText =
+    "position:absolute; left:-20000px; top:0; width:" + breite + "px;"
+    + "box-sizing:border-box; padding:24px; background:#ffffff; color:#222;";
+  halter.innerHTML = innenHtml;
+  document.body.appendChild(halter);
+  try {
+    /* Letzte Gelegenheit, am fertig aufgebauten Blatt noch etwas
+       geradezuziehen, das erst im Halter entsteht. */
+    if (vorbereiten) vorbereiten(halter);
+    return await html2canvas(halter, {
+      scale: 2, backgroundColor: "#ffffff", windowWidth: breite,
+    });
+  } finally {
+    halter.remove();
+  }
+}
+
+/* Aus Bild wird A4 quer. Gemeinsam fuer beide Blaetter, damit Rand und
+   Format nicht an zwei Stellen gepflegt werden muessen. */
+function druckblattPdf(canvas) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  pdfBildEinpassen(pdf, canvas, 8);
+  return pdf;
+}
+
+async function jahrBuildPdf() {
+  const inhalt = document.getElementById("jahresuebersichtContent");
+  if (!inhalt) return null;
+  /* Nur nachrendern, wenn wirklich nichts da ist. Im Normalfall steht man
+     auf dem Bereich und sieht die Tabelle - dann waere ein zweiter Lauf
+     nur eine zusaetzliche Gelegenheit, etwas zu veraendern. */
+  if (!inhalt.innerHTML.trim()) renderJahresuebersicht();
+  if (!inhalt.innerHTML.trim()) return null;
+
+  const kopf = druckKopfHtml("Jahresübersicht " + config.jahr, [
+    ["Name", (config.name || "").trim()],
+    ["Jahr", String(config.jahr)],
+    ["Niederlassung", (config.niederlassung || "").trim()],
+  ]);
+  /* 🔴 SIEBEN VON ZWOELF BALKEN FEHLTEN - gefunden am 22.09.2026 beim
+     Ansehen des fertigen Blattes, nicht von einer Pruefung gemeldet.
+
+     Im DOM war alles richtig: zwoelf <rect>, SVG 514 x 150, erster
+     Balken bei 10 px, letzter endet bei 500 px - in der App UND im
+     Halter identisch gemessen. Verloren gingen sie erst beim Rastern.
+
+     Schuld ist "margin:0 auto" am SVG (aus buildPauschaleBarChart):
+     Mit der Zentrierung schneidet html2canvas das Diagramm nach fuenf
+     Balken ab. Durchprobiert mit druck-balken-versuch.sh -
+     max-width, feste Groesse und feste Farbe aendern NICHTS, allein
+     das Wegnehmen der Zentrierung bringt alle zwoelf zurueck.
+
+     Bewusst NUR hier und nicht in buildPauschaleBarChart(): Im
+     Programm ist das Diagramm fehlerfrei und dort ist die Zentrierung
+     gewollt. Auf dem Blatt steht es jetzt linksbuendig - auf einer
+     Kante mit der Tabelle darunter. */
+  const canvas = await druckblattCanvas(kopf + inhalt.innerHTML, 1150, (halter) => {
+    const svg = halter.querySelector("svg");
+    if (svg) svg.style.margin = "0 0 18px 0";
+  });
+  if (!canvas) return null;
+  return { pdf: druckblattPdf(canvas), filename: "Jahresuebersicht_" + config.jahr + ".pdf" };
+}
+
+async function jahrDrucken() {
+  const r = await jahrBuildPdf();
+  if (!r) { alert("Die Jahresübersicht konnte nicht aufgenommen werden."); return; }
+  pdfUebergabe(r.pdf, r.filename, "Jahresübersicht ist fertig",
+    "<b>Ein Blatt A4 quer:</b> Kopfzeile, Balken und die Monatstabelle mit der Gesamt-Zeile.");
+}
+
+async function urlaubBuildPdf() {
+  const kalender = document.getElementById("urlaubKalender");
+  const bilanz = document.getElementById("urlaubBilanz");
+  const legende = document.getElementById("urlaubKalenderLegende");
+  if (!kalender) return null;
+  if (!kalender.innerHTML.trim()) urlaubRender();
+  if (!kalender.innerHTML.trim()) return null;
+
+  /* urlaubJahrWert() statt config.jahr: Der Urlaubsbereich hat eine eigene
+     Jahresauswahl, und gedruckt gehoert das Jahr, das auf dem Bildschirm
+     steht - nicht das der Abrechnung. Beide koennen auseinanderlaufen,
+     seit sich auch das Vorjahr waehlen laesst (Mirko, 20.09.2026). */
+  const jahr = urlaubJahrWert();
+  const kopf = druckKopfHtml("Urlaubskalender " + jahr, [
+    ["Name", (config.name || "").trim()],
+    ["Jahr", String(jahr)],
+  ]);
+  /* Reihenfolge wie auf dem Bildschirm: erst die Bilanz, dann die
+     Legende, dann der Kalender. Ohne Legende sind die Farben auf Papier
+     nicht deutbar - sie gehoert vor den Kalender, nicht ans Blattende. */
+  const innen = kopf
+    + (bilanz ? `<div style="margin-bottom:16px;">${bilanz.innerHTML}</div>` : ``)
+    + (legende ? `<div style="margin-bottom:12px;">${legende.innerHTML}</div>` : ``)
+    + kalender.innerHTML;
+  const canvas = await druckblattCanvas(innen, 1500);
+  if (!canvas) return null;
+  return { pdf: druckblattPdf(canvas), filename: "Urlaubskalender_" + jahr + ".pdf" };
+}
+
+async function urlaubDrucken() {
+  const r = await urlaubBuildPdf();
+  if (!r) { alert("Der Urlaubskalender konnte nicht aufgenommen werden."); return; }
+  pdfUebergabe(r.pdf, r.filename, "Urlaubskalender ist fertig",
+    "<b>Ein Blatt A4 quer:</b> Kopfzeile, Bilanz, Legende und alle zwölf Monate.");
 }
 /* ---------- PDF drucken ----------
    EINE Stelle fuer alle drei Druckknoepfe (Inventurblatt, Verkaufsbericht,
@@ -10230,6 +10464,27 @@ function zeigeWerkzeugleisteGruppe2(tab) {
   const invTrenner = document.getElementById("invToolbarTrenner");
   if (invPdf) invPdf.style.display = tab === "inventur" ? "" : "none";
   if (invTrenner) invTrenner.style.display = tab === "inventur" ? "" : "none";
+  /* Druck-Knopf auf Jahresuebersicht und Urlaub (Mirko, 21.09.2026).
+     Eigene Gruppen aus demselben Grund wie bei der Inventur: anderes
+     Dokument, anderes Format, anderer Dateiname. Ohne Trennstrich -
+     Begruendung steht am HTML der beiden Gruppen. */
+  const jahrPdf = document.getElementById("toolbarJahrPdf");
+  if (jahrPdf) jahrPdf.style.display = tab === "jahr" ? "" : "none";
+  const urlaubPdf = document.getElementById("toolbarUrlaubPdf");
+  if (urlaubPdf) urlaubPdf.style.display = tab === "urlaub" ? "" : "none";
+  /* Auf Jahresuebersicht und Urlaub steht rechts vom Druck-Knopf nichts
+     mehr - die beiden festen Trennstriche waeren Striche ins Leere vor
+     einem leeren weissen Balken. Nur dort ausblenden; auf Spesen, Zeit
+     und Inventur trennen sie weiterhin echte Gruppen.
+     ⚠ Am Handy sind Trennstriche ohnehin per CSS aus (<=700 px) - das
+     hier zielt auf den Rechner, wo der Strich am 22.09.2026 im Bild
+     stand. Gefunden beim Ansehen von 08-jahr-d.png, nicht von einer
+     Zahl gemeldet. */
+  const leer = (tab === "jahr" || tab === "urlaub");
+  ["spesenToolbarTrenner", "mehrToolbarTrenner"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = leer ? "none" : "";
+  });
 }
 
 /* ===== Spesen-Tab: Stammdaten UND Tage-Tabelle gemeinsam sichtbar =====
@@ -11326,7 +11581,17 @@ function urlaubRender() {
        Wochenende</span>`;
 
   // Kalender: 12 Monate nebeneinander
-  const heuteIso = new Date().toISOString().slice(0, 10);
+  /* ⚠ BEHOBEN am 22.09.2026: Hier stand new Date().toISOString(), also
+     die Zeit in GREENWICH. In Deutschland ist es zwischen Mitternacht
+     und 2 Uhr (Sommerzeit; im Winter bis 1 Uhr) dort noch der Vortag -
+     der Kalender umrandete dann GESTERN als "heute".
+
+     Aufgefallen ist es auf dem neuen Urlaubs-Ausdruck: Am 22.09. um
+     halb eins stand die Markierung auf dem 21.
+
+     fmtISO() nimmt getFullYear/getMonth/getDate und damit die Ortszeit -
+     genauso, wie es die App an allen anderen Stellen tut. */
+  const heuteIso = fmtISO(new Date());
   let html = `<div style="display:flex; flex-wrap:wrap; gap:14px;">`;
   for (let m = 1; m <= 12; m++) {
     const ersterTag = new Date(jahr, m - 1, 1);
