@@ -2178,6 +2178,17 @@
      nicht mehr. */
   footer .footer-sep { margin: 0 6px; }
 
+  /* Der Erprobungs-Satz. Er steht in der Fusszeile, soll aber nicht im
+     Grau der uebrigen Zeile untergehen - er ist die einzige Aussage
+     darin, die etwas BEHAUPTET.
+
+     ⚠ --brand-dark und NICHT --accent, obwohl Orange mehr auffiele:
+     Die Fusszeile ist 0,75 rem klein, und kleine Schrift braucht 4,5:1.
+     Halls Orange #de7008 erreicht auf Creme nur rund 3,2:1 - es waere
+     an genau der Stelle schlecht lesbar, an der eine Preisaussage
+     steht. Das Dunkelbraun ist dieselbe Hausfarbe und traegt. */
+  footer .footer-erprobung { color: var(--brand-dark); }
+
   /* Monat-gesperrt-Banner */
   .month-locked-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -3332,6 +3343,24 @@
      wirklich nichts mehr nach draussen (siehe Kommentar im <head>). -->
 <footer class="no-print">
   Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in Ihrem Browser, keine Daten verlassen Ihr Gerät &middot; Built for Hall Tabakwaren by Mirko Rieb
+  <!-- ⚠ DIESER SATZ IST KEINE GESTALTUNG, SONDERN EINE GESCHAEFTLICHE
+       AUSSAGE. Am 14.09.2026 von Mirko beschlossen, am 21.09.2026
+       gebaut. Begruendung damals: Was dauerhaft gratis war, laesst sich
+       spaeter kaum bepreisen - was als Erprobung angekuendigt war, schon.
+
+       ⛔ ER IST BEWUSST NICHT GESPERRT. Ein Satz, den nur Mirko sieht,
+       richtet nichts aus: Er wirkt erst, wenn Kollegen und
+       Geschaeftsfuehrung ihn lesen. Deshalb faellt er unter keine der
+       drei Schubladen der Regel vom 20.09.2026 - er ist weder Aussehen
+       noch Fehlerbehebung noch eine Funktion.
+
+       ⛔ UND DARAUS FOLGT DIE OFFENE FRAGE: Mit der naechsten
+       Veroeffentlichung lesen ihn alle - moeglicherweise BEVOR Mirko mit
+       der Geschaeftsfuehrung gesprochen hat. Diese Reihenfolge ist
+       seine Entscheidung und steht als offener Punkt in der
+       Uebergabedatei. Wer hier veroeffentlicht, veroeffentlicht auch
+       diesen Satz. -->
+  <span class="footer-sep">&middot;</span><b class="footer-erprobung">Kostenlos während der Erprobungsphase</b>
   <span class="footer-sep">&middot;</span><button class="footer-link" onclick="openChangelogModal()">Änderungshistorie</button>
 </footer>
 
