@@ -2432,6 +2432,19 @@
     <button class="handy-mehr" onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
     <button class="handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
+    <!-- Am 21.09.2026 aus "Mehr" hierher gezogen (Mirko): "monat
+         abschließen zb ist ja eig nur für spesen gedacht … deshalb
+         bringt das ja nichts unter mehr, da weiß man gar nicht wofür
+         es da ist."
+         Belegt: submitCurrentMonth() speichert den SPESENNACHWEIS als
+         PDF und sperrt den Monat - eine reine Spesen-Sache. Hier steht
+         sie am Ende derselben Reihe, in der Reihenfolge des Ablaufs:
+         speichern, ansehen, drucken, senden - dann abschliessen, und
+         danach im Archiv nachsehen.
+         Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
+         gesperrt, sie ziehen nur um. -->
+    <button class="handy-mehr" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
   </div>
   <span class="toolbar-divider"></span>
   <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
@@ -2831,8 +2844,12 @@
   <div class="mehr-werkzeuge-liste">
     <button class="ghost" onclick="sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
     <button class="ghost" onclick="openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
-    <button class="ghost" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-    <button class="ghost" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+    <!-- "🔒 Monat abschließen" und "📁 Abgeschlossene Monate" standen
+         hier bis zum 21.09.2026. Sie sind in die Aktionsreihe des
+         SPESEN-Bildschirms gezogen (#toolbarPdfGruppe), weil beide nur
+         dort einen Sinn ergeben - Begruendung dort.
+         "Mehr" ist damit das, was der Name sagt: der Rest. Was hier
+         steht, gehoert wirklich nirgendwo anders hin. -->
     <select id="langSwitch" onchange="setLang(this.value)">
       <option value="de">🇩🇪 Deutsch</option>
       <option value="en">🇬🇧 English</option>
