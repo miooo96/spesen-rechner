@@ -5568,11 +5568,29 @@ function heroZahlenAktualisieren() {
   const el = document.getElementById("heroZahlen");
   if (!el) return;
 
-  if (!zeigtNeuerungen()) {
-    el.style.display = "none"; el.innerHTML = "";
-    document.body.classList.remove("hat-zahlenkarte");
-    return;
-  }
+  /* ⚠ Die Karte selbst ist seit dem 21.09.2026 fuer ALLE sichtbar.
+     Mirko: "die zahlenkarte kann ja online gehen, enthält ja keine
+     funktion die die mitarbeiter nicht eh schon haben oder?"
+
+     Fuer DREI der vier Zahlen stimmt das: "Tage erfasst" und der
+     Monatsbetrag stehen laengst auf dem Spesenblatt, "Urlaub übrig"
+     im Urlaubsbereich. Die Karte wiederholt sie nur oben - Aussehen,
+     keine neue Funktion.
+
+     ⛔ FUER "TAGE OFFEN" STIMMT ES NICHT. Die Zahl kommt aus
+     vorausTage() und haengt an der Reparatur "Standardzeiten laufen
+     dem Kalender nicht voraus", die am 20.09.2026 bewusst gesperrt
+     blieb. Gemessen am 21.09.2026, Stichtag 21.09.:
+
+         Mirko    Blatt 15 Tage = 210 €   "Tage offen" 7
+         Kollege  Blatt 22 Tage = 308 €   "Tage offen" 7
+
+     Beim Kollegen steht also 308 € auf dem Blatt - und die Karte
+     schriebe ihm daneben, dass 7 dieser Tage noch gar nicht gewesen
+     sind. Genau diese Luecke verschweigt sein Blatt heute mit Absicht
+     (Mirko: "bleibt gesperrt wie entschieden"). Das Feld bleibt
+     deshalb bei Mirko, bis die Reparatur freigegeben ist - dann passen
+     Blatt und Karte wieder zusammen und es kann nachruecken. */
 
   /* Der laufende Monat, nicht der im Monatswaehler gewaehlte: Die Karte
      steht auf der STARTSEITE und soll sagen, wo man heute steht. Wer
@@ -5605,7 +5623,7 @@ function heroZahlenAktualisieren() {
 
   el.innerHTML = feld(erfasst, "Tage erfasst")
                + feld(geld, monatsname)
-               + feld(offen, "Tage offen")
+               + (zeigtNeuerungen() ? feld(offen, "Tage offen") : "")
                + feld(urlaub, "Urlaub übrig");
   el.style.display = "";
   /* Sagt dem Stylesheet, dass das Band jetzt voll ist - erst dann darf
