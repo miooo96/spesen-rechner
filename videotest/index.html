@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ware erfassen – Videotest</title>
+<!--
+  VIDEO-ERFASSUNG – TESTSEITE, 22.09.2026
+
+  Mirko: "ich will ein video erfassungssystem".
+
+  Kamera über die Ware schwenken, das System sammelt jeden Code ein, den
+  es sieht. JEDER KARTON UND JEDE STANGE TRÄGT EINEN EU-TTT-CODE MIT
+  EINMALIGER SERIENNUMMER (21) – derselbe Karton zweimal im Bild zählt
+  deshalb nur einmal. Genau das Problem, an dem Filmen sonst scheitert.
+
+  ⚠ DAS IST EIN TEST, KEINE FUNKTION DER APP. Nichts davon ist im
+  Spesen-Rechner. Zweck: an echter Ware messen, ob Schwenken trägt –
+  statt darüber zu reden.
+
+  Gemessen wird: Wie viele Codes kommen bei einem Schwenk zusammen? Wie
+  schnell? Bei welchem Abstand und Licht reißt es ab?
+-->
+<style>
+  :root { --hall:#E2571E; --dunkel:#1c1c1c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--dunkel); color:#fff;
+         font:16px/1.4 -apple-system,system-ui,sans-serif; }
+  header { padding:10px 14px; background:#000; }
+  h1 { margin:0; font-size:17px; }
+  header p { margin:3px 0 0; font-size:12px; color:#999; }
+  #buehne { position:relative; background:#000; }
+  video { width:100%; display:block; max-height:52vh; object-fit:cover; }
+  #zielrahmen { position:absolute; inset:14% 8%; border:3px solid var(--hall);
+                border-radius:10px; pointer-events:none; opacity:.85; }
+  #zaehler { display:flex; gap:10px; padding:12px 14px; background:#111;
+             align-items:baseline; }
+  #summe { font-size:42px; font-weight:800; color:var(--hall); line-height:1; }
+  #summeLabel { font-size:13px; color:#aaa; }
+  #status { margin-left:auto; font-size:12px; color:#888; text-align:right; }
+  .knopfreihe { display:flex; gap:8px; padding:0 14px 12px; background:#111; }
+  button { flex:1; padding:13px 8px; font-size:15px; font-weight:600;
+           border:0; border-radius:10px; background:#333; color:#fff; }
+  button.start { background:var(--hall); }
+  button:disabled { opacity:.4; }
+  #liste { padding:0 14px 40px; }
+  .code { display:flex; gap:10px; padding:9px 0; border-bottom:1px solid #2a2a2a;
+          font-size:13px; align-items:baseline; }
+  .code .nr { color:#666; min-width:26px; }
+  .code .wert { font-family:ui-monospace,Menlo,monospace; word-break:break-all;
+                flex:1; }
+  .code .art { font-size:11px; padding:2px 6px; border-radius:5px;
+               background:#2a2a2a; color:#bbb; white-space:nowrap; }
+  .neu { animation:auf .5s; }
+  .nurSorte { opacity:.45; }
+  .nurSorte .art { background:#3a2a2a; color:#c88; }
+  @keyframes auf { from { background:#4a2a12; } to { background:transparent; } }
+  #hinweis { padding:14px; font-size:13px; color:#999; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ware erfassen – Videotest</h1>
+  <p>Kamera über die Kartons schwenken. Jeder Code zählt nur einmal.</p>
+</header>
+
+<div id="buehne">
+  <video id="video" playsinline muted></video>
+  <div id="zielrahmen"></div>
+</div>
+
+<div id="zaehler">
+  <div>
+    <div id="summe">0</div>
+    <div id="summeLabel">gezählte Stücke</div>
+  </div>
+  <div id="status">bereit</div>
+</div>
+
+<div class="knopfreihe">
+  <button id="startKnopf" class="start">▶ Starten</button>
+  <button id="stopKnopf" disabled>■ Stopp</button>
+  <button id="leerenKnopf">Zurücksetzen</button>
+</div>
+
+<div id="liste"></div>
+
+<div id="hinweis">
+  <b>Worauf es beim Test ankommt:</b><br>
+  • Wie viele Kartons bekommen Sie in einem Schwenk?<br>
+  • Aus welchem Abstand geht es noch?<br>
+  • Reicht das Licht im Lager?<br>
+  • Werden verdeckte Etiketten erwartungsgemäß <i>nicht</i> erfasst?<br>
+  • <b>Zählen fünf gleiche Kartons wirklich als fünf?</b><br><br>
+  <b>Wichtig – zwei Codes, zwei Bedeutungen:</b><br>
+  Der <b>Strichcode</b> benennt die <i>Sorte</i>. Bei fünf gleichen
+  Kartons ist er fünfmal derselbe – er kann Stücke nicht unterscheiden
+  und <b>zählt hier nicht mit</b> (grau dargestellt).<br>
+  Der <b>EU-TTT-DataMatrix</b> benennt <i>dieses eine Stück</i>. Nur er
+  zählt. Fünf Kartons JPS = fünf verschiedene Nummern = 5.<br><br>
+  <b>Gegenprobe für Sie:</b> Halten Sie zwei Kartons derselben Sorte
+  nacheinander davor. Die Zahl muss auf <b>2</b> gehen. Tut sie das
+  nicht, trägt der ganze Weg nicht.
+</div>
+
+<script src="zxing.js"></script>
+<script>
+/* ⛔ KORRIGIERT am 22.09.2026 - Mirko hat den Denkfehler gefunden:
+   "hab ich 5 kartons von der selben sorte ist es 5 mal der selbe, also
+   5 mal mit 30 stangen jps, sind 150 stangen und nicht nur 30."
+
+   Die erste Fassung hat JEDEN gelesenen Code entdoppelt. Bei fünf
+   gleichen Kartons steht auf allen fünf DERSELBE EAN-Strichcode -
+   vier davon wären verschluckt worden. 120 Stangen zu wenig, und es
+   wäre erst bei der Abrechnung aufgefallen.
+
+   ZWEI CODES, ZWEI BEDEUTUNGEN:
+     EAN-Strichcode  4030500030173      benennt die SORTE
+                                        → bei 5 Kartons 5x derselbe
+                                        → taugt NICHT zum Zählen
+     EU-TTT DataMatrix (21)3291370...   benennt DIESES EINE STÜCK
+                                        → bei 5 Kartons 5x verschieden
+                                        → NUR DAS zählt
+
+   Gezählt wird deshalb ausschliesslich der DataMatrix. Der Strichcode
+   wird angezeigt, aber nicht mitgezählt. */
+const gesehen = new Set();      // nur einmalige Stück-Codes
+const sorten  = new Set();      // Strichcodes, nur zur Anzeige
+let leser = null, laeuft = false;
+
+const elVideo  = document.getElementById("video");
+const elSumme  = document.getElementById("summe");
+const elListe  = document.getElementById("liste");
+const elStatus = document.getElementById("status");
+
+/* Grob einordnen, WAS gelesen wurde - ohne Tabelle, nur aus der Form
+   des Codes. Reine Anzeige, keine Rechnung haengt daran. */
+function artErkennen(text, format) {
+  if (/^\(01\)|^01\d{14}/.test(text) || text.length > 30) return "EU-TTT";
+  if (format && /DATA_MATRIX/.test(format)) return "DataMatrix";
+  if (/^\d{13}$/.test(text)) return "EAN-13";
+  if (/^\d{14}$/.test(text)) return "Karton-GTIN";
+  return format || "Code";
+}
+
+/* Traegt der Code eine Seriennummer? Nur dann benennt er EIN STÜCK.
+   GS1-Feld (21) = Serial. Ohne das ist es nur die Sorte. */
+function istEinzelstueck(text, format) {
+  if (/DATA_MATRIX|QR_CODE/.test(format || "")) return true;
+  if (/\(21\)/.test(text)) return true;
+  if (/^01\d{14}21/.test(text)) return true;   // GS1 ohne Klammern
+  return false;
+}
+
+function eintragen(text, format) {
+  const einzeln = istEinzelstueck(text, format);
+
+  if (einzeln) {
+    if (gesehen.has(text)) return;        // dasselbe Stück - richtig übersprungen
+    gesehen.add(text);
+    elSumme.textContent = gesehen.size;
+    if (navigator.vibrate) navigator.vibrate(40);
+  } else {
+    /* Strichcode: zeigt die Sorte, zählt aber NICHT. Bei fünf gleichen
+       Kartons ist er fünfmal derselbe - er kann Stücke nicht
+       unterscheiden. */
+    if (sorten.has(text)) return;
+    sorten.add(text);
+  }
+
+  const zeile = document.createElement("div");
+  zeile.className = "code neu" + (einzeln ? "" : " nurSorte");
+  zeile.innerHTML =
+    '<span class="nr">' + (einzeln ? gesehen.size : "–") + '</span>'
+    + '<span class="wert"></span>'
+    + '<span class="art"></span>';
+  zeile.querySelector(".wert").textContent = text;
+  zeile.querySelector(".art").textContent =
+    einzeln ? "STÜCK ✓" : "nur Sorte – zählt nicht";
+  elListe.prepend(zeile);
+}
+
+async function starten() {
+  elStatus.textContent = "Kamera wird geöffnet …";
+  try {
+    const hints = new Map();
+    const ZX = ZXing;
+    /* Alle gängigen Formate: EAN auf Stangen und Kartons, DataMatrix
+       fuer die EU-TTT-Kennzeichnung. */
+    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
+      ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8,
+      ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.ITF,
+      ZX.BarcodeFormat.DATA_MATRIX, ZX.BarcodeFormat.QR_CODE,
+    ]);
+    hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+
+    leser = new ZX.BrowserMultiFormatReader(hints, 200);
+    /* Rueckkamera bevorzugen. */
+    const geraete = await ZX.BrowserCodeReader.listVideoInputDevices();
+    const hinten = geraete.find((g) => /back|rück|rear|environment/i.test(g.label));
+    const id = hinten ? hinten.deviceId : (geraete[0] && geraete[0].deviceId);
+
+    await leser.decodeFromVideoDevice(id, elVideo, (ergebnis, fehler) => {
+      if (ergebnis) {
+        eintragen(ergebnis.getText(), String(ergebnis.getBarcodeFormat()));
+        elStatus.textContent = "läuft – zuletzt: " + new Date().toLocaleTimeString("de-DE");
+      }
+    });
+
+    laeuft = true;
+    document.getElementById("startKnopf").disabled = true;
+    document.getElementById("stopKnopf").disabled = false;
+    elStatus.textContent = "läuft – schwenken Sie langsam";
+  } catch (e) {
+    elStatus.textContent = "FEHLER";
+    alert("Kamera nicht verfügbar:\n\n" + e
+      + "\n\nDie Kamera braucht eine gesicherte Verbindung (https).");
+  }
+}
+
+function stoppen() {
+  if (leser) { leser.reset(); leser = null; }
+  laeuft = false;
+  document.getElementById("startKnopf").disabled = false;
+  document.getElementById("stopKnopf").disabled = true;
+  elStatus.textContent = "angehalten – " + gesehen.size + " Codes";
+}
+
+document.getElementById("startKnopf").onclick = starten;
+document.getElementById("stopKnopf").onclick = stoppen;
+document.getElementById("leerenKnopf").onclick = () => {
+  gesehen.clear();
+  elSumme.textContent = "0";
+  elListe.innerHTML = "";
+  elStatus.textContent = laeuft ? "läuft – zurückgesetzt" : "bereit";
+};
+</script>
+</body>
+</html>
