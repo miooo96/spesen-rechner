@@ -252,6 +252,37 @@
      fuellt und ihn ganz nach aussen schob. */
   #mehrToolbarTrenner { display: none; }
 
+  /* ===== Streifen "Rückgängig" nach dem Abschließen (22.09.2026) =====
+     ⚠ Er muss ÜBER der Reiterleiste liegen. In der installierten App ist
+     #mainTabs fest am unteren Rand verankert (position:fixed, z-index
+     500) - ein Streifen mit bottom:12px läge darunter und wäre genau in
+     den 30 Sekunden unsichtbar, in denen er gebraucht wird. Deshalb
+     z-index 600 und der Abstand um die Höhe der Leiste nach oben, über
+     dieselbe Variable, die auch body.als-app benutzt. */
+  #abrRuecknahmeStreifen {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 600;
+    display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
+    max-width: 900px; margin: 0 auto;
+    background: var(--brand-dark, #612a00); color: #fff;
+    padding: 0.85rem 1rem; border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(24,26,32,0.28);
+    font-size: 0.9rem; line-height: 1.35;
+  }
+  body.als-app #abrRuecknahmeStreifen {
+    bottom: calc(var(--maintabs-hoehe, 76px) + 12px);
+  }
+  #abrRuecknahmeStreifen .abr-rn-text { flex: 1 1 220px; min-width: 0; }
+  #abrRuecknahmeStreifen .abr-rn-klein {
+    display: block; margin-top: 3px; font-size: 0.8rem; color: #f0ddcd;
+  }
+  #abrRuecknahmeStreifen .abr-rn-knopf {
+    flex: none; background: #fff; color: var(--brand-dark, #612a00);
+    border: 0; border-radius: 9px; padding: 12px 16px;
+    font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    min-height: 48px;                 /* Fingergröße, wie in der Leiste */
+  }
+  #abrRuecknahmeStreifen .abr-rn-knopf:hover { background: #ffe9d6; }
+
   /* ===== Fenster "Am Handy als App einrichten" ===== */
   .install-weg {
     border: 1px solid var(--linie, #e3e6eb); border-radius: 10px;
@@ -7940,6 +7971,12 @@ async function abrAbschliessen() {
     "Das lässt sich nicht rückgängig machen.";
   if (!confirm(frage)) return;
 
+  /* ⚠ Der Schnappschuss wird HIER genommen - vor der ersten Aenderung,
+     nicht hinterher rekonstruiert. Alles darunter veraendert die
+     Ablage; ein spaeter genommenes Abbild waere schon der neue Zustand.
+     Siehe "30 Sekunden Ruecknahme" weiter unten. */
+  const vorherZustand = abrSchnappschuss();
+
   /* 1. PDF ablegen - BEIDE Zettel in einer Datei (Mirko, 05.09.2026).
         Muss vor dem Leeren passieren: danach sind die Blaetter
         zurueckgesetzt und die Aufnahme waere leer. */
@@ -8016,8 +8053,114 @@ async function abrAbschliessen() {
   abrStempelZeigen();
   abrRechne();
   abrArchivZeigen();
-  alert("Abgeschlossen.\n\nDie neue Woche beginnt mit Endbestand Vortrag " +
-        invFmt(endbestand) + " €.");
+  /* Hier stand ein alert("Abgeschlossen. ..."). Es ist durch den
+     Ruecknahme-Streifen ersetzt: Derselbe Satz steht dort, dazu die
+     Frist. Ein alert davor waere doppelt - und es blockiert, waehrend
+     die 30 Sekunden laufen sollen. */
+  abrRuecknahmeAnbieten(vorherZustand, endbestand);
+}
+
+/* ===================== 30 Sekunden Ruecknahme =====================
+   Mirko am 22.09.2026: "wenn man abrechnung abschliesst muss eine meldung
+   zusaetzlich kommen ob man sich sicher ist oder man muss 30 sek zeit
+   haben es rueckgaengig zu machen."
+
+   Die Sicherheitsabfrage gab es schon - jetzt kommt die Frist dazu.
+   GILT FUER ALLE: Mirko hat die Sicherheits-Sachen am 22.09.2026
+   ausdruecklich fuer alle freigegeben. Kein zeigtNeuerungen() davor.
+
+   ⚠ NICHT VERWECHSELN mit Nummer 8 der elf gesperrten Neuerungen
+   ("Rueckgaengig-Streifen, 10 Sekunden" aus dem Entwurf). Das ist ein
+   allgemeines Muster fuer beliebige Schritte und bleibt gesperrt. Hier
+   geht es ausschliesslich um den Abschluss der Abrechnung, mit 30
+   Sekunden und auf ausdrueckliche Anordnung. Wer beides zusammenwirft,
+   gibt eine gesperrte Neuerung frei.
+
+   🔴 WAS DIE RUECKNAHME NICHT KANN: Die PDF ist zu diesem Zeitpunkt
+   bereits im Download-Ordner des Geraets. Ein Browser kann eine
+   gespeicherte Datei nicht zurueckholen. Das steht deshalb im Streifen -
+   verschwiegen waere es eine Falle.
+
+   Zurueckgeholt werden genau die sechs Ablagen, die der Abschluss
+   anfasst. Der Schnappschuss wird VOR der ersten Aenderung genommen -
+   nicht danach rekonstruiert. */
+const ABR_RUECKNAHME_KEYS = [ABR_KEY, ABR_ARCHIV_KEY, INV_KEY, INV_KVP_KEY, KAE_KEY, KOPF_KEY];
+const ABR_RUECKNAHME_SEK = 30;
+let __abrRuecknahme = null;
+
+function abrSchnappschuss() {
+  const daten = {};
+  ABR_RUECKNAHME_KEYS.forEach((k) => { daten[k] = localStorage.getItem(k); });
+  return daten;
+}
+
+function abrRuecknahmeAufraeumen() {
+  if (__abrRuecknahme && __abrRuecknahme.timer) clearInterval(__abrRuecknahme.timer);
+  __abrRuecknahme = null;
+  const s = document.getElementById("abrRuecknahmeStreifen");
+  if (s) s.remove();
+}
+
+function abrRuecknahmeAnbieten(daten, endbestand) {
+  abrRuecknahmeAufraeumen();
+  const streifen = document.createElement("div");
+  streifen.id = "abrRuecknahmeStreifen";
+  streifen.innerHTML =
+    '<div class="abr-rn-text">' +
+      '<b>✅ Abrechnung abgeschlossen.</b> Die neue Woche beginnt mit Endbestand Vortrag ' +
+      invFmt(endbestand) + ' €.' +
+      '<span class="abr-rn-klein">Die gespeicherte PDF bleibt im Download-Ordner – ' +
+      'die lässt sich nicht zurückholen.</span>' +
+    '</div>' +
+    '<button type="button" class="abr-rn-knopf" onclick="abrRuecknahmeJetzt()">' +
+      '↩︎ Rückgängig <span id="abrRuecknahmeZeit">' + ABR_RUECKNAHME_SEK + '</span>' +
+    '</button>';
+  document.body.appendChild(streifen);
+
+  let rest = ABR_RUECKNAHME_SEK;
+  const timer = setInterval(function () {
+    /* ⚠ Die Frist laeuft NICHT, solange ein Fenster offen ist. Direkt
+       nach dem Abschluss steht das PDF-Uebergabe-Fenster davor - waere
+       die Zeit dort schon gelaufen, waeren die 30 Sekunden vorbei,
+       bevor der Streifen ueberhaupt zu sehen ist. */
+    const root = document.getElementById("modalRoot");
+    if (root && root.children.length) return;
+    rest--;
+    const z = document.getElementById("abrRuecknahmeZeit");
+    if (z) z.textContent = rest;
+    if (rest <= 0) abrRuecknahmeAufraeumen();
+  }, 1000);
+  __abrRuecknahme = { daten: daten, timer: timer };
+}
+
+function abrRuecknahmeJetzt() {
+  const r = __abrRuecknahme;
+  if (!r) return;
+  const daten = r.daten;
+  abrRuecknahmeAufraeumen();
+
+  /* Erst die Ablage zuruecksetzen - genau so, wie sie vorher war.
+     null heisst: der Schluessel existierte vorher NICHT und muss wieder
+     verschwinden, nicht auf "null" gesetzt werden. */
+  ABR_RUECKNAHME_KEYS.forEach((k) => {
+    const w = daten[k];
+    if (w === null) localStorage.removeItem(k); else localStorage.setItem(k, w);
+  });
+
+  /* Dann die Arbeitskopien im Speicher neu aus der Ablage lesen. Ohne
+     das liefe die Oberflaeche mit den geleerten Werten weiter und
+     schriebe sie beim naechsten Tastendruck zurueck. */
+  kopfLaden(); abrLaden(); invLaden(); kaeLaden();
+  abrAufgebaut = false;
+  invAufgebaut = false;
+
+  abrVorbelegen(); abrStempelZeigen(); abrRechne(); abrArchivZeigen();
+  try { invAufbauen(); } catch (e) {}
+  try { kaeRender(); } catch (e) {}
+
+  alert("Zurückgenommen.\n\nVerkaufsbericht, Fahrzeug-Inventur und „Neue Ware zählen“ "
+      + "stehen wieder so da wie vor dem Abschließen.\n\n"
+      + "⚠️ Die PDF ist bereits im Download-Ordner gespeichert – die bleibt dort liegen.");
 }
 
 let abrAufgebaut = false;
