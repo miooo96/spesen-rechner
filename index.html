@@ -3216,7 +3216,7 @@
           <td class="frei"></td>
           <td class="inv-kf"><input id="invFahrer" placeholder="Name"></td>
           <td class="inv-datumzelle"><span class="inv-lbl">Datum:</span><span class="inv-datumfeld"><input id="invDatum"></span></td>
-          <td class="inv-nl">NL Lollar</td>
+          <td class="inv-nl" id="invNL">NL Lollar</td>
         </tr>
         <tr>
           <td class="inv-zwikasten" colspan="3">Zwischeninventur</td>
@@ -7309,6 +7309,29 @@ function invFuelleKopfFelder() {
     const el = document.getElementById(id);
     if (el) el.value = wert;
   });
+  /* ===== Niederlassung aus den Stammdaten, nicht fest eingetragen =====
+     Mirko am 22.09.2026: "Ja, aus den Stammdaten."
+
+     Hier stand fest "NL Lollar". Das ist fuer Mirko richtig - auf SEINEM
+     Papier-Vordruck steht es gedruckt (Foto 04.09.2026 im Vault). Hall
+     hat aber mehrere Niederlassungen: Hilden/Duesseldorf, Warburg,
+     Wuerselen/Aachen, Lollar/Giessen, Plaidt. Jede hat ihren eigenen
+     Vordruck mit IHREM Namen.
+
+     Mit dem festen Wert haette ein Fahrer aus Warburg "NL Lollar" auf
+     einem Blatt stehen, das an SEINE Niederlassung geht. Heute ohne
+     Folgen, weil die Inventur ein gesperrter Sonderbereich ist - ab dem
+     Go der Chefs waere es jeder Fahrer ausserhalb Lollars.
+
+     Den Wert gibt es laengst: der Einrichtungsassistent fragt ihn ab
+     (wizNiederlassung, "z.B. Lollar") und legt ihn als
+     config.niederlassung ab. Nur dieses Blatt hat ihn ignoriert.
+
+     Rueckfall auf "Lollar", wenn nichts eingetragen ist - dann steht da
+     dasselbe wie vorher, nie ein leeres Feld. */
+  const nl = document.getElementById("invNL");
+  if (nl) nl.textContent = "NL " + ((config.niederlassung || "").trim() || "Lollar");
+
   // Das Datum im Fuss ist dasselbe Datum - es wird mitgezogen, nicht nur
   // beim ersten Mal gesetzt. Genau das war Mirkos Punkt "auch das datum".
   invState.fuss.invFDatum = werte.invDatum;
@@ -8420,7 +8443,50 @@ function blattLeerraumAngleichen(id) {
    (height:126mm im CSS, Zeile ~2252). Eine feste Zahl kann nur fuer
    einen Inhalt stimmen - gemessen wird sie hier nicht ersetzt, sondern
    der Rest ausgeglichen, der uebrig bleibt. */
+/* ===== Inventurblatt in die Breite einpassen =====
+   Mirko am 22.09.2026, nach dem Vorher/Nachher-Bild: "Passend machen."
+
+   Der Inventur-Vordruck ist QUER (297 mm) und damit viel breiter als der
+   Verkaufsbericht. Er stand bei 393 px mit 471 px in einem 305 px
+   breiten Rahmen - Huelsen/Papier und Lieferscheine lagen hinter dem
+   seitlichen Wischen. Jetzt passt das ganze Blatt hinein.
+
+   ⚠ Der Massstab wird GEMESSEN, nicht fest eingetragen. Eine feste Zahl
+   koennte nur fuer eine Bildschirmbreite stimmen - .27 passt bei 393 px
+   und liefe bei 320 px wieder ueber. Gerechnet wird gegen die
+   tatsaechliche Rahmenbreite.
+
+   ⚠ Der negative rechte Rand ist noetig, weil transform:scale nur die
+   Optik verkleinert: ohne ihn belegt das Blatt weiter seine volle
+   Layout-Breite und der Rahmen rollt trotzdem. Dieselbe Rechnung wie im
+   CSS beim Verkaufsbericht, nur mit gemessenen Werten.
+
+   ⚠ Die ABLAGE bleibt unberuehrt: invBlattCanvas() sichert und setzt
+   sowohl style.transform als auch style.height zurueck und stellt beide
+   danach wieder her. Gemessen: 2246 x 1450 vorher wie nachher. */
+function invBlattEinpassen() {
+  const el = document.getElementById("invBlatt");
+  const rahmen = document.getElementById("invBlattView");
+  if (!el || !rahmen) return;
+  el.style.transform = "";
+  el.style.height = "";
+  el.style.marginRight = "";
+  /* Nur wo ueberhaupt verkleinert wird - am Rechner steht das Blatt in
+     voller Groesse und darf nicht angefasst werden. */
+  if (getComputedStyle(el).transform === "none") return;
+  const platz = rahmen.clientWidth;
+  const voll = el.offsetWidth;
+  if (!platz || !voll) return;
+  const massstab = Math.floor((platz / voll) * 1000) / 1000;
+  el.style.transform = "scale(" + massstab + ")";
+  el.style.height = "auto";
+  el.style.marginRight = (platz - voll) + "px";
+}
+
 function alleBlaetterLeerraumAngleichen() {
+  /* Reihenfolge: erst die Breite einpassen, dann die Hoehe ausgleichen -
+     die Hoehe haengt am Massstab. */
+  invBlattEinpassen();
   blattLeerraumAngleichen("abrBlatt");
   blattLeerraumAngleichen("invBlatt");
 }
