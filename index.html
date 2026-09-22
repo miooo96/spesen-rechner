@@ -2677,7 +2677,20 @@
     <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invPdfAnsehen">👁️ PDF ansehen</button>
     <button type="button" class="ghost" onclick="invSpeichern()" data-i18n="invPdfSpeichern">💾 PDF speichern</button>
     <button type="button" class="ghost" onclick="invDrucken()" data-i18n="invPdfDrucken">🖨️ PDF drucken</button>
-    <button type="button" class="ghost" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
+    <!-- ⛔ NUR MIRKO (22.09.2026), obwohl der Bereich seit demselben Tag
+         allen Fahrern offensteht. Vorgelegt und so entschieden: "Knopf
+         nur für Sie."
+         Es ist KEIN Auto-Mail - invPerEmail() laedt die PDF herunter und
+         oeffnet eine vorausgefuellte Mail, die der Fahrer selbst
+         abschicken und selbst anhaengen muss. Mirkos Bedingung "geht
+         nicht automatisch an Susanne" waere also auch mit dem Knopf
+         erfuellt gewesen. Der Grund ist ein anderer: Bis das mit der
+         Niederlassung besprochen ist, gilt "ausdrucken, nachdem die
+         digitale Unterschrift gesetzt ist" - sonst bekaeme Susanne
+         Mails von Fahrern statt Papier.
+         Geschaltet in der Werkzeugleisten-Logik, Suchwort
+         invMailKnopf. -->
+    <button type="button" class="ghost" id="invMailKnopf" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
     <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
   </div>
   <!-- ===== Drucken fuer Jahresuebersicht und Urlaub =====
@@ -3338,8 +3351,17 @@
           <tr><td class="k">Datum:</td><td class="feld"><input id="invFDatum"></td><td class="feld"></td></tr>
           <!-- Verkaufsfahrer: entweder Foto der echten Unterschrift (einmal
                einfuegen, bleibt gespeichert) oder leer lassen und den Ausdruck
-               von Hand unterschreiben. Der Zeitstempel steht in der Zeile und
-               wandert damit mit in die PDF. -->
+               von Hand unterschreiben.
+
+               ⛔ KEIN ZEITSTEMPEL MEHR (Mirko, 22.09.2026): "kein
+               zeitstempel bei inventur und abrechnung."
+               Das hebt seine Vorgabe vom 05.09.2026 auf ("wenn digital
+               dann mit zeitstempel"), die hier darunter noch zitiert
+               ist - die Begruendung dafuer gab er am 22.09.: "weil eh
+               nochmal jemand prueft ob es stimmt und gegenzeichnet".
+               Der Verkaufsbericht hat aus demselben Grund seit dem
+               05.09.2026 keinen (abrStempelZeigen() ist dort ein leerer
+               Platzhalter). -->
           <tr><td class="k">Verkaufsfahrer:</td>
               <td class="feld sigzelle" colspan="2">
                 <div class="inv-sigwrap">
@@ -3347,10 +3369,9 @@
                   <!-- KEIN Platzhalter und keine Vorbelegung mit dem Namen
                        (Mirko, 05.09.2026): "die spalten unterschrift wird
                        entweder digital ausgefuellt oder haendisch nach dem
-                       drucken. wenn digital dann mit zeitstempel."
+                       drucken."
                        Eine Unterschriftszeile muss frei sein. -->
                   <input id="invFFahrer">
-                  <span class="inv-stempel" id="sigTs-inventur_signature"></span>
                 </div>
                 <div class="no-print inv-sig-knoepfe">
                   <input type="file" id="sigFile-inventur_signature" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'inventur_signature')">
@@ -3363,11 +3384,12 @@
                Die Zeile unterschreibt die Niederlassung, nicht der Fahrer -
                auf dem Vordruck steht dort nichts. Der graue Platzhaltertext
                wurde von html2canvas mit in die PDF aufgenommen. -->
+          <!-- ⛔ Auch hier kein Zeitstempel mehr (Mirko, 22.09.2026).
+               Diese Zeile IST die Gegenzeichnung der Niederlassung. -->
           <tr><td class="k">Kontrolle:</td>
               <td class="feld" colspan="2">
                 <div class="inv-sigwrap">
                   <input id="invFKontrolle">
-                  <span class="inv-stempel" id="invTs-invFKontrolle"></span>
                 </div>
               </td></tr>
         </table>
@@ -3919,6 +3941,24 @@ function zeigtSonderbereiche() { return istMirko(); }
    Stelle zweimal auf, einmal als Mirko und einmal als Kollege, und
    vergleicht die Hoehen. */
 function zeigtNeuerungen() { return istMirko(); }
+
+/* ---- Der Mail-Weg der Fahrzeug-Inventur (22.09.2026) --------------
+   Die Fahrzeug-Inventur selbst ist seit dem 22.09.2026 fuer alle Fahrer
+   offen - "📧 An Niederlassung senden" NICHT. Mirko, nachdem ihm der
+   Knopf vorgelegt wurde: "Knopf nur für Sie."
+
+   Solange gilt: ausdrucken, nachdem die digitale Unterschrift gesetzt
+   ist. Es geht nicht um einen automatischen Versand - den gibt es
+   nirgends, invPerEmail() oeffnet nur eine vorausgefuellte Mail, die
+   der Fahrer selbst abschickt. Es geht darum, dass die Niederlassung
+   nicht ploetzlich Mails von Fahrern bekommt, wo sie Papier erwartet.
+
+   WIEDER EINE EIGENE FUNKTION, nicht zeigtSonderbereiche() oder
+   zeigtNeuerungen(): Diese Bedingung faellt, sobald Mirko es mit der
+   Niederlassung geklaert hat - unabhaengig vom Go der Chefs und
+   unabhaengig von den Neuerungen des 20.09. Dieselbe Begruendung wie
+   bei zeigtNeuerungen() direkt darueber. */
+function zeigtInventurMail() { return istMirko(); }
 
 function aktualisiereZeitSichtbarkeit() {
   const sichtbar = zeigtSonderbereiche();
@@ -6759,12 +6799,27 @@ function invGruppenSumme(g) { let s = 0; for (let i = 0; i < invKapazitaet(g); i
 function invIstbestand() { return INV_GRUPPEN.reduce((s, g) => s + invGruppenSumme(g), 0); }
 function invHatInhalt(g, i) { return Object.values(invFeld(g.id, i)).some((v) => String(v || "").trim() !== ""); }
 
-/* ---------- Unterschrift mit Zeitstempel ----------
-   Wird ein Unterschriftsfeld ausgefuellt, haelt das Blatt Datum und Uhrzeit
-   fest; wird es geleert, verschwindet der Stempel wieder - es soll nie ein
-   Zeitpunkt ohne Unterschrift dastehen. Beim Verkaufsfahrer hat ein
-   hochgeladenes Unterschriften-Foto Vorrang, dessen Zeitstempel steht
-   bereits unter dem Schluessel "inventur_signature_ts". */
+/* ---------- Zeitstempel auf dem Inventurblatt: ENTFAELLT ----------
+   Mirko am 22.09.2026: "kein zeitstempel bei inventur und abrechnung."
+   Begruendung vom selben Tag: "weil eh nochmal jemand prueft ob es
+   stimmt und gegenzeichnet."
+
+   Das hebt seine Vorgabe vom 05.09.2026 auf ("wenn digital dann mit
+   zeitstempel"). Der Verkaufsbericht hat aus demselben Grund seit dem
+   05.09.2026 keinen - abrStempelZeigen() ist dort ein leerer
+   Platzhalter. Das Inventurblatt zieht jetzt nach.
+
+   ⚠ invStempelText() BLEIBT. Es formatiert auch die Zeile
+   "abgeschlossen TT.MM.JJJJ, HH:MM" in der Liste der abgeschlossenen
+   Abrechnungen (abrArchivZeigen). Das ist ein Eintrag auf dem
+   BILDSCHIRM, kein Stempel auf einem Dokument - er faellt nicht unter
+   Mirkos Vorgabe und ist der einzige Nachweis, wann ein Durchgang
+   geschlossen wurde. Wer ihn mitloeschen will, muss Mirko fragen.
+
+   ⚠ Der Speicher invState.fuss.sig bleibt ebenfalls unangetastet - er
+   wird weiter gepflegt, nur nicht mehr angezeigt. So lassen sich die
+   Stempel ohne Datenverlust wieder einschalten, falls Mirko es anders
+   entscheidet. */
 function invStempelText(ms) {
   const d = new Date(ms), z = (n) => String(n).padStart(2, "0");
   return z(d.getDate()) + "." + z(d.getMonth() + 1) + "." + d.getFullYear() +
@@ -6778,17 +6833,19 @@ function invStempelPflegen(id) {
   if (!gefuellt) delete invState.fuss.sig[id];
   invStempelZeigen();
 }
-function invStempelZeigen() {
-  const sig = (invState.fuss || {}).sig || {};
-  const kontrolle = document.getElementById("invTs-invFKontrolle");
-  if (kontrolle) kontrolle.textContent = sig.invFKontrolle ? "signiert " + invStempelText(sig.invFKontrolle) : "";
-  const fahrer = document.getElementById("sigTs-inventur_signature");
-  if (fahrer) {
-    const foto = localStorage.getItem("inventur_signature_ts");
-    if (foto) renderSignatureTimestamp("inventur_signature");
-    else fahrer.textContent = sig.invFFahrer ? "signiert " + invStempelText(sig.invFFahrer) : "";
-  }
-}
+/* Leerer Platzhalter - dieselbe Loesung wie bei abrStempelZeigen() fuer
+   den Verkaufsbericht. Die Funktion bleibt, weil sie an mehreren Stellen
+   beim Aufbau des Bereichs und aus invStempelPflegen() aufgerufen wird;
+   die beiden Stempel-Felder gibt es im Markup nicht mehr.
+
+   ⚠ Hier stand bis zum 22.09.2026 auch der einzige Aufruf von
+   renderSignatureTimestamp("inventur_signature"). Der Aufruf in
+   ladeGespeicherteUnterschriften() bleibt bestehen und laeuft ins Leere,
+   weil es "sigTs-inventur_signature" nicht mehr gibt - die Funktion
+   prueft das selbst ab (el ist null, sie kehrt zurueck). Das ist
+   Absicht: Das Unterschriften-FOTO wird weiterhin geladen und
+   angezeigt, nur sein Zeitstempel nicht mehr. */
+function invStempelZeigen() { /* kein Zeitstempel mehr, siehe oben */ }
 
 function invSichern() {
   try { localStorage.setItem(INV_KEY, JSON.stringify(invState)); } catch (e) {}
@@ -11604,6 +11661,16 @@ function zeigeWerkzeugleisteGruppe2(tab) {
   const invTrenner = document.getElementById("invToolbarTrenner");
   if (invPdf) invPdf.style.display = tab === "inventur" ? "" : "none";
   if (invTrenner) invTrenner.style.display = tab === "inventur" ? "" : "none";
+  /* "An Niederlassung senden" bleibt bei Mirko, auch wenn der
+     Inventur-Bereich seit dem 22.09.2026 allen Fahrern offensteht
+     (Begruendung am Knopf selbst). Eigene Bedingung statt
+     zeigtSonderbereiche(), aus demselben Grund, den der Code bei
+     zeigtNeuerungen() nennt: Sie faellt zu einem anderen Zeitpunkt -
+     naemlich wenn Mirko das mit der Niederlassung besprochen hat -
+     und muesste sonst wieder auseinandergefriemelt werden.
+     Geprueft von inventur-fuer-fahrer.sh, Teil 1. */
+  const invMail = document.getElementById("invMailKnopf");
+  if (invMail) invMail.style.display = (tab === "inventur" && zeigtInventurMail()) ? "" : "none";
   /* Druck-Knopf auf Jahresuebersicht und Urlaub (Mirko, 21.09.2026).
      Eigene Gruppen aus demselben Grund wie bei der Inventur: anderes
      Dokument, anderes Format, anderer Dateiname. Ohne Trennstrich -
