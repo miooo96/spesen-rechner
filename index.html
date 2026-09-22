@@ -7972,16 +7972,70 @@ const ABR_ARCHIV_KEY = "hall-abrechnung-archiv";
 function abrArchivLesen() {
   try { return JSON.parse(localStorage.getItem(ABR_ARCHIV_KEY) || "[]") || []; } catch (e) { return []; }
 }
+/* Schreibt das Archiv - und wird dabei notfalls KUERZER, statt still zu
+   scheitern.
+
+   ⚠ Vorher stand hier ein nacktes try/catch um setItem. Laeuft der
+   Speicher des Geraets voll, verschluckt das den Fehler: Der Abschluss
+   meldet Erfolg, das Archiv ist aber nicht geschrieben - und niemand
+   erfaehrt es. Seit die Eintraege alle drei Schritte tragen, sind sie
+   groesser, und dieser Fall wird wahrscheinlicher.
+
+   Jetzt wird der aelteste Eintrag weggelassen und erneut versucht, bis
+   es passt. Geht gar nichts mehr, SAGT die App es. */
+function abrArchivSichern(liste) {
+  let eintraege = liste.slice(-24);
+  for (;;) {
+    try {
+      localStorage.setItem(ABR_ARCHIV_KEY, JSON.stringify(eintraege));
+      return true;
+    } catch (e) {
+      if (eintraege.length <= 1) {
+        alert("⚠️ Das Archiv konnte nicht gespeichert werden – der Speicher "
+            + "des Geräts ist voll.\n\nDie Abrechnung selbst ist abgeschlossen, "
+            + "und die PDF liegt im Download-Ordner.\n\nBitte unter „Mehr“ eine "
+            + "Datensicherung anlegen und danach alte Daten aufräumen.");
+        return false;
+      }
+      eintraege = eintraege.slice(1);      // ältesten weglassen, nochmal
+    }
+  }
+}
+
 function abrArchivZeigen() {
   const el = document.getElementById("abrArchiv");
   if (!el) return;
   const liste = abrArchivLesen();
   if (!liste.length) { el.innerHTML = ""; return; }
+  /* Zeigt, was der Eintrag WIRKLICH enthaelt. Ohne diese Zeile sieht ein
+     Eintrag mit allen drei Schritten genauso aus wie ein alter, der nur
+     den Verkaufsbericht traegt - und man haelt Verlorenes fuer
+     vorhanden. */
+  const inhalt = (e) => {
+    const teile = [];
+    const invZeilen = e.inv && e.inv.felder
+      ? Object.keys(e.inv.felder).filter((k) => {
+          const f = e.inv.felder[k] || {};
+          return String(f.mg == null ? "" : f.mg).trim() !== "";
+        }).length : 0;
+    if (invZeilen) teile.push("Inventur " + invZeilen + (invZeilen === 1 ? " Zeile" : " Zeilen"));
+    let stangen = 0;
+    if (e.kae && e.kae.zeilen) {
+      Object.values(e.kae.zeilen).forEach((z) => {
+        const kar = invZahl((z || {}).kar), gr = invZahl((z || {}).gr) || KAE_STANDARD;
+        stangen += kar * gr + invZahl((z || {}).anz);
+      });
+    }
+    if (stangen) teile.push("Ware " + stangen.toLocaleString("de-DE") + " Stangen");
+    if (e.invUnterschrieben) teile.push("unterschrieben");
+    return teile.length ? teile.join(" · ") : "nur Verkaufsbericht";
+  };
   el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>Abgeschlossene Abrechnungen</h3>" +
     liste.slice().reverse().map((e) =>
       '<div class="abr-archiv-zeile"><span>' + invEsc(e.datum || "") +
       (e.tour ? " · Tour " + invEsc(e.tour) : "") + "</span>" +
       '<span>Endbestand ' + invFmt(e.endbestand || 0) + " €</span>" +
+      '<span>' + invEsc(inhalt(e)) + "</span>" +
       '<span class="klein">abgeschlossen ' + invStempelText(e.zeitpunkt) + "</span></div>").join("");
 }
 
@@ -8033,11 +8087,37 @@ async function abrAbschliessen() {
     pdfUebergabe(r.pdf, r.filename);
   }
 
-  // 2. Ins Archiv
+  /* 2. Ins Archiv - ALLE DREI SCHRITTE.
+     Mirko am 22.09.2026: "desweiteren sollten die gesamten 3 schritte
+     dann auch abgelegt werden in einen extra Ordner Gesamtabrechnung,
+     mit dem Datum an dem es abgegeben wird und zeitstempel."
+
+     🔴 WAS VORHER FEHLTE: Der Eintrag trug nur die Felder des
+     VERKAUFSBERICHTS. Fahrzeug-Inventur und "Neue Ware zaehlen" wurden
+     drei Zeilen weiter unten geleert - und waren damit unwiederbringlich
+     weg. Nach jedem Abschluss fehlten zwei von drei Schritten.
+
+     Der Eintrag entsteht VOR dem Leeren, invState und kaeState tragen
+     hier also noch die Zahlen des abgeschlossenen Durchgangs.
+
+     ⚠ Die UNTERSCHRIFT wird bewusst NICHT mitgespeichert. Sie ist ein
+     Foto und kaeme als Datenstrom in JEDEN der 24 Eintraege - das
+     sprengt den Speicher des Geraets. Gespeichert wird nur, DASS
+     unterschrieben war, und wann.
+
+     ⚠ Dass "Neue Ware zaehlen" bewusst NICHT in der laufenden
+     Datensicherung steckt ("jede Woche neu und kein Nachweis", steht so
+     in den Einstellungen), ist kein Widerspruch: Dort geht es um den
+     ARBEITSSTAND, hier um einen abgeschlossenen, datierten Vorgang.
+     Mirko wurde am 22.09.2026 ausdruecklich darauf hingewiesen und hat
+     sich dafuer entschieden. */
   const archiv = abrArchivLesen();
   archiv.push({ datum: datum, tour: tour, endbestand: endbestand,
-                zeitpunkt: Date.now(), felder: abrState.felder, sig: abrState.sig });
-  try { localStorage.setItem(ABR_ARCHIV_KEY, JSON.stringify(archiv.slice(-24))); } catch (e) {}
+                zeitpunkt: Date.now(), felder: abrState.felder, sig: abrState.sig,
+                inv: invState, kae: kaeState,
+                invSigTs: localStorage.getItem("inventur_signature_ts") || "",
+                invUnterschrieben: !!localStorage.getItem("inventur_signature") });
+  abrArchivSichern(archiv);
 
   /* 3. Alles leeren, Endbestand als Vortrag uebernehmen.
         Das Datum gehoert zum abgeschlossenen Durchgang und wird geleert -
