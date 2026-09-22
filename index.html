@@ -1920,6 +1920,15 @@
      height:100% allein genuegt nicht - min-height schlaegt height. */
   .inv-box input, .inv-sig input { width:100%; height:100%; min-height:0; border:none; background:transparent; font:inherit; font-size:13px; padding:0 4px; }
   .inv-box input { text-align:right; font-variant-numeric:tabular-nums; }
+  /* Zurück zum Eingeben - steht am Ende des Blattes, siehe Begründung
+     beim Knopf selbst. Nur auf dem Bildschirm: beim Drucken und in der
+     PDF hat ein Bedienknopf nichts verloren. .no-print greift bereits
+     für die Werkzeugleisten; die Aufnahme des Blattes (invBlattCanvas)
+     nimmt ohnehin nur #invBlatt auf, und dieser Knopf steht ausserhalb
+     davon - er kann gar nicht mit aufs Blatt geraten. */
+  .inv-zurueck-zeile { display:flex; justify-content:center; margin:14px 0 4px; }
+  .inv-zurueck-zeile button { min-width:200px; }
+  @media print { .inv-zurueck-zeile { display:none !important; } }
   .inv-fix { border:1px solid #000; font-size:12px; font-weight:700; padding:2px 4px; white-space:nowrap; }
   .inv-jn td { border:1px solid #000; text-align:center; font-size:12px; height:19px; width:52px; background:#e8e3a8; }
   .inv-sig { border:1px solid #000; height:24px; }
@@ -3335,6 +3344,25 @@
               </td></tr>
         </table>
       </div>
+    </div>
+
+    <!-- ===== Zurück zur Erfassung, am ENDE des Blattes =====
+         Mirko am 22.09.2026: "wenn man auf fahrzeug inventur dann ist,
+         muss man auch die möglichkeit haben nochmal auf zurück zu gehen,
+         das man wieder beim eingabe fenster ist."
+
+         GEMESSEN: Ganz unten im Blatt steht der Knopf "Erfassen" aus der
+         Werkzeugleiste 167 px ÜBER dem Bildrand - er ist weg. Sichtbar
+         sind dort nur "An Niederlassung senden", "Neue Inventur", die
+         Reiterleiste und "Zurücksetzen". Wer unten ankommt, muss das
+         ganze Blatt zurückscrollen, um wieder eingeben zu können.
+
+         Deshalb hier, wo der Weg endet. Er ruft dieselbe Funktion wie
+         der Knopf oben - kein zweiter Weg, nur ein zweiter Griff. -->
+    <div class="inv-zurueck-zeile">
+      <button type="button" class="primary" onclick="invSetAnsicht('erfassen')">
+        ✏️ Zurück zum Eingeben
+      </button>
     </div>
   </div>
 </div>
