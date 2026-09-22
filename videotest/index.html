@@ -55,6 +55,8 @@
   .nurSorte { opacity:.45; }
   .nurSorte .art { background:#3a2a2a; color:#c88; }
   @keyframes auf { from { background:#4a2a12; } to { background:transparent; } }
+  #tempo { padding:8px 14px; background:#0d0d0d; color:#8ecf8e;
+           font-size:13px; font-family:ui-monospace,Menlo,monospace; }
   #hinweis { padding:14px; font-size:13px; color:#999; line-height:1.5; }
 </style>
 </head>
@@ -77,6 +79,11 @@
   </div>
   <div id="status">bereit</div>
 </div>
+
+<!-- Tempo: ohne das weiss man zwar, OB gelesen wird, aber nicht ob es
+     schnell genug ist. Genau darum geht es beim Test (Mirko: "es soll
+     simple sein ... da geht jedes haendische zaehlen schneller"). -->
+<div id="tempo">läuft nicht</div>
 
 <div class="knopfreihe">
   <button id="startKnopf" class="start">▶ Starten</button>
@@ -128,6 +135,16 @@
 const gesehen = new Set();      // nur einmalige Stück-Codes
 const sorten  = new Set();      // Strichcodes, nur zur Anzeige
 let leser = null, laeuft = false;
+let startZeit = 0, tempoUhr = null;
+
+function tempoZeigen() {
+  const el = document.getElementById("tempo");
+  if (!laeuft || !startZeit) { el.textContent = "läuft nicht"; return; }
+  const sek = Math.round((Date.now() - startZeit) / 1000);
+  const proMin = sek > 0 ? Math.round(gesehen.size / sek * 60) : 0;
+  el.textContent = gesehen.size + " Stück in " + sek + " s"
+    + (gesehen.size ? "   ·   " + proMin + " pro Minute" : "");
+}
 
 const elVideo  = document.getElementById("video");
 const elSumme  = document.getElementById("summe");
@@ -209,6 +226,8 @@ async function starten() {
     });
 
     laeuft = true;
+    startZeit = Date.now();
+    tempoUhr = setInterval(tempoZeigen, 500);
     document.getElementById("startKnopf").disabled = true;
     document.getElementById("stopKnopf").disabled = false;
     elStatus.textContent = "läuft – schwenken Sie langsam";
@@ -221,6 +240,11 @@ async function starten() {
 
 function stoppen() {
   if (leser) { leser.reset(); leser = null; }
+  if (tempoUhr) { clearInterval(tempoUhr); tempoUhr = null; }
+  const sek = startZeit ? Math.round((Date.now() - startZeit) / 1000) : 0;
+  document.getElementById("tempo").textContent =
+    "ERGEBNIS: " + gesehen.size + " Stück in " + sek + " s"
+    + (sek ? "   ·   " + Math.round(gesehen.size / sek * 60) + " pro Minute" : "");
   laeuft = false;
   document.getElementById("startKnopf").disabled = false;
   document.getElementById("stopKnopf").disabled = true;
@@ -231,6 +255,8 @@ document.getElementById("startKnopf").onclick = starten;
 document.getElementById("stopKnopf").onclick = stoppen;
 document.getElementById("leerenKnopf").onclick = () => {
   gesehen.clear();
+  sorten.clear();
+  startZeit = laeuft ? Date.now() : 0;
   elSumme.textContent = "0";
   elListe.innerHTML = "";
   elStatus.textContent = laeuft ? "läuft – zurückgesetzt" : "bereit";
