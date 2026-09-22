@@ -12911,22 +12911,118 @@ oeffneAusAnker();
    Prüft eine kleine version.txt (am Cache vorbei). Weicht sie von der geladenen
    Version ab, lädt die Seite einmal frisch nach - so nutzt jeder automatisch die
    neueste Version, ohne selbst "hart neu laden" zu müssen. Alle Daten liegen lokal
-   im Browser und gehen dabei NICHT verloren. */
+   im Browser und gehen dabei NICHT verloren.
+
+   🔴 GEÄNDERT am 22.09.2026 - vorher stand hier "nur beim Öffnen prüfen,
+   kein Dauer-Intervall". Genau das war der Fehler.
+
+   Mirko: "egal wer es bereits nutzt als app oder webb tool die änderungen
+   muss jeder bekommen auch ohne app löschen neu hinzufügen."
+
+   EINE HANDY-APP WIRD NIE "GEÖFFNET". Sie wird weggelegt und wieder
+   hervorgeholt - das Betriebssystem hält die Seite dabei am Leben. Wer
+   die App auf dem Startbildschirm hat, löst also oft wochenlang kein
+   einziges Laden aus, und die Prüfung lief nie wieder. Deshalb musste
+   die App bisher gelöscht und neu eingerichtet werden.
+
+   Gemessen mit update-ankommen-pruefen.sh, drei Lagen:
+     neu geöffnet          ging schon immer
+     aus dem Hintergrund   kam NIE an   <- der Fall, der im Alltag zählt
+     liegt offen           kam NIE an
+
+   Jetzt wird zusätzlich geprüft, wenn die App zurückkommt
+   (visibilitychange/pageshow/focus) und in Abständen, solange sie offen
+   liegt.
+
+   ⛔ ES WIRD NICHT MITTEN IN EINE EINGABE HINEINGELADEN. Steht ein
+   Dialog offen oder tippt jemand gerade in ein Feld, wird verschoben,
+   nicht abgebrochen - sonst verlöre ein Fahrer im Lkw seine halb
+   getippte Zeile. Der Anker sorgt dafür, dass er nach dem Neuladen
+   wieder in seinem Bereich steht und nicht auf der Startseite. */
 (function () {
   const APP_VERSION = "2026-09-22-1"; // bei jeder Änderung zusammen mit version.txt hochzählen
-  async function checkForUpdate() {
-    try {
-      const r = await fetch("version.txt?cb=" + Date.now(), { cache: "no-store" });
-      if (!r.ok) return;
-      const latest = (await r.text()).trim();
-      if (!latest || latest === APP_VERSION) return;
-      if (sessionStorage.getItem("reloaded_for") === latest) return; // Schutz vor Reload-Schleife
-      sessionStorage.setItem("reloaded_for", latest);
-      const base = location.pathname.replace(/\?.*$/, "");
-      location.replace(base + "?v=" + encodeURIComponent(latest));
-    } catch (e) { /* offline o.ä. - einfach weiterlaufen */ }
+  const ABSTAND = 15 * 60 * 1000;     // höchstens alle 15 Minuten ans Netz
+  const SPAETER = 60 * 1000;          // verschoben? in einer Minute nochmal
+  /* Untergrenze auch für die sofortige Prüfung. Wer zwischen zwei
+     Browser-Tabs hin- und herspringt, löst dauernd "visibilitychange"
+     aus - ohne diese Bremse ginge bei jedem Sprung eine Anfrage raus.
+     Die Datei ist winzig, aber 760 Geräte sind 760 Geräte. */
+  const MINDEST = 20 * 1000;
+  let letzte = 0, laeuft = false, nachholen = null;
+
+  /* Darf jetzt neu geladen werden, ohne jemandem ins Handwerk zu pfuschen? */
+  function guterMoment() {
+    if (document.querySelector(".modal-overlay")) return false;
+    const a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
+    return true;
   }
-  checkForUpdate(); // nur beim Öffnen prüfen - kein Dauer-Intervall
+
+  /* Welcher Bereich ist gerade offen? Als Anker mitgeben, damit das
+     Neuladen nicht auf der Kachel-Startseite endet. oeffneAusAnker()
+     versteht arbeitszeit, urlaub, abrechnung und inventur. */
+  function offenerAnker() {
+    try {
+      if (typeof TAB_PANEL_MAP !== "object") return "";
+      for (const tab of ["inventur", "abrechnung", "urlaub", "zeit"]) {
+        const el = document.getElementById(TAB_PANEL_MAP[tab]);
+        if (el && getComputedStyle(el).display !== "none") {
+          return tab === "zeit" ? "#arbeitszeit" : "#" + tab;
+        }
+      }
+    } catch (e) {}
+    return "";
+  }
+
+  function neuLaden(fassung) {
+    sessionStorage.setItem("reloaded_for", fassung);   // Schutz vor Reload-Schleife
+    const base = location.pathname.replace(/\?.*$/, "");
+    location.replace(base + "?v=" + encodeURIComponent(fassung) + offenerAnker());
+  }
+
+  async function pruefen(sofort) {
+    if (laeuft) return;
+    const jetzt = Date.now();
+    if (jetzt - letzte < (sofort ? MINDEST : ABSTAND)) return;
+    laeuft = true; letzte = jetzt;
+    try {
+      const r = await fetch("version.txt?cb=" + jetzt, { cache: "no-store" });
+      if (!r.ok) return;
+      const neueste = (await r.text()).trim();
+      if (!neueste || neueste === APP_VERSION) return;
+      if (sessionStorage.getItem("reloaded_for") === neueste) return;
+      if (guterMoment()) { neuLaden(neueste); return; }
+      /* Mitten in der Arbeit - später nochmal, nicht aufgeben. */
+      if (!nachholen) {
+        nachholen = setInterval(() => {
+          if (!guterMoment()) return;
+          clearInterval(nachholen); nachholen = null;
+          neuLaden(neueste);
+        }, SPAETER);
+      }
+    } catch (e) { /* offline o.ä. - einfach weiterlaufen */ }
+    finally { laeuft = false; }
+  }
+
+  pruefen(true);                                   // beim Öffnen
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") pruefen(true);   // zurück aus dem Hintergrund
+  });
+  window.addEventListener("pageshow", (e) => { if (e.persisted) pruefen(true); });
+  window.addEventListener("focus", () => pruefen(false));
+  setInterval(() => { if (document.visibilityState === "visible") pruefen(false); }, ABSTAND);
+
+  /* Auch der Service Worker soll beim Zurückkommen nach einer neuen
+     Fassung sehen - sonst liefert er seine gespeicherte weiter aus. */
+  function workerNachsehen() {
+    if (!("serviceWorker" in navigator) || !navigator.serviceWorker.getRegistration) return;
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (reg) reg.update().catch(() => {});
+    }).catch(() => {});
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") workerNachsehen();
+  });
 })();
 
 /* ===================== Offline-Faehigkeit =====================
@@ -12950,7 +13046,14 @@ oeffneAusAnker();
   if (!("serviceWorker" in navigator)) return;
   if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js", { scope: "/" }).then(function (reg) {
+    /* updateViaCache: "none" - der Worker selbst darf NIE aus dem
+       Zwischenspeicher des Browsers kommen. Ohne diese Angabe gilt die
+       Voreinstellung "imports", und sw.js wird mit seinem eigenen
+       Cache-Control ausgeliefert (gemessen auf hall-spesen-rechner.de:
+       max-age=600). Dann kann der Browser bis zu zehn Minuten lang am
+       alten Worker festhalten - und der alte Worker kennt den neuen
+       Zwischenspeicher-Namen nicht und räumt ihn nie auf. */
+    navigator.serviceWorker.register("sw.js", { scope: "/", updateViaCache: "none" }).then(function (reg) {
       reg.update().catch(function () {});
     }).catch(function (e) {
       console.warn("Service Worker konnte nicht angemeldet werden:", e && e.message);
