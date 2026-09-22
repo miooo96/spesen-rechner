@@ -8077,14 +8077,27 @@ async function abrAbschliessen() {
   /* 1. PDF ablegen - BEIDE Zettel in einer Datei (Mirko, 05.09.2026).
         Muss vor dem Leeren passieren: danach sind die Blaetter
         zurueckgesetzt und die Aufnahme waere leer. */
-  const r = await abrBuildBeidePdf();
+  /* ⚠ EIN Zeitstempel fuer alles. Er steht im Dateinamen UND im
+     Archiveintrag - werden beide getrennt genommen, liegen sie Sekunden
+     auseinander und man findet die Datei zum Eintrag nicht mehr. */
+  const zeitpunkt = Date.now();
+
+  /* Seit 22.09.2026 die GESAMTABRECHNUNG: alle drei Schritte in einer
+     Datei, benannt mit Abgabedatum und Uhrzeit. Vorher waren es zwei
+     Blaetter unter "Abrechnung-komplett" - "Neue Ware zaehlen" fehlte
+     ganz, obwohl es Schritt drei ist. */
+  const r = await gesamtabrechnungPdf(zeitpunkt);
   if (r) {
     r.pdf.save(r.filename);
     /* Dasselbe Uebergabe-Fenster wie bei "Beide Zettel" statt eines
        confirm() mit pdfDrucken(): Sonst haette der Abschluss wieder den
        Weg genommen, der am Handy nur Seite 1 druckt (05.09.2026). Eine
        Stelle, ein Weg. */
-    pdfUebergabe(r.pdf, r.filename);
+    pdfUebergabe(r.pdf, r.filename, "Gesamtabrechnung ist fertig",
+      "<b>" + r.seiten + " Seiten</b> in einer Datei:<br>"
+      + "1 Fahrzeug-Inventur (quer) &middot; 2 Verkaufsbericht (hoch)"
+      + (r.seiten > 2 ? " &middot; 3 Neue Ware gezählt (hoch)" : "")
+      + "<br><span class=\"small\">" + r.filename + "</span>");
   }
 
   /* 2. Ins Archiv - ALLE DREI SCHRITTE.
@@ -8113,7 +8126,7 @@ async function abrAbschliessen() {
      sich dafuer entschieden. */
   const archiv = abrArchivLesen();
   archiv.push({ datum: datum, tour: tour, endbestand: endbestand,
-                zeitpunkt: Date.now(), felder: abrState.felder, sig: abrState.sig,
+                zeitpunkt: zeitpunkt, felder: abrState.felder, sig: abrState.sig,
                 inv: invState, kae: kaeState,
                 invSigTs: localStorage.getItem("inventur_signature_ts") || "",
                 invUnterschrieben: !!localStorage.getItem("inventur_signature") });
@@ -8344,6 +8357,131 @@ async function abrBuildPdf() {
    der Druckdialog des Browsers kennt pro Auftrag nur EINE Ausrichtung.
    Genau deshalb laeuft dieser Weg ueber jsPDF und nicht ueber
    window.print() auf beide Panels. */
+/* ===================== Die Gesamtabrechnung =====================
+   Mirko am 22.09.2026: "die gesamten 3 schritte ... mit dem Datum an dem
+   es abgegeben wird und zeitstempel."
+
+   Beim Abschliessen entstand bisher "Abrechnung-komplett" mit ZWEI
+   Blaettern: Inventurblatt und Verkaufsbericht. Der dritte Schritt -
+   "Neue Ware zaehlen" - hatte ueberhaupt kein Blatt; es gibt dort nur
+   den Erfassungs-Bildschirm.
+
+   Das Blatt dafuer entsteht hier, aus denselben Zahlen, die der
+   Bildschirm zeigt: Kartons x je Karton + lose Stangen je Zeile,
+   darunter die Summe und der Vergleich mit dem Lieferschein.
+
+   ⚠ Es nimmt einen Datenstand ENTGEGEN statt ihn aus dem Bildschirm zu
+   lesen. So laesst sich spaeter auch ein archivierter Durchgang
+   ausgeben, ohne den laufenden anzufassen - genau das war die Gefahr
+   bei einem "aus dem DOM lesen": Wer eine alte Abrechnung ansieht,
+   darf dabei nie die Zahlen der laufenden Woche verlieren. */
+function wareBlattHtml(kae, kopfFelder) {
+  const zeilen = (kae && kae.zeilen) || {};
+  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 9px; background:#FDE9DC; text-align:${r ? "right" : "left"};">${l}</th>`;
+  const td = (v, r, extra) => `<td style="border:1px solid #333; padding:6px 9px;${r ? " text-align:right;" : ""}${extra || ""}">${v}</td>`;
+
+  let gesamt = 0;
+  const reihen = Object.keys(zeilen)
+    .sort((a, b) => (+a) - (+b))
+    .map((k) => {
+      const z = zeilen[k] || {};
+      const kar = invZahl(z.kar), gr = invZahl(z.gr) || KAE_STANDARD, lose = invZahl(z.anz);
+      const summe = kar * gr + lose;
+      if (!summe && !kar && !lose) return "";
+      gesamt += summe;
+      return `<tr>
+        ${td(String(+k + 1))}
+        ${td(kar ? kar.toLocaleString("de-DE") : "", true)}
+        ${td(kar ? gr + "er" : "", true)}
+        ${td(lose ? lose.toLocaleString("de-DE") : "", true)}
+        ${td(summe ? summe.toLocaleString("de-DE") : "", true, " font-weight:600;")}
+      </tr>`;
+    }).join("");
+
+  if (!reihen) return null;          // nichts gezaehlt - kein Blatt
+
+  const ls = String((kae && kae.lieferschein) || "").trim();
+  const lsZahl = invZahl(ls);
+  /* Dieselbe Richtung wie im Programm: Lieferschein minus Gezaehlt.
+     Positiv heisst, es FEHLEN Stangen gegenueber dem Schein. */
+  const diff = ls === "" ? null : lsZahl - gesamt;
+
+  const kopf = druckKopfHtml("Neue Ware gezählt", [
+    ["Name", ((kopfFelder && kopfFelder.name) || config.name || "").trim()],
+    ["Datum", ((kopfFelder && kopfFelder.datum) || "").trim()],
+    ["Tour", ((kopfFelder && kopfFelder.tour) || "").trim()],
+    ["Niederlassung", (config.niederlassung || "").trim()],
+  ]);
+
+  return kopf
+    + `<table style="width:100%; border-collapse:collapse; font-size:13px;">`
+    + `<tr>${th("Zeile")}${th("Kartons", true)}${th("je Karton", true)}${th("lose Stangen", true)}${th("Stangen", true)}</tr>`
+    + reihen
+    + `<tr style="font-weight:bold;">${td("Gezählte Stangen")}${td("", true)}${td("", true)}${td("", true)}`
+    + td(gesamt.toLocaleString("de-DE"), true) + `</tr>`
+    /* ⚠ Differenz GENAU wie auf dem Bildschirm: der rohe Wert
+       Lieferschein minus Gezaehlt, POSITIV wenn Stangen fehlen
+       (kaeRechne() schreibt diff.toLocaleString() unveraendert ins
+       Feld). Ein erster Entwurf drehte das Vorzeichen um und zeigte
+       "−22", wo der Bildschirm "22" zeigt - dieselbe Lage, zwei
+       Darstellungen. Gefunden beim Vergleich mit Mirkos Bildschirmfoto,
+       auf dem "Differenz: 675" steht.
+       Auch der Wortlaut ist derselbe wie im Programm, samt Einzahl. */
+    + (ls === "" ? "" :
+        `<tr>${td("Lieferschein")}${td("", true)}${td("", true)}${td("", true)}`
+        + td(lsZahl.toLocaleString("de-DE"), true) + `</tr>`
+        + `<tr style="font-weight:bold;">${td("Differenz")}${td("", true)}${td("", true)}${td("", true)}`
+        + td(diff.toLocaleString("de-DE"), true,
+             ` color:${diff === 0 ? "#1a7f37" : "#c0392b"};`) + `</tr>`)
+    + `</table>`
+    + (ls === "" ? `<p style="margin-top:10px; font-size:11px; color:#666;">Kein Lieferschein eingetragen – es wurde nicht verglichen.</p>`
+       : diff === 0 ? `<p style="margin-top:10px; font-size:12px; color:#1a7f37;"><b>Stimmt überein.</b></p>`
+       : diff > 0
+         ? `<p style="margin-top:10px; font-size:12px; color:#c0392b;"><b>${Math.abs(diff) === 1 ? "Es fehlt " : "Es fehlen "}`
+           + `${diff.toLocaleString("de-DE")} ${Math.abs(diff) === 1 ? "Stange" : "Stangen"}</b> gegenüber dem Lieferschein.</p>`
+         : `<p style="margin-top:10px; font-size:12px; color:#c0392b;"><b>${Math.abs(diff) === 1 ? "Es ist " : "Es sind "}`
+           + `${(-diff).toLocaleString("de-DE")} ${Math.abs(diff) === 1 ? "Stange" : "Stangen"} mehr</b> gezählt als auf dem Lieferschein.</p>`);
+}
+
+/* Dateiname mit Abgabedatum UND Zeitstempel, wie bestellt.
+   ⚠ Ortszeit, nicht toISOString() - genau der Fehler, der heute im
+   Urlaubskalender behoben wurde: In Greenwich ist es zwischen
+   Mitternacht und 2 Uhr noch der Vortag. */
+function gesamtDateiname(zeit) {
+  const d = new Date(zeit);
+  const z = (n) => String(n).padStart(2, "0");
+  return "Gesamtabrechnung_" + d.getFullYear() + "-" + z(d.getMonth() + 1) + "-"
+       + z(d.getDate()) + "_" + z(d.getHours()) + z(d.getMinutes()) + ".pdf";
+}
+
+/* Alle drei Schritte in EINER Datei, in der Reihenfolge des Ablaufs.
+   Bewusst ein Dokument statt drei Dateien: Ein Blatt zum Abgeben ist
+   eines, nicht drei - und es laesst sich auf jedem Geraet oeffnen, ohne
+   etwas zu entpacken. */
+async function gesamtabrechnungPdf(zeit) {
+  const invCanvas = await invBlattCanvas();
+  const abrCanvas = await abrBlattCanvas();
+  if (!invCanvas || !abrCanvas) return null;
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  pdfBildEinpassen(pdf, invCanvas, 8);          // 1 Fahrzeug-Inventur, quer
+  pdf.addPage("a4", "portrait");
+  pdfBildEinpassen(pdf, abrCanvas, 8);          // 2 Verkaufsbericht, hoch
+
+  /* 3 Neue Ware zaehlen - nur, wenn wirklich etwas gezaehlt wurde.
+     Ein leeres drittes Blatt waere Papier ohne Aussage. */
+  const wareHtml = wareBlattHtml(kaeState, { datum: kopfDatum(), tour: kopfTour() });
+  if (wareHtml) {
+    const wareCanvas = await druckblattCanvas(wareHtml, 820, druckblattSvgGerade);
+    if (wareCanvas) {
+      pdf.addPage("a4", "portrait");
+      pdfBildEinpassen(pdf, wareCanvas, 8);
+    }
+  }
+  return { pdf, filename: gesamtDateiname(zeit), seiten: pdf.getNumberOfPages() };
+}
+
 async function abrBuildBeidePdf() {
   const invCanvas = await invBlattCanvas();
   const abrCanvas = await abrBlattCanvas();
