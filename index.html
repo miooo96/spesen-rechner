@@ -1177,20 +1177,60 @@
 
      Die Regel oben ist allgemein und trifft JEDES input auf der Seite,
      auch die im Vordruck. Deshalb stellt diese Regel den alten Zustand
-     dort ausdruecklich wieder her. Dasselbe gilt fuer den
-     Verkaufsbericht (#abrechnungBlatt). */
-  #formular input, #formular select,
-  #abrechnungBlatt input, #abrechnungBlatt select {
+     dort ausdruecklich wieder her.
+
+     🔴 HIER STAND AUCH "#abrechnungBlatt" - EIN ELEMENT, DAS ES NICHT
+     GIBT. Der Verkaufsbericht heisst #abrBlatt. Der Selektor lief also
+     seit Redesign Schritt 8 ins Leere: Gemeint war die Ausnahme,
+     gewirkt hat sie nie. Am 22.09.2026 gemessen - das Blatt war dadurch
+     210 x 406 mm statt 210 x 297.
+
+     ⛔ Der Name wurde NICHT einfach korrigiert. Eine ID-Regel schlaegt
+     ".abr-blatt input", und die setzt dort bewusst border:none und
+     background:transparent - ein korrigierter Selektor haette dem
+     Verkaufsbericht sichtbare Rahmen und Polster verpasst. Stattdessen
+     steht die Aufhebung weiter unten als eigene, schmale Regel, die NUR
+     min-height zuruecknimmt. */
+  #formular input, #formular select {
     padding: 7px 10px; min-height: 0;
     border: 1px solid #d8dce2; border-radius: 7px;
     font-size: 0.9rem; color: #1a1a1a;
   }
-  #formular input:hover, #formular select:hover,
-  #abrechnungBlatt input:hover, #abrechnungBlatt select:hover { border-color: #b9c0cb; }
-  #formular input:focus, #formular select:focus,
-  #abrechnungBlatt input:focus, #abrechnungBlatt select:focus {
+  #formular input:hover, #formular select:hover { border-color: #b9c0cb; }
+  #formular input:focus, #formular select:focus {
     border-color: var(--accent); box-shadow: 0 0 0 3px rgba(254,92,1,0.15);
   }
+
+  /* ⛔ DIE BEIDEN ANDEREN VORDRUCKE - Fortsetzung der Korrektur vom
+     21.09.2026.
+
+     Damals fiel Mirko im Browser auf, dass "895" und "675" UNTER ihren
+     Kaesten standen. Behoben wurde daraufhin ".inv-box input" und
+     ".inv-sig input" mit min-height:0 - das sind die Kaesten im FUSS des
+     Inventurblatts. Die 22 Zeilen der Haupttabelle (.inv-blk) blieben
+     bei 48 px, und der Verkaufsbericht ebenfalls, weil seine Ausnahme
+     auf einen nicht vorhandenen Namen zeigte.
+
+     GEMESSEN am 22.09.2026 mit inv-blatt-messen.sh:
+       Inventurblatt   297 x 404 mm   statt 297 x 210 (A4 quer)
+       Verkaufsbericht 210 x 406 mm   statt 210 x 297 (A4 hoch)
+       Zeilen 49 px statt der im CSS stehenden 16 px
+
+     Auf der Querseite schrumpfte das Inventurblatt dadurch auf 52 % der
+     Breite zusammen. Mirko am 22.09.2026: "hat ja nichts mit dem
+     orginal zu tun." Der Original-Vordruck liegt im Vault
+     (07 Anhaenge/KFZ Bestandsaufnahme - Vordruck.jpg) und ist QUER.
+
+     ⛔ Diese Regel nimmt AUSSCHLIESSLICH min-height zurueck. Alles
+     andere - Rahmen, Hintergrund, Schriftgroesse, Hoehe - bleibt dort,
+     wo es steht: bei den Regeln der beiden Blaetter. Sonst waere die
+     Heilung schlimmer als die Krankheit.
+
+     ⚠ Es betrifft NICHT nur den Bildschirm. Beide Blaetter werden per
+     html2canvas fuer die PDF aufgenommen, die per "An Niederlassung
+     senden" das Haus verlaesst. */
+  #invBlatt input, #invBlatt select,
+  #abrBlatt input, #abrBlatt select { min-height: 0; }
   .weekday-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 4px; }
   .weekday-row span { width: 28px; font-weight: bold; font-size: 0.85rem; }
   .weekday-row input { width: 80px; }
