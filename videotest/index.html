@@ -199,42 +199,85 @@ function eintragen(text, format) {
 }
 
 async function starten() {
-  elStatus.textContent = "Kamera wird geöffnet …";
+  const st = document.getElementById("status");
+  st.textContent = "Kamera wird geöffnet …";
+
+  /* ⛔ KORRIGIERT 22.09.2026. Die erste Fassung fragte ERST die
+     Kameraliste ab (listVideoInputDevices) und oeffnete DANN die Kamera.
+     Auf dem iPhone gibt Safari die Liste aber erst heraus, NACHDEM die
+     Erlaubnis erteilt wurde - die Liste blieb leer, der Start scheiterte,
+     und meine Fehlermeldung schob es faelschlich auf die Verbindung.
+     (Mirko: "die kamera braucht eine sichere verbindung" - die Verbindung
+     war die ganze Zeit sicher, https ist erzwungen.)
+
+     Jetzt wird die Kamera direkt ueber facingMode angefordert. Das
+     fragt die Erlaubnis ab UND waehlt die Rueckkamera, ohne vorher
+     irgendetwas aufzaehlen zu muessen. */
+
+  if (!window.isSecureContext) {
+    alert("Diese Seite läuft nicht über eine gesicherte Verbindung.\n\n"
+        + "Adresse: " + location.origin + "\n\n"
+        + "Bitte mit https:// öffnen.");
+    st.textContent = "unsichere Verbindung";
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Dieser Browser bietet keinen Kamerazugriff an.");
+    st.textContent = "kein Kamerazugriff";
+    return;
+  }
+
   try {
-    const hints = new Map();
     const ZX = ZXing;
-    /* Alle gängigen Formate: EAN auf Stangen und Kartons, DataMatrix
-       fuer die EU-TTT-Kennzeichnung. */
+    const hints = new Map();
     hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
       ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8,
       ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.ITF,
       ZX.BarcodeFormat.DATA_MATRIX, ZX.BarcodeFormat.QR_CODE,
     ]);
     hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-
     leser = new ZX.BrowserMultiFormatReader(hints, 200);
-    /* Rueckkamera bevorzugen. */
-    const geraete = await ZX.BrowserCodeReader.listVideoInputDevices();
-    const hinten = geraete.find((g) => /back|rück|rear|environment/i.test(g.label));
-    const id = hinten ? hinten.deviceId : (geraete[0] && geraete[0].deviceId);
 
-    await leser.decodeFromVideoDevice(id, elVideo, (ergebnis, fehler) => {
-      if (ergebnis) {
-        eintragen(ergebnis.getText(), String(ergebnis.getBarcodeFormat()));
-        elStatus.textContent = "läuft – zuletzt: " + new Date().toLocaleTimeString("de-DE");
-      }
-    });
+    /* Rueckkamera, moeglichst hohe Aufloesung - der DataMatrix ist klein. */
+    await leser.decodeFromConstraints(
+      { video: { facingMode: { ideal: "environment" },
+                 width: { ideal: 1920 }, height: { ideal: 1080 } } },
+      elVideo,
+      (ergebnis) => {
+        if (ergebnis) {
+          eintragen(ergebnis.getText(), String(ergebnis.getBarcodeFormat()));
+          st.textContent = "läuft – zuletzt " + new Date().toLocaleTimeString("de-DE");
+        }
+      });
 
     laeuft = true;
     startZeit = Date.now();
     tempoUhr = setInterval(tempoZeigen, 500);
     document.getElementById("startKnopf").disabled = true;
     document.getElementById("stopKnopf").disabled = false;
-    elStatus.textContent = "läuft – schwenken Sie langsam";
+    st.textContent = "läuft – langsam schwenken";
   } catch (e) {
-    elStatus.textContent = "FEHLER";
-    alert("Kamera nicht verfügbar:\n\n" + e
-      + "\n\nDie Kamera braucht eine gesicherte Verbindung (https).");
+    /* ⛔ DEN ECHTEN FEHLER ZEIGEN, nicht raten. Die erste Fassung
+       behauptete immer "braucht eine gesicherte Verbindung" - auch wenn
+       es die Erlaubnis war. Eine Meldung, die den falschen Grund nennt,
+       schickt in die falsche Richtung. */
+    const name = (e && e.name) || "Fehler";
+    let klartext;
+    if (name === "NotAllowedError")
+      klartext = "Die Kamera wurde abgelehnt.\n\nIn den Browser-Einstellungen "
+               + "für diese Seite den Kamerazugriff erlauben und neu laden.";
+    else if (name === "NotFoundError")
+      klartext = "Keine Kamera gefunden.";
+    else if (name === "NotReadableError")
+      klartext = "Die Kamera wird bereits von einer anderen App benutzt.";
+    else
+      klartext = "Unerwarteter Fehler.";
+
+    alert(klartext + "\n\n— technisch —\n" + name + ": "
+        + ((e && e.message) || e)
+        + "\nVerbindung sicher: " + window.isSecureContext
+        + "\nAdresse: " + location.origin);
+    st.textContent = name;
   }
 }
 
