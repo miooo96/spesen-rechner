@@ -57,6 +57,11 @@
   @keyframes auf { from { background:#4a2a12; } to { background:transparent; } }
   #tempo { padding:8px 14px; background:#0d0d0d; color:#8ecf8e;
            font-size:13px; font-family:ui-monospace,Menlo,monospace; }
+  #nachSorte { padding:10px 14px; font-size:13px; color:#ddd;
+               background:#141414; line-height:1.9; }
+  #nachSorte .sz { display:block; font-family:ui-monospace,Menlo,monospace;
+                   font-size:12px; color:#bbb; }
+  #nachSorte .sz b { color:var(--hall); font-size:14px; }
   #hinweis { padding:14px; font-size:13px; color:#999; line-height:1.5; }
 </style>
 </head>
@@ -90,6 +95,8 @@
   <button id="stopKnopf" disabled>■ Stopp</button>
   <button id="leerenKnopf">Zurücksetzen</button>
 </div>
+
+<div id="nachSorte"></div>
 
 <div id="liste"></div>
 
@@ -134,8 +141,18 @@
    wird angezeigt, aber nicht mitgezählt. */
 const gesehen = new Set();      // nur einmalige Stück-Codes
 const sorten  = new Set();      // Strichcodes, nur zur Anzeige
+const jeSorte = new Map();      // Artikelnummer -> wie viele Stuecke
 let leser = null, laeuft = false;
 let startZeit = 0, tempoUhr = null;
+
+function sortenZeigen() {
+  const el = document.getElementById("nachSorte");
+  if (!jeSorte.size) { el.innerHTML = ""; return; }
+  const zeilen = [...jeSorte.entries()].sort((a, b) => b[1] - a[1]);
+  el.innerHTML = "<b>Nach Sorte (Artikelnummer):</b><br>" + zeilen
+    .map(([a, n]) => '<span class="sz"><b>' + n + '×</b> ' + a + "</span>")
+    .join("");
+}
 
 function tempoZeigen() {
   const el = document.getElementById("tempo");
@@ -161,6 +178,21 @@ function artErkennen(text, format) {
   return format || "Code";
 }
 
+/* Die Artikelnummer (GS1-Feld 01) aus dem Code ziehen. Sie benennt die
+   SORTE - alle Kartons einer Sorte tragen dieselbe, jede Stange derselben
+   Sorte ebenfalls. Damit laesst sich gruppieren, ohne irgendeine Liste.
+   ⚠ Sie sagt NICHT, ob es ein Karton oder eine Stange ist - Karton und
+   Stange haben verschiedene Nummern, aber nichts daran verraet welche
+   welche ist. Genau das bleibt offen (Mirko, 22.09.2026). */
+function sorteAus(text) {
+  let m = text.match(/\(01\)\s*(\d{14})/);
+  if (m) return m[1];
+  m = text.match(/^01(\d{14})/);
+  if (m) return m[1];
+  if (/^\d{13,14}$/.test(text)) return text.padStart(14, "0");
+  return "ohne Artikelnummer";
+}
+
 /* Traegt der Code eine Seriennummer? Nur dann benennt er EIN STÜCK.
    GS1-Feld (21) = Serial. Ohne das ist es nur die Sorte. */
 function istEinzelstueck(text, format) {
@@ -177,6 +209,9 @@ function eintragen(text, format) {
     if (gesehen.has(text)) return;        // dasselbe Stück - richtig übersprungen
     gesehen.add(text);
     elSumme.textContent = gesehen.size;
+    const sorte = sorteAus(text);
+    jeSorte.set(sorte, (jeSorte.get(sorte) || 0) + 1);
+    sortenZeigen();
     if (navigator.vibrate) navigator.vibrate(40);
   } else {
     /* Strichcode: zeigt die Sorte, zählt aber NICHT. Bei fünf gleichen
@@ -299,6 +334,8 @@ document.getElementById("stopKnopf").onclick = stoppen;
 document.getElementById("leerenKnopf").onclick = () => {
   gesehen.clear();
   sorten.clear();
+  jeSorte.clear();
+  sortenZeigen();
   startZeit = laeuft ? Date.now() : 0;
   elSumme.textContent = "0";
   elListe.innerHTML = "";
