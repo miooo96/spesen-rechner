@@ -5175,6 +5175,11 @@ function zeigeTab(tab) {
      (gefunden beim Durchlauf am 05.09.2026). */
   document.body.classList.toggle("druck-abrechnung", tab === "abrechnung");
   if (tab !== "inventur") document.body.classList.remove("druck-inventur");
+  /* Leerraum unter dem Verkaufsbericht nachrechnen, sobald der Bereich
+     sichtbar ist. Vorher ist das Blatt nicht gelegt und offsetHeight
+     waere 0 - deshalb hier und nicht beim Laden der Seite. Das
+     requestAnimationFrame wartet den Aufbau ab. */
+  if (tab === "abrechnung") requestAnimationFrame(abrLeerraumAngleichen);
   // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
   // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
   // innerhalb des Tabs.
@@ -8368,6 +8373,37 @@ function abrRuecknahmeJetzt() {
       + "stehen wieder so da wie vor dem Abschließen.\n\n"
       + "⚠️ Die PDF ist bereits im Download-Ordner gespeichert – die bleibt dort liegen.");
 }
+
+/* ===== Leerraum unter dem Verkaufsbericht wegnehmen =====
+   Mirko am 22.09.2026, nach dem Vorher/Nachher-Bild: "Ja, einbauen."
+
+   transform:scale verkleinert die OPTIK, nicht den Platzbedarf. Fuer die
+   BREITE steht die Gegenrechnung im CSS (negativer rechter Rand,
+   210mm x 0,61). Fuer die HOEHE geht das in CSS nicht - die Blatthoehe
+   haengt am Inhalt und ist keine feste Zahl. Also wird sie gemessen.
+
+   Gemessen am 22.09.2026 bei 393 px: Ueberschuss 628 px. Ohne diese
+   Rechnung standen 742 px Nichts zwischen dem Blatt und dem Knopf
+   "Abrechnung zuruecksetzen", die Seite war 1873 statt 1252 px lang.
+
+   ⚠ Die ABLAGE bleibt unberuehrt: abrBlattCanvas() nimmt das ELEMENT
+   auf, ein Aussenrand liegt ausserhalb davon. Vorher wie nachher
+   1588 x 2060 - gemessen mit leerraum-vergleich.js, nicht angenommen.
+
+   ⚠ Erkannt wird ueber die tatsaechlich wirkende Verkleinerung, nicht
+   ueber eine wiederholte Breitenangabe. Wer den Breakpoint im CSS
+   aendert, muss hier nichts nachziehen - und es kann nicht auseinander
+   laufen. Ohne Verkleinerung wird der Rand zurueckgesetzt, damit am
+   Rechner nichts hochrutscht. */
+function abrLeerraumAngleichen() {
+  const el = document.getElementById("abrBlatt");
+  if (!el) return;
+  el.style.marginBottom = "";
+  if (getComputedStyle(el).transform === "none") return;
+  const ueberschuss = el.offsetHeight - el.getBoundingClientRect().height;
+  if (ueberschuss > 1) el.style.marginBottom = (6 - ueberschuss) + "px";
+}
+window.addEventListener("resize", abrLeerraumAngleichen);
 
 let abrAufgebaut = false;
 function toggleAbrechnungPanel() {
