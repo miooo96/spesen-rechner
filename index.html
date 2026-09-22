@@ -201,6 +201,42 @@
      Riskant / Auswahl), damit die Werkzeugleiste bei vielen Funktionen
      uebersichtlich bleibt statt einer einzigen langen Reihe. */
   .toolbar-group { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  /* ⚠ NEU am 22.09.2026. Mirko: "bei spesen siehts einfach unsauber aus
+     da oben in der weissen zeile" - mit Bild vom Rechner.
+
+     Zu sehen war: Der Knopf "Zeiten fuer alle Tage" hatte die erste
+     Zeile fuer sich allein, daneben ein Trennstrich und viel Leere.
+     Grund: Eine Flex-Gruppe ist standardmaessig mindestens so breit wie
+     ihr Inhalt. Die PDF-Gruppe passte als GANZES nicht mehr daneben und
+     rutschte deshalb geschlossen in die naechste Zeile - dort brach sie
+     dann doch um, und "Abgeschlossene Monate" stand allein in einer
+     dritten. Drei Zeilen mit einem Loch.
+
+     min-width:0 erlaubt den Gruppen, schmaler als ihr Inhalt zu werden
+     und INNEN umzubrechen; die PDF-Gruppe darf zusaetzlich den Rest der
+     Zeile fuellen. Damit beginnt sie direkt neben dem Zeiten-Knopf und
+     die Knoepfe verteilen sich gleichmaessig.
+
+     ⚠ "flex: 1 1 0" und NICHT "1 1 auto". Mit auto bleibt die
+     Wunschbreite die INHALTSBREITE - die Gruppe passt damit weiterhin
+     nicht neben den Zeiten-Knopf und wandert geschlossen nach unten.
+     Erst die Basis 0 laesst sie auf der ersten Zeile beginnen und den
+     Rest der Breite fuellen; was nicht hineingeht, bricht INNERHALB der
+     Gruppe um. Gemessen: mit auto blieben es drei Zeilen wie vorher,
+     mit 0 werden es zwei (195 px -> 128 px).
+
+     🔴 UND SIE GEHOERT IN EINE EIGENE MEDIA-QUERY. Frei im CSS galt sie
+     auch am Handy - eine ID-Regel schlaegt die spaetere Klassenregel in
+     der Handy-Query. Dort quetschte sie "Als PDF speichern" und
+     "⋯ Mehr" in EINE Zeile: Die zwei Knoepfe ueberlappten sich und
+     liefen aus der weissen Karte heraus. Gesehen im Bild vom
+     22.09.2026 - die Messung meldete dazu eine Verbesserung von 128 auf
+     70 px. Zum dritten Mal an diesem Tag sah die Zahl besser aus als
+     die Wirklichkeit. */
+  @media screen and (min-width: 701px) {
+    .toolbar-group { min-width: 0; }
+    #toolbarPdfGruppe { flex: 1 1 0; }
+  }
   #toolbarKontextSpesen, #toolbarKontextZeit { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
   .toolbar-divider {
     width: 1px; align-self: stretch; background: #e3e6eb; margin: 2px 2px;
@@ -208,6 +244,13 @@
   }
   /* Der "Mehr"-Knopf existiert nur am Handy - am Rechner ist Platz genug. */
   #mehrKnopf { display: none; }
+  /* ⚠ Und damit kann der Trennstrich VOR ihm nie etwas trennen:
+     Am Rechner ist der Knopf dahinter ausgeblendet (Zeile darueber), am
+     Handy sind Trennstriche insgesamt aus (Media-Query weiter unten).
+     Er stand deshalb immer nur als einzelner Strich am rechten Rand -
+     am 22.09.2026 im Bild gesehen, nachdem die PDF-Gruppe die Breite
+     fuellt und ihn ganz nach aussen schob. */
+  #mehrToolbarTrenner { display: none; }
 
   /* ===== Fenster "Am Handy als App einrichten" ===== */
   .install-weg {
@@ -6820,14 +6863,37 @@ function invSchreibe(gid, i, f, wert) {
   invSichern();
 }
 
-/* Ein einziger delegierter Handler fuer beide Ansichten. Bewusst auf
-   #inventurPanel statt document, damit er nicht bei jeder Eingabe im
-   Spesenblatt mitlaeuft. */
+/* Ein einziger delegierter Handler fuer die Erfassungs-Ansichten.
+   Bewusst nicht auf document, damit er nicht bei jeder Eingabe im
+   Spesenblatt mitlaeuft.
+
+   🔴 BEHOBEN am 22.09.2026 - er hing ALLEIN an #inventurPanel.
+   "Neue Ware zaehlen" ist aber seit dem 05.09.2026 eine eigene
+   Hauptkategorie mit eigenem Bereich (#wareneingangPanel, siehe
+   TAB_PANEL_MAP). Beim Umzug blieb dieser Empfaenger zurueck - er
+   konnte die Felder dort nie erreichen.
+
+   DIE FOLGE, live gemessen mit ware-eingabe-pruefen.sh: Wer im
+   Ware-Bereich etwas eintippt, sieht die Zahl im Feld - sie kommt aber
+   NIRGENDS an. Nichts wird gespeichert, keine Zeilensumme, keine
+   Gesamtsumme, kein gruener Rand. Der Bereich war 17 Tage lang
+   unbenutzbar, auf allen Geraeten.
+
+   ⚠ Es sah nur deshalb funktionsfaehig aus, weil kaeRender() bereits
+   GESPEICHERTE Werte korrekt zeichnet und rechnet. Wer aeltere Daten
+   im Geraet hatte, sah eine richtige Summe - und merkte nicht, dass
+   nichts Neues mehr ankommt.
+
+   ⚠ Gefunden hat es Mirko mit zwei Bildschirmfotos. Kein Pruefwerkzeug
+   hatte angeschlagen: Sie SCHAUEN alle nur, ob etwas da ist - keines
+   TIPPT etwas ein. Genau deshalb gibt es jetzt ware-eingabe-pruefen.sh,
+   und es tippt wirklich (ein direkt gesetztes el.value loest gar kein
+   input-Ereignis aus und haette den Fehler nachgebaut statt gefunden). */
 document.addEventListener("DOMContentLoaded", function () {
   const panel = document.getElementById("inventurPanel");
   if (!panel) return;
 
-  panel.addEventListener("input", function (e) {
+  function beiEingabe(e) {
     const el = e.target;
     if (el.dataset.kae !== undefined) {           // Ware zählen
       const i = el.dataset.kae;
@@ -6836,13 +6902,30 @@ document.addEventListener("DOMContentLoaded", function () {
       kaeSichern();
       const zeile = el.closest(".inv-row");
       zeile.classList.toggle("voll", kaeHatInhalt(i));
+      /* ⚠ Die Zeilensumme "= 200 Stangen" MUSS hier mitlaufen. Sie stand
+         bisher nur in kaeRender(), und das laeuft beim Tippen gar nicht -
+         nur wenn eine Zeile dazukommt. Wer 10 Kartons zu 20er eintrug,
+         sah die Gesamtsumme springen, an der Zeile selbst aber nichts.
+         Mirko am 22.09.2026: "das muss nur live mitzaehlen wenn man es
+         eingibt." Genau dasselbe Muster benutzt die Fahrzeug-Inventur
+         eine Ebene tiefer fuer ihre ".ms"-Zelle. */
+      const zs = zeile.querySelector(".kae-zs");
+      if (zs) {
+        const s = kaeZeilenSumme(i);
+        zs.textContent = s ? "= " + s.toLocaleString("de-DE") + " Stangen" : "";
+      }
       kaeRechne();
-      if (panel.querySelectorAll("#kaeRows .inv-row").length !== kaeSichtbar()) {
+      /* ⚠ Hier stand "panel.querySelectorAll(...)" - also die Suche im
+         INVENTUR-Bereich. #kaeRows liegt aber im Ware-Bereich; die Suche
+         haette dort immer 0 Zeilen gefunden, bei JEDEM Tastendruck neu
+         gezeichnet und die Schreibmarke verloren. Jetzt im ganzen
+         Dokument suchen - die Kennungen kommen nur einmal vor. */
+      if (document.querySelectorAll("#kaeRows .inv-row").length !== kaeSichtbar()) {
         const fo = document.activeElement;
         const merk = fo && fo.dataset && fo.dataset.kae !== undefined ? { i: fo.dataset.kae, f: fo.dataset.kaef, pos: fo.selectionStart } : null;
         kaeRender();
         if (merk) {
-          const neu = panel.querySelector('[data-kae="'+merk.i+'"][data-kaef="'+merk.f+'"]');
+          const neu = document.querySelector('[data-kae="'+merk.i+'"][data-kaef="'+merk.f+'"]');
           if (neu) { neu.focus(); try { neu.setSelectionRange(merk.pos, merk.pos); } catch (x) {} }
         }
       }
@@ -6881,7 +6964,17 @@ document.addEventListener("DOMContentLoaded", function () {
       if (el.id === "invFKontrolle" || el.id === "invFFahrer") invStempelPflegen(el.id);
       invSichern();
     }
-  });
+  }
+
+  /* An BEIDE Bereiche haengen. Genau das fehlte seit dem 05.09.2026:
+     Die Fahrzeug-Inventur und "Neue Ware zaehlen" sind seitdem zwei
+     getrennte Hauptkategorien mit je eigenem Bereich, der Empfaenger
+     hing aber nur am ersten. Dieselbe Funktion, zwei Anmeldungen -
+     bewusst kein Umhaengen auf document, damit sie nicht bei jeder
+     Eingabe im Spesenblatt mitlaeuft. */
+  panel.addEventListener("input", beiEingabe);
+  const warePanel = document.getElementById("wareneingangPanel");
+  if (warePanel) warePanel.addEventListener("input", beiEingabe);
 });
 
 function invSetAnsicht(a) {
@@ -10815,10 +10908,11 @@ function zeigeWerkzeugleisteGruppe2(tab) {
      stand. Gefunden beim Ansehen von 08-jahr-d.png, nicht von einer
      Zahl gemeldet. */
   const leer = (tab === "jahr" || tab === "urlaub" || tab === "zeit");
-  ["spesenToolbarTrenner", "mehrToolbarTrenner"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = leer ? "none" : "";
-  });
+  /* Nur noch der Trennstrich vor der Spesen-Gruppe. Der vor "⋯ Mehr" ist
+     seit dem 22.09.2026 dauerhaft per CSS aus - er konnte nie etwas
+     trennen, Begruendung steht dort. */
+  const trenner = document.getElementById("spesenToolbarTrenner");
+  if (trenner) trenner.style.display = leer ? "none" : "";
 }
 
 /* ===== Spesen-Tab: Stammdaten UND Tage-Tabelle gemeinsam sichtbar =====
