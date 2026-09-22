@@ -7826,6 +7826,20 @@ async function abrAbschliessen() {
     alert("Es steht noch kein Endbestand IST im Blatt.\n\nBitte zuerst die Inventur zählen und die Ladelisten eintragen.");
     return;
   }
+  /* Kein Abschluss ohne Datum und ohne Unterschrift (Mirko, 22.09.2026).
+     Das Datum stand hier schon als Variable, wurde aber nie geprueft.
+     Die Unterschrift ist die des Verkaufsfahrers auf dem Inventurblatt -
+     auf dem Verkaufsbericht selbst sind die Felder bewusst readonly
+     (Vorgabe vom 05.09.2026, dort wird von Hand unterschrieben). */
+  const freigabe = await abschlussPruefen({
+    titel: "Abrechnung abschließen",
+    datumPflicht: true, datum: datum, datumName: "Das Datum",
+    sigKey: "inventur_signature",
+    sigName: "Die Unterschrift des Mitarbeiters",
+    sigFeldId: "sigFile-inventur_signature",
+  });
+  if (!freigabe) return;
+
   const frage = "Abrechnung abschließen?\n\n" +
     "• Der Bericht wird als PDF gespeichert und ins Archiv gelegt\n" +
     "• Endbestand IST " + invFmt(endbestand) + " € wird als Endbestand Vortrag in die neue Woche übernommen\n" +
@@ -8394,6 +8408,109 @@ async function zeitJahrBuildPdf() {
   return { pdf: druckblattPdf(canvas, false), filename: "Arbeitszeit_Jahr_" + jahr + ".pdf" };
 }
 
+/* ===================== Kein Abschluss ohne Datum und Unterschrift =====================
+   Mirko am 22.09.2026: "wichtig ist auch, dass ueberall wo die
+   unterschrift des mitarbeiters hin muss sie auch ist, wenn sie fehlt
+   muss fehlermeldung erscheinen ... und sich dann auch ohne unterschrift
+   nie abschliessen lassen koennen, genauso wie mit fehlendem datum."
+
+   Auf Rueckfrage entschieden (22.09.2026): Abschliessen geht, wenn eine
+   DIGITALE Unterschrift da ist - ODER wenn ausdruecklich bestaetigt
+   wird, dass von Hand auf dem Ausdruck unterschrieben wird. Das DATUM
+   wird immer erzwungen.
+
+   ⚠ WARUM DER HAKEN UEBERHAUPT: Eine Unterschrift auf Papier kann die
+   App nicht sehen. Ohne diesen Ausweg koennte nur noch abschliessen, wer
+   digital unterschreibt - und die Vorgabe vom 05.09.2026 lautet, dass
+   der Verkaufsbericht HAENDISCH unterschrieben wird. Die Entweder-Oder-
+   Logik gibt es im Programm laengst, bisher nur als Hinweis: siehe
+   invZeigeErgebnis() ("Entweder ein Foto der Unterschrift einfuegen -
+   oder den Ausdruck von Hand unterschreiben").
+
+   ⚠ NUR die Unterschrift des MITARBEITERS. "spesen_signature_nll" ist
+   die des Niederlassungsleiters - die kann der Fahrer nicht leisten und
+   sie wird deshalb nicht verlangt.
+
+   Gilt fuer ALLE: Mirko hat die Sicherheits-Sachen am 22.09.2026
+   ausdruecklich fuer alle freigegeben, zusammen mit "Aussehen fuer
+   alle". Kein zeigtNeuerungen() davor. */
+let __abschlussAntwort = null;
+
+function abschlussAufloesen(wert) {
+  const a = __abschlussAntwort;
+  __abschlussAntwort = null;
+  closeModal();
+  if (a) a(wert);
+}
+function abschlussAbbrechen() { abschlussAufloesen(false); }
+function abschlussTrotzdem() {
+  const h = document.getElementById("abschlussHandschrift");
+  if (!h || !h.checked) return;      // Knopf ist ohne Haken gesperrt
+  abschlussAufloesen(true);
+}
+function abschlussHakenGeaendert() {
+  const h = document.getElementById("abschlussHandschrift");
+  const k = document.getElementById("abschlussWeiterKnopf");
+  if (h && k) k.disabled = !h.checked;
+}
+/* Unterschrift jetzt gleich einfuegen - oeffnet dieselbe Dateiauswahl
+   wie der Knopf auf dem Blatt. Das Fenster schliesst dabei, weil die
+   Auswahl den Bildschirm uebernimmt; danach einfach erneut abschliessen. */
+function abschlussUnterschriftEinfuegen(feldId) {
+  abschlussAufloesen(false);
+  const f = document.getElementById(feldId);
+  if (f) f.click();
+}
+
+function abschlussPruefen(opt) {
+  return new Promise((antwort) => {
+    const fehltDatum = opt.datumPflicht && !String(opt.datum || "").trim();
+    const hatUnterschrift = !!localStorage.getItem(opt.sigKey);
+    if (!fehltDatum && hatUnterschrift) { antwort(true); return; }
+
+    __abschlussAntwort = antwort;
+    const punkte = [];
+    if (fehltDatum) punkte.push("<li><b>" + opt.datumName + "</b> ist nicht eingetragen</li>");
+    if (!hatUnterschrift) punkte.push("<li><b>" + opt.sigName + "</b> fehlt</li>");
+
+    /* Fehlt das Datum, hilft kein Haken - es muss eingetragen werden.
+       Deshalb gibt es in diesem Fall gar keinen Weiter-Knopf. */
+    const nurUnterschrift = !fehltDatum;
+    document.getElementById("modalRoot").innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this) abschlussAbbrechen()">
+        <div class="modal-box">
+          <h2>⛔ ${opt.titel} noch nicht möglich</h2>
+          <p style="margin-top:0;">Es fehlt:</p>
+          <ul style="margin:0 0 1rem 1.1rem; padding:0;">${punkte.join("")}</ul>
+          ${fehltDatum ? `
+          <div class="hinweis-box">
+            Ohne Datum darf nicht abgeschlossen werden. Bitte dieses Fenster
+            schließen, das Datum eintragen und es erneut versuchen.
+          </div>` : ``}
+          ${nurUnterschrift ? `
+          <div class="hinweis-box">
+            <b>Zwei Wege:</b> Entweder ein Foto der handschriftlichen Unterschrift
+            einfügen – oder den Ausdruck von Hand unterschreiben und das hier
+            bestätigen.
+          </div>
+          <label style="display:flex; align-items:flex-start; gap:0.6rem; margin:0.9rem 0;">
+            <input type="checkbox" id="abschlussHandschrift" onchange="abschlussHakenGeaendert()"
+                   style="width:auto; flex:none; margin-top:3px;">
+            <span>Ich unterschreibe <b>von Hand auf dem Ausdruck</b>.</span>
+          </label>` : ``}
+          <div class="modal-close-row" style="gap:.5rem; flex-wrap:wrap;">
+            ${nurUnterschrift && opt.sigFeldId ? `
+            <button class="primary" onclick="abschlussUnterschriftEinfuegen('${opt.sigFeldId}')">📷 Unterschrift einfügen</button>` : ``}
+            ${nurUnterschrift ? `
+            <button class="ghost" id="abschlussWeiterKnopf" disabled onclick="abschlussTrotzdem()">Weiter zum Abschließen</button>` : ``}
+            <button class="ghost" onclick="abschlussAbbrechen()">${fehltDatum ? "Schließen" : "Abbrechen"}</button>
+          </div>
+        </div>
+      </div>`;
+    abschlussHakenGeaendert();
+  });
+}
+
 async function zeitJahrDrucken() {
   const r = await zeitJahrBuildPdf();
   if (!r) { alert("Für dieses Jahr ist noch nichts erfasst.\n\nBitte zuerst Zeiten eintragen oder stempeln."); return; }
@@ -8587,7 +8704,28 @@ async function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
-  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\n✍️ Bitte sicherstellen, dass die handschriftliche Unterschrift (Foto/Scan) eingefügt ist – andernfalls den Ausdruck von Hand unterschreiben.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
+  /* Kein Abschluss ohne Unterschrift des Mitarbeiters (Mirko,
+     22.09.2026). Bis dahin stand darueber nur ein Hinweis im confirm
+     ("Bitte sicherstellen, dass die Unterschrift eingefuegt ist") - der
+     liess sich wegklicken. Jetzt wird gefragt und geblockt.
+
+     ⚠ KEIN Datum erzwungen: Das Spesenblatt hat kein eigenes
+     Datumsfeld, der Zeitraum IST der gewaehlte Monat. Nachgesehen, nicht
+     angenommen. Beim Verkaufsbericht gibt es abrDatum, dort wird es
+     erzwungen.
+
+     ⚠ NUR "spesen_signature" (Unterschrift Mitarbeiter), NICHT
+     "spesen_signature_nll" - die gehoert dem Niederlassungsleiter. */
+  const freigabe = await abschlussPruefen({
+    titel: "Monat abschließen",
+    datumPflicht: false,
+    sigKey: "spesen_signature",
+    sigName: "Die Unterschrift des Mitarbeiters",
+    sigFeldId: "sigFile-spesen_signature",
+  });
+  if (!freigabe) return;
+
+  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
   submitMonth(config.jahr, monat);
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
