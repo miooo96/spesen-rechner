@@ -2095,7 +2095,7 @@
        seitlich wegschieben, obwohl sichtbar nur 365 px Blatt da waren.
 
        Der negative Rand nimmt genau den Platz zurueck, den die
-       Verkleinerung einspart: 210 mm x (1 - 0,46) = 113,4 mm. Damit
+       Verkleinerung einspart: 210 mm x (1 - 0,39) = 128,1 mm. Damit
        stimmt der Platzbedarf wieder mit dem ueberein, was man sieht.
 
        ⛔ Bewusst ueber calc() an die beiden Zahlen gebunden. Wer den
@@ -2106,9 +2106,39 @@
        Aufnahme transform:none und nimmt #abrBlatt in voller Breite auf.
        Ein Aussenrand aendert die Breite des Elements nicht. Gemessen,
        nicht angenommen - die Aufnahme ist vorher wie nachher
-       1588 x 3072. */
-    .abr-blatt { transform:scale(.46); transform-origin:top left;
-                 margin:6px calc(6px - 210mm * 0.54) 6px 6px; }
+       1588 x 2060. */
+
+    /* ===== MASSSTAB .46 -> .39 am 22.09.2026 =====
+       Grund: Bei 402 px Fenster stand das Blatt 13 px aus dem Fenster
+       UND 57 px aus der weissen Karte. Gemessen, dann angesehen.
+
+       Die Karte hat innen nur 314 px (402 - 2x24 Aussenrand - 2x2
+       Rahmen - 2x18 Polsterung). Bei .46 ist das Blatt 365 px breit -
+       es passt nicht hinein. Bei .39 sind es 310 px und es steht
+       vollstaendig in der Karte.
+
+       ⛔ VERSUCHT UND VERWORFEN: linker Rand -12px. Die Messung meldete
+       Erfolg (13 px -> -5 px, "niemand steht ueber"), das BILD zeigte
+       den Schaden - das Blatt brach beidseitig aus der Karte aus.
+       Verschieben tauscht nur "steht aus dem Fenster" gegen "steht aus
+       der Karte". Nur ein kleinerer Massstab loest es.
+
+       ⛔ NICHT zoom statt transform: abrBlattCanvas() setzt nur
+       transform auf "none". Ein zoom waere bei der Aufnahme stehen
+       geblieben und der Verkaufsbericht geschrumpft ins Archiv gegangen.
+
+       ⛔ NIEMALS !important an dieser Regel. Die Aufnahme setzt
+       el.style.transform = "none" - eine Inline-Angabe. Die schlaegt
+       jede normale Regel, aber KEINE mit !important. Mit !important
+       kam die Ablage mit 620 x 804 statt 1588 x 2060 heraus - der
+       Verkaufsbericht waere auf 39 % geschrumpft beim Arbeitgeber
+       gelandet. Gemessen am 22.09.2026 mit vergleich-13px.sh.
+
+       Mirko dazu: "im pdf soll alles orginal bleiben bei jedem
+       dokument." Der Massstab gilt ausschliesslich der Bildschirm-
+       Vorschau. */
+    .abr-blatt { transform:scale(.39); transform-origin:top left;
+                 margin:6px calc(6px - 210mm * 0.61) 6px 6px; }
   }
 
   .abr-kette { border:1px solid #ddd; border-radius:10px; padding:10px 12px; background:#fff; margin:10px 0; }
