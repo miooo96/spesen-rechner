@@ -5179,7 +5179,9 @@ function zeigeTab(tab) {
      sichtbar ist. Vorher ist das Blatt nicht gelegt und offsetHeight
      waere 0 - deshalb hier und nicht beim Laden der Seite. Das
      requestAnimationFrame wartet den Aufbau ab. */
-  if (tab === "abrechnung") requestAnimationFrame(abrLeerraumAngleichen);
+  if (tab === "abrechnung" || tab === "inventur") {
+    requestAnimationFrame(alleBlaetterLeerraumAngleichen);
+  }
   // NEU (Task 6): Kopfzeile + PDF-Knopfgruppe sind nur noch an "bin ich auf
   // dem Spesen-Tab" gekoppelt, nicht mehr an die Stammdaten/Tage-Umschaltung
   // innerhalb des Tabs.
@@ -7140,6 +7142,10 @@ function invSetAnsicht(a) {
   document.getElementById("invBlattView").style.display    = a === "blatt" ? "" : "none";
   document.getElementById("invBtnErfassen").className = a === "erfassen" ? "primary" : "ghost";
   document.getElementById("invBtnBlatt").className    = a === "blatt" ? "primary" : "ghost";
+  /* Leerraum unter dem Blatt nachrechnen, sobald es sichtbar ist.
+     Solange invBlattView auf display:none steht, ist offsetHeight 0 und
+     die Rechnung ergaebe nichts. */
+  if (a === "blatt") requestAnimationFrame(alleBlaetterLeerraumAngleichen);
   if (a === "erfassen") invRenderMobil();
   const status = document.getElementById("invStatus");
   if (status) status.textContent = "Istbestand " + invFmt(invIstbestand()) + " €";
@@ -8395,15 +8401,30 @@ function abrRuecknahmeJetzt() {
    aendert, muss hier nichts nachziehen - und es kann nicht auseinander
    laufen. Ohne Verkleinerung wird der Rand zurueckgesetzt, damit am
    Rechner nichts hochrutscht. */
-function abrLeerraumAngleichen() {
-  const el = document.getElementById("abrBlatt");
+function blattLeerraumAngleichen(id) {
+  const el = document.getElementById(id);
   if (!el) return;
   el.style.marginBottom = "";
   if (getComputedStyle(el).transform === "none") return;
   const ueberschuss = el.offsetHeight - el.getBoundingClientRect().height;
   if (ueberschuss > 1) el.style.marginBottom = (6 - ueberschuss) + "px";
 }
-window.addEventListener("resize", abrLeerraumAngleichen);
+
+/* Beide Vordruck-Bildschirme haben dieselbe Bauart und denselben Fehler.
+   Gemessen am 22.09.2026 bei 393 px mit blatt-leerraum-messen.js:
+
+     Verkaufsbericht  Leerraum 742 px  ->  120 px   (Ueberschuss 628)
+     Inventurblatt    Leerraum 390 px  ->   ?       (Ueberschuss 276)
+
+   Das Inventurblatt glich bisher mit einer FESTEN Zahl aus
+   (height:126mm im CSS, Zeile ~2252). Eine feste Zahl kann nur fuer
+   einen Inhalt stimmen - gemessen wird sie hier nicht ersetzt, sondern
+   der Rest ausgeglichen, der uebrig bleibt. */
+function alleBlaetterLeerraumAngleichen() {
+  blattLeerraumAngleichen("abrBlatt");
+  blattLeerraumAngleichen("invBlatt");
+}
+window.addEventListener("resize", alleBlaetterLeerraumAngleichen);
 
 let abrAufgebaut = false;
 function toggleAbrechnungPanel() {
