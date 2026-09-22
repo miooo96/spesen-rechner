@@ -644,7 +644,19 @@
   #spesenKopfzeile {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     max-width: 1000px; margin: 0 auto 0.6rem; padding: 6px 2px;
+    /* ⚠ ERGAENZT am 22.09.2026: flex-wrap fehlte. Vier Kinder standen in
+       EINER Zeile - Titel, Monatswahl, "nicht heute" und der Hinweis
+       "Ab ... noch nicht erfasst" samt Knopf. Am Handy lief der Hinweis
+       dadurch 50 px ueber den rechten Rand (gemessen bei 402 px als
+       installierte App, ueberstand-suchen.sh).
+       Der Hinweis selbst durfte innen laengst umbrechen
+       (.voraus-hinweis hat flex-wrap) - nur die Zeile darueber nicht.
+       min-width:0 dazu, damit er auch schmaler werden darf als sein
+       Inhalt; sonst bricht die Zeile zwar um, der Hinweis bleibt aber
+       zu breit. */
+    flex-wrap: wrap;
   }
+  #spesenKopfzeile > * { min-width: 0; }
   .spesen-kopfzeile-titel { font-weight: 700; color: var(--brand-dark); font-size: 0.95rem; }
 
   /* ===== Zurueck-Button in der Tab-Leiste (Entscheidung 26.08.2026) =====
@@ -1774,8 +1786,18 @@
                  text-transform:uppercase; letter-spacing:.05em; }
   .inv-trenner::before, .inv-trenner::after { content:""; flex:1; height:1px; background:#ddd; }
   .inv-hint { text-align:center; color:#888; font-size:13px; padding:10px 0 2px; }
-  .inv-fussleiste { display:flex; gap:8px; justify-content:center; margin-top:14px; }
-  .inv-fussleiste button { flex:1; max-width:240px; }
+  /* ⚠ flex-wrap und min-width ERGAENZT am 22.09.2026.
+     Vorher stand hier nur "justify-content:center" ohne Umbruch. Passt
+     die Knopfreihe nicht in die Karte, verteilt sich der Ueberstand bei
+     zentrierter Ausrichtung auf BEIDE Seiten - der Knopf "Schritt fuer
+     Schritt" begann dadurch 7 px LINKS ausserhalb der Karte (gemessen
+     mit ueberstand-gezielt.sh bei 402 px: Karte ab 24 px, Knopf ab 17).
+     min-width:0 ist noetig, weil ein Knopf sonst nie schmaler wird als
+     seine Beschriftung - "flex:1" allein haette ihn nicht schrumpfen
+     lassen. */
+  .inv-fussleiste { display:flex; gap:8px; justify-content:center; margin-top:14px;
+                    flex-wrap:wrap; }
+  .inv-fussleiste button { flex:1 1 auto; min-width:0; max-width:240px; }
 
   .inv-blatt { width:297mm; background:#fff; padding:6mm 5mm; color:#000;
                font-family:Arial,Helvetica,sans-serif; border:1px solid #ddd; }
@@ -2025,7 +2047,28 @@
   .abr-unterschrift td.rest .inv-stempel { padding-left:8px; }
 
   @media screen and (max-width:900px) {
-    .abr-blatt { transform:scale(.46); transform-origin:top left; margin:6px; }
+    /* ⚠ Der negative rechte Rand ERGAENZT am 22.09.2026.
+       transform:scale() verkleinert nur die OPTIK - der Platzbedarf
+       bleibt die volle Blattbreite. Das Blatt ist 210 mm = 794 px breit
+       und belegte diese 794 px auch verkleinert weiter. Folge, gemessen
+       mit abr-aufnahme-messen.sh bei 402 px: Die ganze SEITE liess sich
+       seitlich wegschieben, obwohl sichtbar nur 365 px Blatt da waren.
+
+       Der negative Rand nimmt genau den Platz zurueck, den die
+       Verkleinerung einspart: 210 mm x (1 - 0,46) = 113,4 mm. Damit
+       stimmt der Platzbedarf wieder mit dem ueberein, was man sieht.
+
+       ⛔ Bewusst ueber calc() an die beiden Zahlen gebunden. Wer den
+       Massstab aendert, muss auch diesen Rand aendern - so steht die
+       Rechnung daneben und niemand muss sie neu herleiten.
+
+       ⚠ Die PDF bleibt davon unberuehrt: abrBlattCanvas() setzt vor der
+       Aufnahme transform:none und nimmt #abrBlatt in voller Breite auf.
+       Ein Aussenrand aendert die Breite des Elements nicht. Gemessen,
+       nicht angenommen - die Aufnahme ist vorher wie nachher
+       1588 x 3072. */
+    .abr-blatt { transform:scale(.46); transform-origin:top left;
+                 margin:6px calc(6px - 210mm * 0.54) 6px 6px; }
   }
 
   .abr-kette { border:1px solid #ddd; border-radius:10px; padding:10px 12px; background:#fff; margin:10px 0; }
