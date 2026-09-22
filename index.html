@@ -1875,7 +1875,23 @@
   .inv-blk tr.inv-subkopf td { font-size:11px; text-align:center; background:#fff; padding:1px 2px; height:16px; }
   .inv-blk td.fest { font-size:11px; font-weight:700; padding:0 3px; }
   .inv-blk tr.inv-leerzeile td { border:1px solid #000; height:16px; }
-  .inv-blk input { width:100%; height:16px; line-height:16px; border:none; background:transparent; font:inherit;
+  /* ⚠ REIHENFOLGE BEACHTEN (korrigiert 22.09.2026, Mirko: "die zahlen
+     sitzen nicht mitig in den feldern").
+
+     Hier stand line-height:16px VOR font:inherit - und wurde davon
+     wieder aufgehoben. font ist eine Kurzform und setzt line-height
+     mit zurueck. Gemessen: line-height kam als "normal" heraus, die
+     Absicht wirkte nie. Deshalb steht line-height jetzt DAHINTER.
+
+     Dazu vertical-align:middle. Ohne das richtet sich das Feld an der
+     Schriftlinie aus (baseline) statt mittig: gemessen 2,5 px Luft
+     oben gegen 0,5 px unten in einer 19 px hohen Zelle.
+
+     ⛔ height bleibt bei 16px und min-height darf nicht zurueck -
+     Redesign Schritt 8 gibt JEDEM input 48 px Grifflaeche, und genau
+     das sprengte dieses Blatt schon einmal (21.09.2026). */
+  .inv-blk input { width:100%; height:16px; border:none; background:transparent; font:inherit;
+                   vertical-align:1px;
                    font-size:11px; text-align:right; padding:0 3px; }
   .inv-blk td.su { text-align:right; font-size:11px; padding:0 3px; font-variant-numeric:tabular-nums; }
   .inv-sumzeile td { border:1px solid #000; font-size:11px; font-weight:700; padding:1px 3px; height:17px; }
