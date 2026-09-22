@@ -8539,16 +8539,25 @@ async function gesamtabrechnungPdf(zeit) {
   pdf.addPage("a4", "portrait");
   pdfBildEinpassen(pdf, abrCanvas, 8);          // 2 Verkaufsbericht, hoch
 
-  /* 3 Neue Ware zaehlen - nur, wenn wirklich etwas gezaehlt wurde.
-     Ein leeres drittes Blatt waere Papier ohne Aussage. */
-  const wareHtml = wareBlattHtml(kaeState, { datum: kopfDatum(), tour: kopfTour() });
-  if (wareHtml) {
-    const wareCanvas = await druckblattCanvas(wareHtml, 820, druckblattSvgGerade);
-    if (wareCanvas) {
-      pdf.addPage("a4", "portrait");
-      pdfBildEinpassen(pdf, wareCanvas, 8);
-    }
-  }
+  /* ⛔ KEIN drittes Blatt "Neue Ware zaehlen" - Mirko am 22.09.2026:
+     "neue ware zaehlen muss aber nie als adruck sein nur inventur und
+     abrechne."
+
+     Das Blatt wurde am selben Tag gebaut und ist hier wieder
+     herausgenommen. Der Grund fuer die Verwechslung: Mirko hatte
+     gesagt, die "gesamten 3 schritte" sollten ABGELEGT werden - das
+     betrifft das Archiv, nicht den Ausdruck.
+
+     ⚠ ABLAGE UND AUSDRUCK SIND ZWEI DINGE:
+       Ausdruck an die Niederlassung  -> nur Inventur + Verkaufsbericht
+       Archiveintrag                  -> weiter ALLE DREI Schritte
+     Der Archiveintrag speichert inv: invState und kae: kaeState (siehe
+     abrAbschliessen). Der Warenzettel geht also nicht verloren, er
+     landet nur nicht mehr auf Papier beim Arbeitgeber.
+
+     wareBlattHtml() bleibt absichtlich stehen: Die Zahlen sind im
+     Archiv, das Blatt laesst sich daraus jederzeit wieder erzeugen,
+     falls die Ware doch einmal angesehen werden soll. */
   return { pdf, filename: gesamtDateiname(zeit), seiten: pdf.getNumberOfPages() };
 }
 
