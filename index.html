@@ -279,7 +279,22 @@
 
   @media screen and (max-width: 700px) {
     .toolbar-divider { display: none; }
-    .toolbar-group { width: 100%; }
+    /* ⚠ GEAENDERT am 22.09.2026. Mirko: "die weisse leiste wird
+       schmaler?" und "geht bei spesen nicht abgeschlossene monate noch
+       rechts neben monat abschliessen".
+
+       Hier stand "width: 100%". Damit bekam JEDE Gruppe die volle
+       Breite und dadurch eine eigene Zeile - auch wenn nur ein einziger
+       Knopf darin stand. Gemessen mit leiste-ansehen.sh bei 402 px:
+       Spesen 186 px, INVENTUR 358 px reine Werkzeugleiste, bevor der
+       erste Inhalt kam.
+
+       Jetzt teilen sich Gruppen eine Zeile, solange sie passen; was
+       nicht passt, rutscht wie bisher nach unten. Die Entscheidung von
+       damals bleibt unangetastet: Selten Gebrauchtes steckt weiterhin
+       hinter "Mehr" (.handy-mehr unten) - es geht nur darum, dass drei
+       Knoepfe nicht drei Zeilen brauchen. */
+    .toolbar-group { flex: 0 1 auto; min-width: 0; }
 
     /* Am Handy fraß die Werkzeugleiste den kompletten ersten Bildschirm:
        13 Knoepfe untereinander, und das Spesenblatt war erst danach zu
@@ -289,6 +304,34 @@
     .toolbar .handy-mehr { display: none; }
     body.mehr-offen .toolbar .handy-mehr { display: inline-flex; }
     #mehrKnopf { display: inline-flex; }
+
+    /* ⚠ NEU am 22.09.2026. Mirko: "geht bei spesen nicht abgeschlossene
+       monate noch rechts neben monat abschliessen und die weisse leiste
+       wird schmaler?"
+
+       Sie standen untereinander, weil beide zusammen breiter sind als
+       das Display (gemessen bei 402 px: "Monat abschliessen" oben 435,
+       "Abgeschlossene Monate" oben 493). Mit offenem "Mehr" war die
+       Leiste 474 px hoch - mehr als der halbe Bildschirm.
+
+       Zwei je Zeile, feste halbe Breite. BEWUSST nicht ueber kleinere
+       Schrift oder weniger Polsterung geloest: Das haette die
+       Fingerflaechen verkleinert, und "Fingergroessen statt
+       Mausgroessen" ist eine Zeile weiter oben ausdruecklich
+       entschieden. Ein langer Text bricht lieber auf zwei Zeilen um -
+       das Blatt bleibt trotzdem kuerzer als mit einem Knopf je Zeile. */
+    body.mehr-offen .toolbar .handy-mehr {
+      flex: 1 1 calc(50% - 0.3rem); min-width: 0;
+      justify-content: center; text-align: center;
+      /* ⚠ Ohne diese Zeile laeuft der Text AUS dem Knopf heraus: Der
+         Grundknopf steht auf "white-space: nowrap" (Zeile ~386). Bei
+         halber Breite stand "Per E-Mail an Arbeitgeber weiterleiten"
+         dadurch links AUSSERHALB der weissen Karte und "Monat
+         abschliessen" quer ueber dem Symbol des Nachbarn.
+         Gesehen im Bild vom 22.09.2026 - die Messung meldete brav
+         "NEBENEINANDER, 358 px" und haette den Fehler durchgelassen. */
+      white-space: normal; overflow-wrap: anywhere; line-height: 1.25;
+    }
 
     /* Fingergroessen statt Mausgroessen */
     .toolbar button, .toolbar .btn { padding: 12px 16px; font-size: 0.9rem; }
@@ -2454,6 +2497,17 @@
   </div>
   <div class="toolbar-group" id="toolbarUrlaubPdf" style="display:none;">
     <button type="button" class="primary" onclick="urlaubDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+  </div>
+  <!-- Zeit bekommt ZWEI Blaetter (Mirko, 22.09.2026: "beides"):
+       Monat = der Nachweis ueber geleistete Arbeitszeit, hochkant, weil
+       es eine Tagesliste ist. Jahr = der Ueberblick, quer.
+       Hier steht ein eigener Trennstrich davor, weil links davon der
+       Start/Stopp-Knopf steht - anders als auf Jahr und Urlaub, wo
+       nichts davor liegt. -->
+  <span class="toolbar-divider" id="zeitToolbarTrenner" style="display:none;"></span>
+  <div class="toolbar-group" id="toolbarZeitPdf" style="display:none;">
+    <button type="button" class="primary" onclick="zeitMonatDrucken()">🖨️ Monat drucken</button>
+    <button type="button" class="ghost" onclick="zeitJahrDrucken()">📊 Jahr drucken</button>
   </div>
   <!-- Bekam am 22.09.2026 eine Kennung, damit er sich ausblenden laesst.
        Auf Jahresuebersicht und Urlaub steht rechts von ihm NICHTS mehr
@@ -8118,13 +8172,30 @@ async function druckblattCanvas(innenHtml, breite, vorbereiten) {
   }
 }
 
-/* Aus Bild wird A4 quer. Gemeinsam fuer beide Blaetter, damit Rand und
-   Format nicht an zwei Stellen gepflegt werden muessen. */
-function druckblattPdf(canvas) {
+/* Aus Bild wird A4. Gemeinsam fuer alle Blaetter, damit Rand und Format
+   nicht an mehreren Stellen gepflegt werden muessen.
+
+   "hochkant" seit 22.09.2026 fuer den Arbeitszeit-Nachweis: Der ist eine
+   Tagesliste und laeuft nach unten, nicht in die Breite. Alles andere
+   (Jahrestabelle mit acht Spalten, Urlaubskalender mit zwoelf Monaten)
+   bleibt quer. */
+function druckblattPdf(canvas, hochkant) {
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  const pdf = new jsPDF({
+    orientation: hochkant ? "portrait" : "landscape",
+    unit: "mm", format: "a4", compress: true,
+  });
   pdfBildEinpassen(pdf, canvas, 8);
   return pdf;
+}
+
+/* ⚠ Gemeinsame Zurechtrueckung fuer JEDES Blatt mit einem Diagramm.
+   buildPauschaleBarChart() UND azJahrBalken() setzen beide
+   "margin:0 auto" auf ihr SVG - und html2canvas schneidet ein
+   zentriertes SVG ab (sieben von zwoelf Balken fehlten am 22.09.2026,
+   siehe druck-balken-versuch.sh). Deshalb an einer Stelle fuer alle. */
+function druckblattSvgGerade(halter) {
+  halter.querySelectorAll("svg").forEach((svg) => { svg.style.margin = "0 0 18px 0"; });
 }
 
 async function jahrBuildPdf() {
@@ -8158,10 +8229,7 @@ async function jahrBuildPdf() {
      Programm ist das Diagramm fehlerfrei und dort ist die Zentrierung
      gewollt. Auf dem Blatt steht es jetzt linksbuendig - auf einer
      Kante mit der Tabelle darunter. */
-  const canvas = await druckblattCanvas(kopf + inhalt.innerHTML, 1150, (halter) => {
-    const svg = halter.querySelector("svg");
-    if (svg) svg.style.margin = "0 0 18px 0";
-  });
+  const canvas = await druckblattCanvas(kopf + inhalt.innerHTML, 1150, druckblattSvgGerade);
   if (!canvas) return null;
   return { pdf: druckblattPdf(canvas), filename: "Jahresuebersicht_" + config.jahr + ".pdf" };
 }
@@ -8207,6 +8275,130 @@ async function urlaubDrucken() {
   if (!r) { alert("Der Urlaubskalender konnte nicht aufgenommen werden."); return; }
   pdfUebergabe(r.pdf, r.filename, "Urlaubskalender ist fertig",
     "<b>Ein Blatt A4 quer:</b> Kopfzeile, Bilanz, Legende und alle zwölf Monate.");
+}
+
+/* ===================== Drucken: Arbeitszeit =====================
+   Bestellt von Mirko am 22.09.2026: "zeit benoetigt ebenfalls druck
+   funktion" - und auf Nachfrage "beides", also ZWEI Blaetter:
+
+     Monat  A4 hochkant  Tagesliste - der Nachweis ueber geleistete
+                         Arbeitszeit (§ 16 Abs. 2 ArbZG). Eine Liste
+                         laeuft nach unten, deshalb hochkant.
+     Jahr   A4 quer      Monat fuer Monat plus Jahressumme, zum Ueberblick
+
+   ⚠ Gilt fuer ALLE - dieselbe bewusste Ausnahme wie bei Jahresuebersicht
+   und Urlaub (Mirko, 21.09.2026). Kein zeigtNeuerungen() davor.
+
+   Die Zahlen kommen aus DENSELBEN Helfern wie die Anzeige im Programm
+   (azNettoFuer, azAbzugFuer, azHhmm, azUhrzeit, azTagPause) und aus
+   derselben Zusammenstellung wie "📋 Als Text kopieren" (azExport).
+   Bewusst nicht nachgerechnet: Zwei Rechenwege fuer dieselbe Zahl sind
+   zwei Gelegenheiten, verschieden zu rechnen. */
+function zeitMonatBlattHtml() {
+  const key = document.getElementById("azMonat") ? document.getElementById("azMonat").value : "";
+  if (!key) return null;
+  const soll = AZ.cfg.soll * 60;
+  const tage = AZ.tage.filter((e) => azMonatsKey(e.start) === key);
+  if (!tage.length) return null;
+
+  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 9px; background:#FDE9DC; text-align:${r ? "right" : "left"};">${l}</th>`;
+  const td = (v, r, extra) => `<td style="border:1px solid #333; padding:6px 9px;${r ? " text-align:right;" : ""}${extra || ""}">${v}</td>`;
+
+  const zeilen = tage.map((e) => {
+    const netto = azNettoFuer(e), diff = netto - soll, abzug = azAbzugFuer(e);
+    /* Dieselbe Kennzeichnung wie im Programm: ueber 6 Std. ohne Pause
+       ist nach § 4 Satz 2 ArbZG unzulaessig. Es wird nichts abgezogen,
+       der Tag wird nur kenntlich gemacht. */
+    const warnung = (!azTagPause(e) && e.min > 360) ? " ⚠️" : "";
+    return `<tr>
+      ${td(new Date(e.start).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" }) + warnung)}
+      ${td(azUhrzeit(e.start) + "–" + azUhrzeit(e.ende), true)}
+      ${td(abzug ? abzug + " Min." : "keine", true)}
+      ${td(azHhmm(netto), true)}
+      ${td((diff >= 0 ? "+" : "") + azHhmm(diff), true,
+           ` font-weight:600; color:${diff >= 0 ? "#1a7f37" : "#c0392b"};`)}
+    </tr>`;
+  }).join("");
+
+  const summe = tage.reduce((s, e) => s + azNettoFuer(e) - soll, 0);
+  const kopf = druckKopfHtml("Arbeitszeit " + azMonatsLabel(key), [
+    ["Name", (config.name || "").trim()],
+    ["Monat", azMonatsLabel(key)],
+    ["Niederlassung", (config.niederlassung || "").trim()],
+  ]);
+
+  return {
+    key,
+    html: kopf
+      /* ⚠ "Vorgabe für neue Tage:" davor, nicht nur azModusText() roh.
+         azModusText() beschreibt die GLOBALE Einstellung, die Pause ist
+         aber pro Tag umstellbar (steht so im Programm: "Nur die Vorgabe
+         für neue Tage - pro Tag umstellbar"). Ohne diese drei Woerter
+         stand am 22.09.2026 auf dem Blatt "ohne Pausenabzug", waehrend
+         in jeder Zeile darunter 45 Min. abgezogen wurden. Was je Tag
+         wirklich galt, steht ohnehin in der Spalte "Pause". */
+      + `<p style="margin:0 0 12px; font-size:13px; color:#444;">Soll <b>`
+      + String(AZ.cfg.soll).replace(".", ",") + ` Std./Tag</b> · Vorgabe für neue Tage: `
+      + azModusText() + `</p>`
+      + `<table style="width:100%; border-collapse:collapse; font-size:13px;">`
+      + `<tr>${th("Tag")}${th("Beginn – Ende", true)}${th("Pause", true)}${th("Stunden", true)}${th("Über/Unter", true)}</tr>`
+      + zeilen
+      + `<tr style="font-weight:bold;">${td("Überstunden im Monat (" + tage.length
+          + (tage.length === 1 ? " Tag)" : " Tage)"))}${td("", true)}${td("", true)}${td("", true)}`
+      + td((summe >= 0 ? "+" : "") + azHhmm(summe), true,
+           ` color:${summe >= 0 ? "#1a7f37" : "#c0392b"};`) + `</tr>`
+      + `</table>`
+      + `<p style="margin-top:10px; font-size:11px; color:#666;">`
+      + `⚠️ = über 6 Std. ohne Pause (nach § 4 Satz 2 ArbZG unzulässig – es wird nichts abgezogen, der Tag ist nur gekennzeichnet).</p>`,
+  };
+}
+
+async function zeitMonatBuildPdf() {
+  const blatt = zeitMonatBlattHtml();
+  if (!blatt) return null;
+  /* 820 px statt 1150: A4 hochkant ist schmaler, und fuenf Spalten
+     brauchen keine Tabellenbreite fuer acht. */
+  const canvas = await druckblattCanvas(blatt.html, 820, druckblattSvgGerade);
+  if (!canvas) return null;
+  return {
+    pdf: druckblattPdf(canvas, true),
+    filename: "Arbeitszeit_" + blatt.key + ".pdf",
+  };
+}
+
+async function zeitMonatDrucken() {
+  const r = await zeitMonatBuildPdf();
+  if (!r) { alert("Für diesen Monat sind keine Zeiten erfasst.\n\nBitte zuerst Zeiten eintragen oder stempeln."); return; }
+  pdfUebergabe(r.pdf, r.filename, "Arbeitszeit-Nachweis ist fertig",
+    "<b>Ein Blatt A4 hochkant:</b> jeder erfasste Tag mit Beginn, Ende, Pause und Stunden – darunter die Überstunden des Monats.");
+}
+
+async function zeitJahrBuildPdf() {
+  const inhalt = document.getElementById("azJahrContent");
+  if (!inhalt) return null;
+  if (!inhalt.innerHTML.trim()) azRenderJahr();
+  if (!inhalt.innerHTML.trim()) return null;
+  /* Steht dort nur "Fuer 2026 ist noch nichts erfasst", gibt es nichts
+     zu drucken - sonst kaeme ein Blatt mit einem einzigen Satz heraus. */
+  if (inhalt.querySelectorAll("table").length === 0) return null;
+
+  const sel = document.getElementById("azJahr");
+  const jahr = sel ? sel.value : String(config.jahr);
+  const kopf = druckKopfHtml("Arbeitszeit " + jahr, [
+    ["Name", (config.name || "").trim()],
+    ["Jahr", String(jahr)],
+    ["Niederlassung", (config.niederlassung || "").trim()],
+  ]);
+  const canvas = await druckblattCanvas(kopf + inhalt.innerHTML, 1150, druckblattSvgGerade);
+  if (!canvas) return null;
+  return { pdf: druckblattPdf(canvas, false), filename: "Arbeitszeit_Jahr_" + jahr + ".pdf" };
+}
+
+async function zeitJahrDrucken() {
+  const r = await zeitJahrBuildPdf();
+  if (!r) { alert("Für dieses Jahr ist noch nichts erfasst.\n\nBitte zuerst Zeiten eintragen oder stempeln."); return; }
+  pdfUebergabe(r.pdf, r.filename, "Arbeitszeit im Jahr ist fertig",
+    "<b>Ein Blatt A4 quer:</b> Monat für Monat mit Tagen, Arbeitszeit und Über- oder Unterstunden – darunter die Jahressumme.");
 }
 /* ---------- PDF drucken ----------
    EINE Stelle fuer alle drei Druckknoepfe (Inventurblatt, Verkaufsbericht,
@@ -10472,6 +10664,10 @@ function zeigeWerkzeugleisteGruppe2(tab) {
   if (jahrPdf) jahrPdf.style.display = tab === "jahr" ? "" : "none";
   const urlaubPdf = document.getElementById("toolbarUrlaubPdf");
   if (urlaubPdf) urlaubPdf.style.display = tab === "urlaub" ? "" : "none";
+  const zeitPdf = document.getElementById("toolbarZeitPdf");
+  const zeitTrenner = document.getElementById("zeitToolbarTrenner");
+  if (zeitPdf) zeitPdf.style.display = tab === "zeit" ? "" : "none";
+  if (zeitTrenner) zeitTrenner.style.display = tab === "zeit" ? "" : "none";
   /* Auf Jahresuebersicht und Urlaub steht rechts vom Druck-Knopf nichts
      mehr - die beiden festen Trennstriche waeren Striche ins Leere vor
      einem leeren weissen Balken. Nur dort ausblenden; auf Spesen, Zeit
@@ -10480,7 +10676,7 @@ function zeigeWerkzeugleisteGruppe2(tab) {
      hier zielt auf den Rechner, wo der Strich am 22.09.2026 im Bild
      stand. Gefunden beim Ansehen von 08-jahr-d.png, nicht von einer
      Zahl gemeldet. */
-  const leer = (tab === "jahr" || tab === "urlaub");
+  const leer = (tab === "jahr" || tab === "urlaub" || tab === "zeit");
   ["spesenToolbarTrenner", "mehrToolbarTrenner"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = leer ? "none" : "";
