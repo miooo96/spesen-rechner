@@ -2815,16 +2815,23 @@
          Zeit, Urlaub und Jahr danach; sie gehoeren nicht zum
          Wochenabschluss. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('spesen')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabSpesen"></span></button>
-    <!-- Fahrzeug-Inventur: wie die Zeit-Kachel nur fuer Mirko sichtbar
-         (aktualisiereInventurSichtbarkeit()), zusaetzlich nur fuer Fahrer -
-         fuer Monteure ist eine KFZ-Bestandsaufnahme gegenstandslos. -->
+    <!-- Fahrzeug-Inventur: seit dem 22.09.2026 fuer JEDEN FAHRER sichtbar,
+         nicht mehr nur fuer Mirko (aktualisiereInventurSichtbarkeit()).
+         Fuer Monteure bleibt sie weg - eine KFZ-Bestandsaufnahme ist dort
+         gegenstandslos.
+         ⛔ Sie teilt sich NICHT mehr die Sichtbarkeit mit den beiden
+         Kacheln darunter. Wer das wieder zusammenlegt, oeffnet Kollegen
+         "Neue Ware zaehlen" und "Abrechnung". -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('inventur')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabInventur"></span><span class="kachel-zusatz">KFZ Bestandsaufnahme</span></button>
     <!-- "Neue Ware zählen": eigene Hauptkategorie seit 05.09.2026, vorher
          eine Ansicht in der Fahrzeug-Inventur. Position zwischen Inventur
-         und Abrechnung nach Mirkos Vorgabe. Sichtbarkeit wie die beiden
-         Nachbarn - nur Mirko, nur Fahrer. -->
+         und Abrechnung nach Mirkos Vorgabe.
+         Sichtbarkeit: NUR MIRKO, nur Fahrer - "ware zaehlen ist ja eh erst
+         nur fuer mich gedacht" (Mirko, 22.09.2026). Der Nachbar darueber
+         ist seit demselben Tag offen, dieser hier nicht. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('ware')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabWare"></span><span class="kachel-zusatz">Gezählte Stangen und Lieferschein</span></button>
-    <!-- Abrechnung: wie die Inventur nur fuer Mirko und nur fuer Fahrer. -->
+    <!-- Abrechnung: NUR MIRKO, nur Fahrer - nie freigegeben. Nicht mit der
+         Inventur verwechseln, die seit dem 22.09.2026 offen ist. -->
     <button type="button" class="kachel-btn" onclick="zeigeTab('abrechnung')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabAbrechnung"></span><span class="kachel-zusatz">Verkaufsbericht</span></button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('zeit')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabZeit"></span><span class="kachel-zusatz">Stempeln &amp; Stunden</span></button>
     <button type="button" class="kachel-btn" onclick="zeigeTab('urlaub')"><span class="kachel-kasten" aria-hidden="true"></span><span class="kachel-name" data-i18n="tabUrlaub"></span><span class="kachel-zusatz">Kalender &amp; Reste</span></button>
@@ -2898,7 +2905,19 @@
     <div class="grid">
       <div>
         <label>Mitarbeitertyp</label>
-        <select id="cfgMitarbeitertyp" onchange="saveConfig(); updateMitarbeitertypUI(); renderFormular();">
+        <!-- aktualisiereZeitSichtbarkeit() gehoert hier dazu, genau wie beim
+             Namensfeld darunter: Sie ruft aktualisiereInventurSichtbarkeit()
+             auf, und DIE haengt am Mitarbeitertyp.
+
+             Bis zum 22.09.2026 fehlte der Aufruf. Folgenlos, solange die
+             Inventur nur Mirko gehoerte - er ist Fahrer. Seit sie jedem
+             Fahrer gehoert, ist es ein Fehler: Wer hier auf "Monteur"
+             stellt, behielt Kachel und Reiter der Fahrzeug-Inventur bis
+             zum naechsten Laden der Seite. Der Hinweis unten in dieser
+             Karte verspricht ausdruecklich das Gegenteil ("alle
+             zugehoerigen Felder passen sich sofort automatisch an").
+             Geprueft von inventur-fuer-fahrer.sh, Teil 2. -->
+        <select id="cfgMitarbeitertyp" onchange="saveConfig(); updateMitarbeitertypUI(); renderFormular(); aktualisiereZeitSichtbarkeit();">
           <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
           <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
         </select>
@@ -2919,8 +2938,12 @@
         <label>Niederlassung</label>
         <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
       </div>
-      <!-- Tour: gehoert zu Inventur/Abrechnung und ist deshalb - wie die
-           beiden Kacheln selbst - vorerst nur fuer Mirko sichtbar.
+      <!-- Tour-Nr. und Fixbestand: gehoeren zu Inventur und Abrechnung,
+           beide Werte stehen auf dem INVENTURBLATT. Seit dem 22.09.2026
+           deshalb fuer jeden Fahrer sichtbar - die Inventur ist offen,
+           und ohne dieses Feld druckte jeder Fahrer die Vorgabe
+           1.100 EURO als Fixbestand.
+           Fuer Monteure weiterhin weg.
            Ein-/ausgeblendet in aktualisiereInventurSichtbarkeit(). -->
       <div id="cfgTourFeld" style="display:none;">
         <label>Tour-Nr.</label>
@@ -3175,9 +3198,14 @@
          Blattspalten, ist beim Erfassen aber EINE Liste ueber 48 Zeilen.
        - "Blatt & PDF": der Vordruck selbst, fuer Ausdruck/PDF.
 
-     Sichtbarkeit: nur fuer Mirko (aktualisiereInventurSichtbarkeit()),
-     zusaetzlich nur fuer Fahrer - kein echter Zugriffsschutz, sondern
-     dieselbe kosmetische Loesung wie beim Zeit-Tab. -->
+     Sichtbarkeit: seit dem 22.09.2026 JEDER FAHRER, nicht mehr nur Mirko
+     (aktualisiereInventurSichtbarkeit()). Monteure sehen sie nicht - kein
+     echter Zugriffsschutz, sondern dieselbe kosmetische Loesung wie beim
+     Zeit-Tab.
+
+     ⚠ Die beiden Nachbarbereiche "Neue Ware zaehlen" und "Abrechnung"
+     sind WEITERHIN ZU. Sie standen bis zum 22.09.2026 mit diesem Bereich
+     an einem einzigen Selektor. -->
 <div class="panel no-print" id="inventurPanel" style="display:none;">
   <div class="inv-kopfzeile">
     <h2 data-i18n="tabInventur">🚚 Fahrzeug-Inventur</h2>
@@ -3901,37 +3929,76 @@ function aktualisiereZeitSichtbarkeit() {
   aktualisiereKachelGridLayout();
 }
 
-/* Fahrzeug-Inventur: vorerst NUR fuer Mirko (03.09.2026) und zusaetzlich
-   nur fuer Fahrer - fuer Monteure ist eine KFZ-Bestandsaufnahme
-   gegenstandslos. Wie beim Zeit-Tab ist das KEIN Zugriffsschutz, sondern
-   rein kosmetisch: Kollegen sollen nichts angezeigt bekommen, was fuer sie
-   nicht gilt. Sobald das Blatt sich im Alltag bewaehrt hat, faellt die
-   istMirko()-Bedingung weg und es gilt nur noch "kein Monteur".
+/* ===================== Fahrzeug-Inventur: fuer ALLE Fahrer =====================
+   GEAENDERT am 22.09.2026. Mirko: "fahrzeug inventur kann eigentlich auch
+   fuer alle ausser in der monteur einstellung live gepusht werden. die
+   macht ohnehin jeder jede woche wieder. da muss vorher nichts
+   abgesprochen sein."
+
+   Damit faellt genau das ein, was der Kommentar vom 03.09.2026 hier schon
+   angekuendigt hatte: "Sobald das Blatt sich im Alltag bewaehrt hat,
+   faellt die istMirko()-Bedingung weg und es gilt nur noch 'kein
+   Monteur'." Fuer Monteure bleibt eine KFZ-Bestandsaufnahme
+   gegenstandslos.
+
+   ⛔ DREI BEREICHE HINGEN AN EINEM SELEKTOR - das war die Falle.
+   Bis hierher steuerte EIN querySelectorAll inventur, ware UND
+   abrechnung. Wer nur zeigtSonderbereiche() herausnimmt, oeffnet alle
+   drei. Genau das darf nicht passieren:
+
+     inventur     auf  fuer jeden Fahrer          (diese Aenderung)
+     ware         ZU   "ware zaehlen ist ja eh erst nur fuer mich
+                       gedacht" (Mirko, 22.09.2026)
+     abrechnung   ZU   nie freigegeben
+
+   Deshalb zwei getrennte Bedingungen statt einer. Geprueft wird das von
+   inventur-fuer-fahrer.sh, und zwar mit DREI Rollen (Mirko, Fahrer,
+   Monteur) - mit zweien kann der Fall "Monteur sieht sie doch" gar nicht
+   auffallen.
+
+   Wie beim Zeit-Tab ist das KEIN Zugriffsschutz, sondern rein kosmetisch:
+   Niemand soll etwas angezeigt bekommen, was fuer ihn nicht gilt.
    aktualisiereKachelGridLayout() wird bewusst NICHT von hier aufgerufen -
    das erledigt die aufrufende aktualisiereZeitSichtbarkeit(), sonst
    liefe es bei jedem Aufruf doppelt. */
 function aktualisiereInventurSichtbarkeit() {
   const istMonteur = config.mitarbeitertyp === "monteur";
-  const sichtbar = zeigtSonderbereiche() && !istMonteur;
-  document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'inventur\')"], #mainTabs .tab-btn[data-tab="inventur"], .kachel-btn[onclick="zeigeTab(\'ware\')"], #mainTabs .tab-btn[data-tab="ware"], .kachel-btn[onclick="zeigeTab(\'abrechnung\')"], #mainTabs .tab-btn[data-tab="abrechnung"]').forEach((el) => {
-    el.style.display = sichtbar ? "" : "none";
-  });
-  // Das Tour-Feld in den Stammdaten gehoert zu diesen beiden Bereichen und
-  // folgt derselben Sichtbarkeit - sonst fragte der Zettel Kollegen nach
-  // einer Tour fuer Funktionen, die sie gar nicht sehen.
+  const invSichtbar    = !istMonteur;                              // jeder Fahrer
+  const sonderSichtbar = zeigtSonderbereiche() && !istMonteur;     // nur Mirko
+
+  const umschalten = (tab, sichtbar) => {
+    document.querySelectorAll(
+      '.kachel-btn[onclick="zeigeTab(\'' + tab + '\')"], #mainTabs .tab-btn[data-tab="' + tab + '"]'
+    ).forEach((el) => { el.style.display = sichtbar ? "" : "none"; });
+  };
+  umschalten("inventur",   invSichtbar);
+  umschalten("ware",       sonderSichtbar);
+  umschalten("abrechnung", sonderSichtbar);
+
+  /* Das Tour-Feld in den Stammdaten traegt Tour-Nr. UND Fzg.-Fixbestand.
+     Beide stehen auf dem INVENTURBLATT (invFixbestandZeigen() schreibt
+     den Fixbestand in die Fusszeile), es folgt also der Inventur - sonst
+     druckte jeder Fahrer die Vorgabe 1.100 EURO, auch wer einen anderen
+     Betrag mitfuehrt. Genau dagegen wurde das Feld am 06.09.2026 gebaut.
+     Bewusst "oder", nicht "invSichtbar": Braeuchte spaeter nur noch die
+     Abrechnung die Tour, stimmt es immer noch. */
   const tourFeld = document.getElementById("cfgTourFeld");
-  if (tourFeld) tourFeld.style.display = sichtbar ? "" : "none";
-  // Steht das Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
-  // Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
-  // bliebe ein Bereich offen, den es fuer diesen Nutzer nicht gibt.
-  /* Auch "Neue Ware zählen" gehört zu diesen Bereichen - stand es offen,
-     wenn die Sichtbarkeit wegfällt, muss es genauso zurück auf die
-     Startseite wie die Inventur. */
-  const offenUndVerboten = ["inventurPanel", "wareneingangPanel", "abrechnungPanel"].some((id) => {
+  if (tourFeld) tourFeld.style.display = (invSichtbar || sonderSichtbar) ? "" : "none";
+
+  /* Steht ein Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
+     Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
+     bliebe ein Bereich offen, den es fuer diesen Nutzer nicht gibt.
+     Je Bereich einzeln geprueft, seit sie nicht mehr gemeinsam auf- und
+     zugehen: Ein Fahrer darf die Inventur offen haben, waehrend Ware und
+     Abrechnung fuer ihn verboten sind. */
+  const verboten = [];
+  if (!invSichtbar)    verboten.push("inventurPanel");
+  if (!sonderSichtbar) verboten.push("wareneingangPanel", "abrechnungPanel");
+  const offenUndVerboten = verboten.some((id) => {
     const p = document.getElementById(id);
     return p && getComputedStyle(p).display !== "none";
   });
-  if (!sichtbar && offenUndVerboten) {
+  if (offenUndVerboten) {
     zeigeKachelStartseite();
   }
 }
