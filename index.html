@@ -1822,6 +1822,25 @@
                  font-variant-numeric:tabular-nums; border:1px solid #bbb; border-radius:8px; background:#f4f4f2; }
   .inv-row .ms { flex:0 0 auto; min-width:88px; text-align:right; padding-bottom:12px;
                  font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
+  /* ⚠ Fahrzeug-Inventur braucht die Mindestbreite GENAUSO wie "Neue Ware
+     zaehlen" weiter unten. Der Kommentar dort sagte bis zum 24.09.2026,
+     die Inventur habe "genug Platz" - das stimmt nicht. Gemessen mit
+     app-mangel-suchen.sh auf 393 px:
+
+         Kasten 73 px   ·   "VERKAUFSPREIS" braucht 94 px   ->  21 px fehlen
+
+     "VERKAUFSPREIS" ist EIN Wort und kann nicht umbrechen; es lief
+     deshalb in die Nachbarspalte und stand als "STUECKZWERKAUFSPREIS"
+     im Bild. Mirko hat es am 23.09.2026 auf seiner Handy-Aufnahme
+     gezeigt - derselbe Fehler wie "KARTONSE KARTON" beim Ware-Zaehlen,
+     nur einen Bildschirm weiter.
+
+     flex-wrap gehoert dazu: ohne Umbruch passen 2x96 px neben Nummer
+     (24) und Summe (88) nicht in die Zeile, und die Seite liefe
+     waagerecht ueber. Mit Umbruch rutscht die Zeilensumme bei Bedarf
+     auf eine eigene Zeile - dieselbe Loesung wie bei #kaeRows. */
+  #invRows .inv-row { flex-wrap:wrap; }
+  #invRows .inv-f { flex:1 1 96px; min-width:96px; }
   .inv-trenner { display:flex; align-items:center; gap:8px; margin:14px 2px 8px; color:#888; font-size:11px;
                  text-transform:uppercase; letter-spacing:.05em; }
   .inv-trenner::before, .inv-trenner::after { content:""; flex:1; height:1px; background:#ddd; }
@@ -1976,8 +1995,12 @@
      Nachbarspalte, sichtbar als "KARTONSE KARTON". Mirko hat es am
      21.09.2026 auf seinen Bildschirmfotos gezeigt.
 
-     Nur diese Zeilen brauchen es: Die Fahrzeug-Inventur hat zwei
-     Felder und keinen 104-px-Waehler, dort ist genug Platz.
+     ⚠ KORRIGIERT am 24.09.2026: Hier stand, die Fahrzeug-Inventur habe
+     "genug Platz", weil sie nur zwei Felder und keinen 104-px-Waehler
+     hat. Das war falsch - Nummer (24 px) und Zeilensumme (88 px) fressen
+     die Ersparnis wieder auf. Gemessen: Kasten 73 px, "VERKAUFSPREIS"
+     94 px. Die Inventur hat jetzt dieselbe Regel, siehe #invRows weiter
+     oben. Annahmen ueber Platz gehoeren gemessen, nicht geschaetzt.
      96 px deckt die breiteste Beschriftung (83 px) mit Luft ab.
 
      :not(.kae-gr) ist wichtig - der Groessenwaehler steht bewusst auf
@@ -6946,7 +6969,10 @@ function invBaueRaster() {
             '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="wgr"></td>' +
             '<td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="su" inputmode="decimal"></td></tr>'
           : '<tr><td class="mg"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="mg" inputmode="numeric"></td>' +
-            '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="kv" inputmode="decimal" list="invKvpListe"></td>' +
+            /* Kein list= - siehe Erfassen-Ansicht weiter unten. Der Pfeil
+               ist am 24.09.2026 aus BEIDEN Ansichten raus, damit das
+               Preisfeld ueberall gleich aussieht. */
+            '<td class="kv"><input data-invg="'+g.id+'" data-invi="'+gi+'" data-invf="kv" inputmode="decimal"></td>' +
             '<td class="su" id="invsu-'+g.id+'-'+gi+'"></td></tr>';
       }
       // Im Original steht bei den Lieferscheinen vor "Summe:" noch eine Leerzeile
@@ -7040,10 +7066,11 @@ function invRenderMobil() {
     const f = invFeld(g.id, eintrag.gi), s = invZeilenSumme(g, eintrag.gi);
     html += '<div class="inv-row' + (invHatInhalt(g, eintrag.gi) ? " voll" : "") + '"><div class="nr">' + (i + 1) + "</div>" +
       '<div class="inv-f"><label>' + t("invStueck") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="mg" inputmode="numeric" value="'+invEsc(f.mg||"")+'"></div>' +
-      /* list= zieht die Vorschlaege aus dem Vorrat der benutzten
-         Preisgruppen. Vorschlag, keine Vorbelegung - das Feld bleibt leer,
-         bis jemand waehlt oder tippt. */
-      '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="kv" inputmode="decimal" list="invKvpListe" value="'+invEsc(f.kv||"")+'"></div>' +
+      /* KEIN list= mehr. Die Vorschlagsliste zeichnete in Chrome auf Android
+         ein Auswahldreieck INS Feld - Mirko am 24.09.2026: "pfeil raus".
+         Es frass zusaetzlich Breite in einer ohnehin engen Spalte.
+         Zum Zurueckholen genuegt ein list="invKvpListe" an dieser Stelle. */
+      '<div class="inv-f"><label>' + t("invPreis") + '</label><input data-invmg="'+g.id+'" data-invmi="'+eintrag.gi+'" data-invmf="kv" inputmode="decimal" value="'+invEsc(f.kv||"")+'"></div>' +
       '<div class="ms">' + (s ? invFmt(s) : "") + "</div>" +
       "</div>";
   }
@@ -7327,10 +7354,20 @@ document.addEventListener("DOMContentLoaded", function () {
       // invSichtbareZeilen() liest bereits den neuen Stand.
       if (panel.querySelectorAll("#invRows .inv-row").length !== invSichtbareZeilen()) {
         const fo = document.activeElement;
-        const merk = fo && fo.dataset && fo.dataset.invmi ? { mi: fo.dataset.invmi, mf: fo.dataset.invmf, pos: fo.selectionStart } : null;
+        /* ⚠ Die GRUPPE muss mit. data-invmi ist die Zeilennummer INNERHALB
+           einer Preisgruppe und faengt in jeder Gruppe wieder bei 0 an
+           (INV_FOLGE, gi = sIdx * g.zeilen + r). Ohne data-invmg traf der
+           Selektor deshalb immer die erste Zeile der ERSTEN Gruppe: Der
+           Cursor sprang beim Nachwachsen einer Zeile nach ganz oben, und
+           was danach getippt wurde, landete in Zeile 1. Fuer den Benutzer
+           sah es aus, als liesse sich ein einmal gefuelltes Feld nicht
+           mehr aendern. Mirko am 23.09.2026 auf seiner Handy-Aufnahme.
+           "Neue Ware zaehlen" hat das Problem nicht - dort ist data-kae
+           ein durchgehender Index und damit von sich aus eindeutig. */
+        const merk = fo && fo.dataset && fo.dataset.invmi ? { mg: fo.dataset.invmg, mi: fo.dataset.invmi, mf: fo.dataset.invmf, pos: fo.selectionStart } : null;
         invRenderMobil();
         if (merk) {
-          const neu = panel.querySelector('[data-invmi="'+merk.mi+'"][data-invmf="'+merk.mf+'"]');
+          const neu = panel.querySelector('[data-invmg="'+merk.mg+'"][data-invmi="'+merk.mi+'"][data-invmf="'+merk.mf+'"]');
           if (neu) { neu.focus(); try { neu.setSelectionRange(merk.pos, merk.pos); } catch (x) {} }
         }
       }
