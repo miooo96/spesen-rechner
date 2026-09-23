@@ -3898,6 +3898,30 @@ const MIRKO_NAME = "Mirko Rieb";
 function istMirko() {
   return (config.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase();
 }
+
+/* ---- Ein einzelner Kollege bekommt die Arbeitszeit ------------------
+   Mirko am 23.09.2026: "eine sache wuerde ich fuer einen einzigen
+   kollegen ergaenzen, Sven Dersch, wenn der Name Sven Dersch in dieser
+   schreibweise eingetragen wird soll dieser kollege auch die zeiten
+   funktion bekommen, das er seine arbeitszeit erfassen kann."
+
+   Das ist eine BEWUSSTE AUSNAHME von der Bereichsgrenze vom 22.09.2026
+   ("arbeitszeit wird nicht live gemacht, nur fuer mich"). Sie gilt fuer
+   genau diesen einen Namen und fuer sonst niemanden.
+
+   Verglichen wird wie bei istMirko(): getrimmt und ohne Ruecksicht auf
+   Gross-/Kleinschreibung. "Schreibweise" meint den Namen selbst -
+   Dersch mit D-e-r-s-c-h -, nicht die Gross-/Kleinschreibung. Wer
+   "sven dersch" tippt, ist derselbe Mensch.
+
+   ⚠ Wie bei Mirko KEIN Zugriffsschutz, sondern rein kosmetisch: Wer
+   diesen Namen eintraegt, sieht den Bereich. Das war bei istMirko()
+   nie anders. */
+const ZEIT_EXTRA_NAMEN = ["Sven Dersch"];
+function istZeitKollege() {
+  const name = (config.name || "").trim().toLowerCase();
+  return ZEIT_EXTRA_NAMEN.some((n) => n.toLowerCase() === name);
+}
 /* ---- Wer sieht was ----------------------------------------------
    Mirko (05.09.2026): "nur die zusaetzlichen funktionen sollten bei mir
    erstmal bleiben, design und so kann von meiner ausfertigung uebernommen
@@ -3960,8 +3984,26 @@ function zeigtNeuerungen() { return istMirko(); }
    bei zeigtNeuerungen() direkt darueber. */
 function zeigtInventurMail() { return istMirko(); }
 
+/* ---- Wer sieht die Arbeitszeit? ------------------------------------
+   Mirko UND die Namen aus ZEIT_EXTRA_NAMEN (seit 23.09.2026: Sven
+   Dersch).
+
+   ⛔ EIGENE FUNKTION, und das ist hier kein Geschmack, sondern Pflicht.
+   zeigtSonderbereiche() steuert DREI Dinge:
+     · den Zeit-Bereich            (hier)
+     · "Neue Ware zaehlen" und "Abrechnung"
+       (aktualisiereInventurSichtbarkeit())
+     · "Weitermachen" samt Wochenlauf auf der Startseite
+       (heuteAktualisieren() - die Zahlen darin stammen aus Inventur
+       und Abrechnung)
+   Wer Sven Dersch stattdessen in zeigtSonderbereiche() aufnaehme,
+   gaebe ihm alle drei. Genau dieselbe Falle wie bei der
+   Fahrzeug-Inventur am 22.09.2026, nur eine Tuer weiter.
+   Geprueft von inventur-fuer-fahrer.sh, Rolle "sven". */
+function zeigtZeit() { return zeigtSonderbereiche() || istZeitKollege(); }
+
 function aktualisiereZeitSichtbarkeit() {
-  const sichtbar = zeigtSonderbereiche();
+  const sichtbar = zeigtZeit();
   document.querySelectorAll('.kachel-btn[onclick="zeigeTab(\'zeit\')"], #mainTabs .tab-btn[data-tab="zeit"]').forEach((el) => {
     el.style.display = sichtbar ? "" : "none";
   });
