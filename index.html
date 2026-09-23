@@ -4653,9 +4653,26 @@ function ruecksetzBereiche() {
          Zuruecksetzen, und die Bilanz stuende danach wieder da. */
       tagFelder: ["status"],
       configFelder: ["urlaubsanspruch", "urlaubUebertrag", "urlaubJahre"] },
+    /* ⛔ KEINE Sicherungsdatei beim Zuruecksetzen (Mirko, 23.09.2026):
+       "aktuell in der erprobungsphase waere cool wenn das zuruecksetzen
+       nicht gleich ein download bei der inventur machen will."
+
+       ⚠ NICHT AUS DEMSELBEN GRUND wie bei "Neue Ware zaehlen" darunter.
+       Dort steht der Bereich in gar keinem Backup, eine Datei waere eine
+       leere Geste. Die Inventur dagegen STEHT im Backup - hier ist es
+       Mirkos Wunsch, weil in der Erprobung oft zurueckgesetzt wird und
+       jedes Mal eine Datei im Download-Ordner landete.
+       Deshalb traegt jeder Bereich seinen eigenen Hinweistext: Der Grund
+       gehoert dorthin, wo er gilt, sonst verschmelzen zwei
+       Entscheidungen zu einer. */
     { id: "inventur", name: "Fahrzeug-Inventur",
-      schluessel: [INV_KEY, INV_KVP_KEY, "inventur_signature", "inventur_signature_ts"] },
-    { id: "ware", name: "Neue Ware zählen", schluessel: [KAE_KEY], ohneSicherung: true },
+      schluessel: [INV_KEY, INV_KVP_KEY, "inventur_signature", "inventur_signature_ts"],
+      ohneSicherung: true,
+      hinweis: "Die Fahrzeug-Inventur wird jede Woche neu gemacht – es wird KEINE "
+             + "Sicherungsdatei angelegt. Der gezählte Stand und die hinterlegte "
+             + "Unterschrift sind danach weg." },
+    { id: "ware", name: "Neue Ware zählen", schluessel: [KAE_KEY], ohneSicherung: true,
+      hinweis: "Dieser Bereich ist Wochenmaterial und wird nicht gesichert – er ist danach endgültig leer." },
     { id: "abrechnung", name: "Abrechnung", schluessel: [ABR_KEY, ABR_ARCHIV_KEY] },
     { id: "kopfdaten", name: "Kopfdaten", schluessel: [KOPF_KEY] },
     { id: "stammdaten", name: "Stammdaten",
@@ -4668,14 +4685,18 @@ function ruecksetzBereiche() {
 function bereichZuruecksetzen(id) {
   const b = ruecksetzBereiche().find((x) => x.id === id);
   if (!b) return;
+  /* Der Hinweistext gehoert zum Bereich, nicht hierher: Es gibt inzwischen
+     ZWEI verschiedene Gruende, warum keine Datei entsteht (siehe
+     ruecksetzBereiche()). Ein gemeinsamer Satz wuerde einen davon
+     falsch darstellen. */
   if (!confirm("„" + b.name + "\" zurücksetzen?\n\n"
-    + (b.ohneSicherung
-        ? "Dieser Bereich ist Wochenmaterial und wird nicht gesichert – er ist danach endgültig leer."
-        : "Vorher wird automatisch eine Sicherungsdatei in Ihren Download-Ordner gelegt."))) return;
+    + (b.hinweis
+        || "Vorher wird automatisch eine Sicherungsdatei in Ihren Download-Ordner gelegt."))) return;
 
-  /* Sicherung wie beim grossen Zuruecksetzen - ausser bei Bereichen, die
-     ohnehin in keinem Backup stehen. Eine Datei zu erzeugen, in der der
-     geloeschte Bereich gar nicht vorkommt, waere eine leere Geste. */
+  /* Sicherung wie beim grossen Zuruecksetzen - ausser bei Bereichen mit
+     ohneSicherung. Zwei Gruende dafuer, je Bereich begruendet:
+     "Neue Ware zaehlen" steht in gar keinem Backup (leere Geste), die
+     Fahrzeug-Inventur auf Mirkos Wunsch vom 23.09.2026. */
   if (!b.ohneSicherung) {
     try { exportBackup("vor-" + b.id); }
     catch (e) {
