@@ -1841,6 +1841,48 @@
      auf eine eigene Zeile - dieselbe Loesung wie bei #kaeRows. */
   #invRows .inv-row { flex-wrap:wrap; }
   #invRows .inv-f { flex:1 1 96px; min-width:96px; }
+
+  /* ===== Jahresuebersicht: Tabelle passt aufs Handy =====
+     ⚠ Gemessen am 24.09.2026 mit jahr-tabelle-messen.sh, iPhone 390 px:
+
+         Platz da 265 px   ·   Tabelle 369 px   ->  104 px UEBERLAUF
+         Monat 102 · Tage 58 · Arbeitszeit 103 · Ueber/Unter 105
+
+     "Ueber/Unter" stand dadurch halb ausserhalb des Schirms. Mirko hat
+     es am iPhone in der App gezeigt. width:100% hilft dabei NICHT: wenn
+     die Mindestbreiten der vier Spalten mehr verlangen, waechst die
+     Tabelle einfach ueber den Rand.
+
+     ⚠ Warum es app-mangel-suchen.sh nicht gefunden hat: Der Durchlauf
+     lief mit leerer App, und ohne erfasste Zeiten wird die Tabelle gar
+     nicht gebaut (azRender: "Fuer <Jahr> ist noch nichts erfasst").
+     Deshalb gibt es jetzt jahr-tabelle-messen.sh, das Daten saet.
+
+     Zwei Massnahmen, zusammen rund 95 px:
+       - Innenabstand 10 -> 4 px  (4 Spalten x 12 px = 48 px)
+       - Monatsname gekuerzt: "September" -> "Sep"  (~47 px)
+
+     Die Kurzform ist NICHT erfunden: das Balkendiagramm direkt ueber der
+     Tabelle beschriftet seine Saeulen seit jeher mit
+     MONTH_NAMES[...].slice(0, 3). Dieselbe Schreibweise, zwei
+     Zentimeter hoeher auf demselben Bildschirm.
+
+     Umgeschaltet wird per CSS, nicht per JavaScript - dann stimmt es
+     auch nach dem Drehen des Geraets, ohne neu zu zeichnen.
+     Mirko am 24.09.2026: "jahresuebersicht tabelle anpassen nichts
+     wischbar machen" - deshalb kein seitliches Wischen. */
+  .az-jahr-tab { font-size:0.9rem; }
+  .az-jahr-tab th, .az-jahr-tab td { border:1px solid #333; padding:6px 10px; }
+  .az-jahr-tab th { background:#FDE9DC; }
+  .az-jahr-tab .mon-kurz { display:none; }
+  @media (max-width: 480px) {
+    /* 0,8rem statt 0,9: holt die letzten ~25 px, ohne eine einzige
+       Beschriftung zu kuerzen. Gemessen 298 -> 271 px. */
+    .az-jahr-tab { font-size:0.8rem; }
+    .az-jahr-tab th, .az-jahr-tab td { padding:6px 4px; }
+    .az-jahr-tab .mon-lang { display:none; }
+    .az-jahr-tab .mon-kurz { display:inline; }
+  }
   .inv-trenner { display:flex; align-items:center; gap:8px; margin:14px 2px 8px; color:#888; font-size:11px;
                  text-transform:uppercase; letter-spacing:.05em; }
   .inv-trenner::before, .inv-trenner::after { content:""; flex:1; height:1px; background:#ddd; }
@@ -12505,15 +12547,22 @@ function azRenderJahr() {
     return;
   }
 
-  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 10px; background:#FDE9DC; text-align:${r ? "right" : "left"};">${l}</th>`;
-  const td = (v, r, extra) => `<td style="border:1px solid #333; padding:6px 10px;${r ? " text-align:right;" : ""}${extra || ""}">${v}</td>`;
+  /* Rahmen, Innenabstand und Kopfzeilenfarbe stehen im Stylesheet unter
+     .az-jahr-tab - nicht mehr hier inline. Nur so kann die Regel fuer
+     schmale Schirme den Innenabstand ueberhaupt verkleinern. */
+  const th = (l, r) => `<th style="text-align:${r ? "right" : "left"};">${l}</th>`;
+  const td = (v, r, extra) => `<td style="${r ? "text-align:right;" : ""}${extra || ""}">${v}</td>`;
+  /* Beide Schreibweisen stehen in der Zelle, das Stylesheet zeigt eine
+     davon. Die Kurzform ist dieselbe wie bei den Diagramm-Saeulen. */
+  const monatZelle = (i) =>
+    `<span class="mon-lang">${MONTH_NAMES[i]}</span><span class="mon-kurz">${MONTH_NAMES[i].slice(0, 3)}</span>`;
   const gesamtArbeit = monate.reduce((s, m) => s + m.arbeit, 0);
   const gesamtDiff = monate.reduce((s, m) => s + m.diff, 0);
 
   const zeilen = monate.map((m) => {
-    if (!m.tage) return `<tr style="color:#bbb;">${td(MONTH_NAMES[m.monat - 1])}${td("–", true)}${td("–", true)}${td("–", true)}</tr>`;
+    if (!m.tage) return `<tr style="color:#bbb;">${td(monatZelle(m.monat - 1))}${td("–", true)}${td("–", true)}${td("–", true)}</tr>`;
     return `<tr>
-      ${td(MONTH_NAMES[m.monat - 1])}
+      ${td(monatZelle(m.monat - 1))}
       ${td(m.tage, true)}
       ${td(azHhmm(m.arbeit), true)}
       ${td((m.diff >= 0 ? "+" : "") + azHhmm(m.diff), true, ` font-weight:600; color:${m.diff >= 0 ? "#1a7f37" : "#c0392b"};`)}
@@ -12522,7 +12571,7 @@ function azRenderJahr() {
 
   document.getElementById("azJahrContent").innerHTML = `
     ${azJahrBalken(monate)}
-    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+    <table class="az-jahr-tab" style="width:100%; border-collapse:collapse;">
       <tr>${th("Monat")}${th("Tage", true)}${th("Arbeitszeit", true)}${th("Über/Unter", true)}</tr>
       ${zeilen}
       <tr style="font-weight:bold;">
