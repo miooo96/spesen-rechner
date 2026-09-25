@@ -192,6 +192,19 @@
     content: ''; display: block; width: 88px; height: 3px;
     background: var(--orange-linie); border-radius: 2px; margin-top: 9px;
   }
+  /* ⛔ DER WEISSE KASTEN BLEIBT. Entschieden am 25.09.2026.
+
+     Beim Redesign-Schritt 2 sind die aeusseren Rahmen ueberall
+     gefallen - die Werkzeugleiste war danach das einzige Element, das
+     noch in einer weissen Schachtel mit Schatten sass. Ich hielt das
+     fuer einen Rest und habe Mirko beide Fassungen nebeneinander
+     gezeigt (Design-Analyse/bilder-kasten/VERGLEICH-1280.png).
+
+     Sein Urteil: "mit weissem kasten tusend mal schoener."
+
+     Der Kasten trennt die Werkzeuge sichtbar vom Inhalt - wer die
+     Leiste sucht, findet sie damit schneller. Nicht entfernen, auch
+     nicht "der Einheitlichkeit halber". */
   .toolbar {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
     margin-bottom: 1.25rem; background: #fff; padding: 0.7rem 0.85rem;
@@ -1121,10 +1134,88 @@
      Akzent ein, nicht als Rahmen. Wo eine Ueberschrift Orange braucht,
      bekommt sie einen kurzen Strich DARUNTER - das ist Halls Muster.
      ================================================================ */
+  /* ================================================================
+     REDESIGN SCHRITT 2, 25.09.2026 — der Kasten um den Kasten faellt weg
+     ----------------------------------------------------------------
+     Mirko am 24.09.2026 zur Startseite: "ich finde alles etwas
+     unuebersichtlich"; zu den Entwuerfen: "das ganze wirkt immer noch
+     nicht modern".
+
+     Beim Vergleich mit der Startseite war der Grund NICHT die Farbe:
+
+        Startseite            Arbeitsbereiche bisher
+        Inhalt direkt         alles in EINEM Rahmen,
+        auf dem Creme         darin nochmal Kaesten
+
+     Doppelt eingepackt wirkt eng, egal in welcher Farbe. Die Kacheln der
+     Startseite sitzen direkt auf dem Grund - genau das hier.
+
+     ⚠ Im Druck ist .panel ohnehin "display:none" (siehe @media print
+     weiter unten), der Rahmen fehlt dort also niemandem.
+     Der Abstand nach unten BLEIBT - ohne ihn kleben die Bereiche
+     aneinander.
+     ================================================================ */
   .panel {
-    background: #fff; border: 2px solid var(--kartenrand);
-    border-radius: var(--r-wahl); padding: 18px; margin-bottom: 1.25rem;
+    background: transparent; border: 0;
+    border-radius: 0; padding: 0; margin-bottom: 1.25rem;
   }
+
+  /* ===== Das Bereichsband =====
+     Dieselbe Geometrie wie das Hero-Band der Startseite: randlos ueber
+     die volle Breite. Nur ohne Foto - ein Arbeitsbildschirm hat den
+     Platz dafuer nicht, die RUHE einer grossen Flaeche kann er trotzdem
+     haben. Es rollt mit, es klebt nicht fest. */
+  .bereichsband {
+    background: linear-gradient(160deg, var(--braun-tief) 0%,
+                var(--brand-dark) 62%, #7a3a06 100%);
+    color: #fff; padding: 1.05rem 1.1rem 1.15rem;
+    width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+    margin-bottom: 0;
+  }
+  .bb-zeile { display: flex; align-items: center; gap: 11px; }
+  .bb-kasten {
+    width: 38px; height: 38px; border-radius: 11px; flex: none;
+    background: rgba(255,255,255,.14);
+    display: grid; place-items: center; font-size: 20px; line-height: 1;
+  }
+  .bb-titel { font-size: 1.42rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.05; }
+  .bb-unter { font-size: .78rem; color: rgba(255,255,255,.72); margin-top: 3px; }
+  .bb-merk {
+    margin-left: auto; font-size: .73rem; font-weight: 700; color: #fff;
+    background: rgba(255,255,255,.16); border-radius: var(--r-knopf);
+    padding: 6px 12px; white-space: nowrap;
+  }
+  .bb-zahlen { display: flex; flex-wrap: wrap; gap: .5rem 1.45rem; margin-top: .95rem; }
+  .bb-zahl b { display: block; font-size: 1.5rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+  .bb-zahl span { display: block; font-size: .67rem; color: rgba(255,255,255,.7);
+                  margin-top: 5px; letter-spacing: .04em; }
+
+  /* Nebenaktionen: ruhige Textzeile, KEINE Pillen.
+     Im ersten Entwurf standen hier vier runde Knoepfe - zusammen mit der
+     Werkzeugleiste ergab das elf Pillen uebereinander, unruhiger als
+     vorher. Zwei mal zwei sieht gewollt aus, drei-und-einer kaputt. */
+  .nebenaktionen {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .9rem;
+    margin: .8rem 0 1.15rem; font-size: .77rem;
+  }
+  .nebenaktionen button {
+    all: unset; cursor: pointer; width: fit-content;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-weight: 600; color: var(--brand-dark);
+    border-bottom: 1.5px solid rgba(204,101,5,.45); padding-bottom: 1px;
+    min-height: 28px;
+  }
+  .nebenaktionen button:hover { border-bottom-color: var(--accent); }
+
+  @media (min-width: 701px) {
+    .bereichsband { padding: 1.35rem 2rem 1.5rem; }
+    .bb-kasten { width: 46px; height: 46px; font-size: 24px; border-radius: 13px; }
+    .bb-titel { font-size: 1.8rem; }
+    .bb-zahlen { gap: 3.5rem; margin-top: 1.15rem; }
+    .bb-zahl b { font-size: 1.9rem; }
+    .nebenaktionen { display: flex; gap: 1.6rem; font-size: .82rem; }
+  }
+
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.75rem 1.5rem;
@@ -1235,28 +1326,72 @@
   .weekday-row span { width: 28px; font-weight: bold; font-size: 0.85rem; }
   .weekday-row input { width: 80px; }
 
-  /* Einheitliche, modernere Karten-Optik fuer zusammengehoerige Einstellungs-
-     Bloecke (Standard-Zeiten, Anwesenheit NL, Abwesenheiten am Stueck,
-     Datensicherung) - vorher gingen diese im gleichfoermigen Raster mit
-     Name/Strasse/etc. optisch unter. */
+  /* ================================================================
+     REDESIGN - NACHZUG ZU SCHRITT 5, 25.09.2026
+     ----------------------------------------------------------------
+     Mirko am 24.09.2026: "sobald man in die einzelnen funktionen geht
+     ... das sieht alles langweilig aus ... nicht so modern wie unsere
+     startseite."
+
+     URSACHE, nachgesehen statt vermutet: Schritt 5 (20.09.) stellte die
+     GROSSEN Karten (.panel) auf --kartenrand um und entfernte dort
+     ausdruecklich den orangen Deckelstrich. Die KLEINEN Kaesten darin -
+     .settings-card, 24 Vorkommen - wurden dabei uebersehen. Sie standen
+     bis heute auf:
+
+         background: #f7f8fa;              kaltes Blaugrau
+         border:     1px solid #e3e6eb;    kaltes Blaugrau
+         border-top: 3px solid accent;     der abgeschaffte Deckel
+         hinweis-text: #666                kaltes Grau
+
+     ⚠ #f7f8fa, #e3e6eb und #666 kommen in KEINER Palette dieser App
+     vor. Alles andere ist warmes Creme (#f0e7d8), Braun (#612a00),
+     Orange (#de7008). Kaltes Grau auf warmem Grund wirkt fremd - genau
+     das war der Eindruck "langweilig", sobald man die Startseite
+     verlaesst.
+
+     Hier wird NICHTS NEUES erfunden. Benutzt werden ausschliesslich
+     vorhandene Werte:
+       --kartenrand / --r-karte   aus Schritt 1, Rahmen wie .panel (Schritt 5)
+       der Kachel-Verlauf          aus Schritt 3 (Startseite)
+       --orange-linie unter h3     Halls Ueberschriften-Muster (Schritt 7)
+       --leise                     Nebentext aus Schritt 1
+
+     Die WICHTIGEN Kaesten (ohne .neutral) bleiben orange - das ist
+     Absicht und stand schon vorher so da: Orange markiert die Boxen,
+     auf die es ankommt. Nur Rundung und Polster ziehen nach.
+     ================================================================ */
   .settings-card {
-    background: #FDE9DC; border: 1px solid var(--accent); border-radius: 10px;
-    padding: 0.9rem 1.1rem 0.75rem; margin-bottom: 1.25rem;
+    background: #FDE9DC; border: 1px solid var(--accent);
+    border-radius: var(--r-karte);
+    padding: 1.05rem 1.15rem 0.95rem; margin-bottom: 1.25rem;
   }
-  .settings-card h3 { margin: 0 0 0.65rem; font-size: 0.95rem; color: var(--brand-dark); }
+  /* Ueberschrift wie in .panel: deutlicher, mit kurzem orangem Strich
+     DARUNTER statt eines Deckelstrichs darueber. 0,95 rem war zu leise -
+     die Ueberschrift hob sich kaum vom Fliesstext ab. */
+  .settings-card h3 {
+    margin: 0 0 0.8rem; font-size: 1.05rem; font-weight: 700;
+    letter-spacing: -.01em; color: var(--brand-dark);
+  }
+  .settings-card h3::after {
+    content: ''; display: block; width: 64px; height: 3px;
+    background: var(--orange-linie); border-radius: 2px; margin-top: 8px;
+  }
   .settings-card .hinweis-text {
-    font-size: 0.78rem; color: #6b4a2f; margin: 0.75rem 0 0; line-height: 1.45;
+    font-size: 0.78rem; color: var(--leise); margin: 0.75rem 0 0; line-height: 1.45;
   }
   .settings-card .grid { gap: 0.85rem 1.5rem; }
   .settings-card button { margin-top: 0; }
   /* Neutrale Variante fuer reine Gliederung (Stammdaten, Zeitraum, Pauschalen)
      - gleiche Karten-Struktur, aber ohne die orange "Achtung"-Signalfarbe,
      die den wirklich wichtigen Boxen (Standard-Zeiten, Abwesenheiten, etc.)
-     vorbehalten bleibt. */
+     vorbehalten bleibt. Jetzt in den Hausfarben statt in kaltem Blaugrau. */
   .settings-card.neutral {
-    background: #f7f8fa; border: 1px solid #e3e6eb; border-top: 3px solid var(--accent);
+    background: linear-gradient(180deg, #fffdfa, rgba(253,246,236,.98));
+    border: 1.5px solid var(--kartenrand);
+    box-shadow: 0 2px 10px rgba(97,42,0,.06);
   }
-  .settings-card.neutral .hinweis-text { color: #666; }
+  .settings-card.neutral .hinweis-text { color: var(--leise); }
 
   /* Liste der eingetragenen Abwesenheits-Zeitraeume (Abwesenheiten am Stueck) */
   .absence-range-row {
@@ -2699,140 +2834,6 @@
      aendert sich dadurch optisch nichts. -->
 <h1 class="no-print"><img src="hall-logo-original.png" alt="Hall Tabakwaren" style="height:40px; vertical-align:middle; margin-right:10px;"><span data-i18n="h1Title">Spesen-Rechner &ndash; Pauschalspesen für Dienstreisen</span></h1>
 
-<div class="toolbar no-print">
-  <!-- Reihenfolge getauscht (Werkzeugleiste & Hauptkategorien Redesign,
-       Punkt 1): Kontext-Buttons (was man auf dem jeweiligen Tab als
-       naechstes braucht) stehen jetzt VOR den PDF-Aktionen. Beide Gruppen
-       haben feste IDs statt sich auf ihre DOM-Position zu verlassen -
-       zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() (Task 6/7)
-       greifen direkt darauf zu. -->
-  <div class="toolbar-group" id="toolbarKontextGruppe">
-    <!-- Zwei Unter-Gruppen, nur eine ist zur Zeit sichtbar (gesteuert von
-         zeigeWerkzeugleisteGruppe2() in zeigeTab()) - Spesen zeigt Zeiten-
-         Knopf + Stammdaten/Tage-Umschalter, Zeit zeigt Start/Stopp, alle
-         anderen Tabs zeigen gar nichts hier (Punkt 1/4 der Spec: diese
-         Buttons ergaben bisher auf JEDEM Tab Sinn, obwohl sie nur zu
-         Spesen bzw. Zeit gehoeren). -->
-    <span id="toolbarKontextSpesen">
-      <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
-           Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
-           vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
-      <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
-    </span>
-    <span id="toolbarKontextZeit" style="display:none;">
-      <button id="toolbarStempelBtn" class="primary" onclick="azStempeln()">🟢 Start</button>
-    </span>
-    <!-- Fahrzeug-Inventur: gleiche Anordnung wie ueberall - Kontext-Knoepfe
-         links, PDF-Aktion rechts in der eigenen Gruppe darunter. -->
-    <span id="toolbarKontextInventur" style="display:none;">
-      <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
-      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Blatt</button>
-      <!-- "📦 Ware zählen" stand hier als dritte Ansicht. Seit 05.09.2026
-           ist es eine eigene Hauptkategorie und deshalb hier raus - ein
-           Bereich an zwei Stellen ist eine Einladung für zwei Datenstände. -->
-      <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
-    </span>
-  </div>
-  <span class="toolbar-divider" id="invToolbarTrenner" style="display:none;"></span>
-  <!-- Ein Weg statt zwei: erst ansehen, im Ergebnisfenster dann speichern
-       oder drucken. Kein Knopf, der ungesehen herunterlaedt. -->
-  <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
-    <!-- Ansehen steht bewusst vorn: erst das fertige Blatt kontrollieren,
-         dann speichern, drucken oder senden (Mirko, 04.09.2026). -->
-    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invPdfAnsehen">👁️ PDF ansehen</button>
-    <button type="button" class="ghost" onclick="invSpeichern()" data-i18n="invPdfSpeichern">💾 PDF speichern</button>
-    <button type="button" class="ghost" onclick="invDrucken()" data-i18n="invPdfDrucken">🖨️ PDF drucken</button>
-    <!-- ⛔ NUR MIRKO (22.09.2026), obwohl der Bereich seit demselben Tag
-         allen Fahrern offensteht. Vorgelegt und so entschieden: "Knopf
-         nur für Sie."
-         Es ist KEIN Auto-Mail - invPerEmail() laedt die PDF herunter und
-         oeffnet eine vorausgefuellte Mail, die der Fahrer selbst
-         abschicken und selbst anhaengen muss. Mirkos Bedingung "geht
-         nicht automatisch an Susanne" waere also auch mit dem Knopf
-         erfuellt gewesen. Der Grund ist ein anderer: Bis das mit der
-         Niederlassung besprochen ist, gilt "ausdrucken, nachdem die
-         digitale Unterschrift gesetzt ist" - sonst bekaeme Susanne
-         Mails von Fahrern statt Papier.
-         Geschaltet in der Werkzeugleisten-Logik, Suchwort
-         invMailKnopf. -->
-    <button type="button" class="ghost" id="invMailKnopf" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
-    <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
-  </div>
-  <!-- ===== Drucken fuer Jahresuebersicht und Urlaub =====
-       Bestellt von Mirko am 21.09.2026: "jahres und urlaub braucht auch
-       eine druck moeglichkeit".
-
-       ⚠ Das ist eine NEUE FUNKTION und gilt trotzdem fuer ALLE. Das ist
-       eine BEWUSSTE AUSNAHME von Mirkos eigener Regel ("neue Funktionen
-       nur fuer mich, bis das Go der Chefs vorliegt") - sie wurde ihm mit
-       genau diesem Hinweis vorgelegt und er hat sie am 21.09.2026 so
-       entschieden. Dieser Knopf gehoert also NICHT hinter zeigtNeuerungen().
-       Wer das spaeter aendern will, aendert eine Entscheidung, keinen Fehler.
-
-       Vorher gab es hier nichts zu verschieben: Auf Urlaub und
-       Jahresuebersicht war die Werkzeugleiste komplett ausgeblendet
-       (zeigeTab()), weder #toolbarKontextGruppe noch #toolbarPdfGruppe
-       hatten dort Inhalt.
-
-       EIN Knopf statt drei: Das Uebergabe-Fenster danach bietet ohnehin
-       Drucken, Speichern und - wo das Geraet es kann - Weitergeben.
-
-       ⚠ BEWUSST OHNE eigenen Trennstrich davor. Auf beiden Bereichen ist
-       alles Vorhergehende ausgeblendet - ein <span class="toolbar-divider">
-       waere dort der ERSTE sichtbare Strich und stuende vor dem einzigen
-       Knopf statt zwischen zwei Gruppen. Am Handy (<=700 px) sind
-       Trennstriche ohnehin per CSS ausgeblendet. -->
-  <div class="toolbar-group" id="toolbarJahrPdf" style="display:none;">
-    <button type="button" class="primary" onclick="jahrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
-  </div>
-  <div class="toolbar-group" id="toolbarUrlaubPdf" style="display:none;">
-    <button type="button" class="primary" onclick="urlaubDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
-  </div>
-  <!-- Zeit bekommt ZWEI Blaetter (Mirko, 22.09.2026: "beides"):
-       Monat = der Nachweis ueber geleistete Arbeitszeit, hochkant, weil
-       es eine Tagesliste ist. Jahr = der Ueberblick, quer.
-       Hier steht ein eigener Trennstrich davor, weil links davon der
-       Start/Stopp-Knopf steht - anders als auf Jahr und Urlaub, wo
-       nichts davor liegt. -->
-  <span class="toolbar-divider" id="zeitToolbarTrenner" style="display:none;"></span>
-  <div class="toolbar-group" id="toolbarZeitPdf" style="display:none;">
-    <button type="button" class="primary" onclick="zeitMonatDrucken()">🖨️ Monat drucken</button>
-    <button type="button" class="ghost" onclick="zeitJahrDrucken()">📊 Jahr drucken</button>
-  </div>
-  <!-- Bekam am 22.09.2026 eine Kennung, damit er sich ausblenden laesst.
-       Auf Jahresuebersicht und Urlaub steht rechts von ihm NICHTS mehr
-       (die Spesen-Gruppe ist dort aus) - er waere ein Strich ins Leere,
-       gefolgt von einem leeren weissen Balken. Genau der Fehler, den
-       "Befund 4" hier schon einmal behoben hat.
-       Auf Spesen, Zeit und Inventur bleibt alles wie bisher. -->
-  <span class="toolbar-divider" id="spesenToolbarTrenner"></span>
-  <div class="toolbar-group" id="toolbarPdfGruppe">
-    <button class="primary" onclick="downloadPDF()" data-i18n="btnPdf">💾 Als PDF speichern</button>
-    <button class="handy-mehr" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
-    <button class="handy-mehr" onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
-    <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
-    <button class="handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
-    <!-- Am 21.09.2026 aus "Mehr" hierher gezogen (Mirko): "monat
-         abschließen zb ist ja eig nur für spesen gedacht … deshalb
-         bringt das ja nichts unter mehr, da weiß man gar nicht wofür
-         es da ist."
-         Belegt: submitCurrentMonth() speichert den SPESENNACHWEIS als
-         PDF und sperrt den Monat - eine reine Spesen-Sache. Hier steht
-         sie am Ende derselben Reihe, in der Reihenfolge des Ablaufs:
-         speichern, ansehen, drucken, senden - dann abschliessen, und
-         danach im Archiv nachsehen.
-         Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
-         gesperrt, sie ziehen nur um. -->
-    <button class="handy-mehr" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-    <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
-  </div>
-  <!-- Ebenfalls am 22.09.2026 benannt, gleicher Grund wie oben. -->
-  <span class="toolbar-divider" id="mehrToolbarTrenner"></span>
-  <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
-  <div class="toolbar-group">
-    <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
-  </div>
-</div>
 
 <!-- ===================== Kachel-Startseite =====================
      Neuer Landing-Screen nach dem Splash (Entscheidung 26.08.2026): 4
@@ -2975,10 +2976,239 @@
   <button type="button" class="tab-btn" data-tab="mehr" onclick="zeigeTab('mehr')" data-i18n="tabMehr">☰ Mehr</button>
 </nav>
 
+<!-- ================================================================
+     REDESIGN SCHRITT 2, 25.09.2026 — das Bereichsband.
+     Wird von bandSetzen() beim Reiterwechsel gefuellt und steht leer,
+     solange die Kachel-Startseite laeuft (dort traegt das Hero-Band).
+     Kein Inhalt im Markup: die Zahlen kommen aus denselben Funktionen,
+     aus denen sich auch die Startseite bedient (computeMonth,
+     vorausTage, urlaubRestFuer) - eine Quelle, nicht zwei.
+     ================================================================ -->
+<div id="bereichsBand" class="bereichsband no-print" style="display:none;"></div>
+<div id="bereichsAktionen" class="nebenaktionen no-print" style="display:none;"></div>
+
+<!-- ================================================================
+     REDESIGN SCHRITT 2, 25.09.2026 — die Werkzeugleiste steht jetzt
+     UNTER dem Bereichsband.
+
+     Mirko am 25.09.2026: "die werkzeuge gehoeren unter die braune
+     auch bei 1280."
+
+     Vorher stand sie ganz oben, noch vor den Reitern - man sah also
+     erst die Werkzeuge, dann wo man ist. Jetzt zuerst der Bereich
+     (Band: Titel, Tour, Zahlen), dann die Nebenaktionen, dann das
+     Werkzeug dafuer. Gleiche Reihenfolge am Handy wie am Rechner.
+
+     ⚠ Die Leiste wurde als GANZER Block verschoben, nichts darin
+     geaendert. zeigeWerkzeugleisteGruppe2() greift ueber feste IDs zu
+     und merkt von der neuen Stelle nichts.
+     ================================================================ -->
+<div class="toolbar no-print">
+  <!-- Reihenfolge getauscht (Werkzeugleiste & Hauptkategorien Redesign,
+       Punkt 1): Kontext-Buttons (was man auf dem jeweiligen Tab als
+       naechstes braucht) stehen jetzt VOR den PDF-Aktionen. Beide Gruppen
+       haben feste IDs statt sich auf ihre DOM-Position zu verlassen -
+       zeigeSpesenKopfUndPdf()/zeigeWerkzeugleisteGruppe2() (Task 6/7)
+       greifen direkt darauf zu. -->
+  <div class="toolbar-group" id="toolbarKontextGruppe">
+    <!-- Zwei Unter-Gruppen, nur eine ist zur Zeit sichtbar (gesteuert von
+         zeigeWerkzeugleisteGruppe2() in zeigeTab()) - Spesen zeigt Zeiten-
+         Knopf + Stammdaten/Tage-Umschalter, Zeit zeigt Start/Stopp, alle
+         anderen Tabs zeigen gar nichts hier (Punkt 1/4 der Spec: diese
+         Buttons ergaben bisher auf JEDEM Tab Sinn, obwohl sie nur zu
+         Spesen bzw. Zeit gehoeren). -->
+    <span id="toolbarKontextSpesen">
+      <!-- Bewusst NICHT unter "Mehr": Das ist der erste Handgriff im Monat.
+           Wer die App oeffnet, soll seine Standardzeiten setzen koennen, ohne
+           vorher "Spesen bearbeiten" zu suchen und dort zu scrollen. -->
+      <button class="primary" onclick="openStandardZeitenModal()" data-i18n="btnZeitenAlle">⏰ Zeiten für alle Tage</button>
+      <!-- ⚠ Hier standen in Schritt 1 die drei Knoepfe "Einstellungen /
+           Abwesenheiten / Sicherung". Mit Schritt 2 (25.09.2026) sind
+           sie in die ruhige Textzeile unter dem Bereichsband gewandert -
+           siehe bandAktionen(). In der Werkzeugleiste standen damit
+           sechs Knoepfe nebeneinander, was am Handy ueber drei Zeilen
+           umbrach. Die Werkzeugleiste traegt jetzt wieder nur, was
+           taeglich gebraucht wird. -->
+    </span>
+    <span id="toolbarKontextZeit" style="display:none;">
+      <button id="toolbarStempelBtn" class="primary" onclick="azStempeln()">🟢 Start</button>
+    </span>
+    <!-- Fahrzeug-Inventur: gleiche Anordnung wie ueberall - Kontext-Knoepfe
+         links, PDF-Aktion rechts in der eigenen Gruppe darunter. -->
+    <span id="toolbarKontextInventur" style="display:none;">
+      <button type="button" class="primary" id="invBtnErfassen" onclick="invSetAnsicht('erfassen')" data-i18n="invErfassen">Erfassen</button>
+      <button type="button" class="ghost" id="invBtnBlatt" onclick="invSetAnsicht('blatt')" data-i18n="invBlatt">Inventur Blatt</button>
+      <!-- "📦 Ware zählen" stand hier als dritte Ansicht. Seit 05.09.2026
+           ist es eine eigene Hauptkategorie und deshalb hier raus - ein
+           Bereich an zwei Stellen ist eine Einladung für zwei Datenstände. -->
+      <button type="button" class="ghost" onclick="invFrageKopf(true)" data-i18n="invKopf">Kopfdaten</button>
+    </span>
+  </div>
+  <span class="toolbar-divider" id="invToolbarTrenner" style="display:none;"></span>
+  <!-- Ein Weg statt zwei: erst ansehen, im Ergebnisfenster dann speichern
+       oder drucken. Kein Knopf, der ungesehen herunterlaedt. -->
+  <div class="toolbar-group" id="toolbarInventurPdf" style="display:none;">
+    <!-- Ansehen steht bewusst vorn: erst das fertige Blatt kontrollieren,
+         dann speichern, drucken oder senden (Mirko, 04.09.2026). -->
+    <button type="button" class="primary" onclick="invZeigeErgebnis()" data-i18n="invPdfAnsehen">👁️ PDF ansehen</button>
+    <button type="button" class="ghost" onclick="invSpeichern()" data-i18n="invPdfSpeichern">💾 PDF speichern</button>
+    <button type="button" class="ghost" onclick="invDrucken()" data-i18n="invPdfDrucken">🖨️ Drucken</button>
+    <!-- ⛔ NUR MIRKO (22.09.2026), obwohl der Bereich seit demselben Tag
+         allen Fahrern offensteht. Vorgelegt und so entschieden: "Knopf
+         nur für Sie."
+         Es ist KEIN Auto-Mail - invPerEmail() laedt die PDF herunter und
+         oeffnet eine vorausgefuellte Mail, die der Fahrer selbst
+         abschicken und selbst anhaengen muss. Mirkos Bedingung "geht
+         nicht automatisch an Susanne" waere also auch mit dem Knopf
+         erfuellt gewesen. Der Grund ist ein anderer: Bis das mit der
+         Niederlassung besprochen ist, gilt "ausdrucken, nachdem die
+         digitale Unterschrift gesetzt ist" - sonst bekaeme Susanne
+         Mails von Fahrern statt Papier.
+         Geschaltet in der Werkzeugleisten-Logik, Suchwort
+         invMailKnopf. -->
+    <button type="button" class="ghost" id="invMailKnopf" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
+    <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
+  </div>
+  <!-- ===== Drucken fuer Jahresuebersicht und Urlaub =====
+       Bestellt von Mirko am 21.09.2026: "jahres und urlaub braucht auch
+       eine druck moeglichkeit".
+
+       ⚠ Das ist eine NEUE FUNKTION und gilt trotzdem fuer ALLE. Das ist
+       eine BEWUSSTE AUSNAHME von Mirkos eigener Regel ("neue Funktionen
+       nur fuer mich, bis das Go der Chefs vorliegt") - sie wurde ihm mit
+       genau diesem Hinweis vorgelegt und er hat sie am 21.09.2026 so
+       entschieden. Dieser Knopf gehoert also NICHT hinter zeigtNeuerungen().
+       Wer das spaeter aendern will, aendert eine Entscheidung, keinen Fehler.
+
+       Vorher gab es hier nichts zu verschieben: Auf Urlaub und
+       Jahresuebersicht war die Werkzeugleiste komplett ausgeblendet
+       (zeigeTab()), weder #toolbarKontextGruppe noch #toolbarPdfGruppe
+       hatten dort Inhalt.
+
+       EIN Knopf statt drei: Das Uebergabe-Fenster danach bietet ohnehin
+       Drucken, Speichern und - wo das Geraet es kann - Weitergeben.
+
+       ⚠ BEWUSST OHNE eigenen Trennstrich davor. Auf beiden Bereichen ist
+       alles Vorhergehende ausgeblendet - ein <span class="toolbar-divider">
+       waere dort der ERSTE sichtbare Strich und stuende vor dem einzigen
+       Knopf statt zwischen zwei Gruppen. Am Handy (<=700 px) sind
+       Trennstriche ohnehin per CSS ausgeblendet. -->
+  <div class="toolbar-group" id="toolbarJahrPdf" style="display:none;">
+    <button type="button" class="primary" onclick="jahrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+  </div>
+  <div class="toolbar-group" id="toolbarUrlaubPdf" style="display:none;">
+    <button type="button" class="primary" onclick="urlaubDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+  </div>
+  <!-- ================================================================
+       REDESIGN SCHRITT 3, 25.09.2026: Die Abrechnung bekommt ihre
+       Knoepfe in die WERKZEUGLEISTE - wie jedes andere Abgabedokument.
+
+       Bis heute standen sie IM Panel, und zwar als einzige. Gemessen am
+       25.09.2026 ueber alle sieben Bildschirme:
+         - drei verschiedene Symbole fuer "PDF ansehen"  (👁️ 👁️ 📄)
+         - vier Woerter fuers Drucken ("Drucken", "PDF drucken",
+           "Monat drucken", "Drucken")
+         - zwei verschiedene ORTE (Leiste bzw. im Panel)
+
+       Mirko am 25.09.2026: "ich finde drucken und pdf sollte in jedem
+       dokument ersichtlich sein sonst muss man ja erst auf abgabe gehen
+       um zu drucken ... und dann weiss man ja nicht welches dokument man
+       wo drucken kann?"
+
+       Das ist seine eigene Regel vom 22.09. - "alles an der gleichen
+       stelle" - angewandt zwischen den Bildschirmen statt zwischen App
+       und Browser. Reihenfolge ueberall gleich:
+           👁️ PDF ansehen · 💾 PDF speichern · 🖨️ Drucken
+       Danach erst, was es nur hier gibt.
+       ================================================================ -->
+  <div class="toolbar-group" id="toolbarAbrechnungPdf" style="display:none;">
+    <!-- ⛔ KEIN "handy-mehr" in dieser Gruppe. Die Klasse versteckt den
+         Knopf am Handy hinter "⋯ Mehr" - und dieser Knopf gehoert zu
+         #toolbarPdfGruppe (Spesen), die hier gar nicht sichtbar ist.
+         Beim ersten Versuch am 25.09.2026 stand auf der Abrechnung am
+         Handy deshalb nur noch EIN Knopf, die uebrigen vier waren
+         unerreichbar - schlechter als vorher im Panel.
+         Gefunden, weil nach dem Umbau nachgesehen wurde, was am Handy
+         tatsaechlich sichtbar ist. -->
+    <button type="button" class="primary" onclick="abrZeigeErgebnis()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
+    <button type="button" onclick="abrSpeichern()" data-i18n="btnPdf">💾 PDF speichern</button>
+    <button type="button" onclick="abrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <button type="button" onclick="abrBeideDrucken()">🖨️ Beide Zettel</button>
+    <button type="button" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
+  </div>
+  <!-- Zeit bekommt ZWEI Blaetter (Mirko, 22.09.2026: "beides"):
+       Monat = der Nachweis ueber geleistete Arbeitszeit, hochkant, weil
+       es eine Tagesliste ist. Jahr = der Ueberblick, quer.
+       Hier steht ein eigener Trennstrich davor, weil links davon der
+       Start/Stopp-Knopf steht - anders als auf Jahr und Urlaub, wo
+       nichts davor liegt. -->
+  <span class="toolbar-divider" id="zeitToolbarTrenner" style="display:none;"></span>
+  <div class="toolbar-group" id="toolbarZeitPdf" style="display:none;">
+    <button type="button" class="primary" onclick="zeitMonatDrucken()">🖨️ Monat drucken</button>
+    <button type="button" class="ghost" onclick="zeitJahrDrucken()">📊 Jahr drucken</button>
+  </div>
+  <!-- Bekam am 22.09.2026 eine Kennung, damit er sich ausblenden laesst.
+       Auf Jahresuebersicht und Urlaub steht rechts von ihm NICHTS mehr
+       (die Spesen-Gruppe ist dort aus) - er waere ein Strich ins Leere,
+       gefolgt von einem leeren weissen Balken. Genau der Fehler, den
+       "Befund 4" hier schon einmal behoben hat.
+       Auf Spesen, Zeit und Inventur bleibt alles wie bisher. -->
+  <span class="toolbar-divider" id="spesenToolbarTrenner"></span>
+  <div class="toolbar-group" id="toolbarPdfGruppe">
+    <!-- ================================================================
+         REDESIGN SCHRITT 3, 25.09.2026 — dieselbe Reihenfolge wie ueberall.
+
+         Mirko am 25.09.: "ich finde drucken und pdf sollte in jedem
+         dokument ersichtlich sein sonst muss man ja erst auf abgabe
+         gehen um zu drucken ... und dann weiss man ja nicht welches
+         dokument man wo drucken kann?"
+
+         ⚠ ZWEI Dinge waren hier verkehrt, beide gemessen am 25.09.:
+
+         1. REIHENFOLGE. Inventur und Abrechnung zeigen
+            ansehen → speichern → drucken. Hier stand speichern zuerst.
+
+         2. "handy-mehr" AUF ANSEHEN UND DRUCKEN. Diese Klasse versteckt
+            den Knopf am Handy hinter "⋯". Auf dem meistbenutzten
+            Bildschirm war "Drucken" also genau dort nicht zu sehen, wo
+            Mirko es verlangt - bei Inventur und Abrechnung dagegen
+            immer. Beide sind jetzt fest sichtbar.
+
+         ⛔ "handy-mehr" hier nicht wieder eintragen. Der Platz kommt aus
+            den drei Knoepfen, die in Schritt 2 ins Bereichsband gewandert
+            sind.
+         ================================================================ -->
+    <button class="primary" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
+    <button onclick="downloadPDF()" data-i18n="btnPdf">💾 PDF speichern</button>
+    <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
+    <button class="handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
+    <!-- Am 21.09.2026 aus "Mehr" hierher gezogen (Mirko): "monat
+         abschließen zb ist ja eig nur für spesen gedacht … deshalb
+         bringt das ja nichts unter mehr, da weiß man gar nicht wofür
+         es da ist."
+         Belegt: submitCurrentMonth() speichert den SPESENNACHWEIS als
+         PDF und sperrt den Monat - eine reine Spesen-Sache. Hier steht
+         sie am Ende derselben Reihe, in der Reihenfolge des Ablaufs:
+         speichern, ansehen, drucken, senden - dann abschliessen, und
+         danach im Archiv nachsehen.
+         Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
+         gesperrt, sie ziehen nur um. -->
+    <button class="handy-mehr" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+  </div>
+  <!-- Ebenfalls am 22.09.2026 benannt, gleicher Grund wie oben. -->
+  <span class="toolbar-divider" id="mehrToolbarTrenner"></span>
+  <!-- Nur am Handy sichtbar: klappt die PDF-Knopfgruppe (Zeile ~671-675) auf und zu -->
+  <div class="toolbar-group">
+    <button id="mehrKnopf" class="ghost" onclick="toggleMehr()">⋯ Mehr</button>
+  </div>
+</div>
+
 <div class="panel no-print" id="settingsPanel" style="display:none;">
   <h2 style="margin-top:0;" data-i18n="settingsTitle">✏️ Spesen bearbeiten</h2>
 
-  <div class="settings-card neutral">
+  <div class="settings-card neutral" id="kastenStammdaten">
     <h3 data-i18n="stammdaten">👤 Stammdaten</h3>
     <div class="grid">
       <div>
@@ -3027,12 +3257,34 @@
         <label>Tour-Nr.</label>
         <input id="cfgTour" placeholder="z.B. 12" oninput="saveConfig();">
         <p class="hinweis-text" style="margin:0.35rem 0 0;">Füllt Inventurblatt und Verkaufsbericht vor. Beim Start eines Durchgangs änderbar.</p>
-        <!-- Fixbestand: Mirko am 06.09.2026 - "jeder fahrer nimmt einen
-             fixbestand an kleingeld mit, in den meisten faellen 1.100 euro,
-             in manch anderen andere betraege, muss individuell anpassbar
-             sein." Stand vorher fest im Inventurblatt-Markup; Kollegen mit
-             abweichendem Betrag haetten eine falsche Zahl gedruckt. -->
-        <label style="margin-top:0.75rem;">Fzg.-Fixbestand (Kleingeld)</label>
+      </div>
+      <!-- ================================================================
+           REDESIGN SCHRITT 2, 25.09.2026: Der Fixbestand ist eine EIGENE
+           Rasterzelle geworden.
+
+           Mirko: "und fix bestand eventuell auch links unter die anderen
+           nicht einfach mittig drunter."
+
+           Er stand bis heute IM selben <div> wie die Tour-Nr. und hing
+           deshalb unter ihr in der zweiten Spalte - mitten im Raster,
+           waehrend links daneben Platz war. Als eigene Zelle reiht er
+           sich normal ein.
+
+           ⚠ Er wird zusammen mit der Tour-Nr. ein- und ausgeblendet
+           (aktualisiereInventurSichtbarkeit): beide gehoeren zur
+           Inventur, beide stehen auf dem Inventurblatt. Wer hier eine
+           Zelle vergisst, laesst fuer Monteure ein Feld stehen, das es
+           fuer sie nicht geben darf.
+
+           Fixbestand selbst: Mirko am 06.09.2026 - "jeder fahrer nimmt
+           einen fixbestand an kleingeld mit, in den meisten faellen
+           1.100 euro, in manch anderen andere betraege, muss individuell
+           anpassbar sein." Stand vorher fest im Inventurblatt-Markup;
+           Kollegen mit abweichendem Betrag haetten eine falsche Zahl
+           gedruckt.
+           ================================================================ -->
+      <div id="cfgFixbestandFeld" style="display:none;">
+        <label>Fzg.-Fixbestand (Kleingeld)</label>
         <input id="cfgFixbestand" placeholder="1.100" inputmode="decimal"
                oninput="saveConfig(); invFixbestandZeigen();">
         <p class="hinweis-text" style="margin:0.35rem 0 0;">Das Kleingeld, das im Fahrzeug mitgeführt wird. Steht so auf dem Inventurblatt. Leer = 1.100.</p>
@@ -3050,6 +3302,27 @@
       Mitarbeitertyp gewählt wurde: einfach oben bei „Mitarbeitertyp" korrigieren - die Tabelle unten und alle
       zugehörigen Felder passen sich sofort automatisch an den richtigen Zettel (Fahrer/Monteur) an.</p>
   </div>
+
+  <!-- ================================================================
+       REDESIGN SCHRITT 1 (Plan vom 25.09.2026): Die Einrichtung stand
+       bisher beim Oeffnen des Spesen-Reiters komplett offen - gemessen
+       5.070 px von 8.381, also 60 % des Bildschirms, ueber der
+       eigentlichen Arbeit. Der Bildschirm war 9,8 Handy-Bildschirme lang.
+
+       Mirko am 24.09.2026: "ich find alles etwas unuebersichtlich und
+       so viel auf einmal oder?"
+
+       Die STAMMDATEN bleiben sichtbar - ausdruecklich seine Vorgabe vom
+       25.09.: "nur dass die stammdaten dort wie in heutiger stand auch
+       sind". Sie kosten 1.091 px. Die uebrigen sieben Kaesten kosten
+       zusammen 3.979 px und liegen deshalb ab hier in einem Behaelter,
+       den einrichtungOeffnen() aufschlaegt.
+
+       ⛔ NICHT die Kaesten einzeln verstecken: #monteurZeitenGroup hat
+       bereits ein eigenes display:none (es haengt am Mitarbeitertyp).
+       Das ginge dabei verloren.
+       ================================================================ -->
+  <div id="einrichtungMehr" style="display:none;">
 
   <div class="settings-card" id="fahrerZeitenGroup">
     <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
@@ -3170,7 +3443,11 @@
     <p class="hinweis-text">💡 Für Fahrer <b>und</b> Monteure: trägt an den gewählten Wochentagen automatisch die Anwesenheitszeit in der Niederlassung ein. Wer Mo–Fr in der NL ist (z.B. Monteure): Häkchen setzen, Wochentag „Alle Wochentage (Mo–Fr)" wählen und Von/Bis eintragen – dann wird „Anwesenheit in NL" jeden Werktag ausgefüllt.</p>
   </div>
 
-  <div class="settings-card">
+  <!-- Eigene Kennung: Mirko am 25.09.2026 - "datensicherung find ich
+       schon wichtig, genau wie abwesendheit". Beide bekommen deshalb
+       einen eigenen Knopf, der direkt hierher aufschlaegt, statt sie im
+       Einstellungs-Stapel suchen zu lassen. -->
+  <div class="settings-card" id="kastenAbwesenheiten">
     <h3 data-i18n="absenceCard">🗓️ Abwesenheiten am Stück eintragen</h3>
     <div class="grid">
       <div>
@@ -3200,7 +3477,7 @@
     <div id="absenceRangesList" class="absence-ranges-list"></div>
   </div>
 
-  <div class="settings-card">
+  <div class="settings-card" id="kastenSicherung">
     <h3 data-i18n="backupCard">💾 Datensicherung</h3>
     <div class="grid">
       <div>
@@ -3218,6 +3495,10 @@
     Alle Eingaben werden automatisch lokal in diesem Browser gespeichert (localStorage) &ndash;
     nichts wird irgendwohin hochgeladen. Diese Datei einfach per Doppelklick öffnen, keine Installation nötig.
   </p>
+
+  </div><!-- /#einrichtungMehr — Ende des Behaelters aus Schritt 1.
+       ⚠ Er schliesst INNERHALB von #settingsPanel. Laege er ausserhalb,
+       wuerde er beim Panel-Wechsel nicht mit ausgeblendet. -->
 </div>
 
 <div class="panel no-print" id="jahresuebersichtPanel" style="display:none;">
@@ -3529,11 +3810,14 @@
   <div class="inv-bar">
     <button type="button" class="ghost" onclick="abrAssistentStart()">🧭 Schritt für Schritt</button>
     <button type="button" class="ghost" onclick="kopfDialog()">📋 Kopfdaten</button>
-    <button type="button" class="ghost" onclick="abrZeigeErgebnis()">📄 PDF ansehen</button>
-    <button type="button" class="ghost" onclick="abrSpeichern()">💾 PDF speichern</button>
-    <button type="button" class="ghost" onclick="abrDrucken()">🖨️ Drucken</button>
-    <button type="button" class="ghost" onclick="abrBeideDrucken()">🖨️ Beide Zettel</button>
-    <button type="button" class="primary" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
+    <!-- ⚠ HIER STANDEN FUENF KNOEPFE - seit Schritt 3 (25.09.2026) in
+         der Werkzeugleiste, siehe #toolbarAbrechnungPdf:
+             📄 PDF ansehen · 💾 PDF speichern · 🖨️ Drucken
+             🖨️ Beide Zettel · ✅ Abrechnung abschliessen
+         Die Abrechnung war der einzige Bildschirm, der seine
+         Dokument-Knoepfe im Panel versteckte. Das "📄" beim Ansehen war
+         ausserdem das dritte Symbol fuer dieselbe Sache (sonst 👁️).
+         ⛔ Nicht wieder hierher zurueckholen. -->
     <button type="button" class="ghost" onclick="abrNeu()">🗑️ Neuer Bericht</button>
   </div>
 
@@ -4131,6 +4415,14 @@ function aktualisiereInventurSichtbarkeit() {
      Abrechnung die Tour, stimmt es immer noch. */
   const tourFeld = document.getElementById("cfgTourFeld");
   if (tourFeld) tourFeld.style.display = (invSichtbar || sonderSichtbar) ? "" : "none";
+  /* ⚠ ZWEITE ZELLE, seit 25.09.2026: Der Fixbestand steckte bis dahin im
+     selben <div> wie die Tour-Nr. und wurde dadurch automatisch
+     mitgeschaltet. Jetzt ist er eine eigene Rasterzelle (damit er links
+     in der Reihe steht statt mittig darunter) - und muss deshalb HIER
+     mitgeschaltet werden. Wer diese zwei Zeilen loescht, laesst
+     Monteuren ein Feld stehen, das es fuer sie nicht geben darf. */
+  const fixFeld = document.getElementById("cfgFixbestandFeld");
+  if (fixFeld) fixFeld.style.display = (invSichtbar || sonderSichtbar) ? "" : "none";
 
   /* Steht ein Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
      Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
@@ -4198,10 +4490,19 @@ const I18N = {
     pageTitle: "Hall Tabakwaren", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     splashSubtitle: "Spesen-Rechner", splashContinue: "Weiter →",
     splashGreetingKnown: "Hallo, {name}!", splashGreetingUnknown: "Willkommen!",
-    btnPdf: "💾 Als PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
+    /* SCHRITT 3, 25.09.2026: ueberall dieselben drei Woerter.
+       "Als PDF speichern" hiess bei der Inventur "PDF speichern" und bei
+       der Abrechnung ebenfalls - drei Bildschirme, zwei Woerter fuer
+       denselben Knopf. Jetzt heisst er ueberall gleich. */
+    btnPdf: "💾 PDF speichern", btnPdfView: "👁️ PDF ansehen", btnPrint: "🖨️ Drucken", btnEmail: "📧 Per E-Mail an Arbeitgeber weiterleiten",
     btnCsv: "📄 CSV (für Steuer)", btnSettings: "✏️ Spesen bearbeiten", btnYear: "📊 Jahresübersicht",
     btnTageTabelle: "📋 Tage-Tabelle",
     btnZeitenAlle: "⏰ Zeiten für alle Tage",
+    /* Schritt 1, 25.09.2026 - die drei Knoepfe der Werkzeugleiste, die
+       die zugeklappte Einrichtung wieder aufschlagen. */
+    btnEinrichtung: "⚙️ Einstellungen",
+    btnAbwesenheiten: "🗓️ Abwesenheiten",
+    btnSicherung: "💾 Sicherung",
     tabSpesen: "📋 Spesen", tabZeit: "⏱️ Zeit", tabUrlaub: "🌴 Urlaub", tabJahr: "📊 Jahresübersicht",
     tabAnleitung: "❓ Anleitung", tabMehr: "☰ Mehr", mehrWerkzeuge: "🛠️ Werkzeuge",
     tabInventur: "🚚 Fahrzeug-Inventur",
@@ -4209,7 +4510,7 @@ const I18N = {
     invStueck: "Stückzahl", invPreis: "Verkaufspreis", invIst: "Istbestand",
     invFertig: "Fertig → Blatt ansehen",
     invPdfAnsehen: "👁️ PDF ansehen",
-    invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ PDF drucken",
+    invPdfSpeichern: "💾 PDF speichern", invPdfDrucken: "🖨️ Drucken",
     invPdfMail: "📧 An Niederlassung senden", invNeu: "🗑️ Neue Inventur",
     tabWare: "📦 Neue Ware zählen",
     tabAbrechnung: "🧾 Abrechnung",
@@ -4249,10 +4550,13 @@ const I18N = {
     pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     splashSubtitle: "Expense Calculator", splashContinue: "Continue →",
     splashGreetingKnown: "Hello, {name}!", splashGreetingUnknown: "Welcome!",
-    btnPdf: "💾 Save as PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
+    btnPdf: "💾 Save PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
     btnCsv: "📄 CSV (for taxes)", btnSettings: "✏️ Edit expenses", btnYear: "📊 Yearly overview",
     btnTageTabelle: "📋 Daily entries",
     btnZeitenAlle: "⏰ Times for all days",
+    btnEinrichtung: "⚙️ Settings",
+    btnAbwesenheiten: "🗓️ Absences",
+    btnSicherung: "💾 Backup",
     tabSpesen: "📋 Expenses", tabZeit: "⏱️ Time", tabUrlaub: "🌴 Holidays", tabJahr: "📊 Year overview",
     tabAnleitung: "❓ Guide", tabMehr: "☰ More", mehrWerkzeuge: "🛠️ Tools",
     tabInventur: "🚚 Vehicle stocktake",
@@ -4260,7 +4564,7 @@ const I18N = {
     invStueck: "Quantity", invPreis: "Retail price", invIst: "Actual stock",
     invFertig: "Done → view sheet",
     invPdfAnsehen: "👁️ View PDF",
-    invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print PDF",
+    invPdfSpeichern: "💾 Save PDF", invPdfDrucken: "🖨️ Print",
     invPdfMail: "📧 Send to branch", invNeu: "🗑️ New stocktake",
     tabWare: "📦 Count new goods",
     tabAbrechnung: "🧾 Settlement",
@@ -5439,11 +5743,21 @@ function zeigeTab(tab) {
   // die Bedingung: ein Kommentar, der dem Code widerspricht, ist die
   // naechste Fehlerquelle.
   const toolbar = document.querySelector(".toolbar");
+  /* ⚠ ERGAENZT am 25.09.2026 (Schritt 3): "abrechnung" kam dazu. Bis
+     dahin hatte die Abrechnung als einziges Abgabedokument gar keine
+     Werkzeugleiste - ihre PDF-Knoepfe standen im Panel. Jetzt stehen
+     sie wie ueberall oben, also muss die Leiste dort auch erscheinen.
+     Wer diese Liste wieder kuerzt, nimmt der Abrechnung ihre Knoepfe. */
   if (toolbar) toolbar.style.display =
     (tab === "spesen" || tab === "zeit" || tab === "inventur"
-     || tab === "jahr" || tab === "urlaub") ? "" : "none";
+     || tab === "jahr" || tab === "urlaub" || tab === "abrechnung") ? "" : "none";
 
   markiereTab(tab);
+  /* REDESIGN SCHRITT 2, 25.09.2026: Das Bereichsband fuellen. Hier und
+     nicht weiter unten - der Spesen-Zweig steigt spaeter mit "return"
+     aus, und dann waere das Band auf dem meistbenutzten Bildschirm leer
+     geblieben. */
+  bandSetzen(tab);
   /* Hier stand zigiStop() - es hielt die Zigaretten-Animation an, wenn
      man waehrend der zehn Sekunden eine Kachel antippte. Die Animation
      ist am 20.09.2026 ausgebaut, es gibt nichts mehr anzuhalten. */
@@ -5475,6 +5789,11 @@ function zeigeTab(tab) {
     // NEU (Task 6): Standard ist jetzt die Stammdaten-Maske, nicht mehr die
     // Tage-Tabelle - keine doppelte Funktion mehr, "Spesen" zeigt direkt das,
     // was bisher nur "Spesen bearbeiten" zeigte.
+    /* REDESIGN SCHRITT 1, 25.09.2026: Die Einrichtung faengt IMMER zu an.
+       Wer den Reiter wechselt und zurueckkommt, soll nicht wieder vor
+       3.979 px Einstellungen stehen, bevor die Arbeit anfaengt. */
+    const einrMehr = document.getElementById("einrichtungMehr");
+    if (einrMehr) einrMehr.style.display = "none";
     zeigeSpesenUnteransicht("stammdaten");
     return;
   }
@@ -6207,6 +6526,10 @@ function heroZahlenAktualisieren() {
 function zeigeKachelStartseite() {
   const kachelEl = document.getElementById("kachelStartseite");
   if (kachelEl) kachelEl.style.display = "";
+  /* REDESIGN SCHRITT 2, 25.09.2026: Auf der Startseite traegt das
+     Hero-Band mit dem Foto - zwei Baender uebereinander waeren zwei
+     Ueberschriften fuer denselben Bildschirm. */
+  bandVerbergen();
   /* Das Hero-Band traegt das Foto (Redesign Schritt 2, Entscheidung 2
      vom 19.09.2026: "Ein Bildschirm statt zwei"). Darunter laeuft die
      Creme-Seite weiter. */
@@ -11821,6 +12144,10 @@ function zeigeWerkzeugleisteGruppe2(tab) {
   if (jahrPdf) jahrPdf.style.display = tab === "jahr" ? "" : "none";
   const urlaubPdf = document.getElementById("toolbarUrlaubPdf");
   if (urlaubPdf) urlaubPdf.style.display = tab === "urlaub" ? "" : "none";
+  /* SCHRITT 3, 25.09.2026: Die Abrechnung hat ihre Knoepfe jetzt hier
+     statt im Panel - gleiche Stelle wie bei jedem anderen Dokument. */
+  const abrPdf = document.getElementById("toolbarAbrechnungPdf");
+  if (abrPdf) abrPdf.style.display = tab === "abrechnung" ? "" : "none";
   const zeitPdf = document.getElementById("toolbarZeitPdf");
   const zeitTrenner = document.getElementById("zeitToolbarTrenner");
   if (zeitPdf) zeitPdf.style.display = tab === "zeit" ? "" : "none";
@@ -11872,6 +12199,178 @@ function zeigeSpesenUnteransicht(ansicht, fokusFeldId) {
     const el = document.getElementById(fokusFeldId);
     if (el) el.focus();
   }
+}
+
+/* ================================================================
+   REDESIGN SCHRITT 1, 25.09.2026 — die Einrichtung aufschlagen.
+
+   zeigeSpesenUnteransicht() darueber bleibt UNVERAENDERT: es oeffnet
+   weiterhin #settingsPanel als Ganzes, und die vier Aufrufstellen
+   (zeigeTab, csvEmailSelf, sendPerEmail, zwei E-Mail-Knoepfe) merken
+   nichts davon. Neu ist nur, dass der Behaelter #einrichtungMehr DARIN
+   zu ist, bis jemand ihn aufmacht.
+
+   kastenId (wahlweise): rollt nach dem Oeffnen zu genau diesem Kasten.
+   So landet "Abwesenheiten" direkt bei den Abwesenheiten, statt den
+   Benutzer durch sieben Kaesten suchen zu lassen.
+   ================================================================ */
+function einrichtungOeffnen(kastenId) {
+  const behaelter = document.getElementById("einrichtungMehr");
+  if (!behaelter) return;
+  behaelter.style.display = "block";
+  const knopf = document.getElementById("btnEinrichtung");
+  if (knopf) knopf.setAttribute("aria-expanded", "true");
+  if (kastenId) {
+    const kasten = document.getElementById(kastenId);
+    /* Bewusst OHNE "behavior: smooth" - dieselbe Begruendung wie bei
+       toggleArbeitszeitPanel() weiter unten: waehrend einer
+       Rollbewegung wandern alle Knoepfe mit, und ein schnell
+       nachgesetzter zweiter Tipp trifft ins Leere. */
+    if (kasten) kasten.scrollIntoView({ block: "start" });
+  }
+}
+
+/* ================================================================
+   REDESIGN SCHRITT 2, 25.09.2026 — das Bereichsband fuellen.
+
+   Ein Band je Arbeitsbereich: Symbolkasten, Titel, Unterzeile, rechts
+   ein Merkzettel (Tour), darunter die Zahlen gross.
+
+   ⭐ DIE ZAHLEN WERDEN NICHT NEU GERECHNET. Sie kommen aus denselben
+   Funktionen, aus denen sich auch die Zahlenkarte der Startseite
+   bedient - computeMonth(), vorausTage(), urlaubRestFuer(). Eine
+   Quelle, nicht zwei, die spaeter auseinanderlaufen.
+
+   ⛔ "Tage offen" nur bei zeigtNeuerungen(). Begruendung steht
+   ausfuehrlich bei heroZahlenAktualisieren(): Die Zahl haengt an einer
+   Reparatur, die bewusst gesperrt blieb; bei Kollegen stuende neben
+   einem vollen Blatt, dass Tage "noch offen" seien. Wer das hier
+   vergisst, baut denselben Fehler ein zweites Mal.
+   ================================================================ */
+const BAND_BEREICHE = {
+  spesen:     { zeichen: "✏️", titel: "Spesen" },
+  inventur:   { zeichen: "🚚", titel: "Fahrzeug-Inventur" },
+  ware:       { zeichen: "📦", titel: "Neue Ware zählen" },
+  abrechnung: { zeichen: "🧾", titel: "Abrechnung" },
+  zeit:       { zeichen: "⏱️", titel: "Zeit" },
+  urlaub:     { zeichen: "🌴", titel: "Urlaub" },
+  jahr:       { zeichen: "📊", titel: "Jahresübersicht" },
+  anleitung:  { zeichen: "❓", titel: "Anleitung" },
+  mehr:       { zeichen: "☰", titel: "Mehr" },
+};
+
+function bandZahl(wert, was) {
+  return '<div class="bb-zahl"><b>' + wert + '</b><span>' + was + '</span></div>';
+}
+
+/* Die Zahlen je Bereich. Jede einzeln in try/catch: ohne Stammdaten
+   rechnet computeMonth() nicht, und ein fehlender Wert darf nie das
+   ganze Band verschlucken. */
+function bandZahlen(tab) {
+  let html = "";
+  if (tab === "spesen") {
+    try {
+      const jahr = config.jahr;
+      const monat = parseInt(document.getElementById("monthPicker").value)
+                    || config.startMonat;
+      const m = computeMonth(jahr, monat);
+      const geld = m.total.toFixed(2).replace(".", ",") + " €";
+      const monatsname = (MONTH_NAMES && MONTH_NAMES[monat - 1]) || String(monat);
+      html += bandZahl(m.workdays, "TAGE ERFASST");
+      html += bandZahl(geld, monatsname.toUpperCase());
+      if (zeigtNeuerungen()) {
+        try { html += bandZahl(vorausTage().length, "NOCH OFFEN"); } catch (e) {}
+      }
+    } catch (e) {}
+  } else if (tab === "urlaub") {
+    try { html += bandZahl(urlaubRestFuer(config.jahr), "TAGE REST"); } catch (e) {}
+  }
+  return html;
+}
+
+/* Die Nebenaktionen je Bereich - als ruhige Textzeile, nicht als Pillen.
+   Mirko am 25.09.: "datensicherung find ich schon wichtig, genau wie
+   abwesendheit" - deshalb stehen beide hier und nicht im Stapel. */
+function bandAktionen(tab) {
+  /* Die Kennungen sind nicht Zierde: einrichtung-pruefen.sh sucht genau
+     danach, und einrichtungOeffnen() setzt aria-expanded auf
+     #btnEinrichtung. Wer sie entfernt, macht die Pruefung blind. */
+  const k = (id, text, ruf) =>
+    '<button type="button" id="' + id + '" onclick="' + ruf + '">' + text + "</button>";
+  if (tab === "spesen") {
+    return k("btnEinrichtung", "⚙️ Einstellungen", "einrichtungUmschalten()")
+         + k("btnAbwesenheiten", "🗓️ Abwesenheiten", "einrichtungOeffnen('kastenAbwesenheiten')")
+         + k("btnSicherung", "💾 Sicherung", "einrichtungOeffnen('kastenSicherung')")
+         + k("btnArchivBand", "📁 Abgeschlossene Monate", "toggleArchivPanel()");
+  }
+  return "";
+}
+
+function bandSetzen(tab) {
+  const band = document.getElementById("bereichsBand");
+  const akt = document.getElementById("bereichsAktionen");
+  if (!band || !akt) return;
+
+  const b = BAND_BEREICHE[tab];
+  if (!b) { band.style.display = "none"; akt.style.display = "none"; return; }
+
+  /* Die Ueberschrift des Bereichs steht jetzt IM Band. Die alte h2 im
+     Panel wuerde sie doppeln - deshalb weg, aber nur bei den Panels,
+     die ein Band haben. #archivPanel und die Fenster behalten ihre. */
+  const panelId = (tab === "spesen") ? "settingsPanel" : TAB_PANEL_MAP[tab];
+  const panel = document.getElementById(panelId);
+  if (panel) {
+    const h2 = panel.querySelector(":scope > h2");
+    if (h2) h2.style.display = "none";
+  }
+
+  let unter = "";
+  try {
+    const monat = parseInt(document.getElementById("monthPicker").value)
+                  || config.startMonat;
+    const monatsname = (MONTH_NAMES && MONTH_NAMES[monat - 1]) || "";
+    unter = (tab === "spesen" ? monatsname + " " + config.jahr + " · " : "")
+          + (config.name || "");
+  } catch (e) {}
+
+  let merk = "";
+  try { if (config.tour) merk = '<div class="bb-merk">Tour ' + config.tour + "</div>"; } catch (e) {}
+
+  const zahlen = bandZahlen(tab);
+  band.innerHTML =
+    '<div class="bb-zeile">'
+    + '<div class="bb-kasten">' + b.zeichen + "</div>"
+    + "<div><div class=\"bb-titel\">" + b.titel + "</div>"
+    + (unter ? '<div class="bb-unter">' + unter + "</div>" : "")
+    + "</div>" + merk + "</div>"
+    + (zahlen ? '<div class="bb-zahlen">' + zahlen + "</div>" : "");
+  band.style.display = "";
+
+  const aktionen = bandAktionen(tab);
+  akt.innerHTML = aktionen;
+  akt.style.display = aktionen ? "" : "none";
+}
+
+function bandVerbergen() {
+  const band = document.getElementById("bereichsBand");
+  const akt = document.getElementById("bereichsAktionen");
+  if (band) band.style.display = "none";
+  if (akt) akt.style.display = "none";
+}
+
+function einrichtungUmschalten(kastenId) {
+  const behaelter = document.getElementById("einrichtungMehr");
+  if (!behaelter) return;
+  const offen = behaelter.style.display !== "none";
+  /* Nur der Einstellungs-Knopf schliesst wieder. Wer auf
+     "Abwesenheiten" tippt, will dorthin - nicht zumachen. */
+  if (offen && !kastenId) {
+    behaelter.style.display = "none";
+    const knopf = document.getElementById("btnEinrichtung");
+    if (knopf) knopf.setAttribute("aria-expanded", "false");
+    return;
+  }
+  einrichtungOeffnen(kastenId);
 }
 
 function toggleArbeitszeitPanel() {
