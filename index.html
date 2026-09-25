@@ -3259,36 +3259,24 @@
         <p class="hinweis-text" style="margin:0.35rem 0 0;">Füllt Inventurblatt und Verkaufsbericht vor. Beim Start eines Durchgangs änderbar.</p>
       </div>
       <!-- ================================================================
-           REDESIGN SCHRITT 2, 25.09.2026: Der Fixbestand ist eine EIGENE
-           Rasterzelle geworden.
+           HIER STAND BIS ZUM 25.09.2026 DER FZG.-FIXBESTAND (cfgFixbestand).
 
-           Mirko: "und fix bestand eventuell auch links unter die anderen
-           nicht einfach mittig drunter."
+           Mirko: "im spesen tool hat der fix bestand nichts zu suchen, der
+           gehoert nur zu inventur."
 
-           Er stand bis heute IM selben <div> wie die Tour-Nr. und hing
-           deshalb unter ihr in der zweiten Spalte - mitten im Raster,
-           waehrend links daneben Platz war. Als eigene Zelle reiht er
-           sich normal ein.
+           Er ist in die KOPFDATEN gewandert (kopfFixbestandFeld im
+           kopfDialog, Getter kopfFixbestand). Begruendung dort.
 
-           ⚠ Er wird zusammen mit der Tour-Nr. ein- und ausgeblendet
-           (aktualisiereInventurSichtbarkeit): beide gehoeren zur
-           Inventur, beide stehen auf dem Inventurblatt. Wer hier eine
-           Zelle vergisst, laesst fuer Monteure ein Feld stehen, das es
-           fuer sie nicht geben darf.
+           ⛔ Nicht wieder hier aufmachen. Er wird in den Spesen nirgends
+           gerechnet - "der fixbestand wird nirgends mitgerechnet, nur im
+           haeckchen bestaetigt" (Mirko, 06.09.2026) - und stand hier nur,
+           weil die Stammdaten der naechste Platz waren, nicht der richtige.
 
-           Fixbestand selbst: Mirko am 06.09.2026 - "jeder fahrer nimmt
-           einen fixbestand an kleingeld mit, in den meisten faellen
-           1.100 euro, in manch anderen andere betraege, muss individuell
-           anpassbar sein." Stand vorher fest im Inventurblatt-Markup;
-           Kollegen mit abweichendem Betrag haetten eine falsche Zahl
-           gedruckt.
+           ⚠ config.fixbestand wird weiterhin GELESEN (in kopfFixbestand),
+           damit Kollegen, die den Betrag zwischen dem 23. und 25.09.2026
+           hier eingetragen hatten, ihn behalten. Geschrieben wird er
+           nicht mehr.
            ================================================================ -->
-      <div id="cfgFixbestandFeld" style="display:none;">
-        <label>Fzg.-Fixbestand (Kleingeld)</label>
-        <input id="cfgFixbestand" placeholder="1.100" inputmode="decimal"
-               oninput="saveConfig(); invFixbestandZeigen();">
-        <p class="hinweis-text" style="margin:0.35rem 0 0;">Das Kleingeld, das im Fahrzeug mitgeführt wird. Steht so auf dem Inventurblatt. Leer = 1.100.</p>
-      </div>
       <div>
         <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
         <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
@@ -4415,14 +4403,10 @@ function aktualisiereInventurSichtbarkeit() {
      Abrechnung die Tour, stimmt es immer noch. */
   const tourFeld = document.getElementById("cfgTourFeld");
   if (tourFeld) tourFeld.style.display = (invSichtbar || sonderSichtbar) ? "" : "none";
-  /* ⚠ ZWEITE ZELLE, seit 25.09.2026: Der Fixbestand steckte bis dahin im
-     selben <div> wie die Tour-Nr. und wurde dadurch automatisch
-     mitgeschaltet. Jetzt ist er eine eigene Rasterzelle (damit er links
-     in der Reihe steht statt mittig darunter) - und muss deshalb HIER
-     mitgeschaltet werden. Wer diese zwei Zeilen loescht, laesst
-     Monteuren ein Feld stehen, das es fuer sie nicht geben darf. */
-  const fixFeld = document.getElementById("cfgFixbestandFeld");
-  if (fixFeld) fixFeld.style.display = (invSichtbar || sonderSichtbar) ? "" : "none";
+  /* Der Fixbestand wurde hier bis zum 25.09.2026 mitgeschaltet. Er steht
+     nicht mehr in den Stammdaten, sondern in den Kopfdaten - und der
+     Kopfdaten-Dialog ist ohnehin nur aus Inventur und Abrechnung heraus
+     erreichbar, also nie fuer Monteure. Nichts mehr zu schalten. */
 
   /* Steht ein Panel offen und die Sichtbarkeit faellt weg (Wechsel auf
      Monteur in den Stammdaten), zurueck auf die Kachel-Startseite - sonst
@@ -4957,7 +4941,12 @@ function saveConfig() {
   config.name = val("cfgName"); config.strasse = val("cfgStrasse"); config.ort = val("cfgOrt");
   config.niederlassung = val("cfgNiederlassung");
   config.tour = val("cfgTour");
-  config.fixbestand = val("cfgFixbestand");
+  /* config.fixbestand wird seit dem 25.09.2026 NICHT mehr geschrieben - das
+     Feld steht in den Kopfdaten. Der alte Wert bleibt unangetastet in
+     config stehen und wird von kopfFixbestand() noch gelesen, damit die
+     Kollegen ihren Betrag behalten. Wuerde hier val("cfgFixbestand")
+     stehenbleiben, wuerfe es beim ersten Speichern einen Fehler: das
+     Element gibt es nicht mehr. */
   config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
   config.eigeneEmail = val("cfgEigeneEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
@@ -5599,7 +5588,9 @@ function initSettingsUI() {
   document.getElementById("cfgOrt").value = config.ort;
   document.getElementById("cfgNiederlassung").value = config.niederlassung;
   document.getElementById("cfgTour").value = config.tour || "";
-  document.getElementById("cfgFixbestand").value = config.fixbestand || "";
+  /* cfgFixbestand gibt es seit dem 25.09.2026 nicht mehr (Kopfdaten).
+     invFixbestandZeigen() bleibt: das Inventurblatt muss den Betrag auch
+     dann tragen, wenn der Kopfdaten-Dialog in dieser Sitzung nie aufging. */
   invFixbestandZeigen();
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
   document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
@@ -7146,13 +7137,13 @@ function abrStandLesen() {
   }
   return abrBerechne();
 }
-/* Schreibt den Fixbestand aus den Stammdaten ins Inventurblatt. Leer
-   bedeutet 1.100 - das ist der Betrag, den die meisten Fahrer mitfuehren. */
+/* Schreibt den Fixbestand aus den KOPFDATEN ins Inventurblatt.
+   Seit 25.09.2026 - vorher kam er aus den Stammdaten (config.fixbestand).
+   kopfFixbestand() liefert nie leer, der Rueckfall auf 1.100 steckt dort. */
 function invFixbestandZeigen() {
   const zelle = document.getElementById("invFixbestandZelle");
   if (!zelle) return;
-  const roh = String((config && config.fixbestand) || "").trim();
-  zelle.textContent = "Fzg.Fixbestand überprüft " + (roh || "1.100") + " EURO";
+  zelle.textContent = "Fzg.Fixbestand überprüft " + kopfFixbestand() + " EURO";
 }
 
 /* Gibt es ueberhaupt schon eine Abrechnung? Wird gebraucht, um "noch nichts
@@ -7820,7 +7811,11 @@ function invHeute() { return new Date().toLocaleDateString("de-DE", { day: "2-di
      Datum  - gehoert zum Durchgang, NICHT in die Stammdaten: die App wird
               am Montag geoeffnet und am Freitag abgerechnet. */
 const KOPF_KEY = "hall-kopfdaten-v1";
-let kopfState = { fahrer: "", tour: "", datum: "" };
+/* fixbestand seit 25.09.2026 - siehe kopfFixbestand(). Aeltere Speicher
+   kennen das Feld nicht; Object.assign in kopfLaden() laesst es dann auf
+   "" stehen, und kopfFixbestand() faellt auf die Stammdaten und zuletzt
+   auf 1.100 zurueck. Kein Migrationsschritt noetig. */
+let kopfState = { fahrer: "", tour: "", datum: "", fixbestand: "" };
 let kopfGeladen = false;
 
 function kopfLaden() {
@@ -7833,15 +7828,56 @@ function kopfSichern() { try { localStorage.setItem(KOPF_KEY, JSON.stringify(kop
 function kopfFahrer() { kopfLaden(); return String(kopfState.fahrer || config.name || "").trim(); }
 function kopfTour()   { kopfLaden(); return String(kopfState.tour   || config.tour || "").trim(); }
 function kopfDatum()  { kopfLaden(); return String(kopfState.datum  || "").trim() || invHeute(); }
+
+/* ===== Fzg.-Fixbestand: seit 25.09.2026 hier statt in den Stammdaten =====
+   Mirko: "im spesen tool hat der fix bestand nichts zu suchen, der gehoert
+   nur zu inventur. da ist er standardmaessig auf 1100 aber man muss ihn
+   anpassen koennen wenn noetig."
+
+   Er stand bis heute als cfgFixbestand in den Stammdaten - also im
+   Spesen-Teil, obwohl ihn nur das INVENTURBLATT braucht. In den Spesen
+   wird er nirgends gerechnet ("der fixbestand wird nirgends mitgerechnet,
+   nur im haeckchen bestaetigt", 06.09.2026).
+
+   Warum die Kopfdaten und nicht das Blatt selbst (Mirko, 25.09.2026):
+   "lieber in den kopfdaten unten im blatt koennte es uebersehen werden."
+   Die Fixbestand-Zeile sitzt im Fuss, direkt ueber "Istbestand" - wer von
+   oben nach unten zaehlt, kommt dort an, wenn er mit den Gedanken schon
+   bei der Summe ist.
+
+   ⚠ Die Rueckfallkette hat drei Glieder, und jedes hat einen Grund:
+     kopfState.fixbestand - was der Fahrer zuletzt uebernommen hat
+     config.fixbestand    - EINMALIGE UEBERNAHME fuer die Kollegen, die
+                            den Betrag zwischen dem 23. und 25.09.2026
+                            schon in den Stammdaten eingetragen hatten.
+                            Wird nie mehr geschrieben, nur noch gelesen.
+                            NICHT entfernen - sonst druckt genau der
+                            Kollege, fuer den das Feld gebaut wurde,
+                            wieder die Vorgabe.
+     "1.100"              - der Betrag, den die meisten mitfuehren
+                            (Mirko, 06.09.2026). */
+function kopfFixbestand() {
+  kopfLaden();
+  return String(kopfState.fixbestand || (config && config.fixbestand) || "").trim() || "1.100";
+}
+
 /* Das Datum faellt notfalls auf "heute" zurueck und fehlt damit nie -
-   vollstaendig heisst also: Fahrer und Tour stehen. */
+   vollstaendig heisst also: Fahrer und Tour stehen. Der Fixbestand zaehlt
+   bewusst NICHT hinein: er hat immer einen gueltigen Wert (1.100) und
+   duerfte den Dialog nie erzwingen. */
 function kopfVollstaendig() { return !!(kopfFahrer() && kopfTour()); }
 
-function kopfSetzen(fahrer, tour, datum) {
+/* ⚠ fixbestand ist OPTIONAL und wird nur geschrieben, wenn er
+   uebergeben wurde. Der Abrechnungs-Assistent ruft kopfSetzen() mit drei
+   Werten auf (abrAssiSichereSchritt) - wuerde der vierte dort still als
+   "" durchschlagen, loeschte jeder Schritt im Assistenten den Betrag des
+   Fahrers. */
+function kopfSetzen(fahrer, tour, datum, fixbestand) {
   kopfLaden();
   kopfState.fahrer = String(fahrer || "").trim();
   kopfState.tour   = String(tour   || "").trim();
   kopfState.datum  = String(datum  || "").trim() || invHeute();
+  if (fixbestand !== undefined) kopfState.fixbestand = String(fixbestand || "").trim();
   kopfSichern();
   kopfUebernehmen();
 }
@@ -7875,6 +7911,15 @@ function kopfUebernehmen() {
     abrSetz("abrDatum", datum);
     abrSichern();
   }
+
+  /* ⚠ AUSSERHALB der invAufgebaut-Klammer, seit 25.09.2026.
+     Die Fixbestand-Zelle ist festes Markup und steht von Anfang an im
+     Blatt - anders als Kopf und Fuss, die erst beim Aufbau gefuellt
+     werden. Stand sie innen, trug sie nach dem Aendern im Dialog noch
+     den alten Betrag, solange die Inventur in dieser Sitzung nicht
+     geoeffnet war. Gefunden von fixbestand-pruefen.sh, Pruefung 3.
+     invFixbestandZeigen() prueft selbst, ob die Zelle da ist. */
+  invFixbestandZeigen();
 }
 
 /* EIN Fenster statt drei nacheinander aufpoppender prompt()-Abfragen. Am
@@ -7892,7 +7937,13 @@ function kopfDialog(nachher) {
       '<label>Tour-Nr.</label>' +
       '<input id="kopfTourFeld" placeholder="z.B. 12" style="margin-bottom:0.75rem;">' +
       '<label>Datum</label>' +
-      '<input id="kopfDatumFeld" placeholder="TT.MM.JJJJ">' +
+      '<input id="kopfDatumFeld" placeholder="TT.MM.JJJJ" style="margin-bottom:0.75rem;">' +
+      /* Fixbestand seit 25.09.2026 hier. Anders als die drei darueber gilt
+         er NUR fuer das Inventurblatt - deshalb der eigene Hinweis, sonst
+         widerspraeche er der Zeile "gelten fuer beide Zettel" oben. */
+      '<label>Fzg.-Fixbestand (Kleingeld)</label>' +
+      '<input id="kopfFixbestandFeld" placeholder="1.100" inputmode="decimal">' +
+      '<p style="font-size:0.85rem; color:#666; margin:0.35rem 0 0;">Nur für das <b>Inventurblatt</b>. Das Kleingeld, das im Fahrzeug mitgeführt wird. Leer = 1.100.</p>' +
       '<div class="wizard-buttons">' +
         '<button onclick="kopfDialogAbbrechen()">Abbrechen</button>' +
         '<button class="primary" onclick="kopfDialogSpeichern()">Übernehmen</button>' +
@@ -7901,6 +7952,7 @@ function kopfDialog(nachher) {
   document.getElementById("kopfFahrerFeld").value = kopfFahrer();
   document.getElementById("kopfTourFeld").value   = kopfTour();
   document.getElementById("kopfDatumFeld").value  = kopfDatum();
+  document.getElementById("kopfFixbestandFeld").value = kopfFixbestand();
   __kopfNachher = typeof nachher === "function" ? nachher : null;
 }
 function kopfDialogAbbrechen() { __kopfNachher = null; closeModal(); }
@@ -7908,7 +7960,8 @@ function kopfDialogSpeichern() {
   kopfSetzen(
     document.getElementById("kopfFahrerFeld").value,
     document.getElementById("kopfTourFeld").value,
-    document.getElementById("kopfDatumFeld").value
+    document.getElementById("kopfDatumFeld").value,
+    document.getElementById("kopfFixbestandFeld").value
   );
   closeModal();
   const f = __kopfNachher; __kopfNachher = null;
@@ -7942,6 +7995,12 @@ function invFuelleKopfFelder() {
     const el = document.getElementById(id);
     if (el) el.value = wert;
   });
+  /* Der Fixbestand steht nicht im Kopf, sondern im Fuss des Blattes und ist
+     kein Eingabefeld, sondern Text (Mirko, 25.09.2026: im Blatt koennte er
+     uebersehen werden). Deshalb hier mitgeschrieben, sobald das Blatt
+     aufgebaut wird - sonst traege es die Vorgabe, bis das naechste Mal die
+     Kopfdaten gespeichert werden. */
+  invFixbestandZeigen();
   /* ===== Niederlassung aus den Stammdaten, nicht fest eingetragen =====
      Mirko am 22.09.2026: "Ja, aus den Stammdaten."
 
