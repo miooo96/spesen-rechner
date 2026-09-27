@@ -2630,8 +2630,27 @@
   .pdf-export #formular .bezahlt-edit { display: none !important; }
   .pdf-export #formular .bezahlt-print { display: inline !important; }
   .pdf-export #formular th, .pdf-export #formular .gesamt-row td { background: #fff !important; }
+  /* ⛔ z-index MUSS ueber .modal-overlay (1100) liegen.
+     Mirko am 27.09.2026: "kann man zeiten nicht mehr über funktion
+     zeiten für alle tage ausfüllen? der da öffnet sich nichts wenn ich
+     die uhrzeiten eintragen will das buckt total rum."
+
+     Das Rad stand auf 1000 und ging damit HINTER dem Fenster auf. Es
+     war da - nur unerreichbar: elementFromPoint traf in seiner Mitte
+     ein LABEL des Fensters. Wer im Fenster "Zeiten für alle Tage" auf
+     05:15 tippte, sah nichts passieren.
+
+     Seit wann: Das Rad kam am 19.07.2026 mit z-index 1000, das Fenster
+     bekam am 20.07.2026 1100 - unauffaellig, solange das Fenster keine
+     Zeitfelder hatte. Am 14.08.2026 bekam es welche (Commit 38b23b1),
+     seitdem war es kaputt.
+
+     Geprueft mit zeiten-knopf-pruefen.sh - dort wird nicht nur gefragt,
+     OB das Rad aufgeht, sondern ob es in seiner Mitte auch wirklich
+     obenauf liegt. Genau diese Frage fehlte, weshalb es sechs Wochen
+     unbemerkt blieb. */
   .time-wheel-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1200;
     display: flex; align-items: center; justify-content: center;
   }
   .time-wheel-modal {
