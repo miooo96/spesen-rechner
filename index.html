@@ -8482,9 +8482,27 @@ window.addEventListener("afterprint", () => {
   if (__invDruckStil) { __invDruckStil.remove(); __invDruckStil = null; }
 });
 
+/* ⛔ 27.09.2026 UMGESTELLT auf pdfUebergabe() - siehe printFromPreview().
+   Mirko: "der inventur zettel soll auf 1 querformat blatt gedruckt
+   werden nicht zwei ... und der link vom tool soll auch nicht auf dem
+   inventurzettel stehen."
+
+   Beides entsteht auf dem Weg durch den Browser: Der setzt die
+   Seitenausrichtung des GESAMTEN Auftrags, weshalb ein Querblatt auf
+   einer Hochkantseite ueberlaeuft, und haengt seine Kopfzeile mit der
+   Adresse an. Auf dem Blatt selbst steht keine einzige Adresse - der
+   Code wurde danach durchsucht.
+
+   Die Datei ist in Ordnung: eine Seite, quer, 297x210 mm - gemessen
+   mit druckwege-pruefen.sh. Sie muss nur als DATEI beim Geraet
+   ankommen statt als gedruckte Webseite. */
 function invDruckeErgebnis() {
   if (!__invErgebnis) return;
-  pdfDrucken(__invErgebnis.pdf);
+  pdfUebergabe(__invErgebnis.pdf, __invErgebnis.filename,
+    "📄 Bestandsaufnahme ist fertig",
+    "<b>1 Seite</b> A4 quer. Zum Drucken an Ihr Gerät übergeben – dann " +
+    "kommt sie auf <b>einem</b> Querformat-Blatt an, in voller Größe und " +
+    "ohne Adresszeile.");
 }
 function invSchliesseErgebnis() {
   __invErgebnis = null;
@@ -10192,9 +10210,16 @@ async function abrZeigeErgebnis() {
 }
 function abrSchliesseErgebnis() { document.getElementById("modalRoot").innerHTML = ""; }
 function abrSpeichereErgebnis() { if (__abrErgebnis) __abrErgebnis.pdf.save(__abrErgebnis.filename); }
+/* ⛔ 27.09.2026 UMGESTELLT auf pdfUebergabe() - dieselbe Begruendung wie
+   beim Inventurblatt darueber. Die Abrechnung war die dritte Stelle, die
+   am 22.09.2026 nicht mit umgestellt wurde. Mirko hat sie nicht gemeldet;
+   sie geht denselben Weg und haette denselben Fehler. */
 function abrDruckeErgebnis() {
   if (!__abrErgebnis) return;
-  pdfDrucken(__abrErgebnis.pdf);
+  pdfUebergabe(__abrErgebnis.pdf, __abrErgebnis.filename,
+    "📄 Verkaufsbericht ist fertig",
+    "<b>1 Seite</b> A4 hoch. Zum Drucken an Ihr Gerät übergeben – dann " +
+    "kommt das Blatt in voller Größe an, ohne Adresszeile.");
 }
 
 async function abrSpeichern() { const r = await abrBuildPdf(); if (r) r.pdf.save(r.filename); }
@@ -11502,17 +11527,34 @@ function savePdfFromPreview() {
 // ist der Weg, den auch der Drucker-Knopf des Browsers nimmt -> funktioniert
 // zuverlaessig in Chrome, Edge, Firefox und Safari. Fallback: PDF in neuem Tab
 // oeffnen (dort kann per Strg/Cmd+P gedruckt werden).
+/* ⛔ 27.09.2026 UMGESTELLT auf pdfUebergabe(). Hier wurde bis heute das
+   VORSCHAUFENSTER gedruckt - also durch den Browser.
+
+   Mirko am 27.09.: "beim spesen ausdrucken faellt mir auf, dass unten
+   und oben bisschen abgeschnitten ist." Auf dem Weg durch den Browser
+   setzt das Geraet eigene Raender und haengt seine Kopfzeile an; die
+   PDF selbst ist nachweislich in Ordnung (eine Seite, Bild eingepasst,
+   gemessen mit druckwege-pruefen.sh).
+
+   pdfUebergabe() uebergibt die DATEI ans Geraet. Dieser Weg existiert
+   seit dem 22.09.2026 und wird von sechs anderen Dokumenten benutzt -
+   Spesenblatt, Inventurblatt und Abrechnung waren die drei, die man
+   damals vergessen hat.
+
+   Der Knopf im Uebergabe-Fenster ist zugleich die frische Nutzeraktion,
+   die navigator.share verlangt - siehe Begruendung bei pdfUebergabe(). */
 function printFromPreview() {
   if (!__pdfPreview) return;
   if (!unterschriftHinweisOk()) return;
-  const f = document.querySelector(".pdf-preview-frame");
-  if (!f) return;
-  try {
-    f.contentWindow.focus();
-    f.contentWindow.print();
-  } catch (e) {
-    if (__pdfPreviewUrl) window.open(__pdfPreviewUrl, "_blank");
-  }
+  const r = __pdfPreview;
+  /* Die Vorschau erst schliessen: ihr Blob-Fenster wird nicht mehr
+     gebraucht, und pdfUebergabe() schreibt ohnehin in dasselbe
+     Modal-Fenster. */
+  closePdfPreview();
+  pdfUebergabe(r.pdf, r.filename, "📄 Spesennachweis ist fertig",
+    "<b>1 Seite</b> A4 hoch. Zum Drucken an Ihr Gerät übergeben – dann " +
+    "kommt das Blatt in voller Größe an, ohne Adresszeile und ohne " +
+    "abgeschnittene Ränder.");
 }
 
 function closePdfPreview() {
