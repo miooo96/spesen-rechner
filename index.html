@@ -3386,7 +3386,26 @@
        bereits ein eigenes display:none (es haengt am Mitarbeitertyp).
        Das ginge dabei verloren.
        ================================================================ -->
-  <div id="einrichtungMehr" style="display:none;">
+  <!-- ⛔ 27.09.2026 WIEDER OFFEN - hier stand style="display:none".
+       Mirko: "die zusatzfelder sollen gleich von anfang an da sein nicht
+       erst wenn man auf einstellungen geht oder abwesendheit ... die
+       wollen wir aber wieder direkt nach den stammdaten haben."
+
+       Damit ist Redesign-Schritt 1 vom 25.09.2026 zurueckgenommen. Der
+       Grund dafuer ist im Alltag durchgefallen: Der Knopf oeffnete die
+       Kaesten 3.521 px weiter unten, OHNE dorthin zu rollen - auf dem
+       Bildschirm aenderte sich nichts. Mirko: "wenn ich in der app auf
+       einstellungen gehe passiert sowieso nichts". Nachgemessen an der
+       Live-App am 27.09.: Behaelter berechnet display:block, Hoehe
+       3521 px, sichtbar - aber ausserhalb des Sichtfelds.
+
+       Der Behaelter BLEIBT als Huelle bestehen: #monteurZeitenGroup hat
+       ein eigenes display:none am Mitarbeitertyp, das beim Aufloesen
+       verlorenginge (siehe oben). Er ist nur nicht mehr zu.
+
+       Die Seite ist damit wieder rund 8.300 px hoch statt 4.800. Das
+       ist Mirkos Entscheidung, nicht ein Rueckschritt aus Versehen. -->
+  <div id="einrichtungMehr">
 
   <div class="settings-card" id="fahrerZeitenGroup">
     <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
@@ -5856,11 +5875,16 @@ function zeigeTab(tab) {
     // NEU (Task 6): Standard ist jetzt die Stammdaten-Maske, nicht mehr die
     // Tage-Tabelle - keine doppelte Funktion mehr, "Spesen" zeigt direkt das,
     // was bisher nur "Spesen bearbeiten" zeigte.
-    /* REDESIGN SCHRITT 1, 25.09.2026: Die Einrichtung faengt IMMER zu an.
-       Wer den Reiter wechselt und zurueckkommt, soll nicht wieder vor
-       3.979 px Einstellungen stehen, bevor die Arbeit anfaengt. */
+    /* ⛔ 27.09.2026: Hier wurde der Behaelter beim Reiterwechsel wieder
+       ZUGEMACHT (Redesign-Schritt 1 vom 25.09.). Mirko will die
+       Zusatzfelder "gleich von anfang an" sehen - also bleibt er offen,
+       auch wenn man den Reiter wechselt und zurueckkommt.
+
+       Ein etwaiges display:none aus einer aelteren Sitzung wird hier
+       aktiv aufgehoben: Der Wert stand als Inline-Stil im Element und
+       ueberlebt sonst jeden Reiterwechsel. */
     const einrMehr = document.getElementById("einrichtungMehr");
-    if (einrMehr) einrMehr.style.display = "none";
+    if (einrMehr) einrMehr.style.display = "";
     zeigeSpesenUnteransicht("stammdaten");
     return;
   }
@@ -12551,7 +12575,11 @@ function bandAktionen(tab) {
   const k = (id, text, ruf) =>
     '<button type="button" id="' + id + '" onclick="' + ruf + '">' + text + "</button>";
   if (tab === "spesen") {
-    return k("btnEinrichtung", "⚙️ Einstellungen", "einrichtungUmschalten()")
+    /* ⛔ 27.09.2026: Der Knopf rief bis heute einrichtungUmschalten()
+       auf. Seit der Behaelter immer offen ist, wuerde das die Felder
+       WEGNEHMEN - genau das Gegenteil von Mirkos Wunsch. Jetzt rollt er
+       hin, wie die beiden Knoepfe daneben auch. */
+    return k("btnEinrichtung", "⚙️ Einstellungen", "einrichtungAnzeigen()")
          + k("btnAbwesenheiten", "🗓️ Abwesenheiten", "einrichtungOeffnen('kastenAbwesenheiten')")
          + k("btnSicherung", "💾 Sicherung", "einrichtungOeffnen('kastenSicherung')")
          + k("btnArchivBand", "📁 Abgeschlossene Monate", "toggleArchivPanel()");
@@ -12611,19 +12639,38 @@ function bandVerbergen() {
   if (akt) akt.style.display = "none";
 }
 
-function einrichtungUmschalten(kastenId) {
+/* ================================================================
+   27.09.2026 - "⚙️ Einstellungen" rollt hin, statt zu schliessen.
+
+   Mirko: "die zusatzfelder sollen gleich von anfang an da sein nicht
+   erst wenn man auf einstellungen geht oder abwesendheit."
+
+   Der Behaelter ist seitdem immer offen. Ein Knopf, der ihn zumacht,
+   waere das Gegenteil des Gewuenschten - also rollt er zum ersten
+   Kasten, wie "Abwesenheiten" und "Sicherung" auch. Drei Knoepfe,
+   dieselbe Wirkung, keine Ausnahme zum Merken.
+
+   ⛔ NICHT auf fahrerZeitenGroup festnageln: Bei einem Monteur ist
+   dieser Kasten display:none (er haengt am Mitarbeitertyp), und
+   scrollIntoView auf ein verborgenes Element tut nichts. Deshalb wird
+   der erste SICHTBARE Kasten gesucht.
+   ================================================================ */
+function einrichtungAnzeigen() {
   const behaelter = document.getElementById("einrichtungMehr");
   if (!behaelter) return;
-  const offen = behaelter.style.display !== "none";
-  /* Nur der Einstellungs-Knopf schliesst wieder. Wer auf
-     "Abwesenheiten" tippt, will dorthin - nicht zumachen. */
-  if (offen && !kastenId) {
-    behaelter.style.display = "none";
-    const knopf = document.getElementById("btnEinrichtung");
-    if (knopf) knopf.setAttribute("aria-expanded", "false");
-    return;
-  }
-  einrichtungOeffnen(kastenId);
+  behaelter.style.display = "";
+  const erster = [...behaelter.querySelectorAll(".settings-card")]
+    .find((k) => k.offsetParent !== null);
+  /* Ohne "smooth" - dieselbe Begruendung wie bei einrichtungOeffnen(). */
+  if (erster) erster.scrollIntoView({ block: "start" });
+}
+
+/* Bleibt bestehen, falls anderswo noch darauf gezeigt wird: schliesst
+   seit dem 27.09.2026 nichts mehr zu, sondern verhaelt sich wie die
+   beiden Funktionen darueber. */
+function einrichtungUmschalten(kastenId) {
+  if (kastenId) einrichtungOeffnen(kastenId);
+  else einrichtungAnzeigen();
 }
 
 function toggleArbeitszeitPanel() {
