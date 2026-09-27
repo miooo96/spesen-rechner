@@ -2037,6 +2037,23 @@
 
   .inv-blatt { width:297mm; background:#fff; padding:6mm 5mm; color:#000;
                font-family:Arial,Helvetica,sans-serif; border:1px solid #ddd; }
+  /* Schwarze Schrift im ganzen Blatt - Mirko am 27.09.2026: "schrift
+     auf schwarz".
+
+     Die allgemeine Regel weiter oben ("input, select { … color:
+     var(--brand-dark) }") faerbte JEDES Feld Hall-Braun. Gemessen im
+     Ausdruck (inv-druck-messen.sh): dunkelster Punkt 51 von 255 statt
+     0 - also braun, nicht schwarz. Die Summe daneben ist kein Feld,
+     sondern gerechneter Text; sie war immer schwarz. Genau dieser
+     Unterschied war auf dem Papier zu sehen.
+
+     Gilt fuer Bildschirm UND Ausdruck: Die Aufnahme zeichnet jeden
+     Wert mit der Farbe, die sein Feld am Bildschirm hat (siehe
+     invWerteAlsText). Eine Farbe, zwei gleiche Ergebnisse.
+
+     ⛔ Nur das Inventurblatt. Das Spesenblatt (#formular) und die
+     Abrechnung bleiben unberuehrt - dort hat niemand etwas bestellt. */
+  .inv-blatt input, .inv-blatt select { color:#000; }
   .inv-blatt table { border-collapse:collapse; }
   .inv-kopf { width:100%; margin-bottom:3px; }
   .inv-kopf td { padding:1px 3px; vertical-align:bottom; }
@@ -2085,10 +2102,41 @@
 
      ⛔ height bleibt bei 16px und min-height darf nicht zurueck -
      Redesign Schritt 8 gibt JEDEM input 48 px Grifflaeche, und genau
-     das sprengte dieses Blatt schon einmal (21.09.2026). */
+     das sprengte dieses Blatt schon einmal (21.09.2026).
+
+     ⛔ 27.09.2026 - HIER NICHT NACHSTELLEN. Mirko: "kvp und menge so
+     wie summe auf eine hoehe setzen". Nachgemessen mit
+     inv-druck-messen.sh, an zwei Quellen:
+
+        am Bildschirm (echte Chrome-Aufnahme)   Unterschied 0,00
+        im Ausdruck (html2canvas-Rasterbild)    Menge/KVP 0,67 mm tiefer
+
+     Das CSS ist also richtig - Menge, KVP und Summe stehen im Browser
+     exakt auf einer Hoehe. Der Versatz entsteht erst, wenn das Blatt
+     fuer PDF und Druck abfotografiert wird: html2canvas setzt den
+     Text von Eingabefeldern tiefer, als Chrome ihn zeichnet.
+
+     Versuche vom 27.09. (display:block, line-height:16px,
+     vertical-align:middle an der Zelle) haben daran NICHTS geaendert
+     und wurden zurueckgenommen. Wer hier Zahlen verschiebt, verbiegt
+     den Bildschirm, um einen Fehler des Rasterers auszugleichen. */
   .inv-blk input { width:100%; height:16px; border:none; background:transparent; font:inherit;
                    vertical-align:1px;
                    font-size:11px; text-align:right; padding:0 3px; }
+  /* Mirko am 27.09.2026, mit Halls Original vor sich: "aender vorerst
+     nur, dass die menge und kvp, tour nummer, datum mittig in den
+     kaestchen steht".
+
+     ⛔ BEWUSST ueber data-invf und NICHT ueber ".inv-blk input":
+     Die Lieferscheine-Spalte benutzt dieselben Zellen (td.mg/td.kv) fuer
+     Nr., W-Gr und Summe. Eine Regel auf alle Felder haette die gleich
+     mit verstellt - darueber ist nicht entschieden. Ebenso bleibt
+     td.su (die gerechnete Summe) unberuehrt; sie ist kein Eingabefeld.
+
+     Gemessen vorher im echten Ausdruck (inv-druck-messen.sh):
+     Menge 7,70 mm Luft links gegen 0,35 mm rechts, KVP 7,45 gegen 0,31. */
+  .inv-blk input[data-invf="mg"],
+  .inv-blk input[data-invf="kv"] { text-align:center; }
   .inv-blk td.su { text-align:right; font-size:11px; padding:0 3px; font-variant-numeric:tabular-nums; }
   .inv-sumzeile td { border:1px solid #000; font-size:11px; font-weight:700; padding:1px 3px; height:17px; }
   .inv-sumzeile .lab { font-weight:400; }
@@ -2410,8 +2458,14 @@
   .inv-kopf td.inv-datumzelle { border:1px solid #000; white-space:nowrap; padding-left:4px; }
   .inv-kopf .inv-datumfeld { display:inline-block; width:62%; height:20px; background:#e8e3a8;
                              vertical-align:middle; margin-left:4px; }
+  /* text-align:center - Mirko am 27.09.2026 ("... tour nummer, datum
+     mittig in den kaestchen"). Gemeint ist das Datum im KOPF, neben
+     Name und Tour. Das zweite Datumsfeld im Fuss (#invFDatum, in der
+     Unterschriftenzeile) hat er NICHT genannt und bleibt deshalb, wie
+     es ist - nicht stillschweigend mitaendern. */
   .inv-kopf .inv-datumfeld input { width:100%; height:20px; line-height:20px; border:none;
-                                   background:transparent; font:inherit; font-size:14px; padding:0 5px; }
+                                   background:transparent; font:inherit; font-size:14px;
+                                   padding:0 5px; text-align:center; }
   .inv-kopf td.inv-nl { border:1px solid #000; text-align:center; font-size:17px; font-weight:700; }
   .inv-kopf td.inv-zwikasten { border:1px solid #000; font-size:15px; font-weight:700;
                                vertical-align:top; padding:2px 4px; height:34px; }
@@ -2424,9 +2478,12 @@
   .inv-tour td.tgelb { background:#e8e3a8; border:1px solid #000; }
   /* Die Tour-Nummer sass zu tief in der Zelle und war unten angeschnitten
      (Mirko, 05.09.2026). Feldhoehe = Zellenhoehe, Text mittig darin. */
+  /* text-align:center - Mirko am 27.09.2026 ("tour nummer ... mittig in
+     den kaestchen"). Vorher stand die Nummer links: gemessen 0,68 mm
+     Luft links gegen 9,42 mm rechts. */
   .inv-tour td.tgelb input { display:block; width:100%; height:17px; line-height:17px; border:none;
                              background:transparent; font:inherit; font-size:13px; padding:0 4px;
-                             vertical-align:middle; }
+                             vertical-align:middle; text-align:center; }
 
   .inv-fuss { display:grid; grid-template-columns:66.67% 33.33%; gap:0; margin-top:0; align-items:start; }
   .inv-betrag { border-collapse:collapse; width:100%; table-layout:fixed; }
@@ -8075,6 +8132,104 @@ function pdfBildEinpassen(pdf, canvas, rand) {
 
 /* Nimmt das Inventurblatt als Bild auf - herausgeloest, damit sowohl die
    einzelne PDF als auch die gemeinsame PDF dieselbe Aufnahme benutzen. */
+/* ================================================================
+   DRUCKWERTE - 27.09.2026
+
+   Mirko: "der ausdruck soll mit verbesserter ansicht ausdruckbar sein
+   ... das was du korrigiert hast soll dementsprechend auch dann ueber
+   ausdrucken funktionieren und richtig dargestellt werden."
+
+   Das Blatt wird fuer PDF UND Druck mit html2canvas abfotografiert.
+   Dieser Rasterer setzt den Text von EINGABEFELDERN tiefer, als Chrome
+   ihn zeichnet. Gemessen mit inv-druck-messen.sh, dieselbe Tabellen-
+   zeile, Menge/KVP gegen die Summe daneben:
+
+       am Bildschirm (echte Chrome-Aufnahme)   0,00 mm
+       im Ausdruck (html2canvas)               0,67 mm tiefer
+
+   Die Summe ist kein Feld, sondern Text in der Zelle - sie blieb
+   deshalb an ihrem Platz, und nur die Felder rutschten ab.
+
+   Hier wird fuer die Dauer der Aufnahme jeder Feldwert durch normalen
+   TEXT ersetzt, der Kasten, Schrift und Ausrichtung des Feldes
+   uebernimmt. Danach wird alles zurueckgebaut. Dasselbe Verfahren
+   benutzt das Spesenblatt seit Langem (.orte-print, .bezahlt-print) -
+   hier automatisch, weil es ueber 400 Felder sind.
+
+   ⛔ NICHT stattdessen CSS-Werte verschieben, um den Ausdruck gerade
+   zu ruecken. Das verbiegt den Bildschirm wegen eines Fehlers des
+   Rasterers; drei Versuche am 27.09. haben den Ausdruck ohnehin um
+   keinen Hundertstelmillimeter bewegt.
+
+   ⚠ Leere Felder bleiben jetzt leer. Vorher zeichnete html2canvas den
+   Platzhalter mit ("Name" im Fahrerfeld) - der stand damit auf einem
+   Blatt, das das Haus verlaesst.
+   ================================================================ */
+function invWerteAlsText(el) {
+  const ersetzt = [];
+  el.querySelectorAll("input").forEach((feld) => {
+    const art = (feld.type || "text").toLowerCase();
+    if (art === "file" || art === "checkbox" || art === "radio" || art === "hidden") return;
+    const cs = getComputedStyle(feld);
+    if (cs.display === "none" || cs.visibility === "hidden") return;
+
+    /* ⛔ DAS LAYOUT DARF SICH NICHT VERSCHIEBEN.
+       Erster Versuch am 27.09.2026: Feld auf display:none, Text an
+       seiner Stelle in den Textfluss. Ergebnis: die Aufnahme wurde
+       156 px HOEHER (2246x1450 -> 2246x1606) und das Blatt damit auf
+       dem Papier noch kleiner. Grund: ein Textkasten haengt an der
+       Schriftlinie seiner Zeile, ein Eingabefeld nicht - jede Zeile
+       wuchs um ein paar Punkte.
+
+       Deshalb jetzt: Das Feld BLEIBT stehen und behaelt seinen Platz,
+       es wird nur unsichtbar (visibility, nicht display). Der Text
+       liegt absolut genau ueber dem Feldkasten. Damit kann sich an
+       den Maßen des Blattes nichts aendern - nachgemessen ueber die
+       Groesse der Aufnahme. */
+    const eltern = feld.parentElement;
+    if (!eltern) return;
+    const elternPos = eltern.style.position;
+    if (getComputedStyle(eltern).position === "static") eltern.style.position = "relative";
+
+    /* Hoehe des INHALTS - bei border-box stecken Polster und Rahmen in
+       der Hoehe mit drin. line-height = Inhaltshoehe setzt den Text
+       genauso mittig, wie das Eingabefeld selbst es tut. */
+    const z = (w) => parseFloat(w) || 0;
+    const kasten = { l: feld.offsetLeft, o: feld.offsetTop,
+                     b: feld.offsetWidth, h: feld.offsetHeight };
+    const inhalt = kasten.h - z(cs.paddingTop) - z(cs.paddingBottom) -
+                   z(cs.borderTopWidth) - z(cs.borderBottomWidth);
+
+    const text = document.createElement("span");
+    text.className = "inv-druckwert";
+    text.textContent = feld.value || "";
+    text.style.cssText =
+      "position:absolute; box-sizing:border-box;" +
+      "left:" + kasten.l + "px; top:" + kasten.o + "px;" +
+      "width:" + kasten.b + "px; height:" + kasten.h + "px;" +
+      "line-height:" + inhalt + "px;" +
+      "padding:" + cs.paddingTop + " " + cs.paddingRight + " " +
+                   cs.paddingBottom + " " + cs.paddingLeft + ";" +
+      "font-family:" + cs.fontFamily + "; font-size:" + cs.fontSize + ";" +
+      "font-weight:" + cs.fontWeight + "; font-style:" + cs.fontStyle + ";" +
+      "font-variant-numeric:" + cs.fontVariantNumeric + ";" +
+      "letter-spacing:" + cs.letterSpacing + "; color:" + cs.color + ";" +
+      "text-align:" + cs.textAlign + "; overflow:hidden; white-space:nowrap;";
+
+    const vorherSicht = feld.style.visibility;
+    feld.style.visibility = "hidden";
+    eltern.appendChild(text);
+    ersetzt.push({ feld, text, vorherSicht, eltern, elternPos });
+  });
+  /* Rueckbau - wird im finally von invBlattCanvas() aufgerufen, damit
+     das Blatt auch nach einem Fehler wieder bedienbar ist. */
+  return () => ersetzt.forEach(({ feld, text, vorherSicht, eltern, elternPos }) => {
+    text.remove();
+    feld.style.visibility = vorherSicht;
+    eltern.style.position = elternPos;
+  });
+}
+
 async function invBlattCanvas() {
   invAufbauen();
   const el = document.getElementById("invBlatt");
@@ -8089,6 +8244,11 @@ async function invBlattCanvas() {
   el.style.transform = "none";
   el.style.height = "auto";
   el.classList.add("inv-pdf-export");   // Bedienknoepfe raus aus der Aufnahme
+  /* Feldwerte zu Text machen - siehe invWerteAlsText() weiter oben.
+     ⛔ ERST NACH transform:none und height:auto aufrufen: Die Funktion
+     liest die tatsaechlichen Maße der Felder ab, und die stimmen nur im
+     Aufnahmezustand. */
+  const textZurueck = invWerteAlsText(el);
   let canvas;
   try {
     /* KEIN ignoreElements wie beim Spesenblatt: #inventurPanel traegt selbst
@@ -8103,6 +8263,7 @@ async function invBlattCanvas() {
       windowWidth: 1300,
     });
   } finally {
+    textZurueck();
     el.classList.remove("inv-pdf-export");
     el.style.transform = vorherTransform;
     el.style.height = vorherHoehe;
@@ -8128,7 +8289,21 @@ async function invBuildPdf() {
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 8;
+  /* Rand 0 - Mirko am 27.09.2026: "ausdruck auch 100%".
+     Das Blatt ist im Code 297 mm breit, also genau A4 quer. Mit den
+     8 mm Rand von vorher kam es auf 281 mm heraus und damit auf
+     94,6 % seiner Entwurfsgroesse - gemessen mit inv-druck-messen.sh.
+
+     ⭐ Das Blatt bringt seinen Rand selbst mit: .inv-blatt hat
+     padding 6mm 5mm. Die Tabelle steht also auch bei Rand 0 noch
+     5 mm von der Papierkante entfernt - genug fuer den unbedruckbaren
+     Rand ueblicher Drucker (4 bis 5 mm), ohne dass die Zeichnung
+     kleiner wird.
+
+     ⛔ Nicht "zur Sicherheit" wieder Rand hinzufuegen: Jeder
+     Millimeter hier verkleinert das ganze Blatt. Klemmt es auf einem
+     bestimmten Drucker, gehoert der Rand in dessen Druckdialog. */
+  const margin = 0;
   const maxWidth = pageWidth - margin * 2;
   const maxHeight = pageHeight - margin * 2;
   let imgWidth = maxWidth;
