@@ -2054,6 +2054,18 @@
      ⛔ Nur das Inventurblatt. Das Spesenblatt (#formular) und die
      Abrechnung bleiben unberuehrt - dort hat niemand etwas bestellt. */
   .inv-blatt input, .inv-blatt select { color:#000; }
+  /* Ampel NUR fuer die Differenz-Zeile (Mirko, 28.09.2026): Ueberschuss
+     gruen (+), Fehlbetrag rot (-). Gilt bewusst AUCH im Ausdruck/PDF -
+     dieses eine Feld ist farbig, alle uebrige Schrift bleibt schwarz.
+     !important schlaegt das ".inv-blatt input {color:#000}" oben, auch im
+     Druck und in der html2canvas-Aufnahme. */
+  .inv-blatt input.inv-diff-plus  { color:#1a7f37 !important; }
+  .inv-blatt input.inv-diff-minus { color:#c01525 !important; }
+  /* Gleiche Ampel auf dem Verkaufsbericht (Mirko, 28.09.2026): die beiden
+     Differenz-Felder (Geld + Ware) gruen/rot - auch im Ausdruck/PDF, sonst
+     bleibt alles schwarz. */
+  .abr-blatt input.abr-diff-plus  { color:#1a7f37 !important; }
+  .abr-blatt input.abr-diff-minus { color:#c01525 !important; }
   .inv-blatt table { border-collapse:collapse; }
   .inv-kopf { width:100%; margin-bottom:3px; }
   .inv-kopf td { padding:1px 3px; vertical-align:bottom; }
@@ -2237,6 +2249,37 @@
   .kae-gr { flex:0 0 104px; }
   .kae-gr select { width:100%; padding:12px 6px; font:inherit; font-size:17px; text-align:center;
                    border:1px solid #bbb; border-radius:8px; background:#fff; }
+  /* ===== Rechenweg (nur Anzeige, nie im Ausdruck) =====
+     Mirko (28.09.2026): der Bot und das Bildschirm-Blatt sollen offenlegen,
+     welche Summe gegen welche gerechnet wird - inkl. Quellpapier. Traegt
+     no-print und liegt ausserhalb von #abrBlatt, kann also weder in den
+     Ausdruck noch in die per html2canvas erzeugte PDF geraten. */
+  .rw-box { max-width:210mm; margin:10px auto; background:#f7f8fa;
+            border:1px solid #e3e6eb; border-radius:10px; padding:0.55rem 0.9rem; }
+  .rw-box > summary { cursor:pointer; font-weight:600; color:#333; list-style:revert; }
+  .rw-box-sub { font-weight:400; color:#999; font-size:0.8rem; }
+  .rw-spalten { display:flex; flex-wrap:wrap; gap:0.4rem 1.6rem; margin-top:0.6rem; }
+  .rw-spalte { flex:1 1 300px; min-width:0; }
+  .rw-block { margin:0 0 0.7rem; }
+  .rw-titel { font-size:0.78rem; color:#8a8f98; font-weight:600; margin-bottom:0.1rem; }
+  .rw-op, .rw-erg { display:grid; grid-template-columns:1.1em 1fr auto;
+                    align-items:baseline; column-gap:0.4rem;
+                    font-size:0.9rem; font-variant-numeric:tabular-nums; }
+  .rw-sign { color:#9aa0a8; text-align:center; }
+  .rw-name { color:#333; }
+  .rw-wert { text-align:right; font-weight:600; color:#222; }
+  .rw-q { grid-column:2 / 4; font-size:0.72rem; color:#9aa0a8; margin-bottom:0.15rem; }
+  .rw-erg { border-top:1px solid #e3e6eb; margin-top:0.15rem; padding-top:0.15rem; }
+  .rw-erg .rw-name, .rw-erg .rw-wert { font-weight:700; color:#111; }
+  .rw-klar { font-size:0.85rem; color:#444; margin:0.15rem 0 0; }
+  /* Ampel fuer die Differenz (Mirko, 28.09.2026): Ueberschuss gruen (+),
+     Fehlbetrag rot (-), Vorzeichen steht immer davor. Nur am Bildschirm -
+     der Ausdruck bleibt schwarz wie das Original (die Ampel lebt nur im
+     no-print Rechenweg). */
+  .rw-plus  { color:#1a7f37; }
+  .rw-minus { color:#c01525; }
+  .rw-null  { color:#111; }
+
   /* ===== Verkaufsbericht (Abrechnung) - Blatt im Original-Layout =====
      Kein Gelb, keine grauen Rechenfelder: Der Vordruck ist durchgehend
      weiss, nur der Stoergeld-Kasten ist farbig (Mirko, 05.09.2026:
@@ -3905,6 +3948,17 @@
   </div>
 
   <div class="abr-archiv" id="abrArchiv"></div>
+
+  <!-- Rechenweg: welche Summe gegen was, mit Quellpapier. Steht BEWUSST
+       ausserhalb von #abrBlatt (die PDF fotografiert nur #abrBlatt) und
+       traegt no-print - taucht damit nie im Ausdruck/PDF auf. -->
+  <details id="abrRechenwegBox" class="rw-box no-print" open>
+    <summary>🧮 Rechenweg <span class="rw-box-sub">(nur am Bildschirm – nicht im Ausdruck)</span></summary>
+    <div class="rw-spalten">
+      <div class="rw-spalte" id="abrRwGeld"></div>
+      <div class="rw-spalte" id="abrRwWare"></div>
+    </div>
+  </details>
 
   <!-- Verkaufsbericht 1:1 nach dem Vordruck (Foto 05.09.2026). Ausgefuellt
        wird direkt im Blatt, daraus entsteht auch die PDF - es gibt keine
@@ -7479,7 +7533,20 @@ function invRechne() {
      Geprueft wird dafuer auf null, NICHT auf 0 (korrigiert 06.09.2026): Ein
      Soll von genau 0 ist ein moeglicher echter Wert, und er muss eine
      Differenz erzeugen wie jeder andere auch. */
-  document.getElementById("invDiff").value = soll === null ? "" : invFmt(ist - soll);
+  /* Differenz mit Ampel (Mirko, 28.09.2026): Ueberschuss gruen mit +,
+     Fehlbetrag rot mit -, Vorzeichen immer davor. Anders als der
+     Bildschirm-Rechenweg gilt das AUCH auf dem fertigen Ausdruck/PDF -
+     dieses eine Feld ist farbig, alle uebrige Schrift bleibt schwarz. */
+  const invDiffEl = document.getElementById("invDiff");
+  if (soll === null) {
+    invDiffEl.value = "";
+    invDiffEl.classList.remove("inv-diff-plus", "inv-diff-minus");
+  } else {
+    const d = ist - soll;
+    invDiffEl.value = (d > 0.0001 ? "+" : "") + invFmt(d);
+    invDiffEl.classList.toggle("inv-diff-plus", d > 0.0001);
+    invDiffEl.classList.toggle("inv-diff-minus", d < -0.0001);
+  }
   document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
   document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
 }
@@ -8644,18 +8711,150 @@ function abrRechne() {
 
   const zeige = (id, wert, nurWenn) =>
     abrSetz(id, nurWenn ? invFmt(wert) : "");
+  /* Differenz-Felder mit Ampel (Mirko, 28.09.2026): Ueberschuss gruen mit +,
+     Fehlbetrag rot mit -, Vorzeichen davor. Gilt AUCH im gedruckten
+     Verkaufsbericht/PDF - nur diese beiden Felder sind farbig, sonst schwarz. */
+  const zeigeDiff = (id, wert, nurWenn) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!nurWenn) { el.value = ""; el.classList.remove("abr-diff-plus", "abr-diff-minus"); return; }
+    el.value = (wert > 0.0001 ? "+" : "") + invFmt(wert);
+    el.classList.toggle("abr-diff-plus", wert > 0.0001);
+    el.classList.toggle("abr-diff-minus", wert < -0.0001);
+  };
   zeige("abrKasseSoll", kasseSoll, String(abrState.felder.abrGeldablieferung || "").trim() !== "");
   zeige("abrKasseHaben", kasseHaben, kasseHaben !== 0);
-  zeige("abrDiffGeld", diffGeld, String(abrState.felder.abrGeldablieferung || "").trim() !== "" || kasseHaben !== 0);
+  zeigeDiff("abrDiffGeld", diffGeld, String(abrState.felder.abrGeldablieferung || "").trim() !== "" || kasseHaben !== 0);
   zeige("abrInventurSoll", soll, soll !== 0);
   zeige("abrInventurIst", ist, ist !== 0);
   // Wie im Inventurblatt: erst zeigen, wenn ein Sollbestand da ist - sonst
   // stuende der volle Istbestand als "Differenz" da.
-  zeige("abrDiffWare", diffWare, soll !== 0);
+  zeigeDiff("abrDiffWare", diffWare, soll !== 0);
   zeige("abrEndbestandIst", endbestand, endbestand !== 0);
 
   const st = document.getElementById("abrStatus");
   if (st) st.textContent = ist ? "Inventur Ist " + invFmt(ist) + " €" : "";
+
+  /* Rechenweg am Bildschirm-Blatt live nachziehen - reine Anzeige (no-print). */
+  const rwG = document.getElementById("abrRwGeld");
+  const rwW = document.getElementById("abrRwWare");
+  if (rwG) rwG.innerHTML = abrRwGeld();
+  if (rwW) rwW.innerHTML = abrRwWare();
+}
+
+/* ===================== Rechenweg (Anzeige) =====================
+   Mirko (28.09.2026): "abgefragt wird welche summe und gegen was es gerechnet
+   werden muss um auf das ergebnis zu kommen womit wir weiter rechnen." Der Bot
+   und das Bildschirm-Blatt legen jede Rechnung offen - Summe, Gegenrechnung,
+   Ergebnis - und nennen dazu das Quellpapier.
+
+   Die Quellen sind an einem echten Tag belegt (Tour 12, 28.09.2026), siehe
+   "03 Hall Tabakwaren/Abrechnung - Ist-Aufnahme.md" im Vault. Automatenverkauf
+   ist die Zeile "Summe Verkauf" des System-Ausdrucks (112.680,50 an dem Tag) -
+   NICHT die "Waren-Fuellung" (107.089,00); nur mit "Summe Verkauf" geht der
+   dort gerechnete Inventur Soll (51.427,50) auf.
+
+   Reine ANZEIGE: greift nie in abrBerechne() ein. */
+const ABR_QUELLE = {
+  abrScheine:             "",
+  abrHartgeld:            "",
+  abrGiroGo:              "Gesamt-Übersicht Automaten-Abrechnung · „Summe GIROCARD“",
+  abrGeldablieferung:     "Gesamt-Übersicht Automaten-Abrechnung · „Summe Geldablieferung“",
+  abrEndbestandVortrag:   "",
+  abrAutomatenverkauf:    "Gesamt-Übersicht Automaten-Abrechnung · „Summe Verkauf“",
+  abrBestandErhoehung:    "Gesamt-Übersicht Automaten-Abrechnung · „Gesamtveränderung“",
+  abrBestandVerminderung: "Gesamt-Übersicht Automaten-Abrechnung · „Gesamtveränderung“",
+  abrEntlastung:          "",
+  abrLadeO1: "Lieferschein · „Gesamt“", abrLadeO2: "Lieferschein · „Gesamt“",
+  abrLadeU1: "Lieferschein · „Gesamt“", abrLadeU2: "Lieferschein · „Gesamt“",
+  abrLadeU3: "Lieferschein · „Gesamt“", abrLadeU4: "Lieferschein · „Gesamt“",
+  abrLadeU5: "Lieferschein · „Gesamt“",
+  _invIst:   "Fahrzeug-Inventur"
+};
+
+/* Eine Rechenzeile: Vorzeichen, Name, Wert, Quelle. */
+function abrRwZeile(sign, name, wert, quelle) {
+  return '<div class="rw-op">' +
+           '<span class="rw-sign">' + (sign || "&nbsp;") + '</span>' +
+           '<span class="rw-name">' + name + '</span>' +
+           '<span class="rw-wert">' + invFmt(wert) + '</span>' +
+           (quelle ? '<span class="rw-q">' + quelle + '</span>' : '') +
+         '</div>';
+}
+
+/* Ein Ergebnis-Block: Titel, Operanden, Ergebniszeile. Operanden mit Wert 0
+   werden weggelassen - ausser den als "immer" markierten Kernzahlen, ohne die
+   die Rechnung nicht mehr lesbar waere. */
+/* Ampel-Wert: Ueberschuss gruen mit +, Fehlbetrag rot mit -, null neutral.
+   Das Vorzeichen steht immer davor (Mirko, 28.09.2026). Das Minus liefert
+   invFmt bereits, das Plus setzen wir hier. */
+function abrAmpelWert(wert) {
+  const cls = wert > 0.0001 ? "rw-plus" : wert < -0.0001 ? "rw-minus" : "rw-null";
+  const vz  = wert > 0.0001 ? "+" : "";
+  return '<span class="' + cls + '">' + vz + invFmt(wert) + ' €</span>';
+}
+
+function abrRwBlock(titel, ops, ergName, ergWert, ampel) {
+  const zeilen = ops
+    .filter((o) => o.immer || Math.abs(o.wert) > 0.0001)
+    .map((o) => abrRwZeile(o.sign, o.name, o.wert, o.quelle)).join("");
+  const ergHtml = ampel ? abrAmpelWert(ergWert) : (invFmt(ergWert) + " €");
+  return '<div class="rw-block">' +
+           '<div class="rw-titel">' + titel + '</div>' + zeilen +
+           '<div class="rw-erg"><span class="rw-sign">=</span>' +
+             '<span class="rw-name">' + ergName + '</span>' +
+             '<span class="rw-wert">' + ergHtml + '</span></div>' +
+         '</div>';
+}
+
+/* Geld-Seite als Rechenweg. */
+function abrRwGeld() {
+  const b = abrBerechne();
+  const kh = abrRwBlock("Kasse Haben", [
+    { sign:"",  name:"Scheine",  wert:abrWert("abrScheine"),  quelle:ABR_QUELLE.abrScheine,  immer:true },
+    { sign:"+", name:"Hartgeld", wert:abrWert("abrHartgeld"), quelle:ABR_QUELLE.abrHartgeld, immer:true },
+    { sign:"+", name:"GiroGo",   wert:abrWert("abrGiroGo"),   quelle:ABR_QUELLE.abrGiroGo,   immer:true }
+  ], "Kasse Haben", b.kasseHaben);
+  const dg = abrRwBlock("Differenz", [
+    { sign:"",  name:"Kasse Haben", wert:b.kasseHaben, quelle:"", immer:true },
+    { sign:"−", name:"Kasse Soll",  wert:b.kasseSoll,  quelle:ABR_QUELLE.abrGeldablieferung, immer:true }
+  ], "Differenz", b.diffGeld, true);
+  const klar = b.diffGeld === 0
+    ? "Stimmt genau überein."
+    : b.diffGeld > 0
+      ? "Sie haben <b>" + invFmt(b.diffGeld) + " € mehr</b> dabei, als die Abrechnung verlangt."
+      : "Es fehlen <b>" + invFmt(Math.abs(b.diffGeld)) + " €</b> gegenüber der Abrechnung.";
+  return kh + dg + '<p class="rw-klar">' + klar + '</p>';
+}
+
+/* Ware-Seite als Rechenweg. */
+function abrRwWare() {
+  const b = abrBerechne();
+  const soll = abrRwBlock("Inventur Soll", [
+    { sign:"",  name:"Endbestand Vortrag",    wert:abrWert("abrEndbestandVortrag"),  quelle:ABR_QUELLE.abrEndbestandVortrag, immer:true },
+    { sign:"−", name:"Automatenverkauf",      wert:abrWert("abrAutomatenverkauf"),   quelle:ABR_QUELLE.abrAutomatenverkauf,  immer:true },
+    { sign:"−", name:"Bestandserhöhung",      wert:abrWert("abrBestandErhoehung"),   quelle:ABR_QUELLE.abrBestandErhoehung },
+    { sign:"+", name:"Bestandsverminderung",  wert:abrWert("abrBestandVerminderung"),quelle:ABR_QUELLE.abrBestandVerminderung },
+    { sign:"−", name:"Entlastung Sonstiges",  wert:abrWert("abrEntlastung"),         quelle:ABR_QUELLE.abrEntlastung },
+    { sign:"+", name:"Ladeliste Nr.",         wert:abrWert("abrLadeO1"),             quelle:ABR_QUELLE.abrLadeO1 },
+    { sign:"+", name:"Ladeliste Nr.",         wert:abrWert("abrLadeO2"),             quelle:ABR_QUELLE.abrLadeO2 }
+  ], "Inventur Soll", b.soll);
+  const diff = abrRwBlock("Differenz", [
+    { sign:"",  name:"Inventur Ist",  wert:b.ist,  quelle:ABR_QUELLE._invIst, immer:true },
+    { sign:"−", name:"Inventur Soll", wert:b.soll, quelle:"", immer:true }
+  ], "Differenz", b.diffWare, true);
+  const end = abrRwBlock("Endbestand IST", [
+    { sign:"",  name:"Inventur Ist",  wert:b.ist,             quelle:ABR_QUELLE._invIst, immer:true },
+    { sign:"+", name:"Ladeliste Nr.", wert:abrWert("abrLadeU1"), quelle:ABR_QUELLE.abrLadeU1 },
+    { sign:"+", name:"Ladeliste Nr.", wert:abrWert("abrLadeU2"), quelle:ABR_QUELLE.abrLadeU2 },
+    { sign:"+", name:"Ladeliste Nr.", wert:abrWert("abrLadeU3"), quelle:ABR_QUELLE.abrLadeU3 },
+    { sign:"+", name:"Ladeliste Nr.", wert:abrWert("abrLadeU4"), quelle:ABR_QUELLE.abrLadeU4 },
+    { sign:"+", name:"Ladeliste Nr.", wert:abrWert("abrLadeU5"), quelle:ABR_QUELLE.abrLadeU5 }
+  ], "Endbestand IST", b.endbestand);
+  const warn = b.ist === 0
+    ? '<p class="rw-klar" style="color:#b00;">⚠️ Die Fahrzeug-Inventur ist noch leer. Ohne Istbestand stimmen Differenz und Endbestand nicht.</p>'
+    : "";
+  return soll + diff + end + warn;
 }
 
 /* Zeitstempel-Mechanik fuer den Verkaufsbericht entfaellt (Mirko,
@@ -8727,19 +8926,10 @@ const ABR_SCHRITTE = [
       { id: "abrHartgeld", label: "Hartgeld" },
       { id: "abrGiroGo",   label: "GiroGo" }
     ],
-    zwischen: () => {
-      const { kasseHaben, diffGeld } = abrBerechne();
-      /* Im Klartext, nicht nur als Vorzeichen - dieselbe Ueberlegung wie
-         beim Ware-Zaehlen (03.09.2026): ein Minus liest man im Fahrzeug zu
-         leicht falsch. */
-      const klartext = diffGeld === 0
-        ? "Stimmt genau überein."
-        : diffGeld > 0
-          ? "Sie haben <b>" + invFmt(diffGeld) + " € mehr</b> dabei, als die Abrechnung verlangt."
-          : "Es fehlen <b>" + invFmt(Math.abs(diffGeld)) + " €</b> gegenüber der Abrechnung.";
-      return "Kasse Haben: <b>" + invFmt(kasseHaben) + " €</b><br>" +
-             "Differenz: <b>" + invFmt(diffGeld) + " €</b><br>" + klartext;
-    } },
+    /* Voller Rechenweg statt nur der Ergebnisse (Mirko, 28.09.2026): welche
+       Summe gegen was, mit Quellpapier. Eine Quelle - dieselbe Funktion wie
+       am Bildschirm-Blatt. */
+    zwischen: () => abrRwGeld() },
 
   { titel: "Störgeld",
     text: "Wird nur eingetragen und mitgedruckt – es fließt in keine Summe.",
@@ -8749,7 +8939,7 @@ const ABR_SCHRITTE = [
     text: "Der Endbestand, mit dem Sie in die Woche gestartet sind. Nach einem Abschluss steht er schon da.",
     felder: [
       { id: "abrEndbestandVortrag", label: "Endbestand Vortrag" },
-      { id: "abrAutomatenverkauf",  label: "Automatenverkauf", hinweis: "Was Sie diese Woche in die Automaten gefüllt haben." }
+      { id: "abrAutomatenverkauf",  label: "Automatenverkauf", hinweis: "Vom Zettel „Gesamt-Übersicht Automaten-Abrechnung“: die Zeile „Summe Verkauf“." }
     ] },
 
   { titel: "Bestandsänderung", bestand: true,
@@ -8871,25 +9061,10 @@ function abrAssiEingabe(el) {
 }
 
 function abrAssiUebersicht() {
-  // Dieselbe Rechenkette wie das Blatt - eine Quelle, kein Nachbau.
-  const { kasseHaben: haben, diffGeld, soll, ist, diffWare, endbestand } = abrBerechne();
-  const zeile = (l, w, fett) =>
-    '<tr><td style="padding:3px 0; color:#444;">' + l + '</td>' +
-    '<td style="padding:3px 0; text-align:right; ' + (fett ? "font-weight:700;" : "") + '">' + invFmt(w) + ' €</td></tr>';
-  /* Inventur Ist kommt aus der Fahrzeug-Inventur. Steht dort nichts, ist
-     die Warenabrechnung wertlos - das muss man sehen, bevor man abschliesst. */
-  const warnung = ist === 0
-    ? '<p class="hinweis-text" style="color:#b00; margin-top:0.75rem;">⚠️ Die Fahrzeug-Inventur ist noch leer. Ohne Istbestand stimmen Differenz und Endbestand nicht.</p>'
-    : "";
-  return '<table style="width:100%; font-size:0.95rem;">' +
-    zeile("Kasse Haben", haben, true) +
-    zeile("Differenz (Geld)", diffGeld) +
-    '<tr><td colspan="2" style="padding:8px 0 2px; border-top:1px solid #e3e6eb;"></td></tr>' +
-    zeile("Inventur Soll", soll) +
-    zeile("Inventur Ist (aus der Inventur)", ist) +
-    zeile("Differenz (Ware)", diffWare) +
-    zeile("Endbestand IST", endbestand, true) +
-    '</table>' + warnung;
+  /* Voller Rechenweg (Geld + Ware) - dieselbe Funktion wie am Bildschirm-Blatt,
+     eine Quelle, kein Nachbau. Zeigt bei jedem Ergebnis, welche Summe gegen
+     was gerechnet wird, samt Quellpapier. */
+  return '<div class="rw-uebersicht">' + abrRwGeld() + abrRwWare() + '</div>';
 }
 
 function abrAssiZeige() {
