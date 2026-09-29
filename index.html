@@ -7536,16 +7536,26 @@ function invRechne() {
   /* Differenz mit Ampel (Mirko, 28.09.2026): Ueberschuss gruen mit +,
      Fehlbetrag rot mit -, Vorzeichen immer davor. Anders als der
      Bildschirm-Rechenweg gilt das AUCH auf dem fertigen Ausdruck/PDF -
-     dieses eine Feld ist farbig, alle uebrige Schrift bleibt schwarz. */
+     dieses eine Feld ist farbig, alle uebrige Schrift bleibt schwarz.
+
+     ⚠ NUR fuer Mirko (istMirko), bis das Go der Chefs vorliegt (29.09.2026).
+     Die Fahrzeug-Inventur ist fuer alle Fahrer offen; die neue Ampel darf
+     aber noch nicht auf den Zetteln der Kollegen erscheinen. Kollegen sehen
+     die Differenz unveraendert schwarz und ohne Vorzeichen wie bisher. */
   const invDiffEl = document.getElementById("invDiff");
   if (soll === null) {
     invDiffEl.value = "";
     invDiffEl.classList.remove("inv-diff-plus", "inv-diff-minus");
   } else {
     const d = ist - soll;
-    invDiffEl.value = (d > 0.0001 ? "+" : "") + invFmt(d);
-    invDiffEl.classList.toggle("inv-diff-plus", d > 0.0001);
-    invDiffEl.classList.toggle("inv-diff-minus", d < -0.0001);
+    if (istMirko()) {
+      invDiffEl.value = (d > 0.0001 ? "+" : "") + invFmt(d);
+      invDiffEl.classList.toggle("inv-diff-plus", d > 0.0001);
+      invDiffEl.classList.toggle("inv-diff-minus", d < -0.0001);
+    } else {
+      invDiffEl.value = invFmt(d);
+      invDiffEl.classList.remove("inv-diff-plus", "inv-diff-minus");
+    }
   }
   document.getElementById("invStatus").textContent = "Istbestand " + invFmt(ist) + " €";
   document.getElementById("invIstMobil").textContent = invFmt(ist) + " €";
