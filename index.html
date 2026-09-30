@@ -3314,7 +3314,7 @@
          Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
          gesperrt, sie ziehen nur um. -->
     <button class="handy-mehr" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
-    <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Monate</button>
+    <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Spesen</button>
   </div>
   <!-- Ebenfalls am 22.09.2026 benannt, gleicher Grund wie oben. -->
   <span class="toolbar-divider" id="mehrToolbarTrenner"></span>
@@ -3607,7 +3607,7 @@
     <h3 data-i18n="backupCard">💾 Datensicherung</h3>
     <div class="grid">
       <div>
-        <button class="primary" onclick="exportBackup()">📦 Backup als Datei speichern</button>
+        <button class="primary" onclick="exportBackupVoll()">📦 Backup als Datei speichern</button>
       </div>
       <div>
         <button onclick="document.getElementById('backupFileInput').click()">📂 Backup wiederherstellen</button>
@@ -3655,7 +3655,7 @@
   <div class="mehr-werkzeuge-liste">
     <button class="ghost" onclick="sendFeedback();" data-i18n="btnFeedback">💬 Feedback</button>
     <button class="ghost" onclick="openQrModal();" data-i18n="btnQr">📱 QR-Code</button>
-    <!-- "🔒 Monat abschließen" und "📁 Abgeschlossene Monate" standen
+    <!-- "🔒 Monat abschließen" und "📁 Abgeschlossene Spesen" standen
          hier bis zum 21.09.2026. Sie sind in die Aktionsreihe des
          SPESEN-Bildschirms gezogen (#toolbarPdfGruppe), weil beide nur
          dort einen Sinn ergeben - Begruendung dort.
@@ -4116,7 +4116,7 @@
 </div>
 
 <div class="panel no-print" id="archivPanel" style="display:none;">
-  <h2 style="margin-top:0;" data-i18n="archivTitle">📁 Abgeschlossene Monate</h2>
+  <h2 style="margin-top:0;" data-i18n="archivTitle">📁 Abgeschlossene Spesen</h2>
   <div id="archivContent"></div>
 </div>
 
@@ -4659,7 +4659,7 @@ const I18N = {
        und trifft beide Faelle - das eigene Geraet wie das des Kollegen.
        Ein Knopf, ein Text, nichts kann mehr umspringen. */
     btnInstall: "📱 Am Handy als App einrichten",
-    btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Monate", archivTitle: "📁 Abgeschlossene Monate",
+    btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Spesen", archivTitle: "📁 Abgeschlossene Spesen",
     /* Ausfuehrlicher seit 20.09.2026: Das Zuruecksetzen loescht jetzt
        WIRKLICH alles - vorher ueberlebten Inventur, Ware, Abrechnung und
        Kopfdaten unbemerkt. Wer die alte Fassung kennt, muss sehen, dass
@@ -4706,7 +4706,7 @@ const I18N = {
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Set up as app on your phone",
-    btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed months", archivTitle: "📁 Completed months",
+    btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed expenses", archivTitle: "📁 Completed expenses",
     confirmReset: "Really reset EVERYTHING?\n\n" +
       "This deletes: all months, working times, holidays, vehicle inventory, " +
       "counted goods, settlement, master data and all signatures.\n\n" +
@@ -9184,6 +9184,102 @@ function abrAssiSchliessen() {
    danach Verkaufsbericht, Fahrzeug-Inventur und Ware zaehlen leeren. Der
    "Endbestand IST" wandert als "Endbestand Vortrag" in die neue Woche -
    damit haengt die Kette von Woche zu Woche zusammen. */
+/* ===== PDF-Ablage im Tool (IndexedDB) =========================================
+   Neu am 30.09.2026 (Mirko: die abgeschlossenen PDFs sollen IM Tool liegen,
+   nicht nur im Download-Ordner). localStorage kann das nicht: es fasst nur
+   ~5 MB und keine Dateien. IndexedDB fasst hunderte MB und speichert die PDF
+   direkt als Blob. Ein Eintrag je abgeschlossenem Vorgang, Schlüssel = eine
+   feste id (Abrechnung: "abr-"+zeitpunkt, Spesen: "spesen-"+jahr+"-"+monat).
+
+   Bewusst schlank und ohne Bibliothek. Jede Funktion fängt Fehler ab und
+   liefert im Zweifel null/false zurück - eine fehlende PDF-Ablage darf einen
+   Abschluss NIE scheitern lassen (der Vorgang ist wichtiger als die Kopie). */
+const PDF_DB_NAME = "spesen-pdf-archiv";
+const PDF_DB_STORE = "pdfs";
+function pdfDbOffen() {
+  return new Promise((res, rej) => {
+    let r;
+    try { r = indexedDB.open(PDF_DB_NAME, 1); }
+    catch (e) { rej(e); return; }
+    r.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(PDF_DB_STORE)) db.createObjectStore(PDF_DB_STORE);
+    };
+    r.onsuccess = (e) => res(e.target.result);
+    r.onerror = (e) => rej(e.target.error);
+  });
+}
+async function pdfDbAblegen(id, blob) {
+  try {
+    const db = await pdfDbOffen();
+    return await new Promise((res, rej) => {
+      const tx = db.transaction(PDF_DB_STORE, "readwrite");
+      tx.objectStore(PDF_DB_STORE).put(blob, id);
+      tx.oncomplete = () => res(true);
+      tx.onerror = (e) => rej(e.target.error);
+    });
+  } catch (e) { console.error("PDF-Ablage (IndexedDB) fehlgeschlagen:", e); return false; }
+}
+async function pdfDbHolen(id) {
+  try {
+    const db = await pdfDbOffen();
+    return await new Promise((res, rej) => {
+      const tx = db.transaction(PDF_DB_STORE, "readonly");
+      const req = tx.objectStore(PDF_DB_STORE).get(id);
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = (e) => rej(e.target.error);
+    });
+  } catch (e) { console.error("PDF-Lesen (IndexedDB) fehlgeschlagen:", e); return null; }
+}
+async function pdfDbLoeschen(id) {
+  try {
+    const db = await pdfDbOffen();
+    return await new Promise((res) => {
+      const tx = db.transaction(PDF_DB_STORE, "readwrite");
+      tx.objectStore(PDF_DB_STORE).delete(id);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => res(false);
+    });
+  } catch (e) { return false; }
+}
+async function pdfDbSchluessel() {
+  try {
+    const db = await pdfDbOffen();
+    return await new Promise((res) => {
+      const tx = db.transaction(PDF_DB_STORE, "readonly");
+      const req = tx.objectStore(PDF_DB_STORE).getAllKeys();
+      req.onsuccess = () => res(req.result || []);
+      req.onerror = () => res([]);
+    });
+  } catch (e) { return []; }
+}
+/* Öffnet eine abgelegte PDF: erst aus dem Tool (IndexedDB), und zeigt sie im
+   gewohnten Übergabe-Fenster (Ansehen / Drucken / Speichern). */
+async function pdfAblageOeffnen(id, titel) {
+  const blob = await pdfDbHolen(id);
+  if (!blob) {
+    alert("Für diesen Eintrag ist noch keine PDF im Tool gespeichert.\n\n"
+        + "Das betrifft nur Vorgänge, die vor dieser Funktion abgeschlossen "
+        + "wurden. Neu abgeschlossene liegen ab jetzt im Tool.");
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const name = invEsc(titel || "Gespeicherte PDF");
+  const root = document.getElementById("modalRoot");
+  root.innerHTML =
+    '<div class="modal-overlay" onclick="if(event.target===this) closePdfPreview()">'
+    + '<div class="modal-box pdf-preview-box">'
+    + '<div class="pdf-preview-head"><h2>📄 ' + name + '</h2>'
+    + '<div class="pdf-preview-actions">'
+    + '<a class="primary" style="text-decoration:none; display:inline-block;" href="' + url + '" target="_blank" rel="noopener">🖨️ Öffnen / Drucken</a>'
+    + '<a href="' + url + '" download="' + name + '.pdf" style="text-decoration:none; display:inline-block; border:1px solid var(--accent); border-radius:8px; padding:0.45rem 0.8rem;">💾 Speichern</a>'
+    + '<button onclick="closePdfPreview()">Schließen</button>'
+    + '</div></div>'
+    + '<iframe class="pdf-preview-frame" src="' + url + '"></iframe>'
+    + '</div></div>';
+  __pdfPreviewUrl = url;
+}
+
 const ABR_ARCHIV_KEY = "hall-abrechnung-archiv";
 
 function abrArchivLesen() {
@@ -9247,13 +9343,15 @@ function abrArchivZeigen() {
     if (e.invUnterschrieben) teile.push("unterschrieben");
     return teile.length ? teile.join(" · ") : "nur Verkaufsbericht";
   };
-  el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>Abgeschlossene Abrechnungen</h3>" +
+  el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>📁 Abrechnung komplett</h3>" +
     liste.slice().reverse().map((e) =>
       '<div class="abr-archiv-zeile"><span>' + invEsc(e.datum || "") +
       (e.tour ? " · Tour " + invEsc(e.tour) : "") + "</span>" +
       '<span>Endbestand ' + invFmt(e.endbestand || 0) + " €</span>" +
       '<span>' + invEsc(inhalt(e)) + "</span>" +
-      '<span class="klein">abgeschlossen ' + invStempelText(e.zeitpunkt) + "</span></div>").join("");
+      '<span class="klein">abgeschlossen ' + invStempelText(e.zeitpunkt) + "</span>" +
+      (e.zeitpunkt ? '<button class="ghost" style="justify-self:end;" onclick="pdfAblageOeffnen(\'abr-' + e.zeitpunkt + "', 'Abrechnung " + invEsc(String(e.datum || "")).replace(/'/g, "") + '\')" title="Die gespeicherte PDF ansehen oder drucken">📄 PDF</button>' : "") +
+      "</div>").join("");
 }
 
 async function abrAbschliessen() {
@@ -9306,6 +9404,12 @@ async function abrAbschliessen() {
   const r = await gesamtabrechnungPdf(zeitpunkt);
   if (r) {
     r.pdf.save(r.filename);
+    /* Zusätzlich IM TOOL ablegen (IndexedDB), damit die PDF im Ordner
+       "Abgeschlossene Abrechnungen" mit einem Klick wieder aufgeht - nicht
+       nur im Download-Ordner (Mirko, 30.09.2026). Schlägt es fehl, ist das
+       kein Grund, den Abschluss abzubrechen: die Datei liegt ja auch im
+       Download-Ordner. */
+    try { await pdfDbAblegen("abr-" + zeitpunkt, r.pdf.output("blob")); } catch (e) { console.error(e); }
     /* Dasselbe Uebergabe-Fenster wie bei "Beide Zettel" statt eines
        confirm() mit pdfDrucken(): Sonst haette der Abschluss wieder den
        Weg genommen, der am Handy nur Seite 1 druckt (05.09.2026). Eine
@@ -10549,7 +10653,19 @@ async function submitCurrentMonth() {
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
   try {
-    await downloadPDF(true);
+    const r = await buildPdf();
+    if (r) {
+      r.pdf.save(r.filename);
+      /* Zusätzlich IM TOOL ablegen (IndexedDB), damit der Monat im Ordner
+         "Abgeschlossene Monate" als eingefrorene PDF mit einem Klick aufgeht
+         (Mirko, 30.09.2026). Vorerst nur für Mirko (zeigtNeuerungen), bis das
+         Go der Chefs vorliegt - Kollegen bekommen wie bisher nur die Datei im
+         Download-Ordner. */
+      if (zeigtNeuerungen()) {
+        try { await pdfDbAblegen("spesen-" + config.jahr + "-" + monat, r.pdf.output("blob")); }
+        catch (e) { console.error("Spesen-PDF-Ablage (IndexedDB) fehlgeschlagen:", e); }
+      }
+    }
   } catch (e) {
     console.error("PDF-Ablage beim Monatsabschluss fehlgeschlagen:", e);
     alert("Der Monat wurde abgeschlossen, aber die PDF konnte nicht automatisch gespeichert werden.\nBitte einmal manuell über \"💾 Als PDF speichern\" ablegen.");
@@ -10665,10 +10781,10 @@ function renderArchivPanel() {
   let html = `
     <div class="settings-card neutral">
       <h3>💾 Backup</h3>
-      <p class="hinweis-text">Abgeschlossene Monate werden - wie alle Daten in diesem Tool - nur lokal in
+      <p class="hinweis-text">Abgeschlossene Spesen werden - wie alle Daten in diesem Tool - nur lokal in
         diesem Browser gespeichert. Bei einem Geräte- oder Browserwechsel gehen sie sonst verloren: vorher
         einmal ein Backup speichern, dann lassen sie sich auf dem neuen Gerät wieder einlesen.</p>
-      <button class="primary" onclick="exportBackup()">📦 Backup als Datei speichern</button>
+      <button class="primary" onclick="exportBackupVoll()">📦 Backup als Datei speichern</button>
     </div>
     <p class="hinweis-text" style="margin: 0 0 1rem;">${inRange} von ${rangeTotal} Monaten im eingestellten Zeitraum ${config.jahr} abgeschlossen.</p>
   `;
@@ -10686,6 +10802,7 @@ function renderArchivPanel() {
         <div class="archiv-actions">
           <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, false)" title="Diesen Monat im Formular anzeigen">👁️ Ansehen</button>
           <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, true)" title="Diesen Monat anzeigen und als PDF herunterladen">📄 PDF</button>
+          ${zeigtNeuerungen() ? `<button class="ghost" onclick="pdfAblageOeffnen('spesen-${m.jahr}-${m.monat}', 'Spesen ${MONTH_NAMES[m.monat - 1]} ${m.jahr}')" title="Die im Tool gespeicherte PDF ansehen oder drucken">📂 Gespeicherte PDF</button>` : ""}
         </div>
       </div>
     `).join("");
@@ -10874,14 +10991,17 @@ function gehoertInsBackup(key) {
    mit "vor-zuruecksetzen" die automatische Rettung aus resetAll() - die
    soll im Download-Ordner sofort als solche erkennbar sein und nicht
    zwischen den regulaeren Sicherungen untergehen. */
-function exportBackup(anlass) {
+/* Sammelt alle zu sichernden localStorage-Bereiche in ein Backup-Objekt. */
+function sammleBackupDaten() {
   const backup = {
     _type: "spesen-rechner-backup",
     // 2 = seit 20.09.2026, enthaelt auch Inventur/Ware/Abrechnung/Kopfdaten
-    // und die Inventur-Unterschrift. Aeltere Dateien (_version 1) lassen
-    // sich unveraendert weiter einlesen - importBackupFile() prueft die
-    // Fassung nicht, es schreibt zurueck, was drinsteht.
-    _version: 2,
+    // und die Inventur-Unterschrift. 3 = seit 30.09.2026, kann zusaetzlich
+    // die im Tool abgelegten PDFs tragen (_pdfs, nur exportBackupVoll).
+    // Aeltere Dateien lassen sich unveraendert weiter einlesen -
+    // importBackupFile() prueft die Fassung nicht, es schreibt zurueck, was
+    // drinsteht.
+    _version: 3,
     _exportedAt: new Date().toISOString(),
     data: {},
   };
@@ -10891,6 +11011,10 @@ function exportBackup(anlass) {
       backup.data[key] = localStorage.getItem(key);
     }
   }
+  return backup;
+}
+/* Schreibt ein Backup-Objekt als JSON-Datei in den Download-Ordner. */
+function backupDateiSpeichern(backup, anlass) {
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -10901,9 +11025,51 @@ function exportBackup(anlass) {
     : `spesen-rechner-backup-${dateStr}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  // Anzahl gesicherter Bereiche zurueckgeben - resetAll() prueft damit,
-  // ob ueberhaupt etwas zu retten war.
   return Object.keys(backup.data).length;
+}
+/* Backup NUR localStorage - bleibt SYNCHRON. So nutzen es die internen
+   Sicherheits-Sicherungen vor dem Zuruecksetzen (resetAll wertet den
+   Rueckgabewert aus; die IndexedDB-PDFs ueberstehen ein Zuruecksetzen
+   ohnehin, sie muessen dort nicht mit rein). */
+function exportBackup(anlass) {
+  return backupDateiSpeichern(sammleBackupDaten(), anlass);
+}
+/* Blob <-> Base64 fuer die PDF-Ablage im Backup. */
+function blobZuBase64(blob) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(",")[1] || "");
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+function base64ZuBlob(b64, typ) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: typ || "application/pdf" });
+}
+/* VOLLES Backup fuer den Knopf: localStorage + die im Tool abgelegten PDFs
+   (IndexedDB), damit bei Geraetewechsel auch die abgeschlossenen Abrechnungen
+   und Spesen-Monate erhalten bleiben (Mirko, 30.09.2026). Async, weil das
+   Lesen der PDFs async ist - deshalb NICHT fuer die internen Sicherungen. */
+async function exportBackupVoll(anlass) {
+  const backup = sammleBackupDaten();
+  backup._pdfs = {};
+  try {
+    const ids = await pdfDbSchluessel();
+    for (const id of ids) {
+      const blob = await pdfDbHolen(id);
+      if (blob) backup._pdfs[id] = await blobZuBase64(blob);
+    }
+  } catch (e) { console.error("PDFs fuer Backup lesen fehlgeschlagen:", e); }
+  const anzahlPdf = Object.keys(backup._pdfs).length;
+  const anzahlBereiche = backupDateiSpeichern(backup, anlass);
+  if (anzahlPdf) {
+    alert("Backup gespeichert – inklusive " + anzahlPdf + " im Tool abgelegten PDF"
+        + (anzahlPdf === 1 ? "" : "s") + " (abgeschlossene Abrechnungen/Monate).");
+  }
+  return anzahlBereiche;
 }
 
 function importBackupFile(fileInput) {
@@ -10922,8 +11088,23 @@ function importBackupFile(fileInput) {
         return;
       }
       Object.entries(backup.data).forEach(([key, value]) => localStorage.setItem(key, value));
-      alert("Backup erfolgreich wiederhergestellt. Die Seite wird neu geladen.");
-      location.reload();
+      // Im Tool abgelegte PDFs (falls im Backup) zurueck in IndexedDB - erst
+      // DANACH neu laden, damit sie beim naechsten Aufbau schon da sind.
+      const pdfIds = backup._pdfs ? Object.keys(backup._pdfs) : [];
+      if (pdfIds.length) {
+        (async () => {
+          let ok = 0;
+          for (const id of pdfIds) {
+            try { if (await pdfDbAblegen(id, base64ZuBlob(backup._pdfs[id]))) ok++; } catch (e) {}
+          }
+          alert("Backup erfolgreich wiederhergestellt (inkl. " + ok + " von " + pdfIds.length
+              + " PDFs). Die Seite wird neu geladen.");
+          location.reload();
+        })();
+      } else {
+        alert("Backup erfolgreich wiederhergestellt. Die Seite wird neu geladen.");
+        location.reload();
+      }
     } catch (err) {
       alert("Fehler beim Einlesen des Backups: " + err.message);
     } finally {
@@ -11647,7 +11828,11 @@ async function buildPdf() {
   const imgData = canvas.toDataURL("image/png");
 
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  /* compress: true seit 30.09.2026 - ohne Kompression war eine Spesen-PDF
+     mehrere MB gross (alte Downloads teils >20 MB). Fuer die Ablage im Tool
+     (IndexedDB) und schnelleren Download deutlich kleiner, ohne sichtbaren
+     Qualitaetsverlust (nur die Datei-Kodierung, nicht das Bild). */
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 8;
@@ -11958,7 +12143,7 @@ const CHANGELOG = [
     "PDF-Vorschau: erst ansehen, dann speichern oder drucken",
     "Tage über 10 Std. werden blockiert – Speichern, Drucken und Mailen erst nach Korrektur",
     "Samstag als eigene Tages-Zeile wählbar",
-    "Abgeschlossene Monate mit eingebauter Datensicherung; Wiederöffnen nur per PIN",
+    "Abgeschlossene Spesen mit eingebauter Datensicherung; Wiederöffnen nur per PIN",
     "Video-Anleitung für Kollegen",
   ]},
   { version: "1.6", date: "20.07.2026", changes: [
@@ -12809,7 +12994,7 @@ function bandAktionen(tab) {
     return k("btnEinrichtung", "⚙️ Einstellungen", "einrichtungAnzeigen()")
          + k("btnAbwesenheiten", "🗓️ Abwesenheiten", "einrichtungOeffnen('kastenAbwesenheiten')")
          + k("btnSicherung", "💾 Sicherung", "einrichtungOeffnen('kastenSicherung')")
-         + k("btnArchivBand", "📁 Abgeschlossene Monate", "toggleArchivPanel()");
+         + k("btnArchivBand", "📁 Abgeschlossene Spesen", "toggleArchivPanel()");
   }
   return "";
 }
