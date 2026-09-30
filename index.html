@@ -3313,7 +3313,7 @@
          danach im Archiv nachsehen.
          Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
          gesperrt, sie ziehen nur um. -->
-    <button class="handy-mehr" onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Monat abschließen</button>
+    <button onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Spesenmonat abschließen</button>
     <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Spesen</button>
   </div>
   <!-- Ebenfalls am 22.09.2026 benannt, gleicher Grund wie oben. -->
@@ -4659,7 +4659,7 @@ const I18N = {
        und trifft beide Faelle - das eigene Geraet wie das des Kollegen.
        Ein Knopf, ein Text, nichts kann mehr umspringen. */
     btnInstall: "📱 Am Handy als App einrichten",
-    btnLockMonth: "🔒 Monat abschließen", btnArchiv: "📁 Abgeschlossene Spesen", archivTitle: "📁 Abgeschlossene Spesen",
+    btnLockMonth: "🔒 Spesenmonat abschließen", btnArchiv: "📁 Abgeschlossene Spesen", archivTitle: "📁 Abgeschlossene Spesen",
     /* Ausfuehrlicher seit 20.09.2026: Das Zuruecksetzen loescht jetzt
        WIRKLICH alles - vorher ueberlebten Inventur, Ware, Abrechnung und
        Kopfdaten unbemerkt. Wer die alte Fassung kennt, muss sehen, dass
@@ -4677,7 +4677,7 @@ const I18N = {
     nlCard: "🏢 Anwesenheit in der Niederlassung (NL)", absenceCard: "🗓️ Abwesenheiten am Stück eintragen",
     backupCard: "💾 Datensicherung",
     monthLockedBanner: "Eingereicht am {ts} – Bearbeitung gesperrt.",
-    unlockBtn: "🔓 Wieder öffnen", lockBtn: "🔒 Monat abschließen",
+    unlockBtn: "🔓 Wieder öffnen", lockBtn: "🔒 Spesenmonat abschließen",
   },
   en: {
     pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
@@ -4706,7 +4706,7 @@ const I18N = {
     btnArbeitszeit: "⏱️ Working hours", btnUrlaub: "🌴 Holiday calendar",
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Set up as app on your phone",
-    btnLockMonth: "🔒 Submit month", btnArchiv: "📁 Completed expenses", archivTitle: "📁 Completed expenses",
+    btnLockMonth: "🔒 Submit expense month", btnArchiv: "📁 Completed expenses", archivTitle: "📁 Completed expenses",
     confirmReset: "Really reset EVERYTHING?\n\n" +
       "This deletes: all months, working times, holidays, vehicle inventory, " +
       "counted goods, settlement, master data and all signatures.\n\n" +
@@ -10640,7 +10640,7 @@ async function submitCurrentMonth() {
      ⚠ NUR "spesen_signature" (Unterschrift Mitarbeiter), NICHT
      "spesen_signature_nll" - die gehoert dem Niederlassungsleiter. */
   const freigabe = await abschlussPruefen({
-    titel: "Monat abschließen",
+    titel: "Spesenmonat abschließen",
     datumPflicht: false,
     sigKey: "spesen_signature",
     sigName: "Die Unterschrift des Mitarbeiters",
@@ -10648,7 +10648,7 @@ async function submitCurrentMonth() {
   });
   if (!freigabe) return;
 
-  if (!confirm(`Diesen Monat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
+  if (!confirm(`Diesen Spesenmonat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
   submitMonth(config.jahr, monat);
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
@@ -10790,7 +10790,7 @@ function renderArchivPanel() {
   `;
 
   if (months.length === 0) {
-    html += `<p class="hinweis-text">Noch keine Monate abgeschlossen. Über „🔒 Monat abschließen" in der
+    html += `<p class="hinweis-text">Noch keine Spesen abgeschlossen. Über „🔒 Spesenmonat abschließen" in der
       Werkzeugleiste oder automatisch nach „📧 Per E-Mail weiterleiten" erscheinen fertige Monate hier.</p>`;
   } else {
     html += months.map((m) => `
