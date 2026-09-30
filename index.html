@@ -9343,7 +9343,7 @@ function abrArchivZeigen() {
     if (e.invUnterschrieben) teile.push("unterschrieben");
     return teile.length ? teile.join(" · ") : "nur Verkaufsbericht";
   };
-  el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>📁 Abrechnung komplett</h3>" +
+  el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>📁 Abgeschlossene Abrechnungen</h3>" +
     liste.slice().reverse().map((e) =>
       '<div class="abr-archiv-zeile"><span>' + invEsc(e.datum || "") +
       (e.tour ? " · Tour " + invEsc(e.tour) : "") + "</span>" +
