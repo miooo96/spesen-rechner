@@ -3597,7 +3597,7 @@
       </div>
       <div>
         <label>Bis</label>
-        <input id="absenceBis" type="date">
+        <input id="absenceBis" type="date" onfocus="absenceBisFokus()" onmousedown="absenceBisFokus()" ontouchstart="absenceBisFokus()">
       </div>
       <div style="display:flex; align-items:flex-end; gap:0.5rem;">
         <button class="primary" onclick="applyAbsenceRange()">Eintragen</button>
@@ -10904,6 +10904,16 @@ function absenceVonGeaendert() {
   const bis = document.getElementById("absenceBis");
   if (!von || !bis || !von.value) return;
   if (!bis.value || bis.value < von.value) bis.value = von.value;
+}
+/* Wird beim Antippen/Fokussieren des Bis-Feldes ausgelöst - SO wird der Monat
+   sicher vorbelegt, bevor der Kalender aufgeht (onchange von "Von" kam dafür
+   zu spät). Nur wenn Bis noch leer ist: dann Bis = Von, damit der Kalender im
+   selben Monat wie "Von" startet (Mirko, 30.09.2026). */
+function absenceBisFokus() {
+  const von = document.getElementById("absenceVon");
+  const bis = document.getElementById("absenceBis");
+  if (!von || !bis || !von.value) return;
+  if (!bis.value) bis.value = von.value;
 }
 
 function clearAbsenceRange() {
