@@ -2061,9 +2061,13 @@
      Druck und in der html2canvas-Aufnahme. */
   .inv-blatt input.inv-diff-plus  { color:#1a7f37 !important; }
   .inv-blatt input.inv-diff-minus { color:#c01525 !important; }
+  /* Alle Felder im Verkaufsbericht SCHWARZ (Mirko, 30.09.2026) - ohne diese
+     Regel erben die Inputs die braune Hausfarbe (#612A00), nicht Schwarz.
+     Das Inventurblatt hatte die Regel schon, der Verkaufsbericht fehlte. */
+  .abr-blatt input, .abr-blatt select { color:#000; }
   /* Gleiche Ampel auf dem Verkaufsbericht (Mirko, 28.09.2026): die beiden
      Differenz-Felder (Geld + Ware) gruen/rot - auch im Ausdruck/PDF, sonst
-     bleibt alles schwarz. */
+     bleibt alles schwarz. !important schlaegt das color:#000 oben. */
   .abr-blatt input.abr-diff-plus  { color:#1a7f37 !important; }
   .abr-blatt input.abr-diff-minus { color:#c01525 !important; }
   .inv-blatt table { border-collapse:collapse; }
@@ -3254,6 +3258,7 @@
     <button type="button" onclick="abrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button type="button" onclick="abrBeideDrucken()">🖨️ Beide Zettel</button>
     <button type="button" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
+    <button type="button" onclick="toggleAbrArchiv()">📁 Abgeschlossene Abrechnungen</button>
   </div>
   <!-- Zeit bekommt ZWEI Blaetter (Mirko, 22.09.2026: "beides"):
        Monat = der Nachweis ueber geleistete Arbeitszeit, hochkant, weil
@@ -3588,7 +3593,7 @@
       </div>
       <div>
         <label>Von</label>
-        <input id="absenceVon" type="date">
+        <input id="absenceVon" type="date" onchange="absenceVonGeaendert()">
       </div>
       <div>
         <label>Bis</label>
@@ -3947,7 +3952,7 @@
     <button type="button" class="ghost" onclick="abrNeu()">🗑️ Neuer Bericht</button>
   </div>
 
-  <div class="abr-archiv" id="abrArchiv"></div>
+  <div class="abr-archiv" id="abrArchiv" style="display:none;"></div>
 
   <!-- Rechenweg: welche Summe gegen was, mit Quellpapier. Steht BEWUSST
        ausserhalb von #abrBlatt (die PDF fotografiert nur #abrBlatt) und
@@ -9315,11 +9320,33 @@ function abrArchivSichern(liste) {
   }
 }
 
+/* Klapp-Ordner "Abgeschlossene Abrechnungen" in der Werkzeugleiste
+   (Mirko, 30.09.2026): auf Klick erscheint die nach Datum sortierte Liste -
+   nicht mehr dauerhaft über dem Dokument. */
+function toggleAbrArchiv() {
+  const el = document.getElementById("abrArchiv");
+  if (!el) return;
+  if (el.style.display !== "none") { el.style.display = "none"; return; }
+  abrArchivZeigen();
+  el.style.display = "block";
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function abrArchivZeigen() {
   const el = document.getElementById("abrArchiv");
   if (!el) return;
   const liste = abrArchivLesen();
-  if (!liste.length) { el.innerHTML = ""; return; }
+  if (!liste.length) {
+    el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>📁 Abgeschlossene Abrechnungen</h3>"
+      + "<p class='hinweis-text'>Noch keine Abrechnungen abgeschlossen. Über „✅ Abrechnung abschließen“ erscheinen sie hier.</p>";
+    return;
+  }
+  /* Nach Datum sortieren, neueste zuerst (Mirko, 30.09.2026). Das Datum steht
+     als TT.MM.JJJJ im Eintrag; fehlt es, greift der Abschluss-Zeitstempel. */
+  const dWert = (e) => {
+    const m = /(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(String(e.datum || ""));
+    return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : (e.zeitpunkt || 0);
+  };
   /* Zeigt, was der Eintrag WIRKLICH enthaelt. Ohne diese Zeile sieht ein
      Eintrag mit allen drei Schritten genauso aus wie ein alter, der nur
      den Verkaufsbericht traegt - und man haelt Verlorenes fuer
@@ -9344,7 +9371,7 @@ function abrArchivZeigen() {
     return teile.length ? teile.join(" · ") : "nur Verkaufsbericht";
   };
   el.innerHTML = "<h3 style='margin:16px 0 6px; font-size:0.95rem;'>📁 Abgeschlossene Abrechnungen</h3>" +
-    liste.slice().reverse().map((e) =>
+    liste.slice().sort((a, b) => dWert(b) - dWert(a)).map((e) =>
       '<div class="abr-archiv-zeile"><span>' + invEsc(e.datum || "") +
       (e.tour ? " · Tour " + invEsc(e.tour) : "") + "</span>" +
       '<span>Endbestand ' + invFmt(e.endbestand || 0) + " €</span>" +
@@ -10800,9 +10827,10 @@ function renderArchivPanel() {
           <div class="archiv-meta">eingereicht am ${formatTimestampDE(m.ts)} &middot; ${m.total.toFixed(2).replace(".", ",")} €</div>
         </div>
         <div class="archiv-actions">
-          <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, false)" title="Diesen Monat im Formular anzeigen">👁️ Ansehen</button>
-          <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, true)" title="Diesen Monat anzeigen und als PDF herunterladen">📄 PDF</button>
-          ${zeigtNeuerungen() ? `<button class="ghost" onclick="pdfAblageOeffnen('spesen-${m.jahr}-${m.monat}', 'Spesen ${MONTH_NAMES[m.monat - 1]} ${m.jahr}')" title="Die im Tool gespeicherte PDF ansehen oder drucken">📂 Gespeicherte PDF</button>` : ""}
+          ${zeigtNeuerungen()
+            ? `<button class="ghost" onclick="pdfAblageOeffnen('spesen-${m.jahr}-${m.monat}', 'Spesen ${MONTH_NAMES[m.monat - 1]} ${m.jahr}')" title="Den fertigen, gespeicherten Beleg ansehen oder drucken">📄 PDF ansehen / drucken</button>`
+            : `<button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, false)" title="Diesen Monat im Formular anzeigen">👁️ Ansehen</button>
+               <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, true)" title="Diesen Monat anzeigen und als PDF herunterladen">📄 PDF</button>`}
         </div>
       </div>
     `).join("");
@@ -10865,6 +10893,17 @@ function applyAbsenceRange() {
   document.getElementById("absenceBis").value = "";
   renderAbsenceRangesList();
   alert(`${STATUS_LABELS[status]} wurde für den Zeitraum ${von} bis ${bis} eingetragen. Weiterer Zeitraum lässt sich direkt im Anschluss eintragen.`);
+}
+
+/* Beim Eingeben von "Von" gleich denselben Monat/Tag bei "Bis" vorbelegen
+   (Mirko, 30.09.2026) - dann steht der Bis-Kalender schon im richtigen Monat
+   und man muss nur noch den Endtag wählen. Nur setzen, wenn Bis leer ist oder
+   vor dem Von-Datum liegt; ein bereits passend gesetztes Bis bleibt. */
+function absenceVonGeaendert() {
+  const von = document.getElementById("absenceVon");
+  const bis = document.getElementById("absenceBis");
+  if (!von || !bis || !von.value) return;
+  if (!bis.value || bis.value < von.value) bis.value = von.value;
 }
 
 function clearAbsenceRange() {
