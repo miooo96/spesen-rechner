@@ -14496,5 +14496,8 @@ oeffneAusAnker();
   }).catch(function () { /* Browser kennt das nicht - egal */ });
 })();
 </script>
+<!-- Geraete-Synchronisierung (optional). Laeuft nur, wenn sync/firebase-config.js
+     mit echten Werten vorhanden ist – sonst passiert hier nichts. -->
+<script type="module" src="sync/firebase-sync.js"></script>
 </body>
 </html>

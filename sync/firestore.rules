@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Sicherheitsregeln fuer Cloud Firestore.
+// Kernaussage: Jeder angemeldete Fahrer darf AUSSCHLIESSLICH unter seiner
+// eigenen Nutzer-ID lesen und schreiben. Kein Kollege kommt an die Daten
+// eines anderen – das ist hier technisch erzwungen, nicht nur per Bildschirm.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // users/{uid}/state/{schluessel}
+    //
+    // PERSOENLICHE FASSUNG ("nur fuer mich"): Nur Mirkos eigenes Konto darf
+    // ueberhaupt schreiben/lesen. Selbst wenn sich jemand anders anmeldet,
+    // kann er nichts ablegen. So bleibt es ein reines Ein-Mann-Werkzeug.
+    //
+    // Fuer den spaeteren Kollegen-Einsatz: die E-Mail-Zeile entfernen –
+    // dann darf jeder angemeldete Fahrer NUR unter seiner eigenen uid
+    // arbeiten (die uid-Zeile bleibt, sie macht die Trennung).
+    match /users/{uid}/state/{doc} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid
+                         && request.auth.token.email == "mirkorieb@t-online.de";
+    }
+
+    // Alles andere ist gesperrt.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
