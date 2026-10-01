@@ -43,16 +43,22 @@
     return;
   }
 
-  // ---- Aktivierung: nur wo der Sync ausdruecklich eingeschaltet wurde ----
-  // So sehen Kollegen auf der Live-Seite NICHTS – kein Anmelde-Knopf, kein
-  // Firebase. Einschalten auf einem eigenen Geraet: die Seite einmal mit
-  //   ?sync=an   in der Adresse aufrufen (z. B. hall-spesen-rechner.de/?sync=an).
-  // Wieder ausschalten:  ?sync=aus
+  // ---- Aktivierung: nur fuer Mirko ------------------------------------
+  // Gleiche Erkennung wie istMirko() im Tool: config.name == "Mirko Rieb".
+  // Kollegen haben ihren eigenen Namen -> sie sehen NICHTS (kein Anmelde-
+  // Knopf, kein Firebase). Vorteil gegenueber dem alten ?sync=an: das hier
+  // funktioniert in JEDER Oberflaeche – auch in der installierten Home-App,
+  // die keine Adresszeile hat. Not-Aus bleibt ueber ?sync=aus moeglich.
   const params = new URLSearchParams(location.search);
-  if (params.get("sync") === "an") localStorage.setItem("spesen_sync_aktiv", "ja");
-  if (params.get("sync") === "aus") localStorage.removeItem("spesen_sync_aktiv");
-  if (localStorage.getItem("spesen_sync_aktiv") !== "ja") {
-    console.info("[Sync] Auf diesem Geraet nicht eingeschaltet (?sync=an zum Aktivieren).");
+  if (params.get("sync") === "aus") localStorage.setItem("spesen_sync_aus", "ja");
+  if (params.get("sync") === "an") localStorage.removeItem("spesen_sync_aus");
+  const toolConfig = (() => {
+    try { return JSON.parse(localStorage.getItem("spesen_config") || "{}"); }
+    catch (e) { return {}; }
+  })();
+  const istMirko = (toolConfig.name || "").trim().toLowerCase() === "mirko rieb";
+  if (localStorage.getItem("spesen_sync_aus") === "ja" || !istMirko) {
+    console.info("[Sync] Nicht aktiv (nur fuer Mirko; oder ?sync=aus gesetzt).");
     return;
   }
 
@@ -62,7 +68,7 @@
   const AUSGESCHLOSSEN = new Set([
     "kfz-kaefig-v1",        // "Neue Ware zaehlen" – jede Woche neu, kein Nachweis
     "hall-letzter-bereich", // nur "welcher Bereich war offen"
-    "spesen_sync_aktiv",    // Geraete-Schalter, gehoert nicht in die Cloud
+    "spesen_sync_aus",      // Geraete-Not-Aus, gehoert nicht in die Cloud
   ]);
   // Interne Hilfsschluessel dieses Moduls (nie synchronisieren)
   const istIntern = (k) =>
