@@ -142,6 +142,14 @@
       badgeZeichnen(user ? user.email : null);
       if (user) {
         localStorage.removeItem("emailForSignIn");
+        // Konto gewechselt (oder erstmalig)? Dann den Sync-Merker leeren,
+        // damit die lokalen Daten frisch mit DIESEM Konto abgeglichen und
+        // (bei leerem Cloud-Konto) vollstaendig hochgeladen werden. Ohne das
+        // wuerde nach einem Kontowechsel nichts hochgehen (alte Zeitstempel).
+        if (localStorage.getItem("__sync_uid") !== user.uid) {
+          _removeItem.call(localStorage, META_KEY);
+          _setItem.call(localStorage, "__sync_uid", user.uid);
+        }
         patchAnbringen();
         anhoeren();          // Cloud -> Geraet (Live)
         // Beim Start ERST alles aus der Cloud holen, DANN vorhandene lokale
