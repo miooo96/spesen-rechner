@@ -322,18 +322,33 @@
     else { b.textContent = "☁︎ Anmelden"; b.style.background = "#123"; }
   }
 
+  // Anmeldung per E-Mail + Passwort. Kein Mailversand -> kein Tageslimit.
+  // Erstanlage: Gibt es noch kein Konto mit diesem Passwort, wird nach
+  // Rueckfrage eines angelegt (createUser schickt KEINE Mail).
   async function anmeldenFrage() {
-    const email = window.prompt("E-Mail fuer die Anmeldung (Sie bekommen einen Login-Link zugeschickt):");
+    const email = window.prompt("E-Mail:", "mirkorieb@t-online.de");
     if (!email) return;
+    const pw = window.prompt("Passwort (mindestens 6 Zeichen):");
+    if (!pw) return;
     try {
-      await AUTH.sendSignInLinkToEmail(auth, email, {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true,
-      });
-      localStorage.setItem("emailForSignIn", email);
-      alert("Login-Link verschickt. Bitte die E-Mail an " + email + " oeffnen und auf den Link tippen – auf DIESEM Geraet.");
+      await AUTH.signInWithEmailAndPassword(auth, email.trim(), pw);
+      return; // onAuthStateChanged uebernimmt den Rest
     } catch (e) {
-      alert("Konnte keinen Link verschicken: " + e.message);
+      // "invalid-credential"/"user-not-found" = Konto/Passwort passt nicht.
+      const evtlNeu = ["auth/invalid-credential", "auth/user-not-found", "auth/wrong-password"].includes(e.code);
+      if (!evtlNeu) { alert("Anmeldung fehlgeschlagen: " + e.message); return; }
+      if (!confirm("Kein passendes Konto gefunden.\n\nFalls Sie zum ersten Mal ein Passwort vergeben: jetzt ein Konto mit diesem Passwort anlegen?")) return;
+      try {
+        await AUTH.createUserWithEmailAndPassword(auth, email.trim(), pw);
+      } catch (e2) {
+        if (e2.code === "auth/email-already-in-use") {
+          alert("Für diese E-Mail gibt es schon ein Konto – aber noch OHNE Passwort (von der früheren Mail-Anmeldung).\n\nBitte dieses Konto einmal in der Firebase-Konsole löschen:\nAuthentication → Users → den Eintrag mirkorieb@t-online.de löschen.\nDanach hier mit E-Mail + Passwort erneut anmelden – dann wird es neu angelegt.\n\n(Ihre Daten bleiben erhalten, sie liegen auf diesem Gerät und werden nach dem Anmelden wieder hochgeladen.)");
+        } else if (e2.code === "auth/weak-password") {
+          alert("Das Passwort ist zu kurz – bitte mindestens 6 Zeichen.");
+        } else {
+          alert("Konnte kein Konto anlegen: " + e2.message);
+        }
+      }
     }
   }
 
