@@ -439,6 +439,23 @@
     padding: 9px 10px; font-size: 0.85rem; border: 1px solid #bbb;
     border-radius: 9px; background: #fff; max-width: 55%;
   }
+  /* Unterschriften-Sektion der App-Kartenansicht. Teil von #handyBlatt (nur
+     in der App sichtbar, ohnehin no-print) - gehoert NICHT in PDF/Ausdruck. */
+  .tk-sig-gruppe { margin-top: 14px; }
+  .tageskarte.tk-sig { border-left-color: #c9d0d8; }
+  .tk-sig-label {
+    display: block; font-size: 0.72rem; color: #666; margin-bottom: 7px;
+    text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700;
+  }
+  .tk-sig-box {
+    display: flex; align-items: flex-end; justify-content: flex-start;
+    min-height: 54px; border-bottom: 1px solid #bbb; background: #fff;
+    margin-bottom: 4px;
+  }
+  .tk-sig-img { max-width: 100%; max-height: 90px; object-fit: contain; }
+  .tk-sig-btns { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .tk-sig-btns .ghost { font-size: 0.85rem; padding: 9px 12px; }
+  .tk-sig-clear { flex: none; width: 40px; text-align: center; color: #888; }
 
   @media screen and (max-width: 700px) {
     .toolbar-divider { display: none; }
@@ -12294,13 +12311,43 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
       </div>`;
   }).join("");
 
+  /* Unterschriften in der App-Kartenansicht. Im Vordruck (Browser) sitzt der
+     "Unterschrift einfügen"-Knopf in der Formular-Tabelle - die wird in der
+     App per CSS (body.als-app #formular-scroll{display:none}) ausgeblendet,
+     also fehlte der Knopf dort. Hier kommt er in die Karten-Ansicht, loest
+     aber DIESELBEN versteckten File-Inputs des Vordrucks aus (sigFile-<key>) -
+     ein display:none-Input laesst sich per .click() ausloesen, auch wenn sein
+     Eltern-Container ausgeblendet ist. So funktioniert das Einfuegen in App und
+     Browser identisch, an derselben Stelle im Ablauf.
+     Bei gesperrtem Monat ohne Knoepfe (analog Vordruck) - die gespeicherte
+     Unterschrift bleibt sichtbar. */
+  const sigFelder = [
+    { key: "spesen_signature", label: "Unterschrift Mitarbeiter" },
+    { key: "spesen_signature_nll", label: "Unterschrift Niederlassungsleiter" },
+  ];
+  const sigHtml = `
+    <div class="tk-sig-gruppe">
+      ${sigFelder.map((s) => `
+        <div class="tageskarte tk-sig">
+          <label class="tk-sig-label">${s.label}</label>
+          <div class="tk-sig-box"><img id="sigImg-${s.key}-handy" class="tk-sig-img" alt="" style="display:none"></div>
+          <span id="sigTs-${s.key}-handy" class="small" style="color:#888;"></span>
+          ${gesperrt ? "" : `
+          <div class="tk-sig-btns">
+            <button type="button" class="ghost" onclick="document.getElementById('sigFile-${s.key}').click()" title="Foto/Scan der handschriftlichen Unterschrift einfügen">📷 Unterschrift einfügen</button>
+            <button type="button" class="ghost tk-sig-clear" onclick="clearSignature('${s.key}')" title="Unterschrift entfernen">✕</button>
+          </div>`}
+        </div>`).join("")}
+    </div>`;
+
   /* Bewusst EINZEILIG: Auf dem Handy standen hier drei Hinweisfelder
      uebereinander, bevor der erste Tag kam. Der Hinweis ist wichtig
      (sonst denkt man, die Abgabe sehe jetzt anders aus), aber er darf
      nicht den halben Bildschirm kosten. */
   ziel.innerHTML = `
     <p class="handy-hinweis">📱 Eingabe-Ansicht · Abgabe erfolgt weiter im gewohnten Vordruck</p>
-    ${karten || '<p class="small" style="text-align:center; color:#666;">Für diesen Monat gibt es keine Tage.</p>'}`;
+    ${karten || '<p class="small" style="text-align:center; color:#666;">Für diesen Monat gibt es keine Tage.</p>'}
+    ${sigHtml}`;
 }
 
 /* ===================== Unterschriften (Canvas: Mitarbeiter + NLL) ===================== */
@@ -12321,19 +12368,27 @@ const SIGNATURE_PADS = [
    Unterschrift an - sowohl auf dem Bildschirm als auch im PDF, gibt der
    Unterschrift echten Beweischarakter (wer hat wann unterschrieben). */
 function renderSignatureTimestamp(key) {
-  const el = document.getElementById("sigTs-" + key);
-  if (!el) return;
   const ts = localStorage.getItem(key + "_ts");
-  el.textContent = ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "";
+  const text = ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "";
+  // Vordruck UND App-Kartenansicht (#handyBlatt) gemeinsam setzen.
+  ["sigTs-" + key, "sigTs-" + key + "-handy"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
 }
 
-/* Gespeicherte Unterschrift (falls vorhanden) im Bild-Element anzeigen. */
+/* Gespeicherte Unterschrift (falls vorhanden) im Bild-Element anzeigen.
+   Aktualisiert NEBEN imgId auch das Gegenstueck imgId+"-handy" in der
+   App-Kartenansicht (#handyBlatt), falls vorhanden - so ziehen Vordruck und
+   Karte bei Upload/Clear gemeinsam mit. */
 function loadSignatureImageInto(imgId, key) {
-  const img = document.getElementById(imgId);
-  if (!img) return;
   const saved = localStorage.getItem(key);
-  if (saved) { img.src = saved; img.style.display = "block"; }
-  else { img.removeAttribute("src"); img.style.display = "none"; }
+  [imgId, imgId + "-handy"].forEach((id) => {
+    const img = document.getElementById(id);
+    if (!img) return;
+    if (saved) { img.src = saved; img.style.display = "block"; }
+    else { img.removeAttribute("src"); img.style.display = "none"; }
+  });
 }
 
 /* Foto/Scan hochladen: auf max. 600x200 verkleinern, weisser Hintergrund,
