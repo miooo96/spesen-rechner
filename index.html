@@ -143,6 +143,22 @@
     --diagramm-plus:  #a45002;
     --diagramm-minus: #0086ad;
 
+    /* ================================================================
+       Farben der Ablage-Ordner je Hauptbereich (Mirko, 01.10.2026).
+       Jeder Bereich bekommt einen eigenen farbigen Ordner IM Tool, in
+       dem die abgelegten PDFs per Klick wieder aufgehen. Spesen und
+       Abrechnung nehmen die beiden Grundfarben der Firma auf (Orange,
+       Braun); die vier neuen Bereiche bekommen klar unterscheidbare,
+       kraeftige Toene. Nur Namen und Werte - benutzt werden sie von
+       .ordner-box, .ordner-puls und dem Hinweis-Streifen.
+       ================================================================ */
+    --ordner-spesen:    #de7008;
+    --ordner-abrechnung:#612a00;
+    --ordner-zeit:      #0086ad;
+    --ordner-urlaub:    #1a7f37;
+    --ordner-jahr:      #6b3fa0;
+    --ordner-inventur:  #4a5568;
+
     /* Formen und Bewegung des Entwurfs. --griff sind 48 px: die kleinste
        Flaeche, die sich mit Arbeitshandschuhen im Fahrerhaus noch sicher
        treffen laesst. */
@@ -295,6 +311,66 @@
     min-height: 48px;                 /* Fingergröße, wie in der Leiste */
   }
   #abrRuecknahmeStreifen .abr-rn-knopf:hover { background: #ffe9d6; }
+
+  /* ===== Farbige Ablage-Ordner je Bereich (Mirko, 01.10.2026) =====
+     Ein Kasten je Bereich, in dem die abgelegten PDFs stehen. Die Farbe
+     kommt ueber --ordner-farbe, das jeder Container per style-Attribut aus
+     seiner --ordner-*-Variable setzt. KEINE Bindung an body.als-app: App
+     und Browser sind bei gleicher Breite deckungsgleich. */
+  .ordner-box {
+    border: 1px solid var(--linie, #e3e6eb);
+    border-left: 6px solid var(--ordner-farbe, var(--kartenrand));
+    border-radius: 12px; background: #fff;
+    padding: 12px 14px; margin: 16px 0;
+  }
+  .ordner-box h3 {
+    margin: 0 0 8px; font-size: 0.95rem;
+    color: var(--ordner-farbe, var(--brand-dark));
+  }
+  .ordner-zeile {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    padding: 8px 0; border-top: 1px solid #eee;
+  }
+  .ordner-zeile:first-of-type { border-top: 0; }
+  .ordner-zeile .ordner-titel { flex: 1 1 200px; min-width: 0; font-weight: 600; }
+  .ordner-zeile .ordner-klein { color: #777; font-size: 0.8rem; }
+  .ordner-zeile button { flex: none; margin-left: auto; }
+
+  /* Der Toggle-Knopf eines Ordners traegt seine Farbe als duenne
+     Unterstreichung - so sieht man, zu welchem farbigen Ordner er gehoert,
+     ohne dass sich an der Groesse des Knopfes etwas aendert (inset-Schatten
+     verschiebt kein Layout). */
+  .ordner-knopf { box-shadow: inset 0 -2px 0 0 var(--ordner-farbe, var(--accent)); }
+
+  /* Puls nach dem Ablegen: ein farbiger Ring, der einmal aufgeht und
+     verblasst. Bewusst NUR box-shadow - kein transform/scale, kein margin,
+     damit der Knopf an seiner Stelle bleibt. --puls-farbe setzt die
+     Ablage-Funktion kurz vor dem Start. */
+  @keyframes ordnerPuls {
+    0%   { box-shadow: inset 0 -2px 0 0 var(--ordner-farbe, var(--accent)), 0 0 0 0 var(--puls-farbe, #de7008); }
+    70%  { box-shadow: inset 0 -2px 0 0 var(--ordner-farbe, var(--accent)), 0 0 0 9px rgba(0,0,0,0); }
+    100% { box-shadow: inset 0 -2px 0 0 var(--ordner-farbe, var(--accent)), 0 0 0 0 rgba(0,0,0,0); }
+  }
+  .ordner-puls { animation: ordnerPuls 0.9s var(--kurve, ease-out) 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .ordner-puls { animation: none; }
+  }
+
+  /* Hinweis-Streifen "→ 📁 … gespeichert" - fest am unteren Rand, kurz
+     sichtbar. Gleiche Machart wie #abrRuecknahmeStreifen; der als-app-Offset
+     nach oben ist die EINZIGE erlaubte als-app-Ausnahme (fester Streifen
+     ueber der am unteren Rand verankerten Reiterleiste). */
+  #ordnerHinweisStreifen {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 600;
+    max-width: 900px; margin: 0 auto;
+    background: var(--streifen-farbe, var(--brand-dark, #612a00)); color: #fff;
+    padding: 0.8rem 1rem; border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(24,26,32,0.28);
+    font-size: 0.92rem; font-weight: 700; line-height: 1.35; text-align: center;
+  }
+  body.als-app #ordnerHinweisStreifen {
+    bottom: calc(var(--maintabs-hoehe, 76px) + 12px);
+  }
 
   /* ===== Fenster "Am Handy als App einrichten" ===== */
   .install-weg {
@@ -2618,6 +2694,8 @@
     body.druck-inventur #invBlattView { display: block !important; overflow: visible; }
     body.druck-inventur #invErfassenView,
     body.druck-inventur .inv-bar,
+    body.druck-inventur .ordner-box,
+    body.druck-inventur .inv-abschluss-zeile,
     body.druck-inventur .inv-pdfzeile { display: none !important; }
     body.druck-inventur .inv-blatt { width: auto; transform: none; height: auto; min-height: 0;
                                     border: none; padding: 0; break-inside: avoid; page-break-inside: avoid; }
@@ -2639,6 +2717,8 @@
     body.druck-abrechnung #abrechnungPanel { display: block !important; padding: 0; border: none; }
     body.druck-abrechnung .inv-kopfzeile,
     body.druck-abrechnung .inv-bar,
+    body.druck-abrechnung .ordner-box,
+    body.druck-abrechnung .abr-abschluss-zeile,
     body.druck-abrechnung .abr-archiv { display: none !important; }
     body.druck-abrechnung .abr-blatt { width: auto; margin: 0; padding: 0; box-shadow: none;
                                        transform: none; break-inside: avoid; page-break-inside: avoid; }
@@ -3191,6 +3271,12 @@
          invMailKnopf. -->
     <button type="button" class="ghost" id="invMailKnopf" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
     <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
+    <!-- Nur noch der Ordner-Toggle (zum Nachsehen). Das Ablegen ist am
+         01.10.2026 nach UNTEN an den Zettel gewandert ("🚚 Inventur
+         abschließen", unten im Inventur-Blatt) und verlangt dort die
+         digitale Unterschrift - der obere "In Ordner ablegen"-Knopf ist
+         deshalb entfernt. Nur fuer Mirko (ordner-knopf-mirko). -->
+    <button type="button" class="ghost ordner-knopf ordner-knopf-mirko" id="invOrdnerKnopf" style="display:none; --ordner-farbe:var(--ordner-inventur);" onclick="ordnerToggle('inv')" data-i18n="btnOrdner">📁 Ordner</button>
   </div>
   <!-- ===== Drucken fuer Jahresuebersicht und Urlaub =====
        Bestellt von Mirko am 21.09.2026: "jahres und urlaub braucht auch
@@ -3218,9 +3304,15 @@
        Trennstriche ohnehin per CSS ausgeblendet. -->
   <div class="toolbar-group" id="toolbarJahrPdf" style="display:none;">
     <button type="button" class="primary" onclick="jahrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <!-- Nur noch der Ordner-Toggle. Das Ablegen sitzt seit 01.10.2026 unten
+         im Panel ("💾 Speichern / Ablegen"). Nur fuer Mirko. -->
+    <button type="button" class="ghost ordner-knopf ordner-knopf-mirko" id="jahrOrdnerKnopf" style="display:none; --ordner-farbe:var(--ordner-jahr);" onclick="ordnerToggle('jahr')" data-i18n="btnOrdner">📁 Ordner</button>
   </div>
   <div class="toolbar-group" id="toolbarUrlaubPdf" style="display:none;">
     <button type="button" class="primary" onclick="urlaubDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
+    <!-- Nur noch der Ordner-Toggle. Ablegen sitzt seit 01.10.2026 unten im
+         Panel ("💾 Speichern / Ablegen"). Nur fuer Mirko. -->
+    <button type="button" class="ghost ordner-knopf ordner-knopf-mirko" id="urlaubOrdnerKnopf" style="display:none; --ordner-farbe:var(--ordner-urlaub);" onclick="ordnerToggle('urlaub')" data-i18n="btnOrdner">📁 Ordner</button>
   </div>
   <!-- ================================================================
        REDESIGN SCHRITT 3, 25.09.2026: Die Abrechnung bekommt ihre
@@ -3257,8 +3349,11 @@
     <button type="button" onclick="abrSpeichern()" data-i18n="btnPdf">💾 PDF speichern</button>
     <button type="button" onclick="abrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button type="button" onclick="abrBeideDrucken()">🖨️ Beide Zettel</button>
-    <button type="button" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
-    <button type="button" onclick="toggleAbrArchiv()">📁 Abgeschlossene Abrechnungen</button>
+    <!-- ✅ Abrechnung abschliessen ist am 02.10.2026 nach UNTEN unter das
+         Blatt gewandert (Zeile .abr-abschluss-zeile hinter #abrBlatt) -
+         dieselbe Stelle wie "🚚 Inventur abschliessen" unter dem Inventurblatt.
+         ⛔ Nicht wieder hierher zurueckholen. -->
+    <button type="button" class="ordner-knopf" id="abrArchivKnopf" style="--ordner-farbe:var(--ordner-abrechnung);" onclick="toggleAbrArchiv()">📁 Abgeschlossene Abrechnungen</button>
   </div>
   <!-- Zeit bekommt ZWEI Blaetter (Mirko, 22.09.2026: "beides"):
        Monat = der Nachweis ueber geleistete Arbeitszeit, hochkant, weil
@@ -3270,6 +3365,12 @@
   <div class="toolbar-group" id="toolbarZeitPdf" style="display:none;">
     <button type="button" class="primary" onclick="zeitMonatDrucken()">🖨️ Monat drucken</button>
     <button type="button" class="ghost" onclick="zeitJahrDrucken()">📊 Jahr drucken</button>
+    <!-- Nur noch der Ordner-Toggle (Mirko, 01.10.2026). Das Ablegen ist nach
+         UNTEN ins Panel gewandert ("💾 Speichern / Ablegen"). Nur fuer Mirko:
+         display per zeigeWerkzeugleisteGruppe2() an zeigtNeuerungen() gekoppelt
+         (Klasse ordner-knopf-mirko). KEIN "handy-mehr" (versteckt am Handy
+         hinter "⋯" und gehoert nur zu #toolbarPdfGruppe). -->
+    <button type="button" class="ghost ordner-knopf ordner-knopf-mirko" id="zeitOrdnerKnopf" style="display:none; --ordner-farbe:var(--ordner-zeit);" onclick="ordnerToggle('zeit')" data-i18n="btnOrdner">📁 Ordner</button>
   </div>
   <!-- Bekam am 22.09.2026 eine Kennung, damit er sich ausblenden laesst.
        Auf Jahresuebersicht und Urlaub steht rechts von ihm NICHTS mehr
@@ -3319,7 +3420,7 @@
          Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
          gesperrt, sie ziehen nur um. -->
     <button onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Spesenmonat abschließen</button>
-    <button class="handy-mehr" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Spesen</button>
+    <button class="handy-mehr ordner-knopf" id="spesenArchivKnopf" style="--ordner-farbe:var(--ordner-spesen);" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Spesen</button>
   </div>
   <!-- Ebenfalls am 22.09.2026 benannt, gleicher Grund wie oben. -->
   <span class="toolbar-divider" id="mehrToolbarTrenner"></span>
@@ -3542,6 +3643,18 @@
         <label>Standard "besuchte Orte"</label>
         <input id="cfgOrte" oninput="saveConfig(); renderFormular();">
       </div>
+      <!-- Eigenes Standard-"besuchte Orte" fuer Monteure (Mirko, 02.10.2026).
+           Nur fuer Monteure sichtbar (per updateMitarbeitertypUI ein-/ausgeblendet),
+           das Fahrer-Feld cfgOrte nur fuer Fahrer. Default LEER - bestehende
+           Monteure sollen nicht ueberrascht werden. Schnellwahl + Freitext. -->
+      <div id="cfgOrteMonteurWrap">
+        <label>Standard „besuchte Orte" (Monteur)</label>
+        <input id="cfgOrteMonteur" oninput="saveConfig(); renderFormular();">
+        <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
+          <button type="button" class="ghost" onclick="setOrteMonteur('lt. Tourenplan')">lt. Tourenplan</button>
+          <button type="button" class="ghost" onclick="setOrteMonteur('in der Firma')">in der Firma</button>
+        </div>
+      </div>
       <div>
         <label>Standard "über Gehaltsabrechnung bezahlt" (€, steht automatisch auf jedem Monat, pro Monat änderbar)</label>
         <input id="cfgBezahltDefault" type="number" step="0.5" oninput="saveConfig(); renderFormular();">
@@ -3635,6 +3748,21 @@
 <div class="panel no-print" id="jahresuebersichtPanel" style="display:none;">
   <h2 style="margin-top:0;" id="jahresuebersichtTitel">📊 Jahresübersicht</h2>
   <div class="jahresuebersicht-scroll"><div id="jahresuebersichtContent"></div></div>
+  <!-- Speichern/Ablegen UNTEN im Panel (Mirko, 01.10.2026). BEWUSST
+       AUSSERHALB von #jahresuebersichtContent (wird per html2canvas
+       gerastert). Nur fuer Mirko (ordner-knopf-mirko). -->
+  <div class="no-print" style="margin-top:12px;">
+    <button type="button" class="ordner-knopf ordner-knopf-mirko" style="display:none; --ordner-farbe:var(--ordner-jahr);" onclick="jahrOrdnerAblegen()" data-i18n="btnSpeichernAblegen">💾 Speichern / Ablegen</button>
+  </div>
+  <!-- Ablage-Ordner (Mirko, 01.10.2026). BEWUSST AUSSERHALB von
+       #jahresuebersichtContent: dieses Element wird per html2canvas ins PDF
+       gerastert - laege der Ordner darin, stuende er mit im Ausdruck.
+       no-print + display:none; wird nur fuer Mirko ueber den Toolbar-Knopf
+       geoeffnet. --ordner-farbe steuert Rahmen und Ueberschrift. -->
+  <div class="ordner-box no-print" id="jahrArchiv" style="--ordner-farbe:var(--ordner-jahr); display:none;">
+    <h3>📁 Jahres-Ordner</h3>
+    <div class="ordner-liste"></div>
+  </div>
 </div>
 
 <div class="panel no-print" id="anleitungPanel" style="display:none;">
@@ -3891,6 +4019,25 @@
         ✏️ Zurück zum Eingeben
       </button>
     </div>
+    <!-- Abschliessen UNTEN am Zettel (Mirko, 01.10.2026): legt eine KOPIE als
+         PDF in den Inventur-Ordner und LEERT die Inventur NICHT - sie bleibt
+         fester Bestandteil aller Rechenwege der Abrechnung. Verlangt die
+         digitale Unterschrift des Mitarbeiters (sonst kein Ablegen).
+         BEWUSST AUSSERHALB von #invBlatt (wird per html2canvas gerastert).
+         Klasse inv-abschluss-zeile wird beim Drucken per CSS ausgeblendet
+         (body.druck-inventur). Nur fuer Mirko (ordner-knopf-mirko). -->
+    <div class="inv-abschluss-zeile no-print" style="margin-top:12px;">
+      <button type="button" class="ordner-knopf ordner-knopf-mirko" style="display:none; --ordner-farbe:var(--ordner-inventur);" onclick="invAbschliessen()" data-i18n="btnInvAbschliessen">🚚 Inventur abschließen</button>
+    </div>
+  </div>
+  <!-- Ablage-Ordner (Mirko, 01.10.2026). BEWUSST AUSSERHALB von #invBlatt
+       (wird fuer das PDF per html2canvas gerastert) und ausserhalb von
+       #invBlattView. Beim Drucken zusaetzlich per CSS ausgeblendet
+       (body.druck-inventur .ordner-box), weil dieses Panel waehrend des
+       Druckdialogs sichtbar ist. no-print + display:none, nur fuer Mirko. -->
+  <div class="ordner-box no-print" id="invArchiv" style="--ordner-farbe:var(--ordner-inventur); display:none;">
+    <h3>📁 Inventur-Ordner</h3>
+    <div class="ordner-liste"></div>
   </div>
 </div>
 
@@ -4118,6 +4265,14 @@
           <td class="rest"></td></tr>
     </table>
   </div>
+  <!-- Abschliessen UNTEN am Blatt (Mirko, 02.10.2026): vom oberen Werkzeug-
+       balken hierher gewandert, dieselbe Stelle wie "🚚 Inventur abschliessen"
+       unter dem Inventurblatt. BEWUSST AUSSERHALB von #abrBlatt (die PDF
+       fotografiert nur #abrBlatt per html2canvas). Beim Drucken zusaetzlich
+       per CSS ausgeblendet (body.druck-abrechnung .abr-abschluss-zeile). -->
+  <div class="abr-abschluss-zeile no-print" style="margin-top:0.8rem;">
+    <button type="button" onclick="abrAbschliessen()">✅ Abrechnung abschließen</button>
+  </div>
 </div>
 
 <div class="panel no-print" id="archivPanel" style="display:none;">
@@ -4216,6 +4371,23 @@
     </div>
     <div id="azJahrContent"></div>
   </div>
+
+  <!-- Speichern/Ablegen UNTEN im Panel (Mirko, 01.10.2026). Legt Monat
+       ("zeit-…") UND Jahr ("zeitjahr-…") ab. BEWUSST AUSSERHALB von #azListe
+       und #azJahrContent (beide werden per html2canvas gerastert). Nur fuer
+       Mirko (ordner-knopf-mirko). -->
+  <div class="no-print" style="margin-top:12px;">
+    <button type="button" class="ordner-knopf ordner-knopf-mirko" style="display:none; --ordner-farbe:var(--ordner-zeit);" onclick="zeitOrdnerAblegen()" data-i18n="btnSpeichernAblegen">💾 Speichern / Ablegen</button>
+  </div>
+
+  <!-- Ablage-Ordner (Mirko, 01.10.2026). BEWUSST AUSSERHALB von #azListe und
+       #azJahrContent (beide werden fuer das PDF per html2canvas gerastert).
+       Nimmt Monat ("zeit-…") UND Jahr ("zeitjahr-…") auf - beide landen im
+       selben Ordner. no-print + display:none, nur fuer Mirko. -->
+  <div class="ordner-box no-print" id="zeitArchiv" style="--ordner-farbe:var(--ordner-zeit); display:none;">
+    <h3>📁 Arbeitszeit-Ordner</h3>
+    <div class="ordner-liste"></div>
+  </div>
 </div>
 
 <!-- ===================== Urlaubskalender =====================
@@ -4297,6 +4469,19 @@
     <h3>🗓️ Jahreskalender</h3>
     <div id="urlaubKalenderLegende" style="margin-bottom:0.75rem;"></div>
     <div id="urlaubKalender"></div>
+  </div>
+  <!-- Speichern/Ablegen UNTEN im Panel (Mirko, 01.10.2026). BEWUSST
+       AUSSERHALB von #urlaubKalender (wird per html2canvas gerastert).
+       Nur fuer Mirko (ordner-knopf-mirko). -->
+  <div class="no-print" style="margin-top:12px;">
+    <button type="button" class="ordner-knopf ordner-knopf-mirko" style="display:none; --ordner-farbe:var(--ordner-urlaub);" onclick="urlaubOrdnerAblegen()" data-i18n="btnSpeichernAblegen">💾 Speichern / Ablegen</button>
+  </div>
+  <!-- Ablage-Ordner (Mirko, 01.10.2026). BEWUSST AUSSERHALB von
+       #urlaubKalender (wird fuer das PDF per html2canvas gerastert).
+       no-print + display:none, nur fuer Mirko. -->
+  <div class="ordner-box no-print" id="urlaubArchiv" style="--ordner-farbe:var(--ordner-urlaub); display:none;">
+    <h3>📁 Urlaubs-Ordner</h3>
+    <div class="ordner-liste"></div>
   </div>
 </div>
 
@@ -4665,6 +4850,15 @@ const I18N = {
        Ein Knopf, ein Text, nichts kann mehr umspringen. */
     btnInstall: "📱 Am Handy als App einrichten",
     btnLockMonth: "🔒 Spesenmonat abschließen", btnArchiv: "📁 Abgeschlossene Spesen", archivTitle: "📁 Abgeschlossene Spesen",
+    /* Ablage-Ordner je Bereich (Mirko, 01.10.2026). Nur fuer Mirko sichtbar,
+       aber in beiden Sprachen hinterlegt - ein [data-i18n]-Knopf wird von
+       applyI18n() sonst auf den Schluesselnamen gesetzt. */
+    btnAblegen: "💾 In Ordner ablegen", btnOrdner: "📁 Ordner",
+    /* Seit 01.10.2026: Ablegen sitzt UNTEN am Zettel. Inventur bekommt einen
+       eigenen Abschluss-Knopf (mit Unterschrift), die Uebersichten einen
+       schlichten Speichern-/Ablegen-Knopf. */
+    btnInvAbschliessen: "🚚 Inventur abschließen", btnSpeichernAblegen: "💾 Speichern / Ablegen",
+    ordnerPdfBtn: "📄 PDF", ordnerLeer: "Noch nichts abgelegt. Über „💾 Speichern / Ablegen“ erscheinen die PDFs hier.",
     /* Ausfuehrlicher seit 20.09.2026: Das Zuruecksetzen loescht jetzt
        WIRKLICH alles - vorher ueberlebten Inventur, Ware, Abrechnung und
        Kopfdaten unbemerkt. Wer die alte Fassung kennt, muss sehen, dass
@@ -4712,6 +4906,9 @@ const I18N = {
     btnQr: "📱 QR code", btnReset: "🗑️ Reset", btnHelp: "❓ Guide", btnFeedback: "💬 Feedback",
     btnInstall: "📱 Set up as app on your phone",
     btnLockMonth: "🔒 Submit expense month", btnArchiv: "📁 Completed expenses", archivTitle: "📁 Completed expenses",
+    btnAblegen: "💾 Save to folder", btnOrdner: "📁 Folder",
+    btnInvAbschliessen: "🚚 Finish inventory", btnSpeichernAblegen: "💾 Save / file",
+    ordnerPdfBtn: "📄 PDF", ordnerLeer: "Nothing saved yet. Use “💾 Save / file” and the PDFs appear here.",
     confirmReset: "Really reset EVERYTHING?\n\n" +
       "This deletes: all months, working times, holidays, vehicle inventory, " +
       "counted goods, settlement, master data and all signatures.\n\n" +
@@ -5020,6 +5217,11 @@ const DEFAULT_CONFIG = {
   arbeitsbeginnDefault: "", arbeitsendeDefault: "",
   bezahltDefault: -103,
   orteDefault: "lt. Tourenplan",
+  /* Eigener Standard-"besuchte Orte" fuer Monteure (Mirko, 02.10.2026).
+     BEWUSST LEER als Default: bestehende Monteur-Kollegen sollen sich nicht
+     ueberrascht wiederfinden - solange sie nichts waehlen, bleibt das Feld
+     leer (wie bisher). Fahrer behalten orteDefault "lt. Tourenplan". */
+  orteDefaultMonteur: "",
   nlAktiv: false, nlTag: 0, nlVon: "", nlBis: "",
   /* Grundwerte - gelten fuer jedes Jahr, das keinen eigenen Eintrag in
      urlaubJahre hat. Siehe urlaubAnspruchFuer(). */
@@ -5110,6 +5312,7 @@ function saveConfig() {
   config.pauschale8 = parseFloat(val("cfgPauschale8")) || 0;
   config.pauschale24 = parseFloat(val("cfgPauschale24")) || 0;
   config.orteDefault = val("cfgOrte");
+  config.orteDefaultMonteur = val("cfgOrteMonteur");
   config.nlAktiv = document.getElementById("cfgNlAktiv").checked;
   config.samstagAktiv = document.getElementById("cfgSamstagAktiv").checked;
   config.zeitenVariieren = document.getElementById("cfgZeitenVariieren").checked;
@@ -5220,7 +5423,11 @@ function ruecksetzBereiche() {
        gehoert dorthin, wo er gilt, sonst verschmelzen zwei
        Entscheidungen zu einer. */
     { id: "inventur", name: "Fahrzeug-Inventur",
-      schluessel: [INV_KEY, INV_KVP_KEY, "inventur_signature", "inventur_signature_ts"],
+      /* INV_ARCHIV_KEY: der kleine localStorage-Index des Inventur-Ordners
+         (Tour/Datum/Istbestand je abgelegter PDF, Mirko 01.10.2026). Wird hier
+         mit aufgeraeumt. Die abgelegten PDFs selbst liegen in der IndexedDB und
+         ueberstehen - wie bei Spesen/Abrechnung - das Zuruecksetzen bewusst. */
+      schluessel: [INV_KEY, INV_KVP_KEY, "inventur_signature", "inventur_signature_ts", INV_ARCHIV_KEY],
       ohneSicherung: true,
       hinweis: "Die Fahrzeug-Inventur wird jede Woche neu gemacht – es wird KEINE "
              + "Sicherungsdatei angelegt. Der gezählte Stand und die hinterlegte "
@@ -5384,6 +5591,12 @@ ${einzeln}
           <button class="ghost" onclick="azSchliesseModal()">Abbrechen</button>
           <button class="danger" onclick="if(confirm(t('confirmReset'))) resetAll();">Sicherung erzeugen und alles zurücksetzen</button>
         </div>
+        ${istMirko() ? `
+        <h3 style="margin:1.3rem 0 0.3rem; font-size:0.95rem; color:#c0392b;">🧹 Nur für Mirko – Test-Reset</h3>
+        <p class="hinweis-text">Löscht wirklich alles – auch die abgelegten PDFs in den Ordnern – und erzeugt <b>keine</b> Sicherungsdatei. Für Tests, damit sich kein Müll anhäuft.</p>
+        <div style="display:flex; justify-content:flex-end; margin-top:0.6rem;">
+          <button class="danger" onclick="testResetAlles()">🧹 Test-Reset (ohne Sicherung)</button>
+        </div>` : ""}
       </div>
     </div>`;
 }
@@ -5430,6 +5643,37 @@ function resetAll() {
      ein Neustart mitten im Speichern waere genau der Fehler, den diese
      Sicherung verhindern soll. */
   setTimeout(() => location.reload(), 300);
+}
+
+/* Nur fuer Mirko: Test-Reset OHNE Pflicht-Sicherung und MIT Leeren der
+   abgelegten PDFs (IndexedDB). Hintergrund (Mirko, 01.10.2026): beim Testen
+   haeufen sich sonst Sicherungsdateien im Download-Ordner UND Test-PDFs in den
+   Ordnern an. Das normale resetAll() (mit Sicherung; abgelegte PDFs bleiben)
+   ist davon UNBERUEHRT und gilt weiter fuer alle. Dieser Weg ist nur sichtbar
+   und ausfuehrbar, wenn istMirko() - fuer Kollegen existiert er nicht. */
+async function testResetAlles() {
+  if (!istMirko()) return;
+  if (!confirm("🧹 TEST-RESET\n\nWirklich ALLES löschen – OHNE Sicherung?\n\n"
+    + "• alle Eingaben, Monate, Zeiten, Abwesenheiten, Stammdaten, Unterschriften\n"
+    + "• ALLE abgelegten PDFs in den Ordnern (Spesen, Abrechnung, Inventur, Zeit, Urlaub, Jahr)\n\n"
+    + "Es wird KEINE Sicherungsdatei erzeugt. Das lässt sich nicht rückgängig machen.")) return;
+
+  // 1. localStorage leeren - dieselbe Regel wie resetAll(), nur ohne Backup.
+  const weg = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (gehoertZumZuruecksetzen(key)) weg.push(key);
+  }
+  weg.forEach((k) => localStorage.removeItem(k));
+
+  // 2. Abgelegte PDFs (IndexedDB) leeren - das ueberlebt sonst jedes Reset.
+  try {
+    const ids = await pdfDbSchluessel();
+    for (const id of ids) { try { await pdfDbLoeschen(id); } catch (e) {} }
+  } catch (e) { console.warn("Test-Reset: PDF-Ablage konnte nicht geleert werden:", e); }
+
+  alert("Test-Reset erledigt.\n\nAlles gelöscht, keine Sicherung erzeugt.");
+  setTimeout(() => location.reload(), 150);
 }
 
 /* ===================== Feiertage (bewegliche + fixe) ===================== */
@@ -5692,7 +5936,7 @@ function computeDay(date, holidaysMap) {
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
     startField: startKey, endField: endKey,
     nl,
-    orte: ov.orte !== undefined ? ov.orte : (isMonteur ? "" : config.orteDefault),
+    orte: ov.orte !== undefined ? ov.orte : (isMonteur ? (config.orteDefaultMonteur || "") : config.orteDefault),
     notiz: ov.notiz || "",
     warnLongHours, warnEmpty,
   };
@@ -5719,6 +5963,21 @@ function updateMitarbeitertypUI() {
   const isMonteur = config.mitarbeitertyp === "monteur";
   document.getElementById("fahrerZeitenGroup").style.display = isMonteur ? "none" : "block";
   document.getElementById("monteurZeitenGroup").style.display = isMonteur ? "block" : "none";
+  /* "besuchte Orte": Fahrer sehen cfgOrte, Monteure das eigene cfgOrteMonteur
+     (Mirko, 02.10.2026). Das Fahrer-Feld steckt direkt in seinem <div> ohne
+     eigene Kennung - deshalb ueber parentElement. */
+  const fahrerOrteWrap = document.getElementById("cfgOrte").parentElement;
+  const monteurOrteWrap = document.getElementById("cfgOrteMonteurWrap");
+  if (fahrerOrteWrap) fahrerOrteWrap.style.display = isMonteur ? "none" : "";
+  if (monteurOrteWrap) monteurOrteWrap.style.display = isMonteur ? "" : "none";
+}
+
+/* Schnellwahl-Knoepfe fuer den Monteur-Standardort (Mirko, 02.10.2026):
+   setzt den Wert ins Feld, speichert und zieht ihn sofort in die Tagesliste. */
+function setOrteMonteur(wert) {
+  document.getElementById("cfgOrteMonteur").value = wert;
+  saveConfig();
+  renderFormular();
 }
 
 function syncTimePickerDisplay(inputId) {
@@ -5752,6 +6011,7 @@ function initSettingsUI() {
   document.getElementById("cfgPauschale8").value = config.pauschale8;
   document.getElementById("cfgPauschale24").value = config.pauschale24;
   document.getElementById("cfgOrte").value = config.orteDefault;
+  document.getElementById("cfgOrteMonteur").value = config.orteDefaultMonteur || "";
   document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
   document.getElementById("cfgSamstagAktiv").checked = config.samstagAktiv;
   document.getElementById("cfgZeitenVariieren").checked = config.zeitenVariieren;
@@ -8255,6 +8515,53 @@ function pdfBildEinpassen(pdf, canvas, rand) {
   pdf.addImage(canvas.toDataURL("image/png"), "PNG", (seiteB - b) / 2, rand, b, h);
 }
 
+/* ===================== Fusszeile "Erstellt: …" =====================
+   Mirko, 01.10.2026: dezenter Erstell-Zeitstempel in JEDEM abgelegten
+   Dokument.
+
+   ⛔ ZEICHNET AUF DIE FERTIGE PDF, nicht ins HTML/Canvas - so kann sich am
+   Umbruch nichts verschieben und die 1-Seiten-Garantie bleibt unberuehrt
+   (es kommt keine Seite und keine Zeile dazu, nur Text in den vorhandenen
+   unteren Rand). Rechtsbuendig, klein (6 pt) und grau, auf JEDER Seite.
+
+   Die Blaetter bringen unten Platz mit: Bild-Blaetter (pdfBildEinpassen,
+   druckblattPdf) haben 8 mm Rand, das Inventurblatt steht trotz Rand 0
+   noch 5-6 mm von der Kante weg (.inv-blatt padding) - der Text landet im
+   Weiss, nicht im Vordruck. Deutsches Format, 24 h. */
+function pdfErstelltText(zeit) {
+  const d = new Date(zeit || Date.now());
+  const z = (n) => String(n).padStart(2, "0");
+  return "Erstellt: " + z(d.getDate()) + "." + z(d.getMonth() + 1) + "." + d.getFullYear()
+       + " " + z(d.getHours()) + ":" + z(d.getMinutes());
+}
+function pdfFusszeile(pdf, zeit) {
+  try {
+    const txt = pdfErstelltText(zeit);
+    const n = pdf.getNumberOfPages ? pdf.getNumberOfPages() : 1;
+    for (let i = 1; i <= n; i++) {
+      if (pdf.setPage) pdf.setPage(i);
+      const w = pdf.internal.pageSize.getWidth();
+      const hh = pdf.internal.pageSize.getHeight();
+      pdf.setFontSize(6);
+      pdf.setTextColor(150);
+      pdf.text(txt, w - 6, hh - 3.5, { align: "right" });
+    }
+    pdf.setTextColor(0);
+    pdf.setFontSize(12);
+  } catch (e) { console.error(e); }
+}
+
+/* Dezenter Hinweis NACH dem Drucken/Uebergeben in den unterschrifts-
+   pflichtigen Bereichen (Inventur, Abrechnung, Spesen) - Mirko, 01.10.2026:
+   drucken bleibt OHNE Unterschrift moeglich, danach aber die Erinnerung.
+   BEWUSST nicht blockierend (kein alert, das den Druck verhindern wuerde),
+   sondern der vorhandene Hinweis-Streifen. Fuer Uebersichten (Zeit, Urlaub,
+   Jahr) wird er NICHT gezeigt. */
+function unterschriftErinnern(farbVar) {
+  ordnerHinweis("Bitte Unterschrift nach dem Ausdruck nicht vergessen.",
+                farbVar || "--ordner-inventur");
+}
+
 /* Nimmt das Inventurblatt als Bild auf - herausgeloest, damit sowohl die
    einzelne PDF als auch die gemeinsame PDF dieselbe Aufnahme benutzen. */
 /* ================================================================
@@ -8402,7 +8709,7 @@ async function invBlattCanvas() {
   return canvas;
 }
 
-async function invBuildPdf() {
+async function invBuildPdf(zeit) {
   const canvas = await invBlattCanvas();
   if (!canvas) return null;
   const imgData = canvas.toDataURL("image/png");
@@ -8443,6 +8750,7 @@ async function invBuildPdf() {
   const tour = (invState.kopf.invTour || "").trim();
   const datum = (invState.kopf.invDatum || invHeute()).replace(/[^0-9]/g, "-");
   const filename = "KFZ-Bestandsaufnahme" + (tour ? "_Tour-" + tour : "") + "_" + datum + ".pdf";
+  pdfFusszeile(pdf, zeit);
   // imgData wird fuer die Ergebnis-Anzeige mit zurueckgegeben - so wird das
   // Blatt nur EINMAL aufgenommen und nicht zweimal (Bild + PDF).
   return { pdf, filename, imgData };
@@ -8585,6 +8893,7 @@ function invDruckeErgebnis() {
     "<b>1 Seite</b> A4 quer. Zum Drucken an Ihr Gerät übergeben – dann " +
     "kommt sie auf <b>einem</b> Querformat-Blatt an, in voller Größe und " +
     "ohne Adresszeile.");
+  unterschriftErinnern("--ordner-inventur");
 }
 function invSchliesseErgebnis() {
   __invErgebnis = null;
@@ -9285,6 +9594,264 @@ async function pdfAblageOeffnen(id, titel) {
   __pdfPreviewUrl = url;
 }
 
+/* ===== Farbige Ablage-Ordner je Bereich (Mirko, 01.10.2026) ======================
+   Jeder Hauptbereich bekommt einen eigenen farbigen Ordner IM Tool. Zwei gab es
+   schon (Spesen, Abrechnung - die legen beim Abschluss ab); vier sind neu (Zeit,
+   Urlaub, Jahr, Inventur). Abgelegt wird NUR ueber den Knopf "💾 In Ordner
+   ablegen", nie automatisch beim Drucken.
+
+   ⚠ ALLE vier NEUEN Ordner sind - wie der Spesen-Ordner (zeigtNeuerungen() in
+   submitCurrentMonth/renderArchivPanel) - nur fuer Mirko sichtbar und aktiv:
+   die Toolbar-Knoepfe traegt zeigeWerkzeugleisteGruppe2() an zeigtNeuerungen(),
+   und die vier Ablege-Funktionen brechen ohne zeigtNeuerungen() ab.
+
+   GENERISCH gebaut: EIN ordnerZeigen() und EIN ordnerHinweis()/ordnerPuls() fuer
+   alle, statt vier Kopien von abrArchivZeigen(). Die Liste entsteht direkt aus der
+   IndexedDB (pdfDbSchluessel) per Praefix - so ueberstehen die Eintraege ein
+   Zuruecksetzen, genau wie bei Spesen/Abrechnung. */
+
+/* Kleiner localStorage-Index NUR fuer die Inventur: Ihr Schluessel ist
+   "inv-"+Zeitstempel (mehrere pro Tag moeglich) und der Blob traegt keine
+   Metadaten. Tour, Datum und Istbestand des Eintrags stehen deshalb hier.
+   Zeit/Urlaub/Jahr brauchen das nicht - ihr Titel leitet sich aus dem Schluessel
+   ab. Aufgeraeumt wird der Index beim Zuruecksetzen der Inventur
+   (ruecksetzBereiche(), Bereich "inventur"). */
+const INV_ARCHIV_KEY = "hall-inventur-archiv";
+function invArchivLesen() {
+  try { return JSON.parse(localStorage.getItem(INV_ARCHIV_KEY) || "[]") || []; } catch (e) { return []; }
+}
+function invArchivSichern(liste) {
+  let eintraege = liste.slice(-24);
+  for (;;) {
+    try { localStorage.setItem(INV_ARCHIV_KEY, JSON.stringify(eintraege)); return true; }
+    catch (e) { if (eintraege.length <= 1) return false; eintraege = eintraege.slice(1); }
+  }
+}
+
+/* Die vier neuen Ordner an EINER Stelle. titelFn(id) macht aus dem Schluessel die
+   Zeilen-Ueberschrift; farbVar ist die CSS-Variable fuer Rahmen/Puls/Streifen;
+   knopfId ist der Toggle-Knopf, der nach dem Ablegen pulst. */
+const ORDNER = {
+  zeit: {
+    containerId: "zeitArchiv", knopfId: "zeitOrdnerKnopf", praefix: "zeit",
+    name: "Arbeitszeit-Ordner", farbVar: "--ordner-zeit",
+    /* Praefix "zeit" faengt BEIDE: "zeit-JJJJ-MM" (Monat) und
+       "zeitjahr-JJJJ" (Jahr) - sie sollen im selben Ordner stehen. */
+    titelFn: (id) => id.indexOf("zeitjahr-") === 0
+      ? "Arbeitszeit Jahr " + id.slice("zeitjahr-".length)
+      : "Arbeitszeit " + azMonatsLabel(id.slice("zeit-".length)),
+  },
+  urlaub: {
+    containerId: "urlaubArchiv", knopfId: "urlaubOrdnerKnopf", praefix: "urlaub-",
+    name: "Urlaubs-Ordner", farbVar: "--ordner-urlaub",
+    titelFn: (id) => "Urlaubskalender " + id.slice("urlaub-".length),
+  },
+  jahr: {
+    containerId: "jahrArchiv", knopfId: "jahrOrdnerKnopf", praefix: "jahr-",
+    name: "Jahres-Ordner", farbVar: "--ordner-jahr",
+    titelFn: (id) => "Jahresübersicht " + id.slice("jahr-".length),
+  },
+  inv: {
+    containerId: "invArchiv", knopfId: "invOrdnerKnopf", praefix: "inv-",
+    name: "Inventur-Ordner", farbVar: "--ordner-inventur",
+    titelFn: (id) => {
+      const e = invArchivLesen().find((x) => x && x.id === id);
+      if (!e) return "Inventur";
+      return "Inventur" + (e.tour ? " Tour " + e.tour : "")
+           + (e.datum ? " · " + e.datum : "")
+           + (e.ist ? " · " + e.ist + " €" : "");
+    },
+  },
+};
+
+/* Fuellt die Liste eines Ordners. Liest die Schluessel aus der IndexedDB und
+   filtert per Praefix. Fuellt NUR das innere .ordner-liste - die farbige
+   Ueberschrift steht fest im Markup. */
+async function ordnerZeigen(containerId, praefix, titelFn, farbVar) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  if (farbVar) box.style.setProperty("--ordner-farbe", "var(" + farbVar + ")");
+  const liste = box.querySelector(".ordner-liste");
+  if (!liste) return;
+  let ids = [];
+  try {
+    const alle = await pdfDbSchluessel();
+    ids = alle.filter((k) => typeof k === "string" && k.indexOf(praefix) === 0);
+  } catch (e) { ids = []; }
+  ids.sort(); ids.reverse();      // neueste (Jahr/Monat bzw. Zeitstempel) zuerst
+  if (!ids.length) {
+    liste.innerHTML = "<p class='ordner-klein'>" + invEsc(t("ordnerLeer")) + "</p>";
+    return;
+  }
+  liste.innerHTML = ids.map((id) => {
+    const titel = String(titelFn(id) || id);
+    const arg = id.replace(/'/g, "");
+    const targ = titel.replace(/'/g, "");
+    return '<div class="ordner-zeile">'
+      + '<span class="ordner-titel">' + invEsc(titel) + "</span>"
+      + '<button type="button" class="ghost" onclick="pdfAblageOeffnen(\'' + arg + "', '" + targ
+      + '\')" title="Die gespeicherte PDF ansehen oder drucken">' + t("ordnerPdfBtn") + "</button>"
+      + "</div>";
+  }).join("");
+}
+
+/* Toggle-Knopf laesst einen Ordner auf-/zuklappen. */
+async function ordnerToggle(key) {
+  const def = ORDNER[key];
+  if (!def) return;
+  const el = document.getElementById(def.containerId);
+  if (!el) return;
+  if (el.style.display !== "none") { el.style.display = "none"; return; }
+  await ordnerZeigen(def.containerId, def.praefix, def.titelFn, def.farbVar);
+  el.style.display = "block";
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* Puls auf dem Ziel-Knopf: kurz in der Ordnerfarbe aufleuchten. Die Klasse wird
+   davor entfernt und per Reflow neu angestossen, damit sie auch beim zweiten Mal
+   zieht; nach dem Lauf wird sie wieder entfernt. Verschiebt kein Layout
+   (nur box-shadow, siehe .ordner-puls im CSS). */
+function ordnerPuls(knopfId, farbVar) {
+  const btn = knopfId && document.getElementById(knopfId);
+  if (!btn) return;
+  if (farbVar) btn.style.setProperty("--puls-farbe", "var(" + farbVar + ")");
+  btn.classList.remove("ordner-puls");
+  void btn.offsetWidth;
+  btn.classList.add("ordner-puls");
+  setTimeout(() => btn.classList.remove("ordner-puls"), 1000);
+}
+
+/* Hinweis-Streifen unten ("→ 📁 … gespeichert") plus Puls auf dem Knopf. Gleiche
+   Machart wie #abrRuecknahmeStreifen; blendet sich nach einigen Sekunden aus. */
+let __ordnerHinweisTimer = null;
+function ordnerHinweis(text, farbVar, knopfId) {
+  let s = document.getElementById("ordnerHinweisStreifen");
+  if (!s) { s = document.createElement("div"); s.id = "ordnerHinweisStreifen"; document.body.appendChild(s); }
+  if (farbVar) s.style.setProperty("--streifen-farbe", "var(" + farbVar + ")");
+  s.textContent = text;
+  if (__ordnerHinweisTimer) clearTimeout(__ordnerHinweisTimer);
+  __ordnerHinweisTimer = setTimeout(() => { try { s.remove(); } catch (e) {} }, 4000);
+  ordnerPuls(knopfId, farbVar);
+}
+
+/* Gemeinsamer Ablege-Weg fuer die Bereiche mit GENAU EINER PDF (Urlaub, Jahr,
+   Inventur): PDF bauen, in die IndexedDB legen, Ordner auffrischen, melden. */
+async function ordnerAblegen(key, id, buildPdf, leerText, nachErfolg) {
+  const def = ORDNER[key];
+  if (!zeigtNeuerungen() || !def) return;
+  let r = null;
+  try { r = await buildPdf(); } catch (e) { console.error(e); r = null; }
+  if (!r) { alert(leerText); return; }
+  let ok = false;
+  try { ok = await pdfDbAblegen(id, r.pdf.output("blob")); } catch (e) { ok = false; }
+  if (!ok) {
+    alert("⚠️ Die PDF konnte nicht im Tool abgelegt werden – vermutlich ist der Gerätespeicher voll.\n\nÜber „🖨️ Drucken“ lässt sie sich weiterhin erzeugen und speichern.");
+    return;
+  }
+  if (nachErfolg) { try { nachErfolg(r, id); } catch (e) { console.error(e); } }
+  await ordnerZeigen(def.containerId, def.praefix, def.titelFn, def.farbVar);
+  ordnerHinweis("→ 📁 " + def.name + " gespeichert", def.farbVar, def.knopfId);
+}
+
+/* Zeit hat ZWEI Dokumente (Monat + Jahr), beide gehoeren in den Zeit-Ordner.
+   Der eine Knopf legt deshalb beide ab, die gerade Daten tragen - jeweils
+   unter eigenem Schluessel ("zeit-JJJJ-MM" bzw. "zeitjahr-JJJJ"). Ein leeres
+   Dokument (BuildPdf gibt null) wird uebersprungen. */
+async function zeitOrdnerAblegen() {
+  if (!zeigtNeuerungen()) return;
+  const def = ORDNER.zeit;
+  const key = document.getElementById("azMonat") ? document.getElementById("azMonat").value : "";
+  let erfolg = false, fehler = false;
+  try {
+    const rm = await zeitMonatBuildPdf();
+    if (rm && key) { if (await pdfDbAblegen("zeit-" + key, rm.pdf.output("blob"))) erfolg = true; else fehler = true; }
+  } catch (e) { console.error(e); fehler = true; }
+  try {
+    const rj = await zeitJahrBuildPdf();
+    if (rj) {
+      const sel = document.getElementById("azJahr");
+      const jahr = sel && sel.value ? sel.value : String(config.jahr);
+      if (await pdfDbAblegen("zeitjahr-" + jahr, rj.pdf.output("blob"))) erfolg = true; else fehler = true;
+    }
+  } catch (e) { console.error(e); fehler = true; }
+  if (!erfolg) {
+    alert(fehler
+      ? "⚠️ Die Arbeitszeit konnte nicht im Tool abgelegt werden – vermutlich ist der Gerätespeicher voll."
+      : "Für die Arbeitszeit ist noch nichts erfasst, das sich ablegen ließe.\n\nBitte zuerst Zeiten eintragen oder stempeln.");
+    return;
+  }
+  await ordnerZeigen(def.containerId, def.praefix, def.titelFn, def.farbVar);
+  ordnerHinweis("→ 📁 " + def.name + " gespeichert", def.farbVar, def.knopfId);
+}
+
+async function urlaubOrdnerAblegen() {
+  await ordnerAblegen("urlaub", "urlaub-" + urlaubJahrWert(), urlaubBuildPdf,
+    "Für dieses Jahr lässt sich noch kein Urlaubskalender aufnehmen.");
+}
+
+async function jahrOrdnerAblegen() {
+  await ordnerAblegen("jahr", "jahr-" + config.jahr, jahrBuildPdf,
+    "Die Jahresübersicht konnte nicht aufgenommen werden.");
+}
+
+/* Index des Inventur-Ordners pflegen: Tour/Datum/Istbestand zum Schluessel
+   merken, damit der Ordner sie als Titel zeigen kann. Verdraengte Eintraege
+   (Liste > 24) samt ihrer Blobs entfernen - sonst blieben Waisen in der
+   IndexedDB. Herausgeloest am 01.10.2026, damit invOrdnerAblegen UND der
+   Abschluss der Abrechnung (abrAbschliessen) denselben Weg nehmen. */
+function invArchivEintrag(id, zeitpunkt) {
+  const alt = invArchivLesen();
+  const tour = (invState.kopf.invTour || "").trim();
+  const datum = (invState.kopf.invDatum || invHeute()).trim();
+  let ist = "";
+  try { ist = invFmt(invIstbestand()); } catch (e) { ist = ""; }
+  alt.push({ id: id, tour: tour, datum: datum, ist: ist, zeitpunkt: zeitpunkt || Date.now() });
+  const behalten = alt.slice(-24);
+  const wegIds = alt.slice(0, alt.length - behalten.length)
+                    .map((x) => x && x.id).filter(Boolean);
+  invArchivSichern(behalten);
+  wegIds.forEach((wid) => { try { pdfDbLoeschen(wid); } catch (e) {} });
+}
+
+/* Legt eine KOPIE der Inventur als PDF im Ordner ab. LEERT NICHTS - die
+   Inventur bleibt fester Bestandteil der Rechenwege der Abrechnung
+   (invState unangetastet). Von invAbschliessen() aufgerufen, NACHDEM die
+   Unterschrift geprueft wurde. */
+async function invOrdnerAblegen(zeit) {
+  const zeitpunkt = zeit || Date.now();
+  const id = "inv-" + zeitpunkt;
+  await ordnerAblegen("inv", id,
+    /* Leere Inventuren (Istbestand 0) nicht ablegen - sonst sammelt der
+       Ordner bei jedem Klick ein leeres Blatt unter neuem Zeitstempel. */
+    async () => (invIstbestand() ? await invBuildPdf(zeitpunkt) : null),
+    "Es ist noch keine Fahrzeug-Inventur gezählt, die sich ablegen ließe.",
+    () => invArchivEintrag(id, zeitpunkt));
+}
+
+/* "🚚 Inventur abschließen" (unten am Zettel, Mirko 01.10.2026).
+   NUR mit digitaler Unterschrift des Mitarbeiters - sonst kein Ablegen
+   (gleiche Pruefung/Meldung wie beim Abschliessen der Abrechnung). Der
+   Handschrift-Haken aus abschlussPruefen bleibt der zweite Weg (Ausdruck
+   von Hand unterschreiben).
+
+   ⚠ LEERT DIE INVENTUR NICHT. Sie fliesst unveraendert weiter in alle
+   Berechnungen der Abrechnung ein; geleert wird erst in abrAbschliessen. */
+async function invAbschliessen() {
+  if (!zeigtNeuerungen()) return;
+  if (!invIstbestand()) {
+    alert("Es ist noch keine Fahrzeug-Inventur gezählt, die sich ablegen ließe.\n\nBitte zuerst die Mengen erfassen.");
+    return;
+  }
+  const freigabe = await abschlussPruefen({
+    titel: "Inventur abschließen",
+    sigKey: "inventur_signature",
+    sigName: "Die Unterschrift des Mitarbeiters",
+    sigFeldId: "sigFile-inventur_signature",
+  });
+  if (!freigabe) return;
+  await invOrdnerAblegen();
+}
+
 const ABR_ARCHIV_KEY = "hall-abrechnung-archiv";
 
 function abrArchivLesen() {
@@ -9437,6 +10004,11 @@ async function abrAbschliessen() {
        kein Grund, den Abschluss abzubrechen: die Datei liegt ja auch im
        Download-Ordner. */
     try { await pdfDbAblegen("abr-" + zeitpunkt, r.pdf.output("blob")); } catch (e) { console.error(e); }
+    /* Farblogik/Puls (Mirko, 01.10.2026): der Abrechnungs-Ordner-Knopf pulst
+       kurz in seiner Farbe. Gilt - wie die Abrechnungs-Ablage selbst - fuer
+       alle; der Ruecknahme-Streifen unten bleibt davon unberuehrt (anderer
+       Ort: Knopf oben, Streifen unten). */
+    ordnerPuls("abrArchivKnopf", "--ordner-abrechnung");
     /* Dasselbe Uebergabe-Fenster wie bei "Beide Zettel" statt eines
        confirm() mit pdfDrucken(): Sonst haette der Abschluss wieder den
        Weg genommen, der am Handy nur Seite 1 druckt (05.09.2026). Eine
@@ -9447,6 +10019,28 @@ async function abrAbschliessen() {
       + (r.seiten > 2 ? " &middot; 3 Neue Ware gezählt (hoch)" : "")
       + "<br><span class=\"small\">" + r.filename + "</span>");
   }
+
+  /* 1b. Fahrzeug-Inventur SEPARAT ablegen (Mirko, 01.10.2026): zusaetzlich
+        zum Gesamtabrechnungs-PDF (oben, Ordner "Abgeschlossene Abrechnungen")
+        eine eigene Inventur-PDF, damit sie auch im Inventur-Ordner
+        (#invArchiv) erscheint.
+        ⚠ DERSELBE zeitpunkt wie fuers Abrechnungs-PDF ("inv-"+zeitpunkt /
+        "abr-"+zeitpunkt) - so gehoeren beide erkennbar zusammen.
+        ⚠ MUSS VOR dem Leeren der Inventur passieren (das kommt weiter unten);
+        hier traegt invState noch die Zahlen des abgeschlossenen Durchgangs.
+        Schlaegt es fehl, ist das kein Grund, den Abschluss abzubrechen. */
+  try {
+    if (invIstbestand()) {
+      const invR = await invBuildPdf(zeitpunkt);
+      if (invR) {
+        const invId = "inv-" + zeitpunkt;
+        if (await pdfDbAblegen(invId, invR.pdf.output("blob"))) {
+          invArchivEintrag(invId, zeitpunkt);
+          ordnerPuls("invOrdnerKnopf", "--ordner-inventur");
+        }
+      }
+    }
+  } catch (e) { console.error(e); }
 
   /* 2. Ins Archiv - ALLE DREI SCHRITTE.
      Mirko am 22.09.2026: "desweiteren sollten die gesamten 3 schritte
@@ -9782,6 +10376,7 @@ async function abrBuildPdf() {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   pdfBildEinpassen(pdf, canvas, 8);
+  pdfFusszeile(pdf);
   return { pdf, filename: abrDateiname("Verkaufsbericht"), imgData: canvas.toDataURL("image/png") };
 }
 
@@ -9925,6 +10520,7 @@ async function gesamtabrechnungPdf(zeit) {
      wareBlattHtml() bleibt absichtlich stehen: Die Zahlen sind im
      Archiv, das Blatt laesst sich daraus jederzeit wieder erzeugen,
      falls die Ware doch einmal angesehen werden soll. */
+  pdfFusszeile(pdf, zeit);
   return { pdf, filename: gesamtDateiname(zeit), seiten: pdf.getNumberOfPages() };
 }
 
@@ -9944,6 +10540,7 @@ async function abrBeideDrucken() {
   const r = await abrBuildBeidePdf();
   if (!r) { alert("Die Blätter konnten nicht aufgenommen werden."); return; }
   pdfUebergabe(r.pdf, r.filename);
+  unterschriftErinnern("--ordner-abrechnung");
 }
 
 /* ---------- Zweiseitige PDF an das Geraet uebergeben ----------
@@ -10188,7 +10785,9 @@ async function jahrBuildPdf() {
      Kante mit der Tabelle darunter. */
   const canvas = await druckblattCanvas(kopf + inhalt.innerHTML, 1150, druckblattSvgGerade);
   if (!canvas) return null;
-  return { pdf: druckblattPdf(canvas), filename: "Jahresuebersicht_" + config.jahr + ".pdf" };
+  const pdf = druckblattPdf(canvas);
+  pdfFusszeile(pdf);
+  return { pdf, filename: "Jahresuebersicht_" + config.jahr + ".pdf" };
 }
 
 async function jahrDrucken() {
@@ -10224,7 +10823,9 @@ async function urlaubBuildPdf() {
     + kalender.innerHTML;
   const canvas = await druckblattCanvas(innen, 1500);
   if (!canvas) return null;
-  return { pdf: druckblattPdf(canvas), filename: "Urlaubskalender_" + jahr + ".pdf" };
+  const pdf = druckblattPdf(canvas);
+  pdfFusszeile(pdf);
+  return { pdf, filename: "Urlaubskalender_" + jahr + ".pdf" };
 }
 
 async function urlaubDrucken() {
@@ -10317,8 +10918,10 @@ async function zeitMonatBuildPdf() {
      brauchen keine Tabellenbreite fuer acht. */
   const canvas = await druckblattCanvas(blatt.html, 820, druckblattSvgGerade);
   if (!canvas) return null;
+  const pdf = druckblattPdf(canvas, true);
+  pdfFusszeile(pdf);
   return {
-    pdf: druckblattPdf(canvas, true),
+    pdf,
     filename: "Arbeitszeit_" + blatt.key + ".pdf",
   };
 }
@@ -10348,7 +10951,9 @@ async function zeitJahrBuildPdf() {
   ]);
   const canvas = await druckblattCanvas(kopf + inhalt.innerHTML, 1150, druckblattSvgGerade);
   if (!canvas) return null;
-  return { pdf: druckblattPdf(canvas, false), filename: "Arbeitszeit_Jahr_" + jahr + ".pdf" };
+  const pdf = druckblattPdf(canvas, false);
+  pdfFusszeile(pdf);
+  return { pdf, filename: "Arbeitszeit_Jahr_" + jahr + ".pdf" };
 }
 
 /* ===================== Kein Abschluss ohne Datum und Unterschrift =====================
@@ -10536,12 +11141,13 @@ function abrDruckeErgebnis() {
     "📄 Verkaufsbericht ist fertig",
     "<b>1 Seite</b> A4 hoch. Zum Drucken an Ihr Gerät übergeben – dann " +
     "kommt das Blatt in voller Größe an, ohne Adresszeile.");
+  unterschriftErinnern("--ordner-abrechnung");
 }
 
 async function abrSpeichern() { const r = await abrBuildPdf(); if (r) r.pdf.save(r.filename); }
 async function abrDrucken() {
   const r = await abrBuildPdf();
-  if (r) pdfDrucken(r.pdf);
+  if (r) { pdfDrucken(r.pdf); unterschriftErinnern("--ordner-abrechnung"); }
 }
 
 /* Aufbau des Inventurblatts, herausgeloest aus toggleInventurPanel():
@@ -10691,6 +11297,10 @@ async function submitCurrentMonth() {
       if (zeigtNeuerungen()) {
         try { await pdfDbAblegen("spesen-" + config.jahr + "-" + monat, r.pdf.output("blob")); }
         catch (e) { console.error("Spesen-PDF-Ablage (IndexedDB) fehlgeschlagen:", e); }
+        /* Farblogik/Puls (Mirko, 01.10.2026): der Spesen-Ordner-Knopf pulst
+           kurz in seiner Farbe. Nur hier im zeigtNeuerungen-Zweig - nur dort
+           wurde auch abgelegt. */
+        ordnerPuls("spesenArchivKnopf", "--ordner-spesen");
       }
     }
   } catch (e) {
@@ -11895,6 +12505,7 @@ async function buildPdf() {
   }
   const x = (pageWidth - imgWidth) / 2;
   pdf.addImage(imgData, "PNG", x, margin, imgWidth, imgHeight);
+  pdfFusszeile(pdf);
 
   const filename = `Spesennachweis_${monthName}_${config.jahr}.pdf`;
   return { pdf, filename };
@@ -11974,6 +12585,7 @@ function printFromPreview() {
     "<b>1 Seite</b> A4 hoch. Zum Drucken an Ihr Gerät übergeben – dann " +
     "kommt das Blatt in voller Größe an, ohne Adresszeile und ohne " +
     "abgeschnittene Ränder.");
+  unterschriftErinnern("--ordner-spesen");
 }
 
 function closePdfPreview() {
@@ -12446,6 +13058,7 @@ function openTimeWheel(currentValue, onConfirm) {
         ${buildTimeWheelColumn(60, minute, "Minute")}
       </div>
       <div class="time-wheel-buttons">
+        <button type="button" data-action="leeren" title="Dieses Zeitfeld wieder leeren">🗑 Leeren</button>
         <button type="button" data-action="cancel">Abbrechen</button>
         <button type="button" class="primary" data-action="ok">Übernehmen</button>
       </div>
@@ -12472,6 +13085,11 @@ function openTimeWheel(currentValue, onConfirm) {
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
   overlay.querySelector('[data-action="cancel"]').onclick = close;
   overlay.querySelector('[data-action="ok"]').onclick = confirm;
+  // "Leeren" gibt einen leeren Wert zurueck -> das jeweilige Feld wird wieder
+  // frei. Funktioniert ueberall, wo das Zeitrad benutzt wird (Tageszelle,
+  // Standardzeiten, NL-Zeiten), weil die Empfaenger "" schon als "entfernen"
+  // behandeln (updateOverride/liveUpdate) bzw. unten im Setting-Pfad.
+  overlay.querySelector('[data-action="leeren"]').onclick = () => { close(); onConfirm(""); };
 
   /* ---- Tastatur-Bedienung -----------------------------------------------
      Pfeiltasten hoch/runter bewegen die fokussierte Walze um einen Schritt,
@@ -12538,8 +13156,9 @@ function openTimeWheelForSetting(el) {
   const input = document.getElementById(targetId);
   openTimeWheel(input.value || "", (newVal) => {
     input.value = newVal;
-    el.textContent = newVal;
-    el.classList.remove("empty");
+    // Leer -> wieder "--:--" anzeigen und als leer markieren (statt leerem Feld).
+    el.textContent = newVal || "--:--";
+    el.classList.toggle("empty", !newVal);
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
@@ -12904,6 +13523,16 @@ function zeigeWerkzeugleisteGruppe2(tab) {
      trennen, Begruendung steht dort. */
   const trenner = document.getElementById("spesenToolbarTrenner");
   if (trenner) trenner.style.display = leer ? "none" : "";
+  /* Ablage-Ordner-Knoepfe (01.10.2026) NUR fuer Mirko. Sie liegen in den
+     Toolbar-Gruppen von Zeit/Urlaub/Jahr/Inventur; die Gruppen selbst werden
+     oben tab-abhaengig ein-/ausgeblendet, diese Schleife entscheidet
+     zusaetzlich ueber die Mirko-Sichtbarkeit (zeigtNeuerungen). Ohne sie
+     blieben die neuen Knoepfe unsichtbar - sie stehen im Markup auf
+     display:none. Idempotent, laeuft bei jedem Tabwechsel. */
+  const ordnerAn = zeigtNeuerungen();
+  document.querySelectorAll(".ordner-knopf-mirko").forEach((b) => {
+    b.style.display = ordnerAn ? "" : "none";
+  });
 }
 
 /* ===== Spesen-Tab: Stammdaten UND Tage-Tabelle gemeinsam sichtbar =====
