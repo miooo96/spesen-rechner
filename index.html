@@ -2699,6 +2699,24 @@
     .time-picker-field { border-bottom: none !important; cursor: default !important; }
   }
 
+  /* Monteur Innendienst: er traegt seine Zeit in die echte Spalte
+     "Anwesenheit in NL" (Von/Bis) ein - die WP-Zeit-Spalten (Abfahrt/Ankunft
+     WP) und die Spalte "besuchte Orte" braucht er nicht und werden am
+     Bildschirm ausgeblendet. Die NL-Spalte BLEIBT sichtbar (sie ist dort
+     editierbar). Gleiche Technik wie die Status-Spalte oben - display:none
+     auf den Spaltenzellen. BEWUSST NICHT an @media print und NICHT an
+     body.als-app gekoppelt: Die Regel gilt auf dem Bildschirm, im Ausdruck
+     UND in der per html2canvas erzeugten PDF gleichermassen, damit App,
+     Browser und PDF deckungsgleich bleiben (Unterschiede nur nach Typ, nicht
+     nach Breite/Installationsstatus). Fuers PDF schaltet buildPdf() den
+     Original-Modus ein (typ-innendienst wird kurz entfernt) - dann erscheinen
+     wieder alle Spalten des offiziellen Vordrucks. */
+  /* Mirko, 02.10.2026: KEINE Spalten ausblenden fuer Monteur Innendienst -
+     der offizielle Vordruck hat verbundene Kopf-Zellen (colspan); Ausblenden
+     verschob die Tabelle. Stattdessen bleibt die VOLLE Tabelle stehen (alle
+     Spalten), nur die WP-/Orte-ZELLEN sind bei Innendienst am Bildschirm leer
+     (siehe renderFormular). "Nichts soll weg." */
+
   /* Druck der Fahrzeug-Inventur: eigener Modus, weil das Blatt im Gegensatz
      zum Spesenblatt QUER liegt und ein .panel ist (die Regel oben blendet
      alle Panels beim Drucken aus). invDruck() setzt die Klasse nur waehrend
@@ -2798,7 +2816,7 @@
     display: flex; align-items: center; justify-content: center;
   }
   .time-wheel-modal {
-    background: #fff; border-radius: 14px; padding: 1.25rem 1.5rem 1rem; width: 260px;
+    background: #fff; border-radius: 14px; padding: 1.25rem 1.5rem 1rem; width: 290px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.35); font-family: -apple-system, Helvetica, Arial, sans-serif;
   }
   .time-wheel-title { text-align: center; font-weight: bold; color: var(--brand-dark); margin-bottom: 0.5rem; }
@@ -2823,8 +2841,8 @@
     border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
     pointer-events: none; background: rgba(254,92,1,0.06); border-radius: 4px;
   }
-  .time-wheel-buttons { display: flex; justify-content: space-between; margin-top: 1rem; gap: 0.5rem; }
-  .time-wheel-buttons button { flex: 1; }
+  .time-wheel-buttons { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 1rem; gap: 0.4rem; }
+  .time-wheel-buttons button { flex: 1 1 auto; min-width: 0; font-size: 0.85rem; padding: 9px 8px; }
 
   /* ===================== Generisches Modal (Changelog, QR-Code, Setup-Assistent) ===================== */
   .modal-overlay {
@@ -3469,7 +3487,8 @@
              Geprueft von inventur-fuer-fahrer.sh, Teil 2. -->
         <select id="cfgMitarbeitertyp" onchange="saveConfig(); updateMitarbeitertypUI(); renderFormular(); aktualisiereZeitSichtbarkeit();">
           <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
-          <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
+          <option value="monteur-aussen">Monteur Außendienst (Abfahrt WP / Ankunft WP)</option>
+          <option value="monteur-innen">Monteur Innendienst (Anwesenheit in Niederlassung)</option>
         </select>
       </div>
       <div>
@@ -3589,16 +3608,21 @@
     </div>
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen. Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
+  <!-- Diese Karte dient BEIDEN Monteur-Typen. Titel und die beiden Labels
+       werden von updateMitarbeitertypUI() je Typ gesetzt: Monteur
+       Aussendienst -> "Abfahrt WP / Ankunft WP", Monteur Innendienst ->
+       "Anwesenheit NL (Beginn/Ende)". Die Mechanik dahinter ist identisch
+       (dieselben Felder cfgArbeitsbeginnDefault/cfgArbeitsendeDefault). -->
   <div class="settings-card" id="monteurZeitenGroup" style="display:none;">
-    <h3>⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
+    <h3 id="monteurZeitenTitel">⏰ Standard-Zeiten Abfahrt WP / Ankunft WP</h3>
     <div class="grid">
       <div>
-        <label>Abfahrt WP (Standard)</label>
+        <label id="lblArbeitsbeginn">Abfahrt WP (Standard)</label>
         <input id="cfgArbeitsbeginnDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
         <span class="time-picker-field empty" data-target="cfgArbeitsbeginnDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
       <div>
-        <label>Ankunft WP (Standard)</label>
+        <label id="lblArbeitsende">Ankunft WP (Standard)</label>
         <input id="cfgArbeitsendeDefault" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
         <span class="time-picker-field empty" data-target="cfgArbeitsendeDefault" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
@@ -3606,7 +3630,7 @@
     <p class="hinweis-text">💡 Einmal hier eintragen, dann werden diese Zeiten automatisch für <b>alle Wochentage</b> in der Tabelle unten übernommen (30 Minuten Pause werden dabei automatisch abgezogen). Einzelne Tage lassen sich dort trotzdem jederzeit abweichend ändern.</p>
   </div>
 
-  <div class="settings-card" style="border:1px solid var(--accent); background:#FDE9DC;">
+  <div class="settings-card" id="zeitenVariierenCard" style="border:1px solid var(--accent); background:#FDE9DC;">
     <h3>✨ Zeiten automatisch variieren</h3>
     <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;">
       <input type="checkbox" id="cfgZeitenVariieren" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();">
@@ -3679,28 +3703,28 @@
     <p class="hinweis-text">Ohne Standardzeiten oben bleiben Abfahrt WP/Ankunft WP leer und werden pro Tag direkt in der Tabelle eingetragen. Std. und Pauschale berechnen sich automatisch, sobald beide Zeiten (ob per Standard oder manuell) da sind. Einzelne Tage lassen sich in der Tabelle jederzeit abweichend überschreiben.</p>
   </div>
 
-  <div class="settings-card">
-    <h3 data-i18n="nlCard">🏢 Anwesenheit in der Niederlassung (NL)</h3>
+  <div class="settings-card" id="nlEinstellungCard">
+    <h3 id="nlCardTitel" data-i18n="nlCard">🏢 Anwesenheit in der Niederlassung (NL)</h3>
     <div class="grid">
-      <div>
+      <div id="nlAktivRow">
         <label><input type="checkbox" id="cfgNlAktiv" style="width:auto; display:inline-block;" onchange="saveConfig(); renderFormular();"> Aktiv an einem festen Wochentag</label>
       </div>
-      <div>
+      <div id="nlTagRow">
         <label>Wochentag</label>
         <select id="cfgNlTag" onchange="saveConfig(); renderFormular();"></select>
       </div>
       <div>
-        <label>Von</label>
+        <label id="lblNlVon">Von</label>
         <input id="cfgNlVon" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
         <span class="time-picker-field empty" data-target="cfgNlVon" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
       <div>
-        <label>Bis</label>
+        <label id="lblNlBis">Bis</label>
         <input id="cfgNlBis" type="time" style="display:none;" oninput="saveConfig(); renderFormular();">
         <span class="time-picker-field empty" data-target="cfgNlBis" onclick="openTimeWheelForSetting(this)">--:--</span>
       </div>
     </div>
-    <p class="hinweis-text">💡 Für Fahrer <b>und</b> Monteure: trägt an den gewählten Wochentagen automatisch die Anwesenheitszeit in der Niederlassung ein. Wer Mo–Fr in der NL ist (z.B. Monteure): Häkchen setzen, Wochentag „Alle Wochentage (Mo–Fr)" wählen und Von/Bis eintragen – dann wird „Anwesenheit in NL" jeden Werktag ausgefüllt.</p>
+    <p class="hinweis-text" id="nlCardHinweis">💡 Für Fahrer <b>und</b> Monteure: trägt an den gewählten Wochentagen automatisch die Anwesenheitszeit in der Niederlassung ein. Wer Mo–Fr in der NL ist (z.B. Monteure): Häkchen setzen, Wochentag „Alle Wochentage (Mo–Fr)" wählen und Von/Bis eintragen – dann wird „Anwesenheit in NL" jeden Werktag ausgefüllt.</p>
   </div>
 
   <!-- Eigene Kennung: Mirko am 25.09.2026 - "datensicherung find ich
@@ -4736,7 +4760,9 @@ function aktualisiereZeitSichtbarkeit() {
    das erledigt die aufrufende aktualisiereZeitSichtbarkeit(), sonst
    liefe es bei jedem Aufruf doppelt. */
 function aktualisiereInventurSichtbarkeit() {
-  const istMonteur = config.mitarbeitertyp === "monteur";
+  // Jeder Nicht-Fahrer (Aussen- UND Innendienst) ist hier "Monteur":
+  // Fahrzeug-Inventur/Ware/Abrechnung bleiben fuer beide ausgeblendet.
+  const istMonteur = config.mitarbeitertyp !== "fahrer";
   const invSichtbar    = !istMonteur;                              // jeder Fahrer
   const sonderSichtbar = zeigtSonderbereiche() && !istMonteur;     // nur Mirko
 
@@ -4887,6 +4913,7 @@ const I18N = {
     colTag: "Tag", colDatum: "Datum", colNl: "Anwesenheit in NL", colOrte: "besuchte Orte",
     colStd: "Stunden", colPauschale: "Pauschale", colStatus: "Status",
     colWorkStart: "Arbeitsbeginn", colWorkEnd: "Arbeitsende", colDepart: "Abfahrt WP", colArrive: "Ankunft WP",
+    colNlBeginn: "Anwesenheit NL (Beginn)", colNlEnde: "Anwesenheit NL (Ende)",
     settingsTitle: "✏️ Spesen bearbeiten", yearTitle: "📊 Jahresübersicht",
     stammdaten: "👤 Stammdaten", zeitraum: "📅 Zeitraum & Feiertage", pauschalenCard: "💶 Pauschalen & Standardwerte",
     nlCard: "🏢 Anwesenheit in der Niederlassung (NL)", absenceCard: "🗓️ Abwesenheiten am Stück eintragen",
@@ -4933,6 +4960,7 @@ const I18N = {
     colTag: "Day", colDatum: "Date", colNl: "Presence at branch", colOrte: "Places visited",
     colStd: "Hours", colPauschale: "Allowance", colStatus: "Status",
     colWorkStart: "Work start", colWorkEnd: "Work end", colDepart: "Departure (home)", colArrive: "Arrival (home)",
+    colNlBeginn: "Branch presence (start)", colNlEnde: "Branch presence (end)",
     settingsTitle: "✏️ Edit expenses", yearTitle: "📊 Yearly overview",
     stammdaten: "👤 Basic data", zeitraum: "📅 Period & public holidays", pauschalenCard: "💶 Allowances & defaults",
     nlCard: "🏢 Presence at the branch office", absenceCard: "🗓️ Enter absences for a period",
@@ -5256,9 +5284,53 @@ function loadConfig() {
   if (!raw) return structuredClone(DEFAULT_CONFIG);
   try {
     const parsed = JSON.parse(raw);
-    return Object.assign(structuredClone(DEFAULT_CONFIG), parsed);
+    const cfg = Object.assign(structuredClone(DEFAULT_CONFIG), parsed);
+    return migriereMitarbeitertyp(cfg);
   } catch { return structuredClone(DEFAULT_CONFIG); }
 }
+
+/* ---- Migration Mitarbeitertyp: "monteur" -> "monteur-aussen" -----------
+   GELD-KRITISCH. Bis zum 02.10.2026 gab es zwei Typen: "fahrer" und
+   "monteur". Seitdem drei: "fahrer", "monteur-aussen" (Monteur Aussendienst,
+   rechnet GENAU wie bisher "monteur" - ueber Abfahrt WP / Ankunft WP) und
+   "monteur-innen" (Monteur Innendienst - Anwesenheit in Niederlassung).
+
+   Jeder bestehende "monteur" ist ein Aussendienstler und MUSS exakt
+   weiterrechnen wie bisher (dieselben Override-Keys arbeitsbeginn/arbeitsende,
+   dieselben Standardzeiten, dieselbe WP-Logik). Deshalb wird der Altwert
+   einmalig und robust auf "monteur-aussen" gehoben. "fahrer" bleibt "fahrer".
+   Alles andere (auch die neuen Werte) bleibt unveraendert. */
+function migriereMitarbeitertyp(cfg) {
+  if (cfg && cfg.mitarbeitertyp === "monteur") cfg.mitarbeitertyp = "monteur-aussen";
+  return cfg;
+}
+
+/* ---- Typ-Weichen zentral -----------------------------------------------
+   "isMonteur" = JEDER, der kein Fahrer ist. Beide Monteur-Typen
+   (Aussen- UND Innendienst) nutzen dieselben Zeit-Override-Keys
+   (arbeitsbeginn/arbeitsende) und rechnen die Pauschale exakt gleich wie
+   bisher der alte "monteur". Der EINZIGE Unterschied liegt in Beschriftung
+   und Sichtbarkeit von Spalten - NICHT in der Rechnung.
+
+   "istInnendienst" trennt nur die Darstellung ab: Innendienst traegt seine
+   Zeit als "Anwesenheit in der Niederlassung" ein; "besuchte Orte" und die
+   alte separate NL-Spalte entfallen fuer ihn. */
+function istMonteurTyp() { return config.mitarbeitertyp !== "fahrer"; }
+function istInnendienst() { return config.mitarbeitertyp === "monteur-innen"; }
+/* Beschriftung der beiden Zeit-Spalten je nach Typ. Fahrer + Monteur
+   Aussendienst: Abfahrt WP / Ankunft WP. Monteur Innendienst: die
+   NL-Anwesenheit mit Beginn/Ende. */
+/* Die beiden WP-Zeit-Spalten heissen IMMER wie im Original-Hall-Vordruck:
+   Abfahrt WP / Ankunft WP - fuer Fahrer, Monteur Aussendienst UND Monteur
+   Innendienst. Der Innendienstler traegt seine Zeit NICHT in diese Spalten,
+   sondern in die echte Spalte "Anwesenheit in NL" (Von/Bis) ein; die
+   WP-Spalten sind bei ihm am Bildschirm ausgeblendet (siehe CSS
+   body.typ-innendienst). pdfOriginalModus schaltet fuers PDF kurz alle
+   Spalten wieder ein, damit der offizielle Vordruck vollstaendig ist
+   (Mirko, 02.10.2026). */
+let pdfOriginalModus = false;
+function zeitStartLabel() { return t("colDepart"); }
+function zeitEndLabel()   { return t("colArrive"); }
 
 /* ---- Der Kalender laeuft einfach weiter -------------------------------
    Mirko am 20.09.2026: "Es müsste ja möglich sein, dass sowohl in der App
@@ -5821,20 +5893,53 @@ function minutesToTime(m) {
   return pad(h) + ":" + pad(mm);
 }
 
+/* ---- Der EINE Rechenweg Zeit -> Stunden -> Pauschale -------------------
+   GELD-KRITISCH und bewusst EINE Funktion: Fahrer, Monteur Aussendienst
+   (ueber Abfahrt WP / Ankunft WP) UND Monteur Innendienst (ueber Anwesenheit
+   in NL, Von/Bis) rechnen Zahl fuer Zahl identisch. Nur die QUELLE der beiden
+   Zeiten unterscheidet sich - die Rechnung selbst darf es NIE.
+
+   - 30 Minuten Pause werden immer abgezogen (nur am Bildschirm per "*"
+     markiert, nicht im PDF).
+   - ueber 8 Std. -> config.pauschale8 (14 EUR), ueber 24 Std. -> config.pauschale24.
+   Beispiel: 06:00-15:30 -> 9,5 h brutto - 0,5 h Pause = 9,0 h -> 14 EUR. */
+function pauschaleAusZeit(startStr, endStr) {
+  let hours = null, pauschale = 0, pauseAbgezogen = false;
+  if (startStr && endStr) {
+    let diffMin = timeToMinutes(endStr) - timeToMinutes(startStr);
+    if (diffMin < 0) diffMin += 24 * 60; // Ende liegt nach Mitternacht
+    let rawHours = Math.max(0, diffMin / 60 - 0.5);
+    pauseAbgezogen = true;
+    hours = Math.round(rawHours * 100) / 100;
+    if (hours > 24) pauschale = config.pauschale24;
+    else if (hours > 8) pauschale = config.pauschale8;
+  }
+  return { hours, pauschale, pauseAbgezogen };
+}
+
 function computeDay(date, holidaysMap) {
   const iso = fmtISO(date);
   const wd = (date.getDay() + 6) % 7; // 0=Mo .. 6=So
   const ov = overrides[iso] || {};
 
   if (ov.status && ABWESENHEITS_STATUS.includes(ov.status)) {
-    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: ov.orte || "", notiz: ov.notiz || STATUS_LABELS[ov.status] };
+    return { iso, wd, status: ov.status, abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", nlVon: "", nlBis: "", orte: ov.orte || "", notiz: ov.notiz || STATUS_LABELS[ov.status] };
   }
 
   const isHoliday = holidaysMap[iso];
+
+  // Monteur Innendienst rechnet komplett anders: seine Arbeitszeit IST die
+  // Anwesenheit in der Niederlassung (Von/Bis), nicht die WP-/Arbeitszeit.
+  // Deshalb ein eigener, klar getrennter Pfad - Fahrer und Monteur
+  // Aussendienst laufen unveraendert durch den WP-Pfad darunter. Die Pauschale
+  // kommt in BEIDEN Faellen aus pauschaleAusZeit() (derselbe Rechenweg).
+  if (istInnendienst()) return computeDayInnendienst(iso, wd, ov, isHoliday);
   // Fahrer nutzen Abfahrt WP/Ankunft WP, Monteure eigene, komplett
   // unabhaengige Arbeitsbeginn/Arbeitsende-Felder - eigene Override-Keys,
   // eigene Standardwerte, damit sich beide Modi nie gegenseitig beeinflussen.
-  const isMonteur = config.mitarbeitertyp === "monteur";
+  // isMonteur = jeder, der kein Fahrer ist (Aussen- UND Innendienst). Beide
+  // nutzen dieselben Override-Keys/Standardzeiten -> Pauschale unveraendert.
+  const isMonteur = config.mitarbeitertyp !== "fahrer";
   const startKey = isMonteur ? "arbeitsbeginn" : "abfahrt";
   const endKey = isMonteur ? "arbeitsende" : "ankunft";
   const startDefault = isMonteur ? config.arbeitsbeginnDefault : config.abfahrtDefault;
@@ -5853,7 +5958,7 @@ function computeDay(date, holidaysMap) {
 
   if (!hasOverride) {
     if (isHoliday) {
-      return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
+      return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", nlVon: "", nlBis: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
     }
     // Sonntag erscheint nie automatisch. Samstag nur, wenn entweder in den
     // Stammdaten "Samstag als Tages-Zeile hinzufügen" GLOBAL aktiviert ist,
@@ -5921,19 +6026,9 @@ function computeDay(date, holidaysMap) {
     abfahrtStr = ov[startKey] || (wd >= 5 || !vorgabeGilt ? "" : startDefault) || "";
     ankunftStr = ov[endKey] || (wd >= 5 || !vorgabeGilt ? "" : endDefault) || "";
   }
-  let hours = null, pauschale = 0, pauseAbgezogen = false;
-  if (abfahrtStr && ankunftStr) {
-    let diffMin = timeToMinutes(ankunftStr) - timeToMinutes(abfahrtStr);
-    if (diffMin < 0) diffMin += 24 * 60; // Ende liegt nach Mitternacht
-    let rawHours = diffMin / 60;
-    // 30 Minuten Pause werden bei Fahrern UND Monteuren automatisch abgezogen
-    // (nur am Bildschirm per "*" markiert, nicht im PDF).
-    rawHours = Math.max(0, rawHours - 0.5);
-    pauseAbgezogen = true;
-    hours = Math.round(rawHours * 100) / 100;
-    if (hours > 24) pauschale = config.pauschale24;
-    else if (hours > 8) pauschale = config.pauschale8;
-  }
+  // Stunden + Pauschale ueber den EINEN gemeinsamen Rechenweg (siehe
+  // pauschaleAusZeit) - 30 Min Pause abgezogen, >8 Std -> pauschale8 usw.
+  const { hours, pauschale, pauseAbgezogen } = pauschaleAusZeit(abfahrtStr, ankunftStr);
 
   // Anwesenheit in NL: fuer Fahrer UND Monteure ueber die NL-Einstellung
   // (aktiv an festem Wochentag, "alle" = Montag bis Freitag) mit den Von/Bis-Zeiten.
@@ -5951,8 +6046,60 @@ function computeDay(date, holidaysMap) {
     iso, wd, status: "normal",
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
     startField: startKey, endField: endKey,
-    nl,
-    orte: ov.orte !== undefined ? ov.orte : (isMonteur ? (config.orteDefaultMonteur || "") : config.orteDefault),
+    nl, nlVon: "", nlBis: "",
+    orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
+    notiz: ov.notiz || "",
+    warnLongHours, warnEmpty,
+  };
+}
+
+/* ---- Monteur Innendienst: Arbeitszeit = Anwesenheit in NL -------------
+   GELD-KRITISCH. Seine Tages-Arbeitszeit ist die Anwesenheit in der
+   Niederlassung (Von/Bis). Pro-Tag-Overrides ov.nlVon / ov.nlBis, Standard
+   "fuer alle Tage" aus config.nlVon / config.nlBis. Die Pauschale kommt aus
+   GENAU DEMSELBEN Rechenweg wie der WP-Pfad (pauschaleAusZeit) - nur die
+   Quelle der beiden Zeiten ist eine andere. Die WP-Zeiten (abfahrt/ankunft)
+   bleiben fuer ihn leer. */
+function computeDayInnendienst(iso, wd, ov, isHoliday) {
+  // "Arbeitstag ja/nein": nur eine TATSAECHLICHE NL-Eingabe an diesem Tag -
+  // der globale Standard macht Wochenenden nicht automatisch zu Arbeitstagen.
+  const hasVonOv = ov.nlVon && ov.nlVon !== "";
+  const hasBisOv = ov.nlBis && ov.nlBis !== "";
+  const hasOverride = hasVonOv || hasBisOv;
+
+  if (!hasOverride) {
+    if (isHoliday) {
+      return { iso, wd, status: "feiertag", abfahrt: "", ankunft: "", hours: null, pauschale: 0, nl: "", nlVon: "", nlBis: "", orte: "", notiz: "Feiertag (" + isHoliday + ")" };
+    }
+    if (wd === 6) return null; // Sonntag erscheint nie automatisch
+    if (wd === 5 && !config.samstagAktiv && !ov.samstagEin) return null; // Samstag nur wenn aktiviert
+  }
+
+  /* Dieselbe Zukunfts-Bremse wie bei den WP-Zeiten (siehe computeDay): die
+     automatische Vorgabe laeuft dem Kalender nicht voraus, eine ausdrueckliche
+     Eingabe gilt immer. An Wochenenden gilt der Standard nie automatisch. */
+  const zukunft = iso > fmtISO(new Date());
+  const vorgabeGilt = !zukunft || !zeigtNeuerungen();
+  const nlVon = hasVonOv ? ov.nlVon : ((wd >= 5 || !vorgabeGilt) ? "" : (config.nlVon || ""));
+  const nlBis = hasBisOv ? ov.nlBis : ((wd >= 5 || !vorgabeGilt) ? "" : (config.nlBis || ""));
+
+  // Stunden + Pauschale ueber den EINEN gemeinsamen Rechenweg - identisch zum
+  // WP-Pfad, nur mit NL-Von/Bis als Quelle.
+  const { hours, pauschale, pauseAbgezogen } = pauschaleAusZeit(nlVon, nlBis);
+  const nl = (nlVon || nlBis) ? (nlVon + "-" + nlBis) : "";
+
+  const warnLongHours = hours !== null && hours > 10;
+  const warnEmpty = wd < 5 && !isHoliday && !nlVon && !nlBis;
+
+  return {
+    iso, wd, status: "normal",
+    abfahrt: "", ankunft: "", hours, pauschale, pauseAbgezogen,
+    // WP-Spalten sind fuer ihn ausgeblendet; die Felder binden an unbenutzte
+    // WP-Keys, damit sie NIE die NL-Zeit beruehren. Die NL-Zelle rendert ihre
+    // Von/Bis-Picker ausdruecklich auf data-field="nlVon"/"nlBis".
+    startField: "arbeitsbeginn", endField: "arbeitsende",
+    nl, nlVon, nlBis,
+    orte: "",
     notiz: ov.notiz || "",
     warnLongHours, warnEmpty,
   };
@@ -5976,16 +6123,74 @@ function computeMonth(jahr, monat) {
 
 /* ===================== UI Aufbau ===================== */
 function updateMitarbeitertypUI() {
-  const isMonteur = config.mitarbeitertyp === "monteur";
-  document.getElementById("fahrerZeitenGroup").style.display = isMonteur ? "none" : "block";
-  document.getElementById("monteurZeitenGroup").style.display = isMonteur ? "block" : "none";
-  /* "besuchte Orte": Fahrer sehen cfgOrte, Monteure das eigene cfgOrteMonteur
-     (Mirko, 02.10.2026). Das Fahrer-Feld steckt direkt in seinem <div> ohne
-     eigene Kennung - deshalb ueber parentElement. */
+  const isMonteur = istMonteurTyp();       // Aussen- ODER Innendienst
+  const innen = istInnendienst();          // nur Innendienst
+  const aussen = isMonteur && !innen;       // nur Aussendienst
+
+  /* Standard-Zeiten-Karte (WP): Fahrer -> fahrerZeitenGroup, Monteur
+     Aussendienst -> monteurZeitenGroup. Monteur Innendienst nutzt KEINE
+     WP-Standardzeit - seine Standard-Zeit "fuer alle Tage" ist die
+     NL-Anwesenheit (siehe nlEinstellungCard unten), deshalb hier beide
+     WP-Karten aus. */
+  document.getElementById("fahrerZeitenGroup").style.display = (!isMonteur) ? "block" : "none";
+  document.getElementById("monteurZeitenGroup").style.display = aussen ? "block" : "none";
+  // "Zeiten automatisch variieren" variiert die WP-Zeiten - Monteur Innendienst
+  // nutzt die nicht (seine Zeit steht bei "Anwesenheit in NL"), also ausblenden.
+  const variierenCard = document.getElementById("zeitenVariierenCard");
+  if (variierenCard) variierenCard.style.display = innen ? "none" : "block";
+
+  const titel = document.getElementById("monteurZeitenTitel");
+  const lblVon = document.getElementById("lblArbeitsbeginn");
+  const lblBis = document.getElementById("lblArbeitsende");
+  // Nur noch Monteur Aussendienst nutzt diese Karte -> WP-Beschriftung.
+  if (titel) titel.textContent = "⏰ Standard-Zeiten Abfahrt WP / Ankunft WP";
+  if (lblVon) lblVon.textContent = "Abfahrt WP (Standard)";
+  if (lblBis) lblBis.textContent = "Ankunft WP (Standard)";
+
+  /* "besuchte Orte": Fahrer -> cfgOrte, Monteur Aussendienst -> cfgOrteMonteur
+     (lt. Tourenplan/Freitext). Monteur Innendienst hat KEINE besuchten Orte,
+     also KEINES von beiden. Das Fahrer-Feld steckt direkt in seinem <div>
+     ohne eigene Kennung - deshalb ueber parentElement. */
   const fahrerOrteWrap = document.getElementById("cfgOrte").parentElement;
   const monteurOrteWrap = document.getElementById("cfgOrteMonteurWrap");
-  if (fahrerOrteWrap) fahrerOrteWrap.style.display = isMonteur ? "none" : "";
-  if (monteurOrteWrap) monteurOrteWrap.style.display = isMonteur ? "" : "none";
+  // Fahrer UND Monteur Aussendienst nutzen dasselbe Feld (cfgOrte, Default
+  // "lt. Tourenplan"). Nur Monteur Innendienst hat keine besuchten Orte.
+  if (fahrerOrteWrap) fahrerOrteWrap.style.display = innen ? "none" : "";
+  if (monteurOrteWrap) monteurOrteWrap.style.display = "none";
+
+  /* NL-Einstellungskarte: dient je nach Typ zwei Zwecken.
+     - Fahrer/Monteur Aussendienst: wie bisher die abgeleitete NL-ANZEIGE an
+       einem festen Wochentag (Haekchen + Wochentag + Von/Bis).
+     - Monteur Innendienst: hier steht sein Standard "fuer alle Werktage" -
+       die NL-Anwesenheitszeit, aus der die Pauschale kommt. Das Haekchen und
+       der Wochentag entfallen (gilt immer, fuer alle Werktage), Titel und
+       Hinweis werden entsprechend umgestellt. */
+  const nlCard = document.getElementById("nlEinstellungCard");
+  if (nlCard) nlCard.style.display = "";
+  const nlAktivRow = document.getElementById("nlAktivRow");
+  const nlTagRow = document.getElementById("nlTagRow");
+  const nlTitel = document.getElementById("nlCardTitel");
+  const nlHinweis = document.getElementById("nlCardHinweis");
+  const lblNlVon = document.getElementById("lblNlVon");
+  const lblNlBis = document.getElementById("lblNlBis");
+  if (nlAktivRow) nlAktivRow.style.display = innen ? "none" : "";
+  if (nlTagRow) nlTagRow.style.display = innen ? "none" : "";
+  if (innen) {
+    if (nlTitel) nlTitel.textContent = "🏢 Anwesenheit in der NL — Standard Von/Bis für alle Werktage";
+    if (lblNlVon) lblNlVon.textContent = "Anwesenheit NL Beginn (Standard)";
+    if (lblNlBis) lblNlBis.textContent = "Anwesenheit NL Ende (Standard)";
+    if (nlHinweis) nlHinweis.innerHTML = "💡 Einmal eintragen – diese Von/Bis-Zeit gilt dann automatisch auf <b>jedem Werktag</b> und ergibt die Pauschale (30 Minuten Pause werden automatisch abgezogen). Einzelne Tage lassen sich in der Tabelle/Karte jederzeit abweichend ändern.";
+  } else {
+    if (nlTitel) nlTitel.textContent = "🏢 Anwesenheit in der Niederlassung (NL)";
+    if (lblNlVon) lblNlVon.textContent = "Von";
+    if (lblNlBis) lblNlBis.textContent = "Bis";
+    if (nlHinweis) nlHinweis.innerHTML = "💡 Für Fahrer <b>und</b> Monteure: trägt an den gewählten Wochentagen automatisch die Anwesenheitszeit in der Niederlassung ein. Wer Mo–Fr in der NL ist (z.B. Monteure): Häkchen setzen, Wochentag „Alle Wochentage (Mo–Fr)\" wählen und Von/Bis eintragen – dann wird „Anwesenheit in NL\" jeden Werktag ausgefüllt.";
+  }
+
+  /* Spaltensteuerung fuer Tabelle/PDF: body.typ-innendienst blendet die
+     Spalten "besuchte Orte" und die alte "Anwesenheit in NL" aus (CSS,
+     gleiches Muster wie die Status-Spalte). */
+  document.body.classList.toggle("typ-innendienst", innen);
 }
 
 /* Schnellwahl-Knoepfe fuer den Monteur-Standardort (Mirko, 02.10.2026):
@@ -7121,6 +7326,41 @@ function toggleMehr() {
    nicht in localStorage (nicht nur "ist leer") - danach nie wieder automatisch. */
 let wizardStep = 1;
 
+/* Pflicht-Rollenwahl beim Update auf die 3-Typen-Fassung (Mirko, 02.10.2026):
+   JEDER bereits eingerichtete Nutzer muss seine Rolle einmal neu waehlen
+   (Fahrer / Monteur Innendienst / Monteur Aussendienst) - egal ob App oder
+   Browser, ohne Ausnahme. Blockierend: ohne Auswahl geht es nicht weiter.
+   Neue Nutzer waehlen die Rolle im Einrichtungs-Assistenten, der denselben
+   Merker setzt - die bekommen dieses Fenster nicht doppelt. */
+function maybeShowRollenwahl() {
+  if (localStorage.getItem("spesen_config") === null) return;   // neue Nutzer -> Assistent
+  if (localStorage.getItem("rolle_bestaetigt_3typen")) return;  // schon gewaehlt
+  const root = document.getElementById("modalRoot");
+  if (!root) return;
+  const opt = (wert, titel, text) =>
+    `<button type="button" class="ghost" style="display:block;width:100%;box-sizing:border-box;text-align:left;margin:8px 0;padding:14px 16px;border:2px solid var(--accent);border-radius:12px;background:#fff;white-space:normal;line-height:1.35;height:auto;"
+       onclick="rollenwahlSetzen('${wert}')"><b style="color:var(--brand-dark);">${titel}</b><br><span class="small" style="color:#555;white-space:normal;">${text}</span></button>`;
+  root.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2 style="margin-top:0;">Bitte wählen Sie Ihre Rolle</h2>
+        <p class="hinweis-text">Es gibt jetzt drei Rollen. Bitte wählen Sie einmalig, was auf Sie zutrifft – danach ist alles wie gewohnt.</p>
+        ${opt("fahrer", "Fahrer", "Abfahrt WP / Ankunft WP, besuchte Orte lt. Tourenplan")}
+        ${opt("monteur-aussen", "Monteur Außendienst", "Fährt von zuhause los wie ein Fahrer: Abfahrt WP / Ankunft WP, lt. Tourenplan")}
+        ${opt("monteur-innen", "Monteur Innendienst", "Nur in der Niederlassung: Anfang/Ende bei „Anwesenheit in Niederlassung“")}
+      </div>
+    </div>`;
+}
+function rollenwahlSetzen(wert) {
+  config.mitarbeitertyp = wert;
+  const dd = document.getElementById("cfgMitarbeitertyp"); if (dd) dd.value = wert;
+  try { localStorage.setItem("spesen_config", JSON.stringify(config)); } catch (e) {}
+  localStorage.setItem("rolle_bestaetigt_3typen", new Date().toISOString());
+  const root = document.getElementById("modalRoot"); if (root) root.innerHTML = "";
+  if (typeof updateMitarbeitertypUI === "function") updateMitarbeitertypUI();
+  if (typeof renderFormular === "function") renderFormular();
+}
+
 function maybeShowSetupWizard() {
   if (localStorage.getItem("spesen_config") !== null) return;
   wizardStep = 1;
@@ -7149,7 +7389,8 @@ function maybeShowSetupWizard() {
           <label>Sie arbeiten als...</label>
           <select id="wizTyp">
             <option value="fahrer">Fahrer (Abfahrt WP / Ankunft WP)</option>
-            <option value="monteur">Monteur (Arbeitsbeginn / Arbeitsende)</option>
+            <option value="monteur-aussen">Monteur Außendienst (Abfahrt WP / Ankunft WP)</option>
+            <option value="monteur-innen">Monteur Innendienst (Anwesenheit in Niederlassung)</option>
           </select>
         </div>
         <div class="wizard-step" data-step="4">
@@ -7353,6 +7594,8 @@ function wizardNext() {
     config.ort = document.getElementById("wizOrt").value.trim();
     config.niederlassung = document.getElementById("wizNiederlassung").value.trim();
     config.mitarbeitertyp = document.getElementById("wizTyp").value;
+    // Neue Nutzer haben die Rolle hier gewaehlt -> Pflicht-Rollenwahl nicht doppelt zeigen.
+    localStorage.setItem("rolle_bestaetigt_3typen", new Date().toISOString());
     config.bundesland = document.getElementById("wizBundesland").value;
     /* Urlaubsanspruch (seit 20.09.2026). Wird als Grundwert UND als
        Eintrag fuer das laufende Jahr gesetzt - sonst stuende er zwar in
@@ -11862,8 +12105,8 @@ function renderFormular() {
   const bezahltRaw = localStorage.getItem(bezahltKey);
   const bezahlt = bezahltRaw !== null ? (parseFloat(bezahltRaw) || 0) : config.bezahltDefault;
   const rest = total + bezahlt;
-  const startLabel = t("colDepart");
-  const endLabel = t("colArrive");
+  const startLabel = zeitStartLabel();
+  const endLabel = zeitEndLabel();
 
   const submittedAt = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
   document.body.classList.toggle("formular-locked", !!submittedAt);
@@ -11894,16 +12137,29 @@ function renderFormular() {
       const emptyWarn = e.warnEmpty ? `<span class="warn-icon no-print" title="Kein Werktag-Eintrag - falls beabsichtigt (noch nicht ausgefüllt), einfach ignorieren.">⚠️</span>` : "";
       const stdCellClass = e.warnLongHours ? "warn-hours" : "";
       const stdTitle = e.warnLongHours ? ` title="Über 10 Std. - bitte Uhrzeiten prüfen"` : "";
+      // Monteur Innendienst: die NL-Zelle wird editierbar (zwei antippbare
+      // Von/Bis-Zeitfelder, gebunden an ov.nlVon/ov.nlBis ueber denselben
+      // Zeitrad-Mechanismus wie die WP-Felder). Im PDF-Original-Modus steht
+      // stattdessen der statische "von-bis"-String (keine Eingabefelder im PDF).
+      // Monteur Innendienst am Bildschirm: alle Spalten bleiben (keine
+      // Verschiebung), aber die WP-/Orte-ZELLEN sind leer - er traegt nur in
+      // "Anwesenheit in NL" ein. Im PDF-Original-Modus rendern alle Zellen
+      // normal (voller Original-Vordruck).
+      const innenLeer = istInnendienst() && !pdfOriginalModus;
+      const nlZelle = innenLeer
+        ? `<span class="time-picker-field nl-von${e.nlVon ? "" : " empty"}" data-iso="${e.iso}" data-field="nlVon" data-value="${e.nlVon || ""}" onclick="openTimeWheelForField(this)">${e.nlVon || "--:--"}</span><span class="nl-cell-sep"> – </span><span class="time-picker-field nl-bis${e.nlBis ? "" : " empty"}" data-iso="${e.iso}" data-field="nlBis" data-value="${e.nlBis || ""}" onclick="openTimeWheelForField(this)">${e.nlBis || "--:--"}</span>`
+        : e.nl;
+      const wpAbfahrtZelle = innenLeer ? "" : `<span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}" data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>${emptyWarn}`;
+      const wpAnkunftZelle = innenLeer ? "" : `<span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}" data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span>`;
+      const orteZelle = innenLeer ? "" : `<input class="cell-input orte-input" value="${escapeHtml(e.orte)}" onchange="updateOverride('${e.iso}','orte',this.value)"><span class="orte-print">${escapeHtml(e.orte)}</span>`;
       rows.push(`
         <tr>
           <td class="bold">${WEEKDAY_NAMES[e.wd]}</td>
           <td>${datumStr}</td>
-          <td><span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}"
-                data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>${emptyWarn}</td>
-          <td>${e.nl}</td>
-          <td class="orte-cell"><input class="cell-input orte-input" value="${escapeHtml(e.orte)}" onchange="updateOverride('${e.iso}','orte',this.value)"><span class="orte-print">${escapeHtml(e.orte)}</span></td>
-          <td><span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}"
-                data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span></td>
+          <td class="wp-cell">${wpAbfahrtZelle}</td>
+          <td class="nl-cell">${nlZelle}</td>
+          <td class="orte-cell">${orteZelle}</td>
+          <td class="wp-cell">${wpAnkunftZelle}</td>
           <td id="std-cell-${e.iso}" class="${stdCellClass}"${stdTitle}>${stunden}${e.warnLongHours ? ` <span class="warn-icon no-print">⚠️</span>` : ""}</td>
           <td class="pauschale-cell" id="pauschale-cell-${e.iso}">${pauschale}</td>
           <td class="status-cell">
@@ -11991,8 +12247,8 @@ function renderFormular() {
         <td class="status-cell"></td>
       </tr>
       <tr>
-        <th>${t('colTag')}</th><th>${t('colDatum')}</th><th>${startLabel}</th><th>${t('colNl')}</th>
-        <th class="orte-col">${t('colOrte')}</th><th>${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
+        <th>${t('colTag')}</th><th>${t('colDatum')}</th><th class="wp-col">${startLabel}</th><th class="nl-col">${t('colNl')}</th>
+        <th class="orte-col">${t('colOrte')}</th><th class="wp-col">${endLabel}</th><th>${t('colStd')}</th><th>${t('colPauschale')}</th>
         <th class="status-col">${t('colStatus')}</th>
       </tr>
       ${rows.join("")}
@@ -12118,7 +12374,7 @@ function vorausTage() {
     if (map[iso]) continue;                      // kein Feiertag
     const ov = overrides[iso] || {};
     if (ov.status) continue;                     // Urlaub/Krank stehen lassen
-    const start = config.mitarbeitertyp === "monteur" ? "arbeitsbeginn" : "abfahrt";
+    const start = istInnendienst() ? "nlVon" : (config.mitarbeitertyp !== "fahrer" ? "arbeitsbeginn" : "abfahrt");
     if (ov[start]) continue;                     // schon von Hand eingetragen
     raus.push(iso);
   }
@@ -12131,10 +12387,14 @@ function vorausGefuellte() {
 }
 
 function restDesMonatsFuellen() {
-  const start = config.mitarbeitertyp === "monteur" ? "arbeitsbeginn" : "abfahrt";
-  const ende = config.mitarbeitertyp === "monteur" ? "arbeitsende" : "ankunft";
-  const vonZeit = config.mitarbeitertyp === "monteur" ? config.arbeitsbeginnDefault : config.abfahrtDefault;
-  const bisZeit = config.mitarbeitertyp === "monteur" ? config.arbeitsendeDefault : config.ankunftDefault;
+  const istM = config.mitarbeitertyp !== "fahrer";
+  const innen = istInnendienst();
+  // Monteur Innendienst: Standard-Zeit ist die NL-Zeit (config.nlVon/nlBis),
+  // gefuellt werden die Pro-Tag-NL-Felder (ov.nlVon/nlBis) - nicht die WP-Zeiten.
+  const start = innen ? "nlVon" : (istM ? "arbeitsbeginn" : "abfahrt");
+  const ende = innen ? "nlBis" : (istM ? "arbeitsende" : "ankunft");
+  const vonZeit = innen ? config.nlVon : (istM ? config.arbeitsbeginnDefault : config.abfahrtDefault);
+  const bisZeit = innen ? config.nlBis : (istM ? config.arbeitsendeDefault : config.ankunftDefault);
   if (!vonZeit || !bisZeit) {
     alert("Dafür braucht es erst Standardzeiten.\n\nTragen Sie sie über „⏰ Zeiten für alle Tage“ ein – danach lässt sich der Rest des Monats mitfüllen.");
     return;
@@ -12162,8 +12422,8 @@ function vorausRueckgaengig() {
   if (!tage.length) return;
   if (!confirm("Die " + tage.length + " vorausgefüllten Tage wieder leeren?\n\n"
     + "Von Hand eingetragene Tage bleiben unberührt.")) return;
-  const start = config.mitarbeitertyp === "monteur" ? "arbeitsbeginn" : "abfahrt";
-  const ende = config.mitarbeitertyp === "monteur" ? "arbeitsende" : "ankunft";
+  const start = istInnendienst() ? "nlVon" : (config.mitarbeitertyp !== "fahrer" ? "arbeitsbeginn" : "abfahrt");
+  const ende = istInnendienst() ? "nlBis" : (config.mitarbeitertyp !== "fahrer" ? "arbeitsende" : "ankunft");
   tage.forEach((iso) => {
     delete overrides[iso][start];
     delete overrides[iso][ende];
@@ -12280,6 +12540,19 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
         </div>
 
         <div class="tk-zeiten">
+          ${istInnendienst() ? `
+          <div>
+            <label>Anwesenheit NL (Von)</label>
+            <span class="time-picker-field nl-von${e.nlVon ? "" : " empty"}" data-iso="${e.iso}"
+                  data-field="nlVon" data-value="${e.nlVon || ""}"
+                  onclick="openTimeWheelForField(this)">${e.nlVon || "--:--"}</span>
+          </div>
+          <div>
+            <label>Anwesenheit NL (Bis)</label>
+            <span class="time-picker-field nl-bis${e.nlBis ? "" : " empty"}" data-iso="${e.iso}"
+                  data-field="nlBis" data-value="${e.nlBis || ""}"
+                  onclick="openTimeWheelForField(this)">${e.nlBis || "--:--"}</span>
+          </div>` : `
           <div>
             <label>${escapeHtml(startLabel)}</label>
             <span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}"
@@ -12291,18 +12564,18 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
             <span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}"
                   data-field="${e.endField}" data-value="${e.ankunft}"
                   onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span>
-          </div>
+          </div>`}
         </div>
 
-        <div class="tk-feld">
+        ${istInnendienst() ? "" : `<div class="tk-feld">
           <label>Orte</label>
           <input class="cell-input" value="${escapeHtml(e.orte)}"
                  onchange="updateOverride('${e.iso}','orte',this.value)">
-        </div>
+        </div>`}
 
         <div class="tk-fuss">
           <span id="hstd-cell-${e.iso}"${e.warnLongHours ? ' class="warn-hours"' : ""}>${stunden}${langerTag}</span>
-          ${e.nl ? `<span class="tk-nl">NL: ${escapeHtml(String(e.nl))}</span>` : ""}
+          ${(e.nl && !istInnendienst()) ? `<span class="tk-nl">NL: ${escapeHtml(String(e.nl))}</span>` : ""}
           <select class="status-select tk-status"${gesperrt ? " disabled" : ""}
                   onchange="updateOverride('${e.iso}','status',this.value === 'normal' ? '' : this.value)">
             ${statusOptionsHTML("normal")}
@@ -12512,6 +12785,14 @@ async function buildPdf() {
 
   // Waehrend des Screenshots die Klick-Optik der Zeit-Felder ausblenden.
   document.body.classList.add("pdf-export");
+  // Monteur Innendienst: Das PDF ist der ORIGINAL-Hall-Vordruck (alle Spalten,
+  // Original-Beschriftung). Nur fuer den Screenshot umschalten; im finally zurueck.
+  const innenPdf = istInnendienst();
+  if (innenPdf) {
+    pdfOriginalModus = true;
+    document.body.classList.remove("typ-innendienst");
+    renderFormular();
+  }
   // Bugfix (finale Whole-Branch-Review, Befund 1): Seit Task 6 startet der
   // Spesen-Tab standardmaessig in der Stammdaten-Ansicht - dort blendet
   // azSpesenAnsicht() #formular-scroll per INLINE style="display:none" aus.
@@ -12537,6 +12818,11 @@ async function buildPdf() {
   } finally {
     document.body.classList.remove("pdf-export");
     if (formularScroll) formularScroll.style.display = formularScrollDisplayVorher;
+    if (innenPdf) {
+      pdfOriginalModus = false;
+      document.body.classList.add("typ-innendienst");
+      renderFormular();
+    }
   }
   const imgData = canvas.toDataURL("image/png");
 
@@ -12664,9 +12950,15 @@ function buildCsvData() {
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
   const { entries } = computeMonth(config.jahr, monat);
-  const startLabel = t("colDepart");
-  const endLabel = t("colArrive");
-  const header = [t("colTag"), t("colDatum"), startLabel, t("colNl"), t("colOrte"), endLabel, t("colStd"), t("colPauschale"), t("colStatus")];
+  const startLabel = zeitStartLabel();
+  const endLabel = zeitEndLabel();
+  /* Monteur Innendienst: seine Zeit IST die Anwesenheit in der NL (Von/Bis) -
+     die gibt die NL-Spalte als "von-bis" aus. Die WP-Zeit-Spalten und die
+     Orte-Spalte entfallen, genau wie am Bildschirm/in der Karte. */
+  const innen = istInnendienst();
+  const header = innen
+    ? [t("colTag"), t("colDatum"), t("colNl"), t("colStd"), t("colPauschale"), t("colStatus")]
+    : [t("colTag"), t("colDatum"), startLabel, t("colNl"), t("colOrte"), endLabel, t("colStd"), t("colPauschale"), t("colStatus")];
   const rows = [];
   for (const e of entries) {
     const [y, m, d] = e.iso.split("-");
@@ -12674,7 +12966,9 @@ function buildCsvData() {
     const statusLabel = e.status === "feiertag" ? e.notiz : (e.notiz || STATUS_LABELS[e.status] || STATUS_LABELS.normal);
     const stunden = e.hours === null ? "" : formatHoursDisplay(e.hours) + (e.pauseAbgezogen ? "*" : "");
     const pauschale = e.pauschale > 0 ? e.pauschale.toFixed(2).replace(".", ",") : "";
-    rows.push([WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "", e.ankunft || "", stunden, pauschale, statusLabel]);
+    rows.push(innen
+      ? [WEEKDAY_NAMES[e.wd], datumStr, e.nl || "", stunden, pauschale, statusLabel]
+      : [WEEKDAY_NAMES[e.wd], datumStr, e.abfahrt || "", e.nl || "", e.orte || "", e.ankunft || "", stunden, pauschale, statusLabel]);
   }
   const lines = [header.map(csvEscape).join(";"), ...rows.map(r => r.map(csvEscape).join(";"))];
   const csv = "﻿" + lines.join("\r\n"); // BOM, damit Excel Umlaute korrekt zeigt
@@ -13234,7 +13528,11 @@ function openTimeWheelForSetting(el) {
    ueberschreiben, waeren von Hand korrigierte Tage weg - und der Wert liesse
    sich spaeter nicht mehr in einem Rutsch aendern. */
 function szFelder() {
-  const isMonteur = config.mitarbeitertyp === "monteur";
+  // Monteur Innendienst: der Standard "fuer alle Tage" ist die NL-Anwesenheit
+  // (config.nlVon/nlBis), nicht die WP-Standardzeit. Fahrer + Monteur
+  // Aussendienst behalten ihre WP-Standardzeiten.
+  if (istInnendienst()) return { vonId: "cfgNlVon", bisId: "cfgNlBis" };
+  const isMonteur = config.mitarbeitertyp !== "fahrer";
   return {
     vonId: isMonteur ? "cfgArbeitsbeginnDefault" : "cfgAbfahrtDefault",
     bisId: isMonteur ? "cfgArbeitsendeDefault" : "cfgAnkunftDefault",
@@ -13263,8 +13561,8 @@ function openStandardZeitenModal() {
           weiterhin abweichend ändern; die werden hier <b>nicht</b> überschrieben.
         </p>
         <div class="grid">
-          ${feld("szVon", "Abfahrt WP (Standard)", von)}
-          ${feld("szBis", "Ankunft WP (Standard)", bis)}
+          ${feld("szVon", (istInnendienst() ? "Anwesenheit NL Beginn" : zeitStartLabel()) + " (Standard)", von)}
+          ${feld("szBis", (istInnendienst() ? "Anwesenheit NL Ende" : zeitEndLabel()) + " (Standard)", bis)}
         </div>
         <div id="szVorschau" style="margin-top:0.75rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.85rem; color:var(--brand-dark);"></div>
         <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1rem; flex-wrap:wrap;">
@@ -14993,6 +15291,7 @@ azInit();
   document.getElementById(id).addEventListener("input", urlaubVorschau));
 urlaubVorschau();
 maybeShowSetupWizard();
+maybeShowRollenwahl();
 // Kachel-Startseite ist die neue Standardansicht (Entscheidung 26.08.2026) -
 // oeffneAusAnker() ueberschreibt das nur, wenn ein App-Kurzbefehl
 // (#arbeitszeit/#urlaub) aktiv ist, siehe dortige zeigeTab()-Aufrufe.
