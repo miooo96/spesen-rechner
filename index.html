@@ -12505,7 +12505,10 @@ async function buildPdf() {
   }
   const x = (pageWidth - imgWidth) / 2;
   pdf.addImage(imgData, "PNG", x, margin, imgWidth, imgHeight);
-  pdfFusszeile(pdf);
+  /* KEIN Erstell-Zeitstempel auf dem Spesen-Vordruck (Mirko, 02.10.2026):
+     das ist der offizielle Zettel an die Niederlassung, er bleibt wie das
+     Original. Die Fusszeile steht nur auf allen UEBRIGEN Dokumenten
+     (Inventur, Abrechnung, Zeit, Urlaub, Jahr). */
 
   const filename = `Spesennachweis_${monthName}_${config.jahr}.pdf`;
   return { pdf, filename };
