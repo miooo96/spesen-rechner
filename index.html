@@ -2495,6 +2495,13 @@
      zum rechten Rand. */
   .abr-unterschrift td.lab { width:24%; white-space:nowrap; }
   .abr-unterschrift td.rest { border:none; }
+  /* Digitale Unterschrift NUR in der gemailten Fassung (03.10.2026) */
+  .abr-sig-digital { position:absolute; inset:-6px 2px 1px 2px; display:flex; align-items:flex-end;
+                     justify-content:space-between; gap:6px; pointer-events:none; }
+  .abr-sig-digital img { max-height:100%; max-width:55%; object-fit:contain; }
+  /* Stempel UNTER die Linie - daneben ist die Zelle zu schmal, er lief am
+     03.10. ueber die Linie hinaus und strich sie optisch durch */
+  .abr-sig-digital span { position:absolute; left:0; top:calc(100% + 4px); font-size:8px; line-height:1; color:#555; white-space:nowrap; }
   .abr-unterschrift td.linie { border-bottom:1px solid #000; }
   .abr-unterschrift td.linie input { text-align:left; font-size:12px; }
   .abr-unterschrift td.rest .inv-stempel { padding-left:8px; }
@@ -2665,6 +2672,9 @@
   .inv-sigwrap { display:flex; align-items:center; height:28px; position:relative; }
   .inv-sigwrap input { flex:1 1 auto; min-width:0; }
   .inv-sigwrap .inv-sig-img { position:absolute; left:4px; top:1px; max-height:26px; max-width:60%; object-fit:contain; }
+  /* Zeitstempel der digitalen Unterschrift (03.10.2026) - absolut, damit die
+     Zeilenhoehe des nachgebauten Vordrucks unveraendert bleibt */
+  .inv-sigwrap .inv-sig-zeit { position:absolute; right:4px; bottom:1px; font-size:8px; line-height:1; color:#555; white-space:nowrap; pointer-events:none; }
   .inv-stempel { flex:0 0 auto; font-size:9px; color:#555; white-space:nowrap; padding:0 5px 0 6px; }
   .inv-unter td.sigzelle { height:30px; }
   .inv-pdfzeile { margin-top:12px; }
@@ -2697,6 +2707,9 @@
     select.status-select { -webkit-appearance: none; appearance: none; }
     footer { display: none; }
     .time-picker-field { border-bottom: none !important; cursor: default !important; }
+    /* 10-Std.-Sperre auch fuer Strg+P (korrektur0310) - Klasse setzt renderFormular() */
+    body.druck-gesperrt-10h:not(.druck-inventur):not(.druck-abrechnung) #formular-scroll { display: none !important; }
+    body.druck-gesperrt-10h:not(.druck-inventur):not(.druck-abrechnung) #druckSperre10h { display: block !important; }
   }
 
   /* Monteur Innendienst: er traegt seine Zeit in die echte Spalte
@@ -2999,8 +3012,19 @@
   }
   .formular-locked #formular .time-picker-field,
   .formular-locked #formular select.status-select,
-  .formular-locked #formular input.cell-input {
+  .formular-locked #formular input.cell-input,
+  .formular-locked #formular .samstag-toggle-btn,
+  .formular-locked #handyBlatt .time-picker-field,
+  .formular-locked #handyBlatt input.cell-input {
+    /* nur noch die OPTIK der Sperre - wirksam ist tagGesperrt() im Code */
     pointer-events: none; opacity: 0.65;
+  }
+  /* Gesperrter Monat: Unterschrift weder tauschen noch entfernen - so wie in
+     der App-Kartenansicht, wo die Knoepfe dann gar nicht erst erscheinen.
+     Bis 03.10.2026 ging das im Browser-Vordruck weiter (App != Browser). */
+  .formular-locked #formular .sig-upload-btn,
+  .formular-locked #formular .sig-clear-btn {
+    display: none !important;
   }
 
   /* Plausibilitaets-Warnhinweise */
@@ -3384,6 +3408,12 @@
     <button type="button" onclick="abrSpeichern()" data-i18n="btnPdf">💾 PDF speichern</button>
     <button type="button" onclick="abrDrucken()" data-i18n="btnPrint">🖨️ Drucken</button>
     <button type="button" onclick="abrBeideDrucken()">🖨️ Beide Zettel</button>
+    <!-- Mail-Weg der Abrechnung (03.10.2026, Mirko: "ja deine korrektur").
+         Nur auf Klick, NIE automatisch - Mirkos Regel "zum aktuellen Stand
+         geht es nicht automatisch an Susanne ihre E-Mail, erst wenn ich es
+         sage". Verschickt die Gesamtabrechnung (Inventur + Verkaufsbericht),
+         dieselbe Datei wie beim Abschliessen. -->
+    <button type="button" id="abrMailKnopf" onclick="abrPerEmail()">📧 An Niederlassung senden</button>
     <!-- ✅ Abrechnung abschliessen ist am 02.10.2026 nach UNTEN unter das
          Blatt gewandert (Zeile .abr-abschluss-zeile hinter #abrBlatt) -
          dieselbe Stelle wie "🚚 Inventur abschliessen" unter dem Inventurblatt.
@@ -4009,8 +4039,18 @@
                Platzhalter). -->
           <tr><td class="k">Verkaufsfahrer:</td>
               <td class="feld sigzelle" colspan="2">
+                <!-- ✅ SEIT 03.10.2026 WIEDER MIT ZEITSTEMPEL - aber nur bei
+                     DIGITALER Unterschrift. Mirko am 03.10.2026: "ja nur
+                     handschriftlich setzt kein zeitstempel" (auf die Frage,
+                     ob gemailte Inventuren einen Stempel an der Unterschrift
+                     tragen sollen). Das loest die Vorgabe vom 22.09. unten
+                     ab, die an den GEGENZEICHNENDEN Ausdruck gedacht war -
+                     und kehrt zur Regel vom 05.09. zurueck: "wenn digital
+                     dann mit zeitstempel". Haengt an korrektur0310(),
+                     siehe invSigZeitZeigen(). -->
                 <div class="inv-sigwrap">
                   <img id="sigImg-inventur_signature" class="inv-sig-img" alt="" style="display:none">
+                  <span id="invSigZeit" class="inv-sig-zeit"></span>
                   <!-- KEIN Platzhalter und keine Vorbelegung mit dem Namen
                        (Mirko, 05.09.2026): "die spalten unterschrift wird
                        entweder digital ausgefuellt oder haendisch nach dem
@@ -4295,7 +4335,12 @@
          nichts getippt, nichts gespeichert, nichts wiederhergestellt. Die
          Zeilen bleiben leer und werden auf dem Ausdruck von Hand
          unterschrieben. Zeitstempel entfaellt hier bewusst; beim
-         Inventurblatt bleibt die digitale Unterschrift erhalten. -->
+         Inventurblatt bleibt die digitale Unterschrift erhalten.
+         ⚠ AUSNAHME SEIT 03.10.2026 - die GEMAILTE Fassung: Mirko, "wenn
+         gemailt wird, wird digital unterschrieben werden muessen mit
+         zeitstempel". Siehe abrDigitalUnterschriftEinsetzen(). Das Feld
+         selbst bleibt readonly und leer; ausgefuellt wird nur die
+         Aufnahme fuer die Mail. -->
     <table class="abr-unterschrift">
       <tr><td class="lab">Unterschrift Fahrer:</td>
           <td class="linie" style="width:26%"><input id="abrUntFahrer" readonly></td>
@@ -4529,7 +4574,7 @@
   📅 <b>Abgabe spätestens am 3. Werktag des Folgemonats!</b>
 </div>
 <div class="no-print" id="pauschaleHinweis" style="max-width:1000px; margin:0 auto 0.6rem; padding:8px 12px; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; font-size:0.82rem; color:var(--brand-dark); line-height:1.4;">
-  ℹ️ <b>Zur Info:</b> Eine Pauschale gibt es nur, wenn an einem Tag <b>8,5 Std</b> erreicht werden – kürzere Tage bringen keine Pauschale.
+  ℹ️ <b>Zur Info:</b> Eine Pauschale gibt es nur bei <b>mehr als 8 Std</b> Arbeitszeit (mit den 30 Min Pause: mehr als 8,5 Std vom Beginn bis zum Ende) – kürzere Tage bringen keine Pauschale.
   &nbsp;·&nbsp; Tage über <b>10 Std</b> werden <b>nicht genehmigt</b>.
 </div>
 <!-- Handy-Ansicht zum Eintragen. Steht VOR dem Vordruck, damit man am Handy
@@ -4559,6 +4604,15 @@
   <span id="vorausHinweis" class="voraus-hinweis" style="display:none;"></span>
 </div>
 
+<!-- Nur im DRUCK sichtbar, und nur wenn ein Tag ueber 10 Std liegt
+     (korrektur0310). Strg+P / Teilen -> Drucken lief bis 03.10.2026 an der
+     10-Std.-Sperre vorbei. Haengt an einer Klasse, die beim Zeichnen gesetzt
+     wird - NICHT an beforeprint, das nicht jeder Handy-Druckweg ausloest
+     (siehe invSetAnsicht). -->
+<div id="druckSperre10h" style="display:none; font-size:1rem; padding:2rem; border:2px solid #000;">
+  ⛔ <b>Nicht druckbar:</b> Mindestens ein Tag liegt über 10 Stunden. Ein solcher Tag wird nicht
+  genehmigt – bitte zuerst die Uhrzeiten anpassen, dann drucken.
+</div>
 <div id="formular-scroll"><div id="formular"></div></div>
 
 <!-- Die Fusszeile war bis zum 20.09.2026 die EINZIGE Stelle der App, die
@@ -4681,6 +4735,26 @@ function zeigtSonderbereiche() { return istMirko(); }
    Stelle zweimal auf, einmal als Mirko und einmal als Kollege, und
    vergleicht die Hoehen. */
 function zeigtNeuerungen() { return istMirko(); }
+
+/* ---- Korrekturen aus der Pruefung fuer die Chef-Praesentation (03.10.2026) ----
+   Mirko am 03.10.2026: "ja deine korrektur ja". Alles davon, was ein
+   Kollege SIEHT, haengt an diesem EINEN Schalter - nach Mirkos Regel vom
+   20.09.2026 ("die aktuellen Nutzer sollen naemlich keine Aenderung
+   wahrnehmen zum jetzigen Zeitpunkt"), siehe zeigtNeuerungen() oben.
+   Mirko sieht alles sofort, und damit auch das Chef-Video.
+
+   FREIGABE FUER ALLE: KORREKTUREN_0310_FUER_ALLE = true setzen.
+
+   Was daran haengt (Stichwort "korrektur0310" im Quelltext suchen):
+     · Unterschrift NLL: kein Einfuegen durch den Mitarbeiter mehr
+     · Mail nur mit eingefuegter Unterschrift
+     · Pauschalbetraege fest (nicht mehr selbst aenderbar)
+     · automatisch variierte Zeiten auf dem Nachweis gekennzeichnet
+     · ueber 10 Std: auch CSV und Strg+P gesperrt
+   NICHT daran haengen die im Alltag unsichtbaren Reparaturen (Monatssperre
+   im Code, Zahl-Lesung Komma/Punkt) - die gelten wie am 20.09. fuer alle. */
+const KORREKTUREN_0310_FUER_ALLE = false;
+function korrektur0310() { return KORREKTUREN_0310_FUER_ALLE || zeigtNeuerungen(); }
 
 /* ---- Der Mail-Weg der Fahrzeug-Inventur (22.09.2026) --------------
    Die Fahrzeug-Inventur selbst ist seit dem 22.09.2026 fuer alle Fahrer
@@ -5488,7 +5562,8 @@ function ruecksetzBereiche() {
          und die App haette Tage als vorausgefuellt gemeldet, die es gar
          nicht mehr gibt. */
       tagFelder: ["abfahrt", "ankunft", "arbeitsbeginn", "arbeitsende",
-                  "orte", "nl", "notiz", "samstagEin", "voraus"],
+                  "orte", "nl", "notiz", "samstagEin", "voraus",
+                  "zeitAuto", "__fest"],   // 03.10.2026: Festschreibung, siehe monatFestschreiben()
       praefixe: ["bezahlt_"] },
     { id: "zeit", name: "Arbeitszeit",
       schluessel: ["spesen_az_tage", "spesen_az_lauf", "spesen_az_cfg"] },
@@ -5527,7 +5602,11 @@ function ruecksetzBereiche() {
     { id: "stammdaten", name: "Stammdaten",
       configFelder: ["name", "strasse", "ort", "niederlassung", "tour", "arbeitgeberEmail", "eigeneEmail"] },
     { id: "unterschriften", name: "Unterschriften",
-      schluessel: ["spesen_signature", "spesen_signature_nll", "inventur_signature", "inventur_signature_ts"] },
+      /* _ts-Schluessel der Spesen-Unterschriften seit 03.10.2026 dabei - vorher
+         blieb nach dem Zuruecksetzen "unterschrieben am …" OHNE Bild stehen,
+         auf dem Bildschirm und in der PDF. */
+      schluessel: ["spesen_signature", "spesen_signature_ts", "spesen_signature_nll",
+                   "spesen_signature_nll_ts", "inventur_signature", "inventur_signature_ts"] },
   ];
 }
 
@@ -5903,6 +5982,29 @@ function minutesToTime(m) {
      markiert, nicht im PDF).
    - ueber 8 Std. -> config.pauschale8 (14 EUR), ueber 24 Std. -> config.pauschale24.
    Beispiel: 06:00-15:30 -> 9,5 h brutto - 0,5 h Pause = 9,0 h -> 14 EUR. */
+/* Pauschalbetraege FEST (korrektur0310, Mirko 03.10.2026). Bis dahin
+   konnte jeder Mitarbeiter in "Pauschalen & Standardwerte" einen eigenen
+   Betrag eintragen - kein Rechenfehler mehr, aber eine offene Tuer. Jetzt
+   gilt die Vorgabe aus DEFAULT_CONFIG (14 € / 28 €), das Feld ist nur noch
+   lesbar. Der gespeicherte Eigenwert bleibt im Speicher, wird aber nicht
+   mehr gerechnet. Aendert Hall den Satz, wird DEFAULT_CONFIG angepasst. */
+/* Automatisch variierte Zeiten KENNZEICHNEN (korrektur0310, Mirko
+   03.10.2026). Mit "Zeiten automatisch variieren" bekommt jeder leere
+   Werktag erfundene Zeiten (variedTimes) samt Pauschale - bis dahin auf
+   dem Nachweis nicht von eingetragenen Zeiten zu unterscheiden. Jetzt
+   steht ein "°" an der Zeit und darunter eine Fussnote, die mitgedruckt
+   wird und im PDF steht. Gilt in Vordruck UND App-Karte. */
+function zeitAutoMarke(e) {
+  return (e && e.zeitAuto && korrektur0310()) ? `<sup class="zeit-auto-marke" title="automatisch erzeugt">°</sup>` : "";
+}
+function zeitAutoFussnote(entries) {
+  if (!korrektur0310() || !entries.some((e) => e && e.zeitAuto)) return "";
+  return `<tr><td colspan="8" class="small">° Zeit automatisch erzeugt (Einstellung „Zeiten automatisch variieren“) – nicht einzeln eingetragen.</td><td class="status-cell"></td></tr>`;
+}
+
+function pauschaleSatz8()  { return korrektur0310() ? DEFAULT_CONFIG.pauschale8  : config.pauschale8; }
+function pauschaleSatz24() { return korrektur0310() ? DEFAULT_CONFIG.pauschale24 : config.pauschale24; }
+
 function pauschaleAusZeit(startStr, endStr) {
   let hours = null, pauschale = 0, pauseAbgezogen = false;
   if (startStr && endStr) {
@@ -5911,8 +6013,8 @@ function pauschaleAusZeit(startStr, endStr) {
     let rawHours = Math.max(0, diffMin / 60 - 0.5);
     pauseAbgezogen = true;
     hours = Math.round(rawHours * 100) / 100;
-    if (hours > 24) pauschale = config.pauschale24;
-    else if (hours > 8) pauschale = config.pauschale8;
+    if (hours > 24) pauschale = pauschaleSatz24();
+    else if (hours > 8) pauschale = pauschaleSatz8();
   }
   return { hours, pauschale, pauseAbgezogen };
 }
@@ -6019,9 +6121,15 @@ function computeDay(date, holidaysMap) {
   const zukunft = iso > fmtISO(new Date());
   const vorgabeGilt = !zukunft || !zeigtNeuerungen();
 
+  let zeitAuto = false;   // Kennzeichnung auf dem Nachweis, siehe zeitAutoMarke()
   if (config.zeitenVariieren && wd < 5 && !hasStartOv && !hasEndOv && !isHoliday && vorgabeGilt) {
     const v = variedTimes(iso, startDefault, isMonteur, wd);
     abfahrtStr = v.abfahrt; ankunftStr = v.ankunft;
+    zeitAuto = true;
+  } else if (ov.zeitAuto && hasStartOv && hasEndOv) {
+    // beim Einreichen festgeschriebene Auto-Zeit (monatFestschreiben) bleibt gekennzeichnet
+    zeitAuto = true;
+    abfahrtStr = ov[startKey]; ankunftStr = ov[endKey];
   } else {
     abfahrtStr = ov[startKey] || (wd >= 5 || !vorgabeGilt ? "" : startDefault) || "";
     ankunftStr = ov[endKey] || (wd >= 5 || !vorgabeGilt ? "" : endDefault) || "";
@@ -6045,6 +6153,7 @@ function computeDay(date, holidaysMap) {
   return {
     iso, wd, status: "normal",
     abfahrt: abfahrtStr, ankunft: ankunftStr, hours, pauschale, pauseAbgezogen,
+    zeitAuto,
     startField: startKey, endField: endKey,
     nl, nlVon: "", nlBis: "",
     orte: ov.orte !== undefined ? ov.orte : config.orteDefault,
@@ -6229,8 +6338,14 @@ function initSettingsUI() {
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
   document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
-  document.getElementById("cfgPauschale8").value = config.pauschale8;
-  document.getElementById("cfgPauschale24").value = config.pauschale24;
+  document.getElementById("cfgPauschale8").value = pauschaleSatz8();
+  document.getElementById("cfgPauschale24").value = pauschaleSatz24();
+  // Feste Betraege (korrektur0310): Feld nur lesbar, Erklaerung im Tooltip
+  ["cfgPauschale8", "cfgPauschale24"].forEach((id) => {
+    const el = document.getElementById(id);
+    el.disabled = korrektur0310();
+    el.title = korrektur0310() ? "Vorgabe von Hall – nicht änderbar" : "";
+  });
   document.getElementById("cfgOrte").value = config.orteDefault;
   document.getElementById("cfgOrteMonteur").value = config.orteDefaultMonteur || "";
   document.getElementById("cfgNlAktiv").checked = config.nlAktiv;
@@ -6688,15 +6803,20 @@ const FUEHRUNGEN = {
       } },
 
     { titel: "Fertig",
-      text: "Über „Fertig → Zettel ansehen“ wechseln Sie auf das Blatt, wie " +
+      text: "Über „Fertig → Blatt ansehen“ wechseln Sie auf das Blatt, wie " +
             "es gedruckt wird. Das PDF entsteht erst über die Werkzeugleiste." }
   ],
 
   ware: [
     { titel: "Wozu dieser Bildschirm",
-      text: "Hier wird die <b>neue</b> Ware gezählt, die aufs Fahrzeug " +
-            "kommt. Sie ist die Ladeliste — zusammen mit dem gezählten " +
-            "Restbestand ergibt sie den Endbestand, mit dem Sie losfahren." },
+      /* Bis 03.10.2026 stand hier "Sie ist die Ladeliste" und unter
+         "Danach", der gezaehlte Wert gehe in die Abrechnung. Das tut er
+         nicht: Keine Abrechnungsfunktion liest kaeState. Gezaehlt wird in
+         Stangen, die Ladeliste ist der Euro-Betrag "Gesamt" vom
+         Lieferschein und wird von Hand eingetragen. */
+      text: "Hier zählen Sie die <b>neue</b> Ware, die aufs Fahrzeug " +
+            "kommt, und vergleichen sie mit dem Lieferschein. So fällt " +
+            "eine Abweichung auf, solange Sie noch an der Rampe stehen." },
 
     { titel: "Nicht jede Stange einzeln",
       text: "Eine Zeile trägt <b>Kartons × Kartongröße + lose Stangen</b>. " +
@@ -6739,9 +6859,11 @@ const FUEHRUNGEN = {
       } },
 
     { titel: "Danach",
-      text: "Der gezählte Wert geht als Ladeliste in die Abrechnung. Dort " +
-            "wird daraus zusammen mit dem Inventur Ist der Endbestand — und " +
-            "der ist der Startbestand der nächsten Woche." }
+      text: "Gezählt wird in Stangen, abgerechnet in Euro: In die " +
+            "Abrechnung kommt als Ladeliste der Betrag <b>„Gesamt“ vom " +
+            "Lieferschein</b>, den Sie dort eintragen. Zusammen mit dem " +
+            "Inventur Ist ergibt er den Endbestand — und der ist der " +
+            "Startbestand der nächsten Woche." }
   ]
 };
 
@@ -7902,7 +8024,20 @@ function invSollAusAbrechnung() {
 const invKapazitaet = (g) => g.spalten.length * g.zeilen;
 const invGruppe = (id) => INV_GRUPPEN.find((g) => g.id === id);
 const invFeld = (gid, i) => invState.felder[gid + "-" + i] || {};
-const invZahl = (v) => { const n = parseFloat(String(v == null ? "" : v).replace(/\./g, "").replace(",", ".")); return isNaN(n) ? 0 : n; };
+/* Zahl aus einem Eingabefeld lesen - deutsch UND mit Punkt als Komma.
+   Bis 03.10.2026 wurde JEDER Punkt als Tausenderpunkt entfernt: "80.50"
+   wurde zu 8.050 - Faktor 100, ohne Warnung. Manche Handy-Tastaturen
+   (inputmode="decimal") bieten nur den Punkt an. Jetzt:
+     "80,50" / "1.234,50"  -> Komma da: Punkte sind Tausender   -> 80,5 / 1234,5
+     "1.100" / "158.692"   -> Punkt + genau 3 Ziffern-Gruppen    -> 1100 / 158692
+     "80.50" / "0.500"     -> sonst ist der Punkt das Komma      -> 80,5 / 0,5 */
+const invZahl = (v) => {
+  let s = String(v == null ? "" : v).replace(/\s/g, "");
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/^-?[1-9]\d{0,2}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
 const invFmt = (n) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const invEsc = (s) => String(s).replace(/[&<>"]/g, (m) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[m]));
 
@@ -8940,6 +9075,7 @@ async function invBlattCanvas() {
      liest die tatsaechlichen Maße der Felder ab, und die stimmen nur im
      Aufnahmezustand. */
   const textZurueck = invWerteAlsText(el);
+  invSigZeitZeigen(true);   // Zeitstempel der digitalen Unterschrift fuer DIESES Dokument
   let canvas;
   try {
     /* KEIN ignoreElements wie beim Spesenblatt: #inventurPanel traegt selbst
@@ -8955,6 +9091,7 @@ async function invBlattCanvas() {
     });
   } finally {
     textZurueck();
+    invSigZeitZeigen(false);
     el.classList.remove("inv-pdf-export");
     el.style.transform = vorherTransform;
     el.style.height = vorherHoehe;
@@ -9078,6 +9215,12 @@ async function invPerEmail() {
     zeigeSpesenUnteransicht("stammdaten", "cfgArbeitgeberEmail");
     return;
   }
+  // Mail nur mit Unterschrift - Begruendung siehe sendPerEmail() (korrektur0310)
+  if (korrektur0310() && !localStorage.getItem("inventur_signature")) {
+    alert("Per E-Mail geht das Inventurblatt nur mit eingefügter Unterschrift – eine verschickte PDF kann niemand mehr von Hand unterschreiben.\n\n" +
+          "Bitte zuerst auf dem Blatt beim Feld „Verkaufsfahrer“ über „📷 Unterschrift einfügen“ unterschreiben.");
+    return;
+  }
   const r = await invBuildPdf();
   if (!r) return;
   r.pdf.save(r.filename);
@@ -9107,6 +9250,15 @@ function invNeueInventur() {
   invSichern();
   document.querySelectorAll("#invRaster input").forEach((i) => { i.value = ""; });
   document.getElementById("invSoll").value = "";
+  /* Neue Inventur = neuer Durchgang: Datum leeren, damit das Kopfdaten-
+     Fenster HEUTE vorschlaegt. Bis 03.10.2026 wurde das Datum nur in
+     abrAbschliessen() geleert - und die Abrechnung hat nur Mirko. Bei
+     jedem anderen Fahrer trug deshalb JEDES Inventurblatt das Datum seiner
+     allerersten Inventur (mit echten Klicks nachgewiesen:
+     inventur-datum-pruefen.sh). Mirko: "ja korrektur fuer alle fahrer". */
+  kopfLaden();
+  kopfState.datum = "";
+  kopfSichern();
   invFrageKopf(true);
   invSetAnsicht("erfassen");
   invRechne();
@@ -10604,17 +10756,45 @@ function toggleAbrechnungPanel() {
    Verkaufsbericht ist ein Hochkant-Blatt. */
 /* Nimmt den Verkaufsbericht als Bild auf - herausgeloest, damit die
    einzelne und die gemeinsame PDF dieselbe Aufnahme benutzen. */
-async function abrBlattCanvas() {
+/* MAIL = DIGITALE UNTERSCHRIFT MIT ZEITSTEMPEL. Mirko am 03.10.2026: "wenn
+   gemailt wird, wird digital unterschrieben werden muessen mit
+   zeitstempel, wird nur gedruckt, dann gibt es handschriftliche
+   unterschrift". Bis dahin ging der Verkaufsbericht in der gemailten
+   Gesamtabrechnung OHNE Unterschrift raus.
+
+   Nur fuer die GEMAILTE Fassung wird "Unterschrift Fahrer" mit der
+   Unterschrift des Inventurblatts (inventur_signature - derselbe Fahrer,
+   derselbe Durchgang) und dem Zeitpunkt gefuellt - fuer die Dauer der
+   Aufnahme, danach ist das Feld wieder leer. Im AUSDRUCK bleibt die Zeile
+   frei: Mirko 05.09.2026, "muss haendisch eingetragen werden". */
+function abrDigitalUnterschriftEinsetzen() {
+  const sig = localStorage.getItem("inventur_signature");
+  const feld = document.getElementById("abrUntFahrer");
+  if (!sig || !feld) return null;
+  const td = feld.parentElement;
+  const vorherPos = td.style.position;
+  td.style.position = "relative";
+  const box = document.createElement("div");
+  box.className = "abr-sig-digital";
+  box.innerHTML = `<img src="${sig}" alt=""><span>unterschrieben am ${formatTimestampDE(new Date().toISOString())}</span>`;
+  td.appendChild(box);
+  return () => { box.remove(); td.style.position = vorherPos; };
+}
+
+async function abrBlattCanvas(opts) {
   if (!abrAufgebaut) { abrLaden(); abrVorbelegen(); abrStempelZeigen(); abrAufgebaut = true; }
   const el = document.getElementById("abrBlatt");
   if (!el) return null;
   const panelZurueck = panelAufnehmbar("abrechnungPanel", 1000);
   const vorher = el.style.transform;
   el.style.transform = "none";
+  const sigWeg = (opts && opts.digital) ? abrDigitalUnterschriftEinsetzen() : null;
   let canvas;
   try {
+    if (sigWeg) await new Promise((r) => setTimeout(r, 50));   // Bild dekodieren lassen
     canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", windowWidth: 1000 });
   } finally {
+    if (sigWeg) sigWeg();
     el.style.transform = vorher;
     if (panelZurueck) panelZurueck();
   }
@@ -10749,9 +10929,9 @@ function gesamtDateiname(zeit) {
    Bewusst ein Dokument statt drei Dateien: Ein Blatt zum Abgeben ist
    eines, nicht drei - und es laesst sich auf jedem Geraet oeffnen, ohne
    etwas zu entpacken. */
-async function gesamtabrechnungPdf(zeit) {
+async function gesamtabrechnungPdf(zeit, opts) {
   const invCanvas = await invBlattCanvas();
-  const abrCanvas = await abrBlattCanvas();
+  const abrCanvas = await abrBlattCanvas(opts);   // opts.digital: gemailte Fassung
   if (!invCanvas || !abrCanvas) return null;
 
   const { jsPDF } = window.jspdf;
@@ -10793,6 +10973,42 @@ async function abrBuildBeidePdf() {
   pdf.addPage("a4", "portrait");
   pdfBildEinpassen(pdf, abrCanvas, 8);
   return { pdf, filename: abrDateiname("Abrechnung-komplett") };
+}
+
+/* Gesamtabrechnung per E-Mail an die Niederlassung - gleiche Machart wie
+   invPerEmail(): PDF herunterladen, vorausgefuellte Mail oeffnen, Anhang
+   von Hand anfuegen (Browser duerfen keine Anhaenge setzen). Nur auf
+   Klick. Verschickt dieselbe Datei wie "Abrechnung abschliessen"
+   (gesamtabrechnungPdf: Inventur quer + Verkaufsbericht hoch, Fusszeile
+   "Erstellt"). Mail nur mit Unterschrift - siehe sendPerEmail(). */
+async function abrPerEmail() {
+  if (!config.arbeitgeberEmail) {
+    alert("Bitte zuerst in den Stammdaten die E-Mail-Adresse der Niederlassung eintragen.");
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgArbeitgeberEmail");
+    return;
+  }
+  if (korrektur0310() && !localStorage.getItem("inventur_signature")) {
+    alert("Per E-Mail geht die Abrechnung nur mit eingefügter Unterschrift – eine verschickte PDF kann niemand mehr von Hand unterschreiben.\n\n" +
+          "Bitte zuerst auf dem Inventurblatt beim Feld „Verkaufsfahrer“ über „📷 Unterschrift einfügen“ unterschreiben.");
+    return;
+  }
+  // gemailt = digital unterschrieben, auch der Verkaufsbericht (abrDigitalUnterschriftEinsetzen)
+  const r = await gesamtabrechnungPdf(new Date(), { digital: true });
+  if (!r) { alert("Die Blätter konnten nicht aufgenommen werden."); return; }
+  r.pdf.save(r.filename);
+  const tour = (invState.kopf.invTour || "").trim();
+  const datum = (invState.kopf.invDatum || invHeute()).trim();
+  const betreff = "Gesamtabrechnung" + (tour ? " – Tour " + tour : "") + " – " + datum;
+  const text =
+    "Hallo,\n\nanbei die Gesamtabrechnung (Fahrzeug-Inventur und Verkaufsbericht)" +
+    (tour ? " für Tour " + tour : "") + " vom " + datum + ".\n\n" +
+    "Hinweis: Bitte die soeben heruntergeladene PDF-Datei noch an diese E-Mail anhängen " +
+    "(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n" +
+    "Viele Grüße\n" + (invState.kopf.invFahrer || config.name || "");
+  alert('PDF "' + r.filename + '" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail – dort bitte die PDF aus dem Downloads-Ordner anhängen.');
+  window.location.href = "mailto:" + encodeURIComponent(config.arbeitgeberEmail) +
+    "?subject=" + encodeURIComponent(betreff) + "&body=" + encodeURIComponent(text);
 }
 
 async function abrBeideDrucken() {
@@ -11483,7 +11699,40 @@ function rebuildMonthPicker() {
   if (prevValue && prevValue >= config.startMonat && prevValue <= config.endMonat) picker.value = prevValue;
 }
 
+/* Sperre fuer abgeschlossene Monate - an der EINEN Stelle, durch die jede
+   Aenderung an einem Tag laeuft (updateOverride, liveUpdate, Zeit-Dreh-Rad).
+
+   Bis 03.10.2026 sperrte NUR CSS (pointer-events:none, Regel bei
+   ".formular-locked #formular"). Drei Wege liefen daran vorbei:
+     1. die App-Kartenansicht (#handyBlatt liegt ausserhalb von #formular) -
+        Zeiten und Orte eines eingereichten Monats blieben am Handy aenderbar,
+        obwohl das Banner "Bearbeitung gesperrt" sagte
+     2. die Tab-Taste: pointer-events haelt keine Tastatur auf
+     3. der Knopf "+ Samstag (diese Woche)" - stand gar nicht in der Regel
+   Gefunden bei der Pruefung fuer die Chef-Praesentation. Jetzt prueft der
+   Code selbst, das CSS ist nur noch die Optik. */
+function tagGesperrt(iso) {
+  return !!localStorage.getItem("spesen_submitted_" + String(iso).slice(0, 7));
+}
+function sperrHinweis() {
+  ordnerHinweis("🔒 Dieser Monat ist eingereicht und gesperrt – zum Ändern oben auf „Wieder öffnen“ tippen.");
+}
+/* Fuer Zeitraeume (Abwesenheiten am Stueck, Urlaubskalender): Tage in einem
+   eingereichten Monat bleiben unangetastet, der Rest wird eingetragen - und
+   der Nutzer erfaehrt, was ausgelassen wurde. Bis 03.10.2026 schrieben diese
+   Wege ohne Pruefung in gesperrte Monate. */
+function ohneGesperrteTage(isos) {
+  const frei = isos.filter((iso) => !tagGesperrt(iso));
+  const n = isos.length - frei.length;
+  if (n > 0) {
+    alert(`${n} ${n === 1 ? "Tag liegt" : "Tage liegen"} in einem eingereichten, gesperrten Monat und ` +
+          `${n === 1 ? "wurde" : "wurden"} nicht geändert.\n\nZum Ändern den Monat zuerst im Spesen-Bereich über „Wieder öffnen“ entsperren.`);
+  }
+  return frei;
+}
+
 function updateOverride(iso, field, value) {
+  if (tagGesperrt(iso)) { sperrHinweis(); renderFormular(); return; }
   overrides[iso] = overrides[iso] || {};
   if (value === "" || value === null) delete overrides[iso][field];
   else overrides[iso][field] = value;
@@ -11503,8 +11752,49 @@ function monthSubmittedKey(jahr, monat) { return `spesen_submitted_${jahr}-${pad
 function isMonthSubmitted(jahr, monat) { return localStorage.getItem(monthSubmittedKey(jahr, monat)) !== null; }
 
 function submitMonth(jahr, monat) {
+  monatFestschreiben(jahr, monat);
   localStorage.setItem(monthSubmittedKey(jahr, monat), new Date().toISOString());
   renderFormular();
+}
+
+/* Beim Einreichen die Tageswerte FESTSCHREIBEN (03.10.2026, Mirko: "ja
+   deine korrektur"). Bis dahin hingen nicht einzeln eingetragene Tage an
+   den Standardzeiten/Standard-Orten der Stammdaten - wer diese NACH dem
+   Einreichen aenderte, aenderte damit auch den eingereichten, gesperrten
+   Monat, ohne es zu merken (computeDay: "vorgabeGilt").
+
+   Jetzt wird beim Einreichen jeder Wert, der nur aus einer Vorgabe kam, als
+   ausdruecklicher Eintrag gespeichert. Welche Felder das waren, merkt sich
+   "__fest" - beim "Wieder öffnen" (monatFestschreibungLoesen) werden genau
+   diese wieder entfernt, damit sich der geoeffnete Monat verhaelt wie
+   vorher. Im Alltag unsichtbar, gilt deshalb fuer alle (Regel 20.09.). */
+function monatFestschreiben(jahr, monat) {
+  const { entries } = computeMonth(jahr, monat);
+  entries.forEach((e) => {
+    if (!e || e.status !== "normal") return;
+    const ov = overrides[e.iso] = overrides[e.iso] || {};
+    const fest = [];
+    const setze = (feld, wert) => {
+      if (wert && (ov[feld] === undefined || ov[feld] === "")) { ov[feld] = wert; fest.push(feld); }
+    };
+    if (istInnendienst()) { setze("nlVon", e.nlVon); setze("nlBis", e.nlBis); }
+    else { setze(e.startField, e.abfahrt); setze(e.endField, e.ankunft); setze("orte", e.orte); }
+    if (e.zeitAuto && fest.length && !ov.zeitAuto) { ov.zeitAuto = "1"; fest.push("zeitAuto"); }
+    if (fest.length) ov.__fest = fest.join(",");
+    if (Object.keys(ov).length === 0) delete overrides[e.iso];
+  });
+  saveOverrides();
+}
+function monatFestschreibungLoesen(jahr, monat) {
+  const praefix = jahr + "-" + pad(monat) + "-";
+  Object.keys(overrides).forEach((iso) => {
+    const ov = overrides[iso];
+    if (!iso.startsWith(praefix) || !ov || !ov.__fest) return;
+    ov.__fest.split(",").forEach((f) => { delete ov[f]; });
+    delete ov.__fest;
+    if (Object.keys(ov).length === 0) delete overrides[iso];
+  });
+  saveOverrides();
 }
 
 /* Zaehlt, wie oft ein Monat schon per E-Mail versendet wurde. Anders als die
@@ -11617,6 +11907,7 @@ async function submitReopenPin(jahr, monat, isSetup) {
     return;
   }
   localStorage.removeItem(monthSubmittedKey(jahr, monat));
+  monatFestschreibungLoesen(jahr, monat);   // Vorgaben gelten wieder wie vor dem Einreichen
   closeModal();
   renderFormular();
 }
@@ -11749,7 +12040,9 @@ function applyAbsenceRange() {
     alert("Das Bis-Datum liegt vor dem Von-Datum.");
     return;
   }
-  eachDateInRange(von, bis, (iso) => {
+  const isos = [];
+  eachDateInRange(von, bis, (iso) => isos.push(iso));
+  ohneGesperrteTage(isos).forEach((iso) => {
     overrides[iso] = overrides[iso] || {};
     overrides[iso].status = status;
   });
@@ -11792,7 +12085,9 @@ function clearAbsenceRange() {
     alert("Bitte Von- und Bis-Datum angeben.");
     return;
   }
-  eachDateInRange(von, bis, (iso) => {
+  const isos = [];
+  eachDateInRange(von, bis, (iso) => isos.push(iso));
+  ohneGesperrteTage(isos).forEach((iso) => {
     if (overrides[iso]) {
       delete overrides[iso].status;
       if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
@@ -11854,7 +12149,9 @@ function renderAbsenceRangesList() {
 }
 
 function removeAbsenceRange(von, bis) {
-  eachDateInRange(von, bis, (iso) => {
+  const isos = [];
+  eachDateInRange(von, bis, (iso) => isos.push(iso));
+  ohneGesperrteTage(isos).forEach((iso) => {
     if (overrides[iso]) {
       delete overrides[iso].status;
       if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
@@ -12050,6 +12347,7 @@ function recomputeSummary(monat) {
 }
 
 function liveUpdate(iso, field, value) {
+  if (tagGesperrt(iso)) return;   // Sperre siehe tagGesperrt()
   overrides[iso] = overrides[iso] || {};
   if (value === "" || value === null) delete overrides[iso][field];
   else overrides[iso][field] = value;
@@ -12110,6 +12408,8 @@ function renderFormular() {
 
   const submittedAt = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
   document.body.classList.toggle("formular-locked", !!submittedAt);
+  // 10-Std.-Sperre fuer den Browser-Druck (Strg+P), siehe #druckSperre10h
+  document.body.classList.toggle("druck-gesperrt-10h", korrektur0310() && tageUeber10().length > 0);
   const lockBanner = submittedAt ? `
     <div class="no-print month-locked-banner">
       <span>🔒 ${t("monthLockedBanner").replace("{ts}", formatTimestampDE(submittedAt))}</span>
@@ -12149,8 +12449,8 @@ function renderFormular() {
       const nlZelle = innenLeer
         ? `<span class="time-picker-field nl-von${e.nlVon ? "" : " empty"}" data-iso="${e.iso}" data-field="nlVon" data-value="${e.nlVon || ""}" onclick="openTimeWheelForField(this)">${e.nlVon || "--:--"}</span><span class="nl-cell-sep"> – </span><span class="time-picker-field nl-bis${e.nlBis ? "" : " empty"}" data-iso="${e.iso}" data-field="nlBis" data-value="${e.nlBis || ""}" onclick="openTimeWheelForField(this)">${e.nlBis || "--:--"}</span>`
         : e.nl;
-      const wpAbfahrtZelle = innenLeer ? "" : `<span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}" data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>${emptyWarn}`;
-      const wpAnkunftZelle = innenLeer ? "" : `<span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}" data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span>`;
+      const wpAbfahrtZelle = innenLeer ? "" : `<span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.startField}" data-value="${e.abfahrt}" onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}${zeitAutoMarke(e)}</span>${emptyWarn}`;
+      const wpAnkunftZelle = innenLeer ? "" : `<span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}" data-field="${e.endField}" data-value="${e.ankunft}" onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}${zeitAutoMarke(e)}</span>`;
       const orteZelle = innenLeer ? "" : `<input class="cell-input orte-input" value="${escapeHtml(e.orte)}" onchange="updateOverride('${e.iso}','orte',this.value)"><span class="orte-print">${escapeHtml(e.orte)}</span>`;
       rows.push(`
         <tr>
@@ -12231,11 +12531,11 @@ function renderFormular() {
         <td class="status-col"></td>
       </tr>
       <tr>
-        <td>über &nbsp;8 Stunden</td><td>${config.pauschale8.toFixed(2).replace(".", ",")} €</td>
+        <td>über &nbsp;8 Stunden</td><td>${pauschaleSatz8().toFixed(2).replace(".", ",")} €</td>
         <td class="status-col"></td>
       </tr>
       <tr>
-        <td>über 24 Stunden</td><td>${config.pauschale24.toFixed(2).replace(".", ",")} €</td>
+        <td>über 24 Stunden</td><td>${pauschaleSatz24().toFixed(2).replace(".", ",")} €</td>
         <td class="status-col"></td>
       </tr>
       <tr>
@@ -12256,6 +12556,7 @@ function renderFormular() {
         <td colspan="8" class="small" style="color:#666;">* Std. bereits abzüglich 30 Minuten Pause (nur am Bildschirm, nicht im PDF)</td>
         <td></td>
       </tr>
+      ${zeitAutoFussnote(entries)}
       <tr class="gesamt-row">
         <td colspan="4"></td>
         <td colspan="3" class="bold">Gesamtpauschale</td>
@@ -12288,9 +12589,10 @@ function renderFormular() {
         <td colspan="4" rowspan="2" class="signature-cell">
           <div class="small sig-label">Unterschrift<br>NLL :</div>
           <div class="sig-box"><img id="sigImg-spesen_signature_nll" class="sig-img" alt="" style="display:none"></div>
+          ${nllSelbstEinfuegbar() ? `
           <input type="file" id="sigFile-spesen_signature_nll" class="no-print" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'spesen_signature_nll')">
           <button class="no-print sig-upload-btn" onclick="document.getElementById('sigFile-spesen_signature_nll').click()" title="Foto/Scan der handschriftlichen Unterschrift hochladen">📷 Foto/Scan</button>
-          <button class="no-print sig-clear-btn" onclick="clearSignature('spesen_signature_nll')" title="Unterschrift entfernen">✕</button>
+          <button class="no-print sig-clear-btn" onclick="clearSignature('spesen_signature_nll')" title="Unterschrift entfernen">✕</button>` : ""}
           <div class="small" id="sigTs-spesen_signature_nll" style="color:#888;"></div>
         </td>
         <td colspan="4" class="center small">Dieser Nachweis verbleibt pro Mitarbeiter in der NL</td>
@@ -12308,7 +12610,7 @@ function renderFormular() {
     </table>
   `;
   document.getElementById("formular").innerHTML = html;
-  renderHandyBlatt(entries, submittedAt, startLabel, endLabel);
+  renderHandyBlatt(entries, submittedAt, startLabel, endLabel, lockBanner);
   setupSignatureFields();
   zeitraumHinweisAktualisieren();
   vorausHinweisAktualisieren();
@@ -12500,7 +12802,7 @@ function zurueckZuHeute() {
    IDs bewusst mit "h"-Vorsatz (hstd-cell-...), damit sie sich nicht mit denen
    des Vordrucks doppeln - doppelte IDs sind ungueltig, und getElementById
    faende nur noch die erste. */
-function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
+function renderHandyBlatt(entries, submittedAt, startLabel, endLabel, lockBanner) {
   const ziel = document.getElementById("handyBlatt");
   if (!ziel) return;
 
@@ -12557,19 +12859,19 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
             <label>${escapeHtml(startLabel)}</label>
             <span class="time-picker-field${e.abfahrt ? "" : " empty"}" data-iso="${e.iso}"
                   data-field="${e.startField}" data-value="${e.abfahrt}"
-                  onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}</span>
+                  onclick="openTimeWheelForField(this)">${e.abfahrt || "--:--"}${zeitAutoMarke(e)}</span>
           </div>
           <div>
             <label>${escapeHtml(endLabel)}</label>
             <span class="time-picker-field${e.ankunft ? "" : " empty"}" data-iso="${e.iso}"
                   data-field="${e.endField}" data-value="${e.ankunft}"
-                  onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}</span>
+                  onclick="openTimeWheelForField(this)">${e.ankunft || "--:--"}${zeitAutoMarke(e)}</span>
           </div>`}
         </div>
 
         ${istInnendienst() ? "" : `<div class="tk-feld">
           <label>Orte</label>
-          <input class="cell-input" value="${escapeHtml(e.orte)}"
+          <input class="cell-input" value="${escapeHtml(e.orte)}"${gesperrt ? " disabled" : ""}
                  onchange="updateOverride('${e.iso}','orte',this.value)">
         </div>`}
 
@@ -12605,7 +12907,9 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
           <label class="tk-sig-label">${s.label}</label>
           <div class="tk-sig-box"><img id="sigImg-${s.key}-handy" class="tk-sig-img" alt="" style="display:none"></div>
           <span id="sigTs-${s.key}-handy" class="small" style="color:#888;"></span>
-          ${gesperrt ? "" : `
+          ${(s.key === "spesen_signature_nll" && !nllSelbstEinfuegbar())
+            ? `<span class="small" style="color:#888;">unterschreibt der Niederlassungsleiter selbst</span>`
+            : gesperrt ? "" : `
           <div class="tk-sig-btns">
             <button type="button" class="ghost" onclick="document.getElementById('sigFile-${s.key}').click()" title="Foto/Scan der handschriftlichen Unterschrift einfügen">📷 Unterschrift einfügen</button>
             <button type="button" class="ghost tk-sig-clear" onclick="clearSignature('${s.key}')" title="Unterschrift entfernen">✕</button>
@@ -12617,9 +12921,17 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel) {
      uebereinander, bevor der erste Tag kam. Der Hinweis ist wichtig
      (sonst denkt man, die Abgabe sehe jetzt anders aus), aber er darf
      nicht den halben Bildschirm kosten. */
+  /* lockBanner: DASSELBE Banner wie ueber dem Vordruck ("Eingereicht am …
+     – Bearbeitung gesperrt" + "Wieder öffnen"). Bis 03.10.2026 fehlte es in
+     der App ganz - wer am Handy einen eingereichten Monat oeffnete, sah
+     weder dass er gesperrt ist, noch wie man ihn wieder oeffnet. App und
+     Browser: gleiche Stelle, ganz oben ueber den Tagen. */
   ziel.innerHTML = `
+    ${lockBanner || ""}
     <p class="handy-hinweis">📱 Eingabe-Ansicht · Abgabe erfolgt weiter im gewohnten Vordruck</p>
     ${karten || '<p class="small" style="text-align:center; color:#666;">Für diesen Monat gibt es keine Tage.</p>'}
+    ${(korrektur0310() && entries.some((e) => e && e.zeitAuto))
+      ? '<p class="handy-hinweis">° Zeit automatisch erzeugt (Einstellung „Zeiten automatisch variieren“) – nicht einzeln eingetragen.</p>' : ""}
     ${sigHtml}`;
 }
 
@@ -12640,13 +12952,78 @@ const SIGNATURE_PADS = [
 /* Zeigt "unterschrieben am TT.MM.JJJJ um HH:MM" unter der jeweiligen
    Unterschrift an - sowohl auf dem Bildschirm als auch im PDF, gibt der
    Unterschrift echten Beweischarakter (wer hat wann unterschrieben). */
+/* "unterschrieben am" fuer DIESES Dokument (korrektur0310, Mirko 03.10.2026).
+   Bis dahin stand hier der Zeitpunkt, an dem das FOTO hochgeladen wurde -
+   und weil dasselbe Foto fuer alle Monate gilt, trug z. B. der
+   Oktober-Nachweis "unterschrieben am 31.7.2026". Der Kommentar oben
+   verspricht "wer hat wann unterschrieben" - das war so nicht wahr.
+   Jetzt gilt:
+     · Monat eingereicht  -> Zeitpunkt der Einreichung (bleibt stabil, auch
+                             wenn die PDF spaeter neu erzeugt wird)
+     · noch offen, PDF    -> Zeitpunkt, zu dem die PDF entsteht
+     · noch offen, Schirm -> Hinweis, dass das Datum beim Erstellen kommt */
+let __sigZeitJetzt = false;   // sendPerEmail: das jetzt entstehende Dokument zaehlt
+function sigZeitText(fuerPdf) {
+  if (!localStorage.getItem("spesen_signature")) return "";
+  const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+  const eingereicht = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
+  if (eingereicht && !__sigZeitJetzt) return `unterschrieben am ${formatTimestampDE(eingereicht)}`;
+  return fuerPdf ? `unterschrieben am ${formatTimestampDE(new Date().toISOString())}`
+                 : "Datum wird beim Erstellen des Nachweises eingesetzt";
+}
+
+/* Inventurblatt, Feld "Verkaufsfahrer": Zeitstempel NUR bei digitaler
+   Unterschrift (Mirko 03.10.2026: "nur handschriftlich setzt kein
+   zeitstempel"). Gleiche Regel wie bei den Spesen (sigZeitText): im
+   Dokument der Zeitpunkt, zu dem es entsteht; am Bildschirm nur ein
+   Hinweis, der nicht mitgedruckt wird. Gilt fuer jede PDF des Blatts -
+   ansehen, speichern, drucken, mailen, abschliessen, Gesamtabrechnung -,
+   weil alle ueber invBlattCanvas() gehen. Strg+P im Browser zeigt den
+   Hinweis nicht und auch keinen Stempel (dort laeuft kein Code). */
+function invSigZeitZeigen(fuerPdf) {
+  const el = document.getElementById("invSigZeit");
+  if (!el) return;
+  const digital = korrektur0310() && !!localStorage.getItem("inventur_signature");
+  if (!digital) { el.textContent = ""; return; }
+  if (fuerPdf) el.textContent = "unterschrieben am " + formatTimestampDE(new Date().toISOString());
+  else el.innerHTML = '<span class="no-print">Datum wird beim Erstellen eingesetzt</span>';
+}
+
+/* Browser-Druck (Strg+P / Teilen -> Drucken). Mirko am 03.10.2026: "wenn
+   eine foto unterschrift gesetzt ist wird diese immer mitgedruckt, dort
+   aber dann auch mit zeitstempel." Die Druck-Knoepfe der App gehen ueber
+   buildPdf()/invBlattCanvas() und setzen den Stempel dort. Fuer den
+   Browser-Druck hier per beforeprint. Das loest nicht jeder Handy-
+   Druckweg aus (siehe invSetAnsicht) - dann fehlt der Stempel, es wird
+   aber nie ein FALSCHER gedruckt (der Bildschirm-Hinweis ist no-print). */
+window.addEventListener("beforeprint", () => {
+  if (!korrektur0310()) return;
+  const sp = document.getElementById("sigTs-spesen_signature");
+  if (sp && localStorage.getItem("spesen_signature")) sp.textContent = sigZeitText(true);
+  invSigZeitZeigen(true);
+});
+window.addEventListener("afterprint", () => {
+  if (!korrektur0310()) return;
+  renderSignatureTimestamp("spesen_signature");
+  invSigZeitZeigen(false);
+});
+
 function renderSignatureTimestamp(key) {
-  const ts = localStorage.getItem(key + "_ts");
-  const text = ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "";
+  if (key === "inventur_signature") invSigZeitZeigen(false);
+  const ts = (key === "spesen_signature_nll" && !nllSelbstEinfuegbar())
+    ? null : localStorage.getItem(key + "_ts");
+  const text = (key === "spesen_signature" && korrektur0310())
+    ? sigZeitText(false)
+    : (ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "");
   // Vordruck UND App-Kartenansicht (#handyBlatt) gemeinsam setzen.
+  // Der Hinweis "Datum wird beim Erstellen …" ist nur fuer den Bildschirm:
+  // no-print, sonst stuende er nach Strg+P auf dem Papier.
+  const nurSchirm = text && !text.startsWith("unterschrieben am");
   ["sigTs-" + key, "sigTs-" + key + "-handy"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.textContent = text;
+    if (!el) return;
+    if (nurSchirm) el.innerHTML = `<span class="no-print">${text}</span>`;
+    else el.textContent = text;
   });
 }
 
@@ -12654,8 +13031,19 @@ function renderSignatureTimestamp(key) {
    Aktualisiert NEBEN imgId auch das Gegenstueck imgId+"-handy" in der
    App-Kartenansicht (#handyBlatt), falls vorhanden - so ziehen Vordruck und
    Karte bei Upload/Clear gemeinsam mit. */
+/* Unterschrift NLL - Mirko am 03.10.2026: "unterschrift nll setzt auf dem
+   spesen zettel herr dietrich". Bis dahin konnte der MITARBEITER dieses
+   Feld selbst mit einem Bild fuellen - also auch mit der Unterschrift
+   seines Niederlassungsleiters. Jetzt bleibt das Feld leer und wird vom
+   Niederlassungsleiter auf dem Nachweis selbst unterschrieben. Eine schon
+   gespeicherte NLL-Unterschrift bleibt im Speicher (nichts geht verloren,
+   Backup unveraendert), wird aber nicht mehr angezeigt und nicht gedruckt.
+   Haengt am Freigabe-Schalter korrektur0310(). */
+function nllSelbstEinfuegbar() { return !korrektur0310(); }
+
 function loadSignatureImageInto(imgId, key) {
-  const saved = localStorage.getItem(key);
+  const saved = (key === "spesen_signature_nll" && !nllSelbstEinfuegbar())
+    ? null : localStorage.getItem(key);
   [imgId, imgId + "-handy"].forEach((id) => {
     const img = document.getElementById(id);
     if (!img) return;
@@ -12807,6 +13195,9 @@ async function buildPdf() {
   const formularScroll = document.getElementById("formular-scroll");
   const formularScrollDisplayVorher = formularScroll ? formularScroll.style.display : "";
   if (formularScroll) formularScroll.style.display = "block";
+  // Unterschrifts-Zeitstempel fuer DIESES Dokument (korrektur0310) - siehe sigZeitText()
+  const sigTsEl = document.getElementById("sigTs-spesen_signature");
+  if (sigTsEl && korrektur0310()) sigTsEl.textContent = sigZeitText(true);
   let canvas;
   try {
     canvas = await html2canvas(el, {
@@ -12823,6 +13214,7 @@ async function buildPdf() {
       document.body.classList.add("typ-innendienst");
       renderFormular();
     }
+    renderSignatureTimestamp("spesen_signature");   // Bildschirm-Text zurueck
   }
   const imgData = canvas.toDataURL("image/png");
 
@@ -12977,7 +13369,12 @@ function buildCsvData() {
 }
 
 // CSV als Datei herunterladen.
+/* 10-Std.-Sperre auch fuer die drei CSV-Wege (korrektur0310). Bis
+   03.10.2026 liefen sie ohne Pruefung an der Sperre vorbei. */
+function csvLimitOk() { return !korrektur0310() || stundenLimitOk(); }
+
 function downloadCsvFile() {
+  if (!csvLimitOk()) return;
   const { csv, filename } = buildCsvData();
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -12994,6 +13391,7 @@ function exportCSV() { return downloadCsvFile(); }
 
 // CSV als lesbare Tabelle in einem neuen Fenster drucken.
 function csvPrint() {
+  if (!csvLimitOk()) return;
   const { header, rows, monthName } = buildCsvData();
   const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const th = header.map(h => `<th>${esc(h)}</th>`).join("");
@@ -13011,6 +13409,7 @@ function csvPrint() {
 
 // CSV NUR an die eigene, hinterlegte Adresse senden (Absender = Empfänger = man selbst).
 function csvEmailSelf() {
+  if (!csvLimitOk()) return;
   const self = (config.eigeneEmail || "").trim();
   if (!self) {
     alert("Bitte zuerst in den Einstellungen Ihre eigene E-Mail-Adresse eintragen.\n\nDie CSV wird ausschließlich an diese Adresse (an Sie selbst) gesendet – nie an den Arbeitgeber.");
@@ -13361,8 +13760,23 @@ async function sendPerEmail() {
     `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
     `Viele Grüße\n${config.name || ""}`;
 
-  if (!unterschriftHinweisOk()) return;
-  const filename = await downloadPDF(true);
+  /* Mail nur mit eingefuegter Unterschrift (korrektur0310, Mirko 03.10.2026).
+     Eine verschickte PDF kann niemand mehr von Hand unterschreiben - bis
+     dahin genuegte ein "OK" auf die Erinnerung. DRUCKEN bleibt bewusst ohne
+     Unterschrift moeglich (Mirko, 01.10.2026): der Ausdruck wird von Hand
+     unterschrieben. */
+  if (korrektur0310()) {
+    if (!localStorage.getItem("spesen_signature")) {
+      alert("Per E-Mail geht der Nachweis nur mit eingefügter Unterschrift – eine verschickte PDF kann niemand mehr von Hand unterschreiben.\n\n" +
+            "Bitte zuerst beim Feld „Unterschrift“ über 📷 Ihre Unterschrift einfügen.\n\n" +
+            "Drucken geht weiterhin auch ohne – dann den Ausdruck von Hand unterschreiben.");
+      return;
+    }
+  } else if (!unterschriftHinweisOk()) return;
+  // Das jetzt entstehende Dokument ist das eingereichte - auch bei Korrektur
+  __sigZeitJetzt = true;
+  let filename;
+  try { filename = await downloadPDF(true); } finally { __sigZeitJetzt = false; }
   submitMonth(config.jahr, monat); // Monat gilt ab Versand als eingereicht und wird gesperrt
   bumpMonthSentCount(config.jahr, monat); // zaehlt jeden Versand (fuer Korrektur-Erkennung; bleibt beim Wieder-Oeffnen erhalten)
   alert(
@@ -13496,6 +13910,7 @@ function openTimeWheel(currentValue, onConfirm) {
 
 function openTimeWheelForField(el) {
   const iso = el.dataset.iso, field = el.dataset.field;
+  if (iso && tagGesperrt(iso)) { sperrHinweis(); return; }   // gar nicht erst oeffnen
   openTimeWheel(el.dataset.value || "", (newVal) => {
     liveUpdate(iso, field, newVal);
     updateOverride(iso, field, newVal);
@@ -13592,7 +14007,7 @@ function szVorschau() {
   let diff = timeToMinutes(bis) - timeToMinutes(von);
   if (diff < 0) diff += 24 * 60;
   const std = Math.round(Math.max(0, diff / 60 - 0.5) * 100) / 100;
-  const pauschale = std > 24 ? config.pauschale24 : (std > 8 ? config.pauschale8 : 0);
+  const pauschale = std > 24 ? pauschaleSatz24() : (std > 8 ? pauschaleSatz8() : 0);
   el.innerHTML =
     `<b>${von} – ${bis}</b> an jedem Werktag<br>` +
     `ergibt <b>${formatHoursDisplay(std)} Std.</b> ` +
@@ -15044,7 +15459,8 @@ function urlaubEintragen() {
   // auch versehentlich gesetzte Tage wieder saeubern lassen.
   const holidaysMap = feiertage(urlaubJahrWert(), config.bundesland);
   const tage = urlaubTageImZeitraum(von, bis);
-  const betroffen = status === "normal" ? tage : tage.filter((iso) => urlaubZaehltTag(iso, holidaysMap));
+  const betroffen = ohneGesperrteTage(
+    status === "normal" ? tage : tage.filter((iso) => urlaubZaehltTag(iso, holidaysMap)));
   betroffen.forEach((iso) => {
     overrides[iso] = overrides[iso] || {};
     if (status === "normal") delete overrides[iso].status;
@@ -15075,6 +15491,7 @@ function urlaubTagKlick(iso) {
     return;
   }
 
+  if (tagGesperrt(iso)) { sperrHinweis(); return; }   // Sperre siehe tagGesperrt()
   overrides[iso] = overrides[iso] || {};
   if (status === "normal" || overrides[iso].status === status) delete overrides[iso].status;
   else overrides[iso].status = status;
