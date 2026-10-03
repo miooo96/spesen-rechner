@@ -6748,7 +6748,9 @@ function heuteAktualisieren() {
   /* Der Sollbestand kommt aus der Abrechnung, nicht mehr aus einem
      getippten Feld im Inventurspeicher (Mirko, 05.09.2026). */
   const abr = abrStandLesen();
-  if (ist > 0) chips.push(abr.soll
+  // Seit 03.10.2026 dieselbe Regel wie das Inventurblatt (abrHatEingaben):
+  // nur vorbelegt (z. B. nur der Vortrag nach einem Abschluss) zaehlt nicht.
+  if (ist > 0) chips.push(abrHatEingaben()
     ? '<span class="heute-chip fertig">Sollbestand ' + invFmt(abr.soll) + ' €</span>'
     : '<span class="heute-chip offen">Sollbestand fehlt – Abrechnung ausfüllen</span>');
   document.getElementById("heuteChips").innerHTML = chips.join("");
@@ -8001,9 +8003,16 @@ function invFixbestandZeigen() {
 
 /* Gibt es ueberhaupt schon eine Abrechnung? Wird gebraucht, um "noch nichts
    gerechnet" von "gerechnet, Ergebnis null" zu unterscheiden. */
+/* ⛔ SEIT 03.10.2026 zaehlen die SELBST VORBELEGTEN Felder nicht mehr mit
+   (Vertreter, Tour, Datum, Endbestand Vortrag - ABR_VORBELEGT). Vorher
+   reichte es, die Abrechnung nur zu OEFFNEN: abrVorbelegen() trug Name,
+   Tour und Datum ein, und das Inventurblatt zeigte "Sollbestand 0,00" und
+   als Differenz den ganzen Istbestand in Gruen - mit echten Klicks
+   nachgewiesen (Chef-Video/soll-falle-pruefen.js). Mirko: "ja falsche
+   werte verschwinden". Dieselbe Regel benutzt der Wochenlauf schon
+   (abrSelbstAusgefuellt), jetzt gilt sie ueberall gleich. */
 function abrHatEingaben() {
-  const f = (abrState && abrState.felder) || {};
-  return Object.keys(f).some((k) => String(f[k] == null ? "" : f[k]).trim() !== "");
+  return abrSelbstAusgefuellt();
 }
 
 /* Liefert den Inventur-Soll aus der Abrechnung - oder null, wenn es noch
@@ -10444,7 +10453,12 @@ async function abrAbschliessen() {
     "• Der Bericht wird als PDF gespeichert und ins Archiv gelegt\n" +
     "• Endbestand IST " + invFmt(endbestand) + " € wird als Endbestand Vortrag in die neue Woche übernommen\n" +
     "• Verkaufsbericht, Fahrzeug-Inventur und Ware zählen werden geleert\n\n" +
-    "Das lässt sich nicht rückgängig machen.";
+    /* Bis 03.10.2026 stand hier "Das lässt sich nicht rückgängig machen." -
+       direkt danach erschien aber "Rückgängig 30". Mirko: "der knopf dient
+       das man 30 sek zeit hat um es rückgängig zu machen bevor es nicht
+       mehr geht falls man versehentlich abschickt." */
+    "Versehentlich abgeschlossen? Danach haben Sie " + ABR_RUECKNAHME_SEK +
+    " Sekunden Zeit, alles zurückzunehmen. Die gespeicherte PDF bleibt dabei im Download-Ordner.";
   if (!confirm(frage)) return;
 
   /* ⚠ Der Schnappschuss wird HIER genommen - vor der ersten Aenderung,
@@ -11980,6 +11994,13 @@ async function submitReopenPin(jahr, monat, isSetup) {
   }
   localStorage.removeItem(monthSubmittedKey(jahr, monat));
   monatFestschreibungLoesen(jahr, monat);   // Vorgaben gelten wieder wie vor dem Einreichen
+  /* Ein noch stehender Hinweis "🔒 Dieser Monat ist eingereicht und gesperrt"
+     ist ab jetzt falsch - und er lag (4 Sekunden lang) ueber dem ersten
+     Zeitfeld: Wer gleich nach dem PIN ein Zeitfeld antippte, traf den
+     Streifen statt des Felds. Gefunden von sperre-app-pruefen.sh am
+     03.10.2026 (echter Klick, elementFromPoint). Reparatur fuer alle. */
+  const streifen = document.getElementById("ordnerHinweisStreifen");
+  if (streifen && /gesperrt/.test(streifen.textContent || "")) streifen.remove();
   closeModal();
   renderFormular();
 }
