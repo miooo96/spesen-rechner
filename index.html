@@ -4336,11 +4336,12 @@
          Zeilen bleiben leer und werden auf dem Ausdruck von Hand
          unterschrieben. Zeitstempel entfaellt hier bewusst; beim
          Inventurblatt bleibt die digitale Unterschrift erhalten.
-         ⚠ AUSNAHME SEIT 03.10.2026 - die GEMAILTE Fassung: Mirko, "wenn
-         gemailt wird, wird digital unterschrieben werden muessen mit
-         zeitstempel". Siehe abrDigitalUnterschriftEinsetzen(). Das Feld
-         selbst bleibt readonly und leer; ausgefuellt wird nur die
-         Aufnahme fuer die Mail. -->
+         ⚠ SEIT 03.10.2026: Ist auf dem Inventurblatt eine Foto-Unterschrift
+         eingefuegt, traegt der Verkaufsbericht sie mit Zeitstempel - in
+         der Mail UND im Ausdruck. Ohne Foto-Unterschrift bleibt die Zeile
+         frei fuer die Hand. Siehe abrDigitalUnterschriftEinsetzen(). Das
+         Feld selbst bleibt readonly und leer; ausgefuellt wird nur die
+         Aufnahme fuer Druck, PDF und Mail. -->
     <table class="abr-unterschrift">
       <tr><td class="lab">Unterschrift Fahrer:</td>
           <td class="linie" style="width:26%"><input id="abrUntFahrer" readonly></td>
@@ -4669,6 +4670,50 @@ function istMirko() {
   return (config.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase();
 }
 
+/* ---- Die Chef-Fassung (03.10.2026) ---------------------------------
+   Mirko am 03.10.2026: "dann machen wir es so mit einer Chef version dort
+   ist alles wie bei mirko rieb drinne nur die stechuhr nicht also zeiten."
+
+   Hintergrund: Mit dem Praesentationsvideo geht der Link an die Chefs,
+   damit sie zeitgleich selbst testen koennen. Mit dem eigenen Namen saehen
+   sie nur Spesen und Inventur - Ware und Abrechnung aus dem Video fehlten.
+   Mit "Mirko Rieb" saehen sie die Stechuhr und Mirkos Cloud-Anmeldung.
+
+   EINSCHALTEN:  hall-spesen-rechner.de/?chef     (das Geraet merkt es sich)
+   AUSSCHALTEN:  hall-spesen-rechner.de/?chef=aus
+
+   Die Chef-Fassung bekommt alles hinter zeigtSonderbereiche(),
+   zeigtNeuerungen() (und damit korrektur0310()), zeigtInventurMail(), die
+   Inventur-Ampel und den Einrichtungsassistenten in voller Laenge.
+
+   Sie bekommt NICHT:
+     · die Stechuhr     - zeigtZeit() fragt istMirko() selbst, nicht
+                          zeigtSonderbereiche() (Mirko: "sollen die chefs
+                          eher nicht mitbekommen mit der stechuhr")
+     · den Cloud-Sync   - firebase-sync.js prueft den Namen selbst
+     · den Test-Reset   - Mirkos Werkzeug zum Testen ("Nur für Mirko")
+
+   Der Merker ueberlebt "Alles zuruecksetzen" (sonst faellt ein Chef nach
+   dem Ausprobieren auf die Kollegen-Fassung zurueck) und geht NICHT ins
+   Backup (sonst schaltete eine eingespielte Sicherung die Chef-Fassung auf
+   einem Kollegengeraet ein).
+
+   ⚠ Wie istMirko() KEIN Zugriffsschutz: Wer den Link hat, sieht die
+   Bereiche. Mirko weiss das (03.10.2026). */
+const CHEF_SCHLUESSEL = "spesen_chef_ansicht";
+(function chefLinkMerken() {
+  try {
+    const p = new URLSearchParams(location.search);
+    if (!p.has("chef")) return;
+    if (p.get("chef") === "aus") localStorage.removeItem(CHEF_SCHLUESSEL);
+    else localStorage.setItem(CHEF_SCHLUESSEL, "ja");
+  } catch (e) { /* ohne Speicher keine Chef-Fassung - dann eben die normale */ }
+})();
+function istChefAnsicht() {
+  try { return localStorage.getItem(CHEF_SCHLUESSEL) === "ja"; }
+  catch (e) { return false; }
+}
+
 /* ---- Ein einzelner Kollege bekommt die Arbeitszeit ------------------
    Mirko am 23.09.2026: "eine sache wuerde ich fuer einen einzigen
    kollegen ergaenzen, Sven Dersch, wenn der Name Sven Dersch in dieser
@@ -4705,7 +4750,7 @@ function istZeitKollege() {
 
    Vorher war beides an istMirko() gekoppelt; deshalb sahen Kollegen auch
    das neue Aussehen nicht. */
-function zeigtSonderbereiche() { return istMirko(); }
+function zeigtSonderbereiche() { return istMirko() || istChefAnsicht(); }
 
 /* ---- Die Neuerungen vom 20.09.2026 -------------------------------
    Mirko am 20.09.2026: "Alle Mitarbeiter nur die Funktion die sie jetzt
@@ -4734,7 +4779,7 @@ function zeigtSonderbereiche() { return istMirko(); }
    Geprueft wird das von sperre-pruefen.sh: Es nimmt jede betroffene
    Stelle zweimal auf, einmal als Mirko und einmal als Kollege, und
    vergleicht die Hoehen. */
-function zeigtNeuerungen() { return istMirko(); }
+function zeigtNeuerungen() { return istMirko() || istChefAnsicht(); }
 
 /* ---- Korrekturen aus der Pruefung fuer die Chef-Praesentation (03.10.2026) ----
    Mirko am 03.10.2026: "ja deine korrektur ja". Alles davon, was ein
@@ -4772,7 +4817,7 @@ function korrektur0310() { return KORREKTUREN_0310_FUER_ALLE || zeigtNeuerungen(
    Niederlassung geklaert hat - unabhaengig vom Go der Chefs und
    unabhaengig von den Neuerungen des 20.09. Dieselbe Begruendung wie
    bei zeigtNeuerungen() direkt darueber. */
-function zeigtInventurMail() { return istMirko(); }
+function zeigtInventurMail() { return istMirko() || istChefAnsicht(); }
 
 /* ---- Wer sieht die Arbeitszeit? ------------------------------------
    Mirko UND die Namen aus ZEIT_EXTRA_NAMEN (seit 23.09.2026: Sven
@@ -4789,8 +4834,12 @@ function zeigtInventurMail() { return istMirko(); }
    Wer Sven Dersch stattdessen in zeigtSonderbereiche() aufnaehme,
    gaebe ihm alle drei. Genau dieselbe Falle wie bei der
    Fahrzeug-Inventur am 22.09.2026, nur eine Tuer weiter.
-   Geprueft von inventur-fuer-fahrer.sh, Rolle "sven". */
-function zeigtZeit() { return zeigtSonderbereiche() || istZeitKollege(); }
+   Geprueft von inventur-fuer-fahrer.sh, Rolle "sven".
+
+   ⛔ Seit 03.10.2026 fragt diese Funktion istMirko() DIREKT und nicht
+   mehr zeigtSonderbereiche(): Die Chef-Fassung bekommt die
+   Sonderbereiche, aber die Stechuhr nicht (siehe istChefAnsicht()). */
+function zeigtZeit() { return istMirko() || istZeitKollege(); }
 
 function aktualisiereZeitSichtbarkeit() {
   const sichtbar = zeigtZeit();
@@ -5513,8 +5562,11 @@ function val(id) { return document.getElementById(id).value; }
    Funktionen statt gegen nachgebaute Schleifen. */
 function gehoertZumZuruecksetzen(key) {
   /* Keine Ausnahmen mehr. Bis zum 20.09.2026 blieb "auswertung_..."
-     stehen, weil es dem Chef-Bereich gehoerte - den gibt es nicht mehr. */
-  return true;
+     stehen, weil es dem Chef-Bereich gehoerte - den gibt es nicht mehr.
+     Einzige Ausnahme seit 03.10.2026: der Merker der Chef-Fassung. Er ist
+     keine Eingabe, sondern sagt, WELCHE Fassung das Geraet zeigt - siehe
+     istChefAnsicht(). */
+  return key !== CHEF_SCHLUESSEL;
 }
 
 /* Restmaterial des entfernten Auswertungs-Bereichs vom Geraet raeumen.
@@ -5732,7 +5784,7 @@ function openRuecksetzenModal() {
      seit dem 20.09. loescht das Zuruecksetzen wirklich alles. */
   const einzeln = zeigtNeuerungen() ? `
         <h3 style="margin:1rem 0 0.3rem; font-size:0.95rem;">Einzelnen Bereich zurücksetzen</h3>
-        ${ruecksetzBereiche().map((b) =>
+        ${ruecksetzBereiche().filter((b) => b.id !== "zeit" || zeigtZeit()).map((b) =>
     `<div style="display:flex; align-items:center; gap:0.6rem; padding:9px 0; border-bottom:1px solid #eee;">
        <span style="flex:1; font-weight:600; color:var(--brand-dark);">${b.name}</span>
        <button class="ghost" style="flex:none; font-size:0.8rem; padding:5px 14px;"
@@ -7621,7 +7673,8 @@ const WIZARD_STEPS_KOLLEGE = 4;
 function wizardLetzterSchritt() {
   const feld = document.getElementById("wizName");
   const name = (feld ? feld.value : "").trim().toLowerCase();
-  return name === MIRKO_NAME.toLowerCase() ? WIZARD_STEPS : WIZARD_STEPS_KOLLEGE;
+  // Chef-Fassung (03.10.2026): voller Assistent wie bei Mirko.
+  return (name === MIRKO_NAME.toLowerCase() || istChefAnsicht()) ? WIZARD_STEPS : WIZARD_STEPS_KOLLEGE;
 }
 
 /* Schritt 6: Ja/Nein umschalten. Die Datumsfelder erscheinen nur bei Ja -
@@ -8207,7 +8260,7 @@ function invRechne() {
     invDiffEl.classList.remove("inv-diff-plus", "inv-diff-minus");
   } else {
     const d = ist - soll;
-    if (istMirko()) {
+    if (istMirko() || istChefAnsicht()) {   // Chef-Fassung wie Mirko (03.10.2026)
       invDiffEl.value = (d > 0.0001 ? "+" : "") + invFmt(d);
       invDiffEl.classList.toggle("inv-diff-plus", d > 0.0001);
       invDiffEl.classList.toggle("inv-diff-minus", d < -0.0001);
@@ -8951,7 +9004,13 @@ function pdfFusszeile(pdf, zeit) {
    BEWUSST nicht blockierend (kein alert, das den Druck verhindern wuerde),
    sondern der vorhandene Hinweis-Streifen. Fuer Uebersichten (Zeit, Urlaub,
    Jahr) wird er NICHT gezeigt. */
-function unterschriftErinnern(farbVar) {
+function unterschriftErinnern(farbVar, sigKey) {
+  /* Seit 03.10.2026 (korrektur0310): Wer digital unterschrieben hat, dessen
+     Ausdruck traegt die Unterschrift schon - dann ist "nicht vergessen"
+     falsch. Mirko: "unterschreibt man nicht digital dann nicht, dann
+     benoetigt man ja fuer die handschriftliche unterschrift platz." Die
+     Erinnerung gilt also nur noch OHNE Foto-Unterschrift. */
+  if (korrektur0310() && sigKey && localStorage.getItem(sigKey)) return;
   ordnerHinweis("Bitte Unterschrift nach dem Ausdruck nicht vergessen.",
                 farbVar || "--ordner-inventur");
 }
@@ -9304,7 +9363,7 @@ function invDruckeErgebnis() {
     "<b>1 Seite</b> A4 quer. Zum Drucken an Ihr Gerät übergeben – dann " +
     "kommt sie auf <b>einem</b> Querformat-Blatt an, in voller Größe und " +
     "ohne Adresszeile.");
-  unterschriftErinnern("--ordner-inventur");
+  unterschriftErinnern("--ordner-inventur", "inventur_signature");
 }
 function invSchliesseErgebnis() {
   __invErgebnis = null;
@@ -10762,11 +10821,23 @@ function toggleAbrechnungPanel() {
    unterschrift". Bis dahin ging der Verkaufsbericht in der gemailten
    Gesamtabrechnung OHNE Unterschrift raus.
 
-   Nur fuer die GEMAILTE Fassung wird "Unterschrift Fahrer" mit der
-   Unterschrift des Inventurblatts (inventur_signature - derselbe Fahrer,
-   derselbe Durchgang) und dem Zeitpunkt gefuellt - fuer die Dauer der
-   Aufnahme, danach ist das Feld wieder leer. Im AUSDRUCK bleibt die Zeile
-   frei: Mirko 05.09.2026, "muss haendisch eingetragen werden". */
+   "Unterschrift Fahrer" wird mit der Unterschrift des Inventurblatts
+   (inventur_signature - derselbe Fahrer, derselbe Durchgang) und dem
+   Zeitpunkt gefuellt - fuer die Dauer der Aufnahme, danach ist das Feld
+   wieder leer.
+
+   ✅ SEIT 03.10.2026 AUCH IM AUSDRUCK (korrektur0310). Mirko, nachdem ihm
+   der Vergleich Inventurblatt/Verkaufsbericht gezeigt wurde: "je nachdem
+   via email an niederlassung oder digitale foto unterschrift mit
+   zeitstempel dann wird sie gesetzt beim drucken und email verschicken,
+   unterschreibt man nicht digital dann nicht, dann benoetigt man ja fuer
+   die handschriftliche unterschrift platz."
+   Also: Foto-Unterschrift vorhanden -> steht auf JEDEM Verkaufsbericht
+   (Ausdruck, PDF, Mail), wie auf dem Inventurblatt. Keine vorhanden ->
+   Zeile frei fuer die Hand. Das loest die Vorgabe vom 05.09.2026 ("muss
+   haendisch eingetragen werden") ab, die nur fuer den Fall OHNE digitale
+   Unterschrift weiter gilt. Kollegen ohne korrektur0310() behalten bis zur
+   Freigabe den alten Weg (nur die Mail traegt die Unterschrift). */
 function abrDigitalUnterschriftEinsetzen() {
   const sig = localStorage.getItem("inventur_signature");
   const feld = document.getElementById("abrUntFahrer");
@@ -10788,7 +10859,8 @@ async function abrBlattCanvas(opts) {
   const panelZurueck = panelAufnehmbar("abrechnungPanel", 1000);
   const vorher = el.style.transform;
   el.style.transform = "none";
-  const sigWeg = (opts && opts.digital) ? abrDigitalUnterschriftEinsetzen() : null;
+  // Mail immer, Ausdruck/PDF seit 03.10.2026 auch (korrektur0310) - siehe oben
+  const sigWeg = ((opts && opts.digital) || korrektur0310()) ? abrDigitalUnterschriftEinsetzen() : null;
   let canvas;
   try {
     if (sigWeg) await new Promise((r) => setTimeout(r, 50));   // Bild dekodieren lassen
@@ -11015,7 +11087,7 @@ async function abrBeideDrucken() {
   const r = await abrBuildBeidePdf();
   if (!r) { alert("Die Blätter konnten nicht aufgenommen werden."); return; }
   pdfUebergabe(r.pdf, r.filename);
-  unterschriftErinnern("--ordner-abrechnung");
+  unterschriftErinnern("--ordner-abrechnung", "inventur_signature");
 }
 
 /* ---------- Zweiseitige PDF an das Geraet uebergeben ----------
@@ -11616,13 +11688,13 @@ function abrDruckeErgebnis() {
     "📄 Verkaufsbericht ist fertig",
     "<b>1 Seite</b> A4 hoch. Zum Drucken an Ihr Gerät übergeben – dann " +
     "kommt das Blatt in voller Größe an, ohne Adresszeile.");
-  unterschriftErinnern("--ordner-abrechnung");
+  unterschriftErinnern("--ordner-abrechnung", "inventur_signature");
 }
 
 async function abrSpeichern() { const r = await abrBuildPdf(); if (r) r.pdf.save(r.filename); }
 async function abrDrucken() {
   const r = await abrBuildPdf();
-  if (r) { pdfDrucken(r.pdf); unterschriftErinnern("--ordner-abrechnung"); }
+  if (r) { pdfDrucken(r.pdf); unterschriftErinnern("--ordner-abrechnung", "inventur_signature"); }
 }
 
 /* Aufbau des Inventurblatts, herausgeloest aus toggleInventurPanel():
@@ -12191,6 +12263,10 @@ function gehoertInsBackup(key) {
   // Reine Anzeige-Erinnerung ("welcher Bereich war zuletzt offen"), keine
   // Daten. Gehoert nicht in eine Sicherung und nicht auf ein anderes Geraet.
   if (key === HEUTE_KEY) return false;
+  // Merker der Chef-Fassung (03.10.2026): Geraete-Einstellung, keine Daten.
+  // Ueber eine Sicherung auf ein Kollegengeraet gebracht, schaltete er dort
+  // die Chef-Fassung ein. Siehe istChefAnsicht().
+  if (key === CHEF_SCHLUESSEL) return false;
   /* "Neue Ware zaehlen" bleibt draussen - Mirko, 20.09.2026: "muss nicht
      mit ins Backup, das ist jede Woche anders. Das dient nur der
      Vereinfachung vom Zaehlen der bestellten Ware fuer die kommende
@@ -13320,7 +13396,7 @@ function printFromPreview() {
     "<b>1 Seite</b> A4 hoch. Zum Drucken an Ihr Gerät übergeben – dann " +
     "kommt das Blatt in voller Größe an, ohne Adresszeile und ohne " +
     "abgeschnittene Ränder.");
-  unterschriftErinnern("--ordner-spesen");
+  unterschriftErinnern("--ordner-spesen", "spesen_signature");
 }
 
 function closePdfPreview() {
