@@ -4731,8 +4731,13 @@ function istChefAnsicht() {
 
    ⚠ Wie bei Mirko KEIN Zugriffsschutz, sondern rein kosmetisch: Wer
    diesen Namen eintraegt, sieht den Bereich. Das war bei istMirko()
-   nie anders. */
-const ZEIT_EXTRA_NAMEN = ["Sven Dersch"];
+   nie anders.
+
+   ⛔ SEIT 05.10.2026 LEER. Mirko nach dem Gespraech mit dem Chef: "wir
+   muessen aber zeiten fuer alle rausnehmen ausser mir". Die Ausnahme fuer
+   Sven Dersch entfaellt damit. Die Funktion bleibt, falls spaeter wieder
+   einzelne Namen dazukommen sollen. */
+const ZEIT_EXTRA_NAMEN = [];
 function istZeitKollege() {
   const name = (config.name || "").trim().toLowerCase();
   return ZEIT_EXTRA_NAMEN.some((n) => n.toLowerCase() === name);
@@ -4850,8 +4855,17 @@ function aktualisiereZeitSichtbarkeit() {
   aktualisiereKachelGridLayout();
 }
 
-/* ===================== Fahrzeug-Inventur: fuer ALLE Fahrer =====================
-   GEAENDERT am 22.09.2026. Mirko: "fahrzeug inventur kann eigentlich auch
+/* ===================== Fahrzeug-Inventur: wieder NUR MIRKO =====================
+   ⛔ ZURUECKGENOMMEN am 05.10.2026. Mirko nach dem Gespraech mit dem Chef
+   ("er war begeistert, alles interne wird noch besprochen"): "inventur
+   ebenfalls ausser fuer mich. fuer mich bleibt alles unveraendert, fuer
+   jeden anderen fahrer oder monteur muss inventur, ware zaehlen und
+   abrechnung raus." Die Inventur haengt seitdem wieder an
+   zeigtSonderbereiche() (Mirko und die Chef-Fassung), wie Ware und
+   Abrechnung. Die Daten der Kollegen bleiben gespeichert, nur unsichtbar -
+   bei einer spaeteren Freigabe sind sie wieder da.
+
+   Bis dahin galt (zur Geschichte): GEAENDERT am 22.09.2026. Mirko: "fahrzeug inventur kann eigentlich auch
    fuer alle ausser in der monteur einstellung live gepusht werden. die
    macht ohnehin jeder jede woche wieder. da muss vorher nichts
    abgesprochen sein."
@@ -4886,7 +4900,7 @@ function aktualisiereInventurSichtbarkeit() {
   // Jeder Nicht-Fahrer (Aussen- UND Innendienst) ist hier "Monteur":
   // Fahrzeug-Inventur/Ware/Abrechnung bleiben fuer beide ausgeblendet.
   const istMonteur = config.mitarbeitertyp !== "fahrer";
-  const invSichtbar    = !istMonteur;                              // jeder Fahrer
+  const invSichtbar    = zeigtSonderbereiche() && !istMonteur;     // seit 05.10.2026 wieder nur Mirko (+ Chef-Fassung)
   const sonderSichtbar = zeigtSonderbereiche() && !istMonteur;     // nur Mirko
 
   const umschalten = (tab, sichtbar) => {
@@ -6508,7 +6522,24 @@ function markiereTab(tab) {
   }
 }
 
+/* Darf dieser Nutzer den Bereich ueberhaupt oeffnen? (05.10.2026)
+   Bisher wurden Zeit, Inventur, Ware und Abrechnung nur AUSGEBLENDET (Kachel
+   und Reiter). Geoeffnet werden konnten sie trotzdem: ueber den
+   Schnellzugriff "Arbeitszeit erfassen" der installierten App (Manifest,
+   gilt fuer JEDEN Nutzer), ueber Anker wie /index.html#inventur und ueber
+   den Neuladen-Anker. Mirko: "fuer mich bleibt alles unveraendert, fuer
+   jeden anderen fahrer oder monteur muss inventur, ware zaehlen und
+   abrechnung raus" - und "zeiten fuer alle rausnehmen ausser mir".
+   Dieselben Bedingungen wie bei den Kacheln, nur am Eingang. */
+function tabErlaubt(tab) {
+  const fahrer = config.mitarbeitertyp === "fahrer";
+  if (tab === "zeit") return zeigtZeit();
+  if (tab === "inventur" || tab === "ware" || tab === "abrechnung") return zeigtSonderbereiche() && fahrer;
+  return true;
+}
+
 function zeigeTab(tab) {
+  if (!tabErlaubt(tab)) { zeigeKachelStartseite(); return; }
   // Kachel-Startseite verlassen, sobald eine Funktion gewaehlt wird
   // (Entscheidung 26.08.2026) - mainTabs/Werkzeugleiste werden erst HIER
   // wieder eingeblendet, nicht schon auf der Kachel-Seite.
