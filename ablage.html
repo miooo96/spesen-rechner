@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Spesen-Ablage – Hall Tabakwaren</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="favicon.ico">
+<!-- ===================================================================
+     SPESEN-ABLAGE FUER FRAU GRITSCH (06.10.2026)
+
+     Mirko am 06.10.2026: "koennen wir ihr eine weitere funktion bauen, wo
+     sie einfach die datei aus der email in ein tool zieht, und das
+     automatisch ein ordner auf dem desktop einrichtet mit dem namen
+     Spesen dann das jahr aller Mitarbeiter, und dort wird dann die
+     jeweilig online eingereichte spese fuer sie in einen weiteren ordner
+     fuer jeden mitarbeiter mit dem richtigen namen angelegt und die datei
+     abgelegt. voll automatisch" - und: "frau gritsch bekommt die fertigen
+     jahresabschluesse ebenfalls in dem ordner spesen".
+     ("Jahresabschluss" heisst im Rechnungswesen Bilanz/GuV der Firma -
+     im Spesen-Tool heisst dasselbe "Jahresuebersicht", also hier auch.)
+
+     ERGEBNIS AUF DEM SCHREIBTISCH:
+       Spesen 2026/
+         Füllfahrer/                          <- nach Rolle gruppiert (06.10.2026 abends):
+                                                 Füllfahrer · Monteure Außendienst · Monteure Innendienst
+           Thomas Berger (Füllfahrer)/        <- Ordner traegt die Rolle (06.10.2026)
+             Spesennachweis Oktober 2026 von Thomas Berger.pdf
+             KORREKTUR – Spesennachweis Oktober 2026 von Thomas Berger.pdf
+                                              <- Korrektur NEBEN dem Original, nichts
+                                                 wird ueberschrieben (Mirko, 06.10.2026)
+         Jahresuebersichten/
+           Jahresuebersicht 2026 von Thomas Berger (Füllfahrer).csv
+
+     WOHER DIE DATEN KOMMEN: Jede Spesen-PDF ab dem 06.10.2026 traegt Name,
+     Monat, Jahr, Fassung und die Monatssummen unsichtbar in sich (Eintrag
+     /HallSpesen, siehe spesenDaten() in index.html). Die PDF selbst ist ein
+     BILD des Vordrucks - ohne diesen Eintrag koennte kein Programm die
+     Zahlen lesen, und Texterkennung kommt bei Geld nicht in Frage.
+     Aeltere Dateien: Monat und Jahr aus dem Dateinamen, den Namen fragt
+     die Seite ab - Zahlen gibt es dann keine, die Jahresuebersicht sagt das.
+
+     DATENSCHUTZ: Alles passiert in diesem Browser. Keine Datei, kein Name,
+     keine Zahl verlaesst den Rechner. Kein Server, keine Anmeldung.
+
+     TECHNIK: File System Access API - geht in Google Chrome und Microsoft
+     Edge am PC, NICHT in Safari/Firefox. Eine Webseite darf nicht
+     ungefragt auf den Schreibtisch schreiben: Frau Gritsch waehlt den
+     Ablageort EINMAL aus, der Browser merkt ihn sich (Chrome bietet
+     "Bei jedem Besuch erlauben" an).
+
+     PRUEFUNG: ablage-pruefen.sh - mit ?test arbeitet die Seite statt auf
+     dem Schreibtisch im privaten Browser-Speicher (OPFS), damit sich jeder
+     Ablauf ohne Auswahlfenster automatisch nachstellen laesst. Sonst
+     identisch.
+     =================================================================== -->
+<style>
+  :root { --accent: #de7008; --brand-dark: #612a00; --bg: #f0e7d8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background: var(--bg); color: #2b1a0e; }
+  header { background: var(--brand-dark); color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+  header img { height: 34px; background: #fff; border-radius: 6px; padding: 4px 8px; }
+  header h1 { font-size: 1.2rem; margin: 0; font-weight: 600; }
+  main { max-width: 920px; margin: 24px auto; padding: 0 16px; }
+  .karte { background: #fff; border-radius: 14px; padding: 18px 22px; margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .karte h2 { margin: 0 0 .5rem; font-size: 1.05rem; color: var(--brand-dark); }
+  button { font: inherit; border-radius: 10px; border: 2px solid var(--accent); background: #fff; color: var(--brand-dark); padding: 9px 16px; cursor: pointer; font-weight: 600; }
+  button.primaer { background: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  #ablage { border: 3px dashed var(--accent); border-radius: 16px; background: #fff8f1; padding: 44px 20px; text-align: center; transition: background .15s; }
+  #ablage.drueber { background: #fde9dc; }
+  #ablage.gesperrt { opacity: .45; }
+  #ablage b { font-size: 1.15rem; color: var(--brand-dark); }
+  .klein { font-size: .85rem; color: #6b5a4c; }
+  #protokoll { list-style: none; margin: 0; padding: 0; }
+  #protokoll li { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; background: #f7f3ee; line-height: 1.45; }
+  #protokoll li.ok { border-left: 5px solid #3a8f3a; }
+  #protokoll li.info { border-left: 5px solid #c9a227; }
+  #protokoll li.fehler { border-left: 5px solid #b3261e; }
+  /* Korrektur rot markiert (Mirko, 06.10.2026: "roter vermerk oben") -
+     auf der SEITE, nicht in der PDF. */
+  #protokoll li.korrektur { border-left: 6px solid #c62828; background: #fdecea; }
+  .korr-marke { display: inline-block; background: #c62828; color: #fff; font-weight: 700; font-size: .8rem;
+                letter-spacing: .04em; padding: 2px 8px; border-radius: 6px; margin-right: 6px; }
+  #korrekturVermerk { display: none; background: #c62828; color: #fff; border-radius: 14px; padding: 14px 20px;
+                      margin-bottom: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.15); line-height: 1.5; }
+  #korrekturVermerk b { font-size: 1.05rem; }
+  #korrekturVermerk ul { margin: .3rem 0 0 1.1rem; padding: 0; }
+  #protokoll li.frage { border-left: 5px solid var(--accent); background: #fff8f1; }
+  .zuordnen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+  .zuordnen input, .zuordnen select { font: inherit; padding: 7px 9px; border-radius: 8px; border: 1px solid #c8b8a6; }
+  code { background: #f3ece4; padding: 1px 5px; border-radius: 4px; }
+  /* ---- 3. Drucken (06.10.2026) ---- */
+  .d-leiste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .d-leiste select { font: inherit; padding: 7px 9px; border-radius: 8px; border: 1px solid #c8b8a6; }
+  .d-gruppe h3 { margin: 14px 0 6px; font-size: .95rem; color: var(--brand-dark); border-bottom: 1px solid #eadfd2; padding-bottom: 4px; }
+  .d-person { margin: 6px 0 10px; }
+  .d-person > label { font-weight: 700; display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .d-zeile { display: flex; gap: 10px; align-items: center; padding: 6px 8px 6px 28px; border-radius: 8px; }
+  .d-zeile:hover { background: #faf5ef; }
+  .d-zeile input, .d-person > label input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .d-monat { width: 130px; flex: none; }
+  .d-datei { flex: 1; font-size: .85rem; color: #6b5a4c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .d-alt { opacity: .6; }
+  .d-alt-marke { font-size: .75rem; background: #eee6dc; border-radius: 6px; padding: 1px 6px; flex: none; }
+  .d-korr { font-size: .75rem; background: #c62828; color: #fff; border-radius: 6px; padding: 1px 6px; font-weight: 700; flex: none; }
+  /* "bereits gedruckt" (Mirko, 06.10.2026) */
+  .d-gedruckt { font-size: .8rem; background: #e6f2e6; color: #1e5e1e; border: 1px solid #b8d8b8; border-radius: 6px; padding: 1px 8px; flex: none; }
+  .d-einzeln { padding: 4px 10px; font-size: .85rem; flex: none; }
+  #druckFrage { display: none; position: fixed; inset: 0; background: rgba(43,26,14,.55); z-index: 1000; align-items: center; justify-content: center; }
+  #druckFrage .box { background: #fff; border-radius: 14px; padding: 22px 26px; max-width: 520px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  #druckFrage .box h2 { margin: 0 0 .6rem; font-size: 1.1rem; color: var(--brand-dark); }
+</style>
+<!-- Zum Zusammenfuegen mehrerer PDFs zu EINEM Druckauftrag (06.10.2026).
+     pdf-lib 1.17.1, MIT-Lizenz - liegt im eigenen vendor-Ordner und wird mit
+     der Seite ausgeliefert: keine Datei geht an einen fremden Dienst. -->
+<script src="vendor/pdf-lib.min.js"></script>
+</head>
+<body>
+<header>
+  <img src="hall-logo-original.png" alt="Hall Tabakwaren">
+  <h1>Spesen-Ablage</h1>
+</header>
+<main>
+  <!-- Roter Vermerk oben: welche Korrekturen in dieser Sitzung eingegangen sind -->
+  <div id="korrekturVermerk" role="status">
+    <b>‼ Korrektur eingegangen</b> – liegt jeweils <u>neben</u> der bisherigen Fassung, nichts wurde überschrieben.
+    Was geändert wurde, steht in der E-Mail des Mitarbeiters.
+    <ul id="korrekturListe"></ul>
+  </div>
+  <div class="karte" id="kartenOrt">
+    <h2>1. Ablageort</h2>
+    <p id="ortText" class="klein">Noch kein Ablageort gewählt.</p>
+    <button class="primaer" id="ortWaehlen">📁 Ablageort wählen (z. B. Schreibtisch)</button>
+    <button id="ortErlauben" style="display:none;">🔓 Zugriff bestätigen</button>
+    <p id="ohneBrowser" class="klein" style="display:none;color:#b3261e;">
+      Dieser Browser kann keine Ordner anlegen. Bitte die Seite in <b>Google Chrome</b> oder <b>Microsoft Edge</b> öffnen.
+    </p>
+  </div>
+
+  <div class="karte">
+    <h2>2. Spesennachweis ablegen</h2>
+    <div id="ablage" class="gesperrt">
+      <b>PDF aus der E-Mail hierher ziehen</b>
+      <p class="klein">Mehrere auf einmal gehen auch. Der Ordner für den Mitarbeiter wird automatisch angelegt,<br>
+        die Jahresübersicht automatisch aktualisiert.</p>
+      <button id="dateienWaehlen">… oder Dateien auswählen</button>
+      <input type="file" id="dateiFeld" accept=".pdf,application/pdf" multiple style="display:none;">
+    </div>
+    <p class="klein" style="margin:.7rem 0 0;">🔒 Die Dateien verlassen diesen Rechner nicht – es wird nichts hochgeladen.</p>
+  </div>
+
+  <div class="karte">
+    <h2>Abgelegt</h2>
+    <ul id="protokoll"><li class="info klein" id="leer">Noch nichts abgelegt.</li></ul>
+    <p style="margin:.8rem 0 0;"><button id="neuErstellen" disabled>🔄 Alle Jahresübersichten neu erstellen</button>
+      <span class="klein">– nur nötig, wenn Dateien von Hand verschoben wurden.</span></p>
+  </div>
+
+  <!-- 3. DRUCKEN (06.10.2026). Mirko: "sie braucht ausserdem die moeglichkeit
+       von dem tool aus, die seiten auch direkt drucken zu koennen, auch
+       mehrere aufeinmal, auch alle aufeinmal, aber auch einzeln" - und:
+       "bereits gedruckte werden ebenfalls markiert mit dem hinweis bereits
+       gedruckt". -->
+  <div class="karte" id="druckKarte">
+    <h2>3. Drucken</h2>
+    <div class="d-leiste">
+      <label>Jahr <select id="druckJahr"></select></label>
+      <select id="druckMonat"><option value="">Monat wählen …</option></select>
+      <button id="druckAlle" disabled>Alle aktuellen</button>
+      <button id="druckOffen" disabled>Nur noch nicht gedruckte</button>
+      <button id="druckKeine" disabled>Keine</button>
+      <button class="primaer" id="druckStart" disabled>🖨️ Auswahl drucken</button>
+    </div>
+    <div id="druckListe" class="klein">Erst oben den Ablageort wählen.</div>
+    <p class="klein" style="margin:.8rem 0 0;">Mehrere Seiten gehen in <b>einem</b> Druckauftrag raus. „Alle aktuellen“ nimmt je Monat die neueste Fassung –
+      liegt eine Korrektur vor, also die Korrektur. Ältere Fassungen lassen sich einzeln dazu anhaken.</p>
+  </div>
+  <div id="druckFrage" role="dialog" aria-modal="true">
+    <div class="box">
+      <h2>🖨️ Wurde gedruckt?</h2>
+      <p id="druckFrageText"></p>
+      <p class="klein">Ob das Blatt wirklich aus dem Drucker kam, kann die Seite nicht wissen – deshalb diese Frage.
+        Bei „Ja“ steht danach bei jeder Seite <b>„bereits gedruckt“</b>.</p>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+        <button id="druckNein">Nein / abgebrochen</button>
+        <button class="primaer" id="druckJa">Ja, als gedruckt markieren</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const MONATE_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const UEBERSICHT_ORDNER = "Jahresübersichten";
+const TEST = new URLSearchParams(location.search).has("test");
+
+let wurzel = null;   // FileSystemDirectoryHandle des Ablageorts
+
+/* ---------- kleine Helfer ---------- */
+const $ = (id) => document.getElementById(id);
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+/* Ordner-/Dateiname, den Windows annimmt. Vereinheitlicht (NFC): Safari
+   legt Umlaute zerlegt ab - ohne das gaebe es zwei Ordner "Jörg Müller",
+   die gleich aussehen (gemessen 06.10.2026). */
+function sicherName(s) {
+  return String(s || "").normalize("NFC").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "").replace(/\s+/g, " ").trim().replace(/[. ]+$/, "");
+}
+function vergleichsName(s) { return sicherName(s).toLocaleLowerCase("de-DE"); }
+function euro(x) { return (Number(x) || 0).toFixed(2).replace(".", ","); }
+function datumZeit(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString("de-DE") + " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+}
+function fassungText(f) { return f == null ? "" : (f === 0 ? "Original" : (f === 1 ? "Korrektur" : "Korrektur " + f)); }
+/* Korrektur VORNE im Dateinamen (06.10.2026) - genau wie im Spesen-Tool
+   (spesenDateiname). Die PDF selbst bleibt Original (Mirko: "im orginal
+   end pdf darf nichts makiert werden"). "KORREKTUR – " steht im Ordner
+   ueber den "Spesennachweis …"-Dateien, also oben. */
+function dateiName(d) {
+  const korr = (typeof d.fassung === "number" && d.fassung >= 1) ? (d.fassung === 1 ? "KORREKTUR – " : "KORREKTUR " + d.fassung + " – ") : "";
+  return sicherName(korr + "Spesennachweis " + MONATE[d.monat - 1] + " " + d.jahr + " von " + d.name) + ".pdf";
+}
+function csvFeld(v) { const s = String(v == null ? "" : v); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+
+/* ---------- Daten aus der PDF lesen ---------- */
+async function datenAusPdf(datei) {
+  const puffer = await datei.arrayBuffer();
+  const text = new TextDecoder("latin1").decode(puffer);
+  const m = text.match(/\/HallSpesen \(([A-Za-z0-9+\/=]+)\)/);
+  if (!m) return null;
+  try {
+    const bin = atob(m[1]);
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    const d = JSON.parse(new TextDecoder("utf-8").decode(bytes));
+    if (d.art !== "hall-spesennachweis" || !d.name || !(d.monat >= 1 && d.monat <= 12) || !(d.jahr > 2000)) return null;
+    d.name = sicherName(d.name);
+    d.quelle = "pdf";
+    return d;
+  } catch (e) { return null; }
+}
+/* Aeltere Dateien ohne eingebettete Daten: nur, was im Namen steht. */
+function datenAusDateiname(name) {
+  const n = String(name || "").normalize("NFC");
+  const alle = MONATE.concat(MONATE_EN).join("|");
+  // Neu: "KORREKTUR 2 – Spesennachweis …" (vorne). Alt (bis 06.10.): "… (Korrektur 2).pdf" (hinten). Beides verstehen.
+  let m = n.match(new RegExp("^(?:KORREKTUR(?: (\\d+))? – )?Spesennachweis (" + alle + ") (\\d{4}) von (.+?)(?: \\(Korrektur(?: (\\d+))?\\))?(?: \\(\\d+\\))?\\.pdf$", "i"));
+  if (m) {
+    const vorne = /^KORREKTUR/i.test(n), hinten = /\(Korrektur/i.test(n);
+    return { name: sicherName(m[4]), monat: monatNummer(m[2]), jahr: Number(m[3]),
+             fassung: m[1] ? Number(m[1]) : (m[5] ? Number(m[5]) : ((vorne || hinten) ? 1 : null)), quelle: "dateiname" };
+  }
+  m = n.match(new RegExp("^Spesennachweis_(" + alle + ")_(\\d{4})", "i"));
+  if (m) return { name: "", monat: monatNummer(m[1]), jahr: Number(m[2]), fassung: null, quelle: "dateiname" };
+  return null;
+}
+function monatNummer(wort) {
+  const w = wort.toLowerCase();
+  let i = MONATE.findIndex((x) => x.toLowerCase() === w);
+  if (i < 0) i = MONATE_EN.findIndex((x) => x.toLowerCase() === w);
+  return i + 1;
+}
+
+/* ---------- Ordner je Mitarbeiter, mit Rolle (06.10.2026) ----------
+   Mirko: "die einzelnen ordner muessen auch die rolle tragen, ob monteur
+   innendienst, oder aussendienst, und ob fuellfahrer."
+   -> "Thomas Berger (Füllfahrer)", "Anna Schmidt (Monteur Außendienst)" ...
+   Die Rolle steht in jeder PDF (mitarbeitertyp aus den Stammdaten des
+   Tools). Im Tool heisst die Rolle nur "Fahrer" - "Füllfahrer" ist Mirkos
+   Wort fuer genau diese Rolle.
+
+   GESUCHT wird der Ordner am NAMEN, ohne den Rollen-Zusatz: Wechselt
+   jemand im Jahr die Rolle, bleiben alle seine Monate in EINEM Ordner
+   (die Jahresuebersicht zeigt die Rolle je Monat). Gross-/Kleinschreibung
+   und Umlaut-Schreibweise spielen dabei keine Rolle. */
+const ROLLEN = { "fahrer": "Füllfahrer", "monteur-aussen": "Monteur Außendienst", "monteur-innen": "Monteur Innendienst", "monteur": "Monteur" };
+const ROLLEN_MUSTER = /\s*\((Füllfahrer|Monteur Außendienst|Monteur Innendienst|Monteur)\)$/;
+function rollenText(typ) { return ROLLEN[typ] || ""; }
+function typAusRolle(rolle) { return Object.keys(ROLLEN).find((k) => ROLLEN[k] === rolle) || ""; }
+function personAusOrdner(n) { return sicherName(String(n || "").normalize("NFC").replace(ROLLEN_MUSTER, "")); }
+function rolleAusOrdner(n) { const m = String(n || "").normalize("NFC").match(ROLLEN_MUSTER); return m ? m[1] : ""; }
+
+/* ---------- Ordner nach Rolle gruppiert (06.10.2026, abends) ----------
+   Mirko: "kann beim ablegen der ordner auch nach rolle sortiert werden
+   fuellfahrer, monteure innendienst, monteure aussendienst? und da dann die
+   jeweiligen mitarbeiter ablegen das es uebersichtlicher wird"
+   -> Spesen 2026/Füllfahrer/Max Mustermann (Füllfahrer)/…
+      Spesen 2026/Monteure Außendienst/Klaus Weber (Monteur Außendienst)/…
+   Der Mitarbeiter-Ordner traegt die Rolle WEITER im Namen (Regel vom selben
+   Tag bleibt). Wechselt jemand im Jahr die Rolle, bleibt er in seinem
+   bisherigen Ordner samt Gruppe, damit alle Monate beisammen sind.
+   Ordner aus dem Aufbau davor (Mitarbeiter direkt unter "Spesen <Jahr>")
+   werden weiter gefunden und weiter benutzt - nichts wird verschoben. */
+const GRUPPEN = { "Füllfahrer": "Füllfahrer", "Monteur Außendienst": "Monteure Außendienst",
+                  "Monteur Innendienst": "Monteure Innendienst", "Monteur": "Monteure" };
+const GRUPPEN_NAMEN = new Set(Object.values(GRUPPEN));
+/* Alle Mitarbeiter-Ordner eines Jahres: [{ dir, gruppe }] - gruppe "" = alter Aufbau */
+async function personenOrdnerAlle(jahrDir) {
+  const raus = [];
+  for await (const [n, h] of jahrDir.entries()) {
+    if (h.kind !== "directory" || n === UEBERSICHT_ORDNER) continue;
+    if (GRUPPEN_NAMEN.has(n)) {
+      for await (const [, g] of h.entries()) if (g.kind === "directory") raus.push({ dir: g, gruppe: n });
+    } else raus.push({ dir: h, gruppe: "" });
+  }
+  return raus;
+}
+async function personenOrdnerSuchen(jahrDir, name) {
+  const ziel = vergleichsName(personAusOrdner(name));
+  return (await personenOrdnerAlle(jahrDir)).find((x) => vergleichsName(personAusOrdner(x.dir.name)) === ziel) || null;
+}
+function ordnerPfad(fund) { return (fund.gruppe ? fund.gruppe + "/" : "") + fund.dir.name; }
+async function datei_vorhanden(dir, name) {
+  try { await dir.getFileHandle(name); return true; } catch (e) { return false; }
+}
+async function schreiben(dir, name, blob) {
+  const h = await dir.getFileHandle(name, { create: true });
+  const w = await h.createWritable();
+  await w.write(blob);
+  await w.close();
+}
+async function freierName(dir, name) {
+  if (!(await datei_vorhanden(dir, name))) return name;
+  const p = name.replace(/\.pdf$/i, "");
+  for (let i = 2; i < 100; i++) {
+    const k = p + " (" + i + ").pdf";
+    if (!(await datei_vorhanden(dir, k))) return k;
+  }
+  return p + " (" + Date.now() + ").pdf";
+}
+/* Alle Nachweise im Mitarbeiter-Ordner (ohne Unterordner) mit ihren Daten. */
+async function nachweiseIm(dir) {
+  const liste = [];
+  for await (const [n, h] of dir.entries()) {
+    if (h.kind !== "file" || !/\.pdf$/i.test(n)) continue;
+    const f = await h.getFile();
+    const d = (await datenAusPdf(f)) || datenAusDateiname(n);
+    if (d) liste.push({ datei: n, daten: d, groesse: f.size });
+  }
+  return liste;
+}
+/* Ist a neuer als b? Erst die Fassung (Korrektur zaehlt hoch), dann der
+   Erstellzeitpunkt. Unbekannte Fassung (aeltere Datei) zaehlt als aeltester Stand. */
+function neuerAls(a, b) {
+  const fa = (typeof a.fassung === "number") ? a.fassung : -1;
+  const fb = (typeof b.fassung === "number") ? b.fassung : -1;
+  if (fa !== fb) return fa > fb;
+  return (a.erstellt || "") > (b.erstellt || "");
+}
+function gleicheFassung(a, b) {
+  return (a.fassung ?? null) === (b.fassung ?? null) && (a.erstellt || "") === (b.erstellt || "");
+}
+/* Hier stand bis zum 06.10.2026 verschieben() - es schob die alte Fassung
+   nach "Ersetzt" und LOESCHTE sie am alten Platz. Ausgebaut: Die Seite
+   legt nur noch ab, sie verschiebt und loescht nichts (Mirko: "die
+   korrektur fassung darf nicht automatisch ueberschreiben"). */
+
+/* ---------- Jahresuebersicht je Mitarbeiter ---------- */
+/* Spalte "Rolle" je Monat (06.10.2026) - wer im Jahr die Rolle wechselt,
+   sieht es hier Monat fuer Monat. Liegen fuer einen Monat mehrere
+   Fassungen im Ordner (Korrekturen werden NICHT ueberschrieben, Mirko
+   06.10.2026), zaehlt die neueste; der Hinweis sagt das. */
+async function jahresuebersichtSchreiben(jahrDir, maDir, jahr) {
+  const nachweise = await nachweiseIm(maDir);
+  const jeMonat = {}, anzahl = {};
+  nachweise.forEach((x) => {
+    const d = x.daten;
+    if (d.jahr !== jahr) return;
+    anzahl[d.monat] = (anzahl[d.monat] || 0) + 1;
+    if (!jeMonat[d.monat] || neuerAls(d, jeMonat[d.monat].daten)) jeMonat[d.monat] = x;
+  });
+  const kopf = ["Mitarbeiter", "Rolle", "Niederlassung", "Jahr", "Monat", "Arbeitstage mit Pauschale", "Pauschale (EUR)",
+                "Urlaub", "Krank", "Frei", "Sonderurlaub", "Elternzeit", "Fassung", "Erstellt am", "Datei", "Hinweis"];
+  const zeilen = [kopf];
+  const summe = { arbeitstage: 0, pauschale: 0, urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
+  let fehlen = 0, ohneZahlen = 0, nl = "";
+  const name = personAusOrdner(maDir.name);
+  const ordnerRolle = rolleAusOrdner(maDir.name);
+  for (let m = 1; m <= 12; m++) {
+    const x = jeMonat[m];
+    if (!x) { fehlen++; zeilen.push([name, "", "", jahr, MONATE[m - 1], "", "", "", "", "", "", "", "", "", "", "nicht eingegangen"]); continue; }
+    const d = x.daten;
+    const rolle = rollenText(d.mitarbeitertyp) || ordnerRolle;
+    const mehr = anzahl[m] > 1 ? anzahl[m] + " Fassungen im Ordner – gezählt wird die neueste" : "";
+    if (d.niederlassung) nl = d.niederlassung;
+    if (d.quelle !== "pdf") {
+      ohneZahlen++;
+      zeilen.push([name, rolle, d.niederlassung || "", jahr, MONATE[m - 1], "", "", "", "", "", "", "", fassungText(d.fassung), "", x.datei,
+                   ["Zahlen nicht lesbar – Datei vor dem 06.10.2026 erzeugt, Werte bitte aus der PDF übernehmen", mehr].filter(Boolean).join("; ")]);
+      continue;
+    }
+    Object.keys(summe).forEach((k) => { summe[k] += Number(d[k]) || 0; });
+    zeilen.push([name, rolle, d.niederlassung || "", jahr, MONATE[m - 1], d.arbeitstage, euro(d.pauschale), d.urlaub, d.krank, d.frei,
+                 d.sonderurlaub, d.elternzeit, fassungText(d.fassung), datumZeit(d.erstellt), x.datei, mehr]);
+  }
+  const hinweis = [fehlen ? fehlen + (fehlen === 1 ? " Monat fehlt" : " Monate fehlen") : "",
+                   ohneZahlen ? ohneZahlen + " ohne lesbare Zahlen" : ""].filter(Boolean).join(", ");
+  zeilen.push([name, ordnerRolle, nl, jahr, "Summe " + jahr, summe.arbeitstage, euro(summe.pauschale), summe.urlaub, summe.krank, summe.frei,
+               summe.sonderurlaub, summe.elternzeit, "", "", "", hinweis ? "unvollständig: " + hinweis : "vollständig"]);
+  const csv = "﻿" + zeilen.map((z) => z.map(csvFeld).join(";")).join("\r\n") + "\r\n";
+  const uebDir = await jahrDir.getDirectoryHandle(UEBERSICHT_ORDNER, { create: true });
+  // Dateiname wie der Ordner, also mit Rolle: "Jahresübersicht 2026 von Thomas Berger (Füllfahrer).csv"
+  await schreiben(uebDir, sicherName("Jahresübersicht " + jahr + " von " + maDir.name) + ".csv",
+                  new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  return { vorhanden: 12 - fehlen, ohneZahlen };
+}
+
+/* ---------- Eine Datei ablegen ---------- */
+async function ablegen(datei, vorgabe) {
+  const d = vorgabe || (await datenAusPdf(datei)) || datenAusDateiname(datei.name);
+  if (!d || !d.monat || !d.jahr) {
+    return eintrag("fehler", `<b>${esc(datei.name)}</b> – das ist kein Spesennachweis aus dem Spesen-Rechner (weder Daten in der PDF noch ein bekannter Dateiname). Nichts abgelegt.`);
+  }
+  if (!d.name) return zuordnenFragen(datei, d);
+
+  const jahrDir = await wurzel.getDirectoryHandle("Spesen " + d.jahr, { create: true });
+  const rolle = rollenText(d.mitarbeitertyp);
+  let fund = await personenOrdnerSuchen(jahrDir, d.name);
+  if (!fund) {
+    // Neuer Mitarbeiter: Ordner mit Rolle in seiner Rollen-Gruppe anlegen - ohne Rolle (aeltere Datei) erst nachfragen
+    if (!rolle) return zuordnenFragen(datei, d);
+    const gruppe = GRUPPEN[rolle];
+    const gruppeDir = await jahrDir.getDirectoryHandle(gruppe, { create: true });
+    fund = { dir: await gruppeDir.getDirectoryHandle(sicherName(personAusOrdner(d.name) + " (" + rolle + ")"), { create: true }), gruppe };
+  }
+  const maDir = fund.dir;
+  const person = personAusOrdner(maDir.name);
+  const ordnerRolle = rolleAusOrdner(maDir.name);
+  const monatsText = MONATE[d.monat - 1] + " " + d.jahr;
+
+  // Liegt GENAU diese Datei schon im Ordner? Dann nichts tun.
+  const vorhanden = (await nachweiseIm(maDir)).filter((x) => x.daten.jahr === d.jahr && x.daten.monat === d.monat);
+  const doppelt = vorhanden.find((x) => gleicheFassung(x.daten, d) && x.groesse === datei.size);
+  if (doppelt) {
+    return eintrag("info", `<b>${esc(maDir.name)} · ${esc(monatsText)}</b> – liegt schon genau so im Ordner (<code>${esc(doppelt.datei)}</code>). Nichts verändert.`);
+  }
+
+  /* ⛔ NICHTS WIRD UEBERSCHRIEBEN ODER VERSCHOBEN (Mirko, 06.10.2026: "die
+     korrektur fassung darf nicht automatisch ueberschreiben"). Jede Fassung
+     kommt NEBEN die bisherigen in den Ordner des Mitarbeiters - der
+     Dateiname traegt "(Korrektur)". Bis dahin wanderte die alte Fassung in
+     einen Unterordner "Ersetzt"; den gibt es nicht mehr. Die
+     Jahresuebersicht zaehlt je Monat die neueste Fassung und sagt dazu,
+     wenn mehrere im Ordner liegen. */
+  const zielName = await freierName(maDir, dateiName(Object.assign({}, d, { name: person })));
+  await schreiben(maDir, zielName, datei);
+  let meldung = `abgelegt als <code>Spesen ${d.jahr}/${esc(ordnerPfad(fund))}/${esc(zielName)}</code>`;
+  if (vorhanden.length) {
+    const neueste = vorhanden.every((x) => neuerAls(d, x.daten));
+    /* "Korrektur" nur, wenn die Datei auch eine IST (Fassung >= 1) - zwei
+       Originale desselben Monats sind keine (gesehen 06.10.2026). */
+    meldung += d.fassung >= 1
+      ? `<br>🔁 <b>Korrektur</b> – liegt <b>neben</b> der bisherigen Fassung, nichts überschrieben.${neueste ? " In der Jahresübersicht zählt ab jetzt die Korrektur." : ""}`
+      : `<br>🔁 ${neueste ? "Neuere" : "Ältere"} Fassung desselben Monats – liegt <b>neben</b> der bisherigen, nichts überschrieben.`
+        + (neueste ? "" : " In der Jahresübersicht zählt weiter die neueste.");
+  }
+  if (rolle && ordnerRolle && rolle !== ordnerRolle) {
+    meldung += `<br>ℹ️ Rolle laut Nachweis: <b>${esc(rolle)}</b> – der Ordner trägt noch „${esc(ordnerRolle)}“ und bleibt, damit alle Monate beisammen sind. Die Jahresübersicht zeigt die Rolle je Monat.`;
+  }
+  const u = await jahresuebersichtSchreiben(jahrDir, maDir, d.jahr);
+  const zahlenHinweis = d.quelle !== "pdf" ? `<br>⚠️ Ältere Datei ohne lesbare Zahlen – in der Jahresübersicht als „Zahlen nicht lesbar“ markiert.` : ``;
+  const istKorrektur = d.fassung >= 1;
+  if (istKorrektur) korrekturVermerken(maDir.name, monatsText, fassungText(d.fassung), zielName);
+  return eintrag(istKorrektur ? "korrektur" : "ok",
+    (istKorrektur ? `<span class="korr-marke">${esc(fassungText(d.fassung).toUpperCase())}</span>` : "✔ ")
+    + `<b>${esc(maDir.name)} · ${esc(monatsText)}</b> – ${meldung}`
+    + `<br><span class="klein">Jahresübersicht ${d.jahr} aktualisiert: ${u.vorhanden} von 12 Monaten.</span>${zahlenHinweis}`);
+}
+
+/* Roter Vermerk oben auf der Seite (06.10.2026) - sammelt die Korrekturen
+   dieser Sitzung, damit keine im langen Protokoll untergeht. */
+function korrekturVermerken(ordner, monatsText, fassung, datei) {
+  $("korrekturVermerk").style.display = "block";
+  const li = document.createElement("li");
+  li.innerHTML = `<b>${esc(ordner)}</b> · ${esc(monatsText)} · ${esc(fassung)} – <code style="background:rgba(255,255,255,.2);color:#fff;">${esc(datei)}</code>`;
+  $("korrekturListe").appendChild(li);
+}
+
+/* Aeltere Datei: Name und Rolle abfragen. Die Rolle braucht es nur fuer
+   einen NEUEN Ordner - gibt es den Mitarbeiter schon, gilt sein Ordner. */
+async function zuordnenFragen(datei, d) {
+  const id = "z" + Math.random().toString(36).slice(2, 8);
+  let ordner = [];
+  try {
+    const jahrDir = await wurzel.getDirectoryHandle("Spesen " + d.jahr);
+    ordner = (await personenOrdnerAlle(jahrDir)).map((x) => x.dir.name);
+  } catch (e) { /* Jahr noch nicht angelegt */ }
+  const li = eintrag("frage",
+    `<b>${esc(datei.name)}</b> – ältere Datei (${esc(MONATE[d.monat - 1])} ${d.jahr})${d.name ? " von " + esc(d.name) + ", Rolle unbekannt" : " ohne Namen"}. Bitte zuordnen:
+     <div class="zuordnen">
+       <input id="${id}" list="${id}l" placeholder="Vor- und Nachname" value="${esc(d.name || "")}">
+       <datalist id="${id}l">${ordner.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
+       <select id="${id}r">
+         <option value="">– Rolle –</option>
+         ${Object.keys(ROLLEN).filter((k) => k !== "monteur").map((k) => `<option value="${k}">${esc(ROLLEN[k])}</option>`).join("")}
+       </select>
+       <button class="primaer" id="${id}b">Ablegen</button>
+     </div>
+     <span class="klein">Die Rolle wird nur für einen neuen Ordner gebraucht – gibt es den Mitarbeiter schon, kommt die Datei in seinen Ordner.</span>`);
+  $(id + "b").onclick = async () => {
+    const roh = $(id).value;
+    const name = personAusOrdner(roh);
+    if (!name) { $(id).focus(); return; }
+    let typ = $(id + "r").value || typAusRolle(rolleAusOrdner(roh));
+    const jahrDir = await wurzel.getDirectoryHandle("Spesen " + d.jahr, { create: true });
+    const vorhanden = await personenOrdnerSuchen(jahrDir, name);
+    if (!vorhanden && !typ) { $(id + "r").focus(); $(id + "r").style.outline = "3px solid #b3261e"; return; }
+    li.remove();
+    await sicher(() => ablegen(datei, Object.assign({}, d, { name, mitarbeitertyp: typ || d.mitarbeitertyp })));
+    await sicher(druckListeLaden);
+  };
+}
+
+/* ---------- Protokoll ---------- */
+function eintrag(art, html) {
+  const leer = $("leer"); if (leer) leer.remove();
+  const li = document.createElement("li");
+  li.className = art;
+  li.innerHTML = html;
+  $("protokoll").prepend(li);
+  return li;
+}
+async function sicher(fn) {
+  try { return await fn(); }
+  catch (e) {
+    console.error(e);
+    eintrag("fehler", "Fehler beim Ablegen: " + esc(e && e.message || e) + " – bitte Ablageort prüfen und erneut versuchen.");
+  }
+}
+let warteschlange = Promise.resolve();
+function dateienAblegen(dateien) {
+  if (!wurzel) { eintrag("fehler", "Bitte zuerst oben den Ablageort wählen."); return warteschlange; }
+  // Nacheinander, nie gleichzeitig - zwei Korrekturen desselben Monats duerfen sich nicht ueberholen
+  Array.from(dateien).forEach((f) => {
+    warteschlange = warteschlange.then(() => sicher(() => ablegen(f)));
+  });
+  warteschlange = warteschlange.then(() => sicher(druckListeLaden));   // Druckliste nachziehen
+  return warteschlange;
+}
+
+/* ---------- Ablageort (einmal waehlen, wird gemerkt) ---------- */
+function speicher() {
+  return new Promise((ok, nein) => {
+    const r = indexedDB.open("hall-spesen-ablage", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("griffe");
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => nein(r.error);
+  });
+}
+async function griffMerken(h) {
+  const db = await speicher();
+  await new Promise((ok) => { const t = db.transaction("griffe", "readwrite"); t.objectStore("griffe").put(h, "ziel"); t.oncomplete = ok; t.onerror = ok; });
+}
+async function griffLaden() {
+  const db = await speicher();
+  return new Promise((ok) => { const r = db.transaction("griffe").objectStore("griffe").get("ziel"); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); });
+}
+function bereit(h) {
+  wurzel = h;
+  $("ortText").innerHTML = `Ablageort: <b>${esc(h.name)}</b> – darin entsteht der Ordner <code>Spesen &lt;Jahr&gt;</code>.`;
+  $("ortWaehlen").textContent = "📁 Anderen Ablageort wählen";
+  $("ortWaehlen").classList.remove("primaer");
+  $("ortErlauben").style.display = "none";
+  $("ablage").classList.remove("gesperrt");
+  $("neuErstellen").disabled = false;
+  sicher(druckListeLaden);   // 3. Drucken: Liste der abgelegten Nachweise
+}
+async function ortWaehlen() {
+  try {
+    const h = await window.showDirectoryPicker({ id: "hall-spesen-ablage", mode: "readwrite", startIn: "desktop" });
+    await griffMerken(h);
+    bereit(h);
+  } catch (e) { if (e && e.name !== "AbortError") eintrag("fehler", "Ablageort konnte nicht gewählt werden: " + esc(e.message)); }
+}
+async function start() {
+  if (TEST) {
+    bereit(await navigator.storage.getDirectory());
+    $("ortText").innerHTML += ' <b style="color:#b3261e;">(Prüfmodus – privater Browser-Speicher)</b>';
+    return;
+  }
+  if (!window.showDirectoryPicker) {
+    $("ohneBrowser").style.display = "";
+    $("ortWaehlen").disabled = true;
+    return;
+  }
+  const h = await griffLaden().catch(() => null);
+  if (!h) return;
+  const recht = await h.queryPermission({ mode: "readwrite" });
+  if (recht === "granted") { bereit(h); return; }
+  $("ortText").innerHTML = `Ablageort: <b>${esc(h.name)}</b> – der Browser fragt aus Sicherheitsgründen einmal nach.`;
+  $("ortErlauben").style.display = "";
+  $("ortErlauben").onclick = async () => {
+    if ((await h.requestPermission({ mode: "readwrite" })) === "granted") bereit(h);
+  };
+}
+
+/* ---------- Alle Jahresuebersichten neu ---------- */
+async function alleNeu() {
+  let n = 0;
+  for await (const [jn, jh] of wurzel.entries()) {
+    const m = jn.match(/^Spesen (\d{4})$/);
+    if (jh.kind !== "directory" || !m) continue;
+    for (const x of await personenOrdnerAlle(jh)) {   // auch in den Rollen-Gruppen
+      await jahresuebersichtSchreiben(jh, x.dir, Number(m[1]));
+      n++;
+    }
+  }
+  eintrag("ok", `🔄 ${n} Jahresübersicht${n === 1 ? "" : "en"} neu erstellt.`);
+}
+
+/* ===================== 3. Drucken (06.10.2026) =====================
+   Mirko: "die seiten auch direkt drucken zu koennen, auch mehrere aufeinmal,
+   auch alle aufeinmal, aber auch einzeln" - "bereits gedruckte werden
+   ebenfalls markiert mit dem hinweis bereits gedruckt".
+
+   LISTE: alle abgelegten Nachweise des gewaehlten Jahres, so gruppiert wie
+   die Ordner (Rolle -> Mitarbeiter -> Monat). "Alle aktuellen" nimmt je
+   Monat die NEUESTE Fassung (liegt eine Korrektur vor: die Korrektur); die
+   aeltere bleibt sichtbar und laesst sich einzeln dazu anhaken.
+
+   EIN DRUCKAUFTRAG: Mehrere PDFs werden mit pdf-lib zu EINER PDF
+   zusammengefuegt und auf demselben Weg gedruckt wie im Spesen-Tool
+   (pdfDrucken dort): Rahmen in A4-Groesse ausserhalb des Sichtfelds - ein
+   Rahmen ohne Flaeche druckt weisse Seiten (gefunden 05.09.2026).
+
+   "BEREITS GEDRUCKT": Ob das Blatt wirklich aus dem Drucker kam, kann keine
+   Webseite wissen. Deshalb fragt die Seite nach dem Druckfenster nach -
+   erst bei "Ja" wird vermerkt. Gespeichert in "Spesen <Jahr>/Druckprotokoll
+   <Jahr>.csv" (Datei;Gedruckt am): ueberlebt Browser- und PC-Wechsel und
+   ist fuer Frau Gritsch selbst lesbar. Im Pruefmodus (?test) wird statt
+   des Druckfensters nur festgehalten, was gedruckt WUERDE (window.__letzterDruck). */
+const PROTOKOLL = (jahr) => "Druckprotokoll " + jahr + ".csv";
+const GRUPPEN_FOLGE = ["Füllfahrer", "Monteure Außendienst", "Monteure Innendienst", "Monteure", ""];
+let druck = { jahr: null, jahrDir: null, eintraege: [] };
+let druckOffenListe = null;
+
+function csvZeileLesen(z) {
+  const raus = []; let feld = "", inQ = false;
+  for (let i = 0; i < z.length; i++) {
+    const c = z[i];
+    if (inQ) { if (c === '"') { if (z[i + 1] === '"') { feld += '"'; i++; } else inQ = false; } else feld += c; }
+    else if (c === '"') inQ = true;
+    else if (c === ";") { raus.push(feld); feld = ""; }
+    else feld += c;
+  }
+  raus.push(feld);
+  return raus;
+}
+async function protokollText(jahrDir, jahr) {
+  try {
+    const f = await (await jahrDir.getFileHandle(PROTOKOLL(jahr))).getFile();
+    return new TextDecoder("utf-8").decode(new Uint8Array(await f.arrayBuffer())).replace(/^﻿/, "");
+  } catch (e) { return ""; }
+}
+async function protokollLesen(jahrDir, jahr) {
+  const raus = {};
+  (await protokollText(jahrDir, jahr)).split(/\r?\n/).slice(1).forEach((z) => {
+    if (!z.trim()) return;
+    const t = csvZeileLesen(z);
+    const pfad = (t[0] || "").normalize("NFC");
+    (raus[pfad] = raus[pfad] || []).push(t[1] || "");
+  });
+  return raus;
+}
+async function protokollErgaenzen(jahrDir, jahr, pfade) {
+  let alt = await protokollText(jahrDir, jahr);
+  if (!alt.trim()) alt = "Datei;Gedruckt am\r\n";
+  if (!/\n$/.test(alt)) alt += "\r\n";
+  const jetzt = datumZeit(new Date().toISOString());
+  const neu = pfade.map((p) => csvFeld(p) + ";" + csvFeld(jetzt)).join("\r\n") + "\r\n";
+  await schreiben(jahrDir, PROTOKOLL(jahr), new Blob(["﻿" + alt + neu], { type: "text/csv;charset=utf-8" }));
+}
+
+async function druckListeLaden() {
+  if (!wurzel) return;
+  const jahre = [];
+  for await (const [n, h] of wurzel.entries()) {
+    const m = n.match(/^Spesen (\d{4})$/);
+    if (h.kind === "directory" && m) jahre.push(Number(m[1]));
+  }
+  jahre.sort((a, b) => b - a);
+  const sel = $("druckJahr");
+  const vorher = Number(sel.value) || null;
+  sel.innerHTML = jahre.map((j) => `<option value="${j}">${j}</option>`).join("");
+  if (!jahre.length) { $("druckListe").textContent = "Noch nichts abgelegt."; druckKnoepfe(false); return; }
+  const jahr = jahre.includes(vorher) ? vorher : jahre[0];
+  sel.value = String(jahr);
+  const jahrDir = await wurzel.getDirectoryHandle("Spesen " + jahr);
+  const gedruckt = await protokollLesen(jahrDir, jahr);
+  const eintraege = [];
+  for (const fund of await personenOrdnerAlle(jahrDir)) {
+    const liste = (await nachweiseIm(fund.dir)).filter((x) => x.daten.jahr === jahr);
+    const neueste = {};
+    liste.forEach((x) => { const m = x.daten.monat; if (!neueste[m] || neuerAls(x.daten, neueste[m].daten)) neueste[m] = x; });
+    liste.forEach((x) => {
+      const pfad = (ordnerPfad(fund) + "/" + x.datei).normalize("NFC");
+      eintraege.push({ pfad, gruppe: fund.gruppe, person: fund.dir.name, dir: fund.dir, datei: x.datei, daten: x.daten,
+                       aktuell: neueste[x.daten.monat] === x, gedruckt: gedruckt[pfad] || [] });
+    });
+  }
+  eintraege.sort((a, b) => (GRUPPEN_FOLGE.indexOf(a.gruppe) - GRUPPEN_FOLGE.indexOf(b.gruppe))
+    || a.person.localeCompare(b.person, "de") || (a.daten.monat - b.daten.monat)
+    || ((a.daten.fassung ?? -1) - (b.daten.fassung ?? -1)) || a.datei.localeCompare(b.datei, "de"));
+  druck = { jahr, jahrDir, eintraege };
+  druckListeZeigen();
+}
+
+function druckListeZeigen() {
+  const { eintraege } = druck;
+  if (!eintraege.length) { $("druckListe").textContent = "In diesem Jahr ist noch nichts abgelegt."; druckKnoepfe(false); return; }
+  let html = "", gruppe = null, person = null;
+  eintraege.forEach((e, i) => {
+    if (e.gruppe !== gruppe) {
+      if (person !== null) html += "</div>";
+      if (gruppe !== null) html += "</div>";
+      gruppe = e.gruppe; person = null;
+      html += `<div class="d-gruppe"><h3>${esc(e.gruppe || "Weitere Mitarbeiter")}</h3>`;
+    }
+    if (e.person !== person) {
+      if (person !== null) html += "</div>";
+      person = e.person;
+      html += `<div class="d-person"><label><input type="checkbox" data-person="1"> ${esc(e.person)}</label>`;
+    }
+    const letzte = e.gedruckt[e.gedruckt.length - 1];
+    html += `<div class="d-zeile${e.aktuell ? "" : " d-alt"}" data-zeile="${i}">
+        <input type="checkbox" data-i="${i}" aria-label="${esc(e.datei)}">
+        <span class="d-monat">${esc(MONATE[e.daten.monat - 1])}</span>
+        ${e.daten.fassung >= 1 ? `<span class="d-korr">${esc(fassungText(e.daten.fassung).toUpperCase())}</span>` : ""}
+        ${e.aktuell ? "" : `<span class="d-alt-marke">ältere Fassung</span>`}
+        <span class="d-datei" title="${esc(e.datei)}">${esc(e.datei)}</span>
+        ${letzte ? `<span class="d-gedruckt">✓ bereits gedruckt am ${esc(letzte)}${e.gedruckt.length > 1 ? " (" + e.gedruckt.length + "×)" : ""}</span>` : ""}
+        <button class="d-einzeln" data-einzeln="${i}" title="Nur diesen Nachweis drucken">🖨️</button>
+      </div>`;
+  });
+  html += "</div></div>";
+  $("druckListe").innerHTML = html;
+  const monate = [...new Set(eintraege.map((e) => e.daten.monat))].sort((a, b) => a - b);
+  $("druckMonat").innerHTML = `<option value="">Monat wählen …</option>`
+    + monate.map((m) => `<option value="${m}">${MONATE[m - 1]} – alle Mitarbeiter</option>`).join("");
+  druckKnoepfe(true);
+  auswahlZaehlen();
+}
+function druckKnoepfe(an) {
+  ["druckAlle", "druckOffen", "druckKeine", "druckMonat"].forEach((id) => { $(id).disabled = !an; });
+  if (!an) $("druckStart").disabled = true;
+}
+function haken() { return Array.from(document.querySelectorAll("#druckListe input[data-i]")); }
+function auswahlZaehlen() {
+  const n = haken().filter((h) => h.checked).length;
+  $("druckStart").disabled = !n;
+  $("druckStart").textContent = n ? `🖨️ ${n} ${n === 1 ? "Nachweis" : "Nachweise"} drucken` : "🖨️ Auswahl drucken";
+  document.querySelectorAll("#druckListe .d-person").forEach((p) => {
+    const alle = Array.from(p.querySelectorAll("input[data-i]"));
+    const k = p.querySelector("input[data-person]");
+    k.checked = alle.length > 0 && alle.every((h) => h.checked);
+    k.indeterminate = !k.checked && alle.some((h) => h.checked);
+  });
+}
+function auswahlSetzen(test) {
+  haken().forEach((h) => { h.checked = !!test(druck.eintraege[Number(h.dataset.i)]); });
+  auswahlZaehlen();
+}
+
+/* Wie pdfDrucken() im Spesen-Tool: Rahmen in A4-Groesse ausserhalb des
+   Sichtfelds, kurz warten, drucken. Bei vielen Seiten etwas laenger warten,
+   damit alle aufgebaut sind. */
+function pdfDrucken(blob, seiten) {
+  const url = URL.createObjectURL(blob);
+  const rahmen = document.createElement("iframe");
+  rahmen.setAttribute("aria-hidden", "true");
+  rahmen.style.cssText = "position:fixed; left:-10000px; top:0; width:794px; height:1123px; border:0;";
+  rahmen.src = url;
+  rahmen.onload = () => {
+    setTimeout(() => {
+      try {
+        const fenster = rahmen.contentWindow;
+        if (!fenster || !fenster.innerWidth) throw new Error("Rahmen ohne Flaeche");
+        fenster.focus();
+        fenster.print();
+      } catch (e) { window.open(url, "_blank"); }
+    }, Math.min(350 + 60 * seiten, 5000));
+  };
+  document.body.appendChild(rahmen);
+  setTimeout(() => { try { rahmen.remove(); URL.revokeObjectURL(url); } catch (e) {} }, 180000);
+}
+
+async function drucken(liste) {
+  if (!liste.length) return;
+  if (!window.PDFLib) { eintrag("fehler", "Die Druck-Bibliothek konnte nicht geladen werden – bitte die Seite neu laden."); return; }
+  const gesamt = await PDFLib.PDFDocument.create();
+  let seiten = 0;
+  for (const i of liste) {
+    const e = druck.eintraege[i];
+    const bytes = await (await (await e.dir.getFileHandle(e.datei)).getFile()).arrayBuffer();
+    const quelle = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+    const kopien = await gesamt.copyPages(quelle, quelle.getPageIndices());
+    kopien.forEach((p) => gesamt.addPage(p));
+    seiten += kopien.length;
+  }
+  const daten = await gesamt.save();
+  druckOffenListe = liste.slice();
+  if (TEST) {   // Pruefmodus: festhalten, was gedruckt WUERDE - samt fertiger PDF zum Nachzaehlen
+    let s = ""; for (let k = 0; k < daten.length; k += 0x8000) s += String.fromCharCode.apply(null, daten.subarray(k, k + 0x8000));
+    window.__letzterDruck = { seiten, dateien: liste.map((i) => druck.eintraege[i].pfad), b64: btoa(s) };
+  }
+  else pdfDrucken(new Blob([daten], { type: "application/pdf" }), seiten);
+  const namen = liste.map((i) => druck.eintraege[i]).map((e) => esc(personAusOrdner(e.person)) + " · " + esc(MONATE[e.daten.monat - 1])
+    + (e.daten.fassung >= 1 ? " · " + esc(fassungText(e.daten.fassung)) : ""));
+  $("druckFrageText").innerHTML = `<b>${liste.length} ${liste.length === 1 ? "Nachweis" : "Nachweise"}, ${seiten} ${seiten === 1 ? "Seite" : "Seiten"}</b> in einem Druckauftrag:<br>`
+    + namen.slice(0, 8).join("<br>") + (namen.length > 8 ? `<br>… und ${namen.length - 8} weitere` : "");
+  $("druckFrage").style.display = "flex";
+}
+async function druckBestaetigt() {
+  const liste = druckOffenListe || [];
+  druckOffenListe = null;
+  $("druckFrage").style.display = "none";
+  if (!liste.length) return;
+  await protokollErgaenzen(druck.jahrDir, druck.jahr, liste.map((i) => druck.eintraege[i].pfad));
+  await druckListeLaden();
+  eintrag("ok", `🖨️ ${liste.length} ${liste.length === 1 ? "Nachweis" : "Nachweise"} als <b>bereits gedruckt</b> vermerkt (<code>Spesen ${druck.jahr}/${esc(PROTOKOLL(druck.jahr))}</code>).`);
+}
+
+/* ---------- Bedienung ---------- */
+$("ortWaehlen").onclick = ortWaehlen;
+$("dateienWaehlen").onclick = () => $("dateiFeld").click();
+$("dateiFeld").onchange = (e) => { dateienAblegen(e.target.files); e.target.value = ""; };
+$("neuErstellen").onclick = () => sicher(alleNeu);
+// 3. Drucken
+$("druckJahr").onchange = () => sicher(druckListeLaden);
+$("druckAlle").onclick = () => auswahlSetzen((e) => e.aktuell);
+$("druckOffen").onclick = () => auswahlSetzen((e) => e.aktuell && !e.gedruckt.length);
+$("druckKeine").onclick = () => auswahlSetzen(() => false);
+$("druckMonat").onchange = (ev) => { const m = Number(ev.target.value); if (m) auswahlSetzen((e) => e.aktuell && e.daten.monat === m); };
+$("druckStart").onclick = () => sicher(() => drucken(haken().filter((h) => h.checked).map((h) => Number(h.dataset.i))));
+$("druckListe").addEventListener("change", (ev) => {
+  const t = ev.target;
+  if (t.dataset.person) t.closest(".d-person").querySelectorAll("input[data-i]").forEach((h) => { h.checked = t.checked; });
+  auswahlZaehlen();
+});
+$("druckListe").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-einzeln]");
+  if (b) sicher(() => drucken([Number(b.dataset.einzeln)]));
+});
+$("druckJa").onclick = () => sicher(druckBestaetigt);
+$("druckNein").onclick = () => { druckOffenListe = null; $("druckFrage").style.display = "none"; };
+const zone = $("ablage");
+// Ueberall auf der Seite das Oeffnen der PDF im Browser verhindern, wenn daneben losgelassen wird
+["dragover", "drop"].forEach((t) => window.addEventListener(t, (e) => e.preventDefault()));
+zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drueber"); });
+zone.addEventListener("dragleave", () => zone.classList.remove("drueber"));
+zone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  zone.classList.remove("drueber");
+  const dateien = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+  if (!dateien.length) { eintrag("fehler", "Es kam keine Datei an. Bitte die PDF zuerst aus der E-Mail auf den Schreibtisch ziehen und von dort hierher – oder „Dateien auswählen“."); return; }
+  dateienAblegen(dateien);
+});
+start();
+</script>
+</body>
+</html>

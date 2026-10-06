@@ -3535,7 +3535,7 @@
       </div>
       <div>
         <label>Niederlassung</label>
-        <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
+        <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular(); arbeitgeberEmailFeldAktualisieren();">
       </div>
       <!-- Tour-Nr. und Fixbestand: gehoeren zu Inventur und Abrechnung,
            beide Werte stehen auf dem INVENTURBLATT. Seit dem 22.09.2026
@@ -3571,6 +3571,9 @@
       <div>
         <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
         <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
+        <!-- Seit 06.10.2026: bei Niederlassung Lollar fest auf Frau Gritsch,
+             siehe spesenEmpfaenger(). Gefuellt von arbeitgeberEmailFeldAktualisieren(). -->
+        <p class="hinweis-text" id="cfgArbeitgeberEmailHinweis" style="display:none; margin:0.35rem 0 0;"></p>
       </div>
       <div>
         <label>Ihre eigene E-Mail (für "CSV an mich selbst")</label>
@@ -5528,7 +5531,12 @@ function saveConfig() {
      Kollegen ihren Betrag behalten. Wuerde hier val("cfgFixbestand")
      stehenbleiben, wuerfe es beim ersten Speichern einen Fehler: das
      Element gibt es nicht mehr. */
-  config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
+  /* Steht das Feld auf der festen Lollar-Adresse (06.10.2026), NICHT
+     zurueckschreiben - sonst ueberschriebe Frau Gritschs Adresse die selbst
+     eingetragene, und wer die Niederlassung spaeter wechselt, haette seine
+     eigene Adresse verloren. */
+  const agFeld = document.getElementById("cfgArbeitgeberEmail");
+  if (!agFeld || agFeld.dataset.fest !== "ja") config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
   config.eigeneEmail = val("cfgEigeneEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
   config.startMonat = parseInt(val("cfgStartMonat"));
@@ -6402,6 +6410,7 @@ function initSettingsUI() {
      dann tragen, wenn der Kopfdaten-Dialog in dieser Sitzung nie aufging. */
   invFixbestandZeigen();
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
+  arbeitgeberEmailFeldAktualisieren();   // Lollar: feste Adresse, siehe spesenEmpfaenger()
   document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
   document.getElementById("cfgPauschale8").value = pauschaleSatz8();
@@ -11947,7 +11956,7 @@ async function submitCurrentMonth() {
   });
   if (!freigabe) return;
 
-  if (!confirm(`Diesen Spesenmonat abschließen und die fertige PDF abheften?\n\nDie Datei „Spesennachweis_${monthName}_${config.jahr}.pdf" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
+  if (!confirm(`Diesen Spesenmonat abschließen und die fertige PDF abheften?\n\nDie Datei „${spesenDateiname(monthName, "pdf")}" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
   submitMonth(config.jahr, monat);
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
@@ -13293,7 +13302,11 @@ function stundenLimitOk() {
 
 // Erzeugt das PDF (ohne zu speichern) und gibt { pdf, filename } zurueck -
 // oder null, wenn die 10-Std-Sperre greift. Basis fuer Speichern UND Vorschau.
-async function buildPdf() {
+/* opts.fassung (06.10.2026, nur vom E-Mail-Weg gesetzt): 0 = Original,
+   1 = "(Korrektur)", n = "(Korrektur n)" - geht in Dateiname UND in die
+   unsichtbaren Ablagedaten (spesenDaten). Alle anderen Wege rufen ohne
+   opts auf und bekommen dieselbe Datei wie bisher, nur mit Namen. */
+async function buildPdf(opts) {
   if (!stundenLimitOk()) return null;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
@@ -13370,8 +13383,14 @@ async function buildPdf() {
      Original. Die Fusszeile steht nur auf allen UEBRIGEN Dokumenten
      (Inventur, Abrechnung, Zeit, Urlaub, Jahr). */
 
-  const filename = `Spesennachweis_${monthName}_${config.jahr}.pdf`;
-  return { pdf, filename };
+  const fassung = (opts && typeof opts.fassung === "number") ? opts.fassung : null;
+  spesenDatenEinbetten(pdf, spesenDaten(config.jahr, monat, fassung), monthName);
+  const filename = spesenDateiname(monthName, "pdf", fassung);   // mit Namen seit 06.10.2026
+  /* "bild" = genau das Bild, das auf der A4-Seite steht. Die Pruefansicht
+     vor dem Senden zeigt DIESES Bild statt einer eingebetteten PDF: ein Bild
+     zeigt jedes Geraet an, und es scrollt mit dem Fenster - eine PDF im
+     Rahmen faengt auf dem iPhone das Wischen ab (06.10.2026). */
+  return { pdf, filename, bild: imgData };
 }
 
 // Direkt speichern (wie bisher) - auch von E-Mail-Versand/Abschluss genutzt.
@@ -13492,7 +13511,7 @@ function buildCsvData() {
   }
   const lines = [header.map(csvEscape).join(";"), ...rows.map(r => r.map(csvEscape).join(";"))];
   const csv = "﻿" + lines.join("\r\n"); // BOM, damit Excel Umlaute korrekt zeigt
-  const filename = `Spesennachweis_${monthName}_${config.jahr}.csv`;
+  const filename = spesenDateiname(monthName, "csv");   // mit Namen seit 06.10.2026
   return { csv, filename, header, rows, monthName };
 }
 
@@ -13849,10 +13868,195 @@ function sendFeedback() {
   window.location.href = `mailto:mirkorieb@t-online.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+/* ===================== Empfaenger der Spesen-Mail (06.10.2026) =====================
+   Mirko am 06.10.2026: "beim spesen zettel, bei email direkt an die firma
+   eine email adresse hinterlegen an die es direkt gehen soll ...
+   susanne.gritsch@halltabakwaren.de" - auf Rueckfrage: "nur fuer Lollar
+   aber immer der name vom nutzer das es auch richtig zugeordnet wird."
+
+   NUR NIEDERLASSUNG LOLLAR. Hall hat elf Niederlassungen und die Zentrale;
+   ein Kollege aus einer anderen Niederlassung behaelt sein eigenes Feld.
+   Erkannt wird Lollar am Stammdatenfeld "Niederlassung" - ohne Ruecksicht
+   auf Gross-/Kleinschreibung und auch mit Zusatz ("NL Lollar").
+
+   NUR DIE SPESEN-MAIL (sendPerEmail). Inventur- und Abrechnungs-Mail
+   (invPerEmail, abrPerEmail - nur Mirko) lesen weiter config.arbeitgeberEmail.
+   Die selbst eingetragene Adresse bleibt dafuer in config stehen, sie wird
+   nur nicht mehr angezeigt, solange "Lollar" eingetragen ist. */
+const SPESEN_EMAIL_LOLLAR = "susanne.gritsch@halltabakwaren.de";
+function istNiederlassungLollar() {
+  return (config.niederlassung || "").trim().toLowerCase().indexOf("lollar") > -1;
+}
+function spesenEmpfaenger() {
+  return istNiederlassungLollar() ? SPESEN_EMAIL_LOLLAR : (config.arbeitgeberEmail || "").trim();
+}
+/* Das Stammdatenfeld zeigt bei Lollar die feste Adresse, gesperrt, mit
+   Hinweis darunter. saveConfig() schreibt ein gesperrtes Feld nicht zurueck. */
+function arbeitgeberEmailFeldAktualisieren() {
+  const feld = document.getElementById("cfgArbeitgeberEmail");
+  if (!feld) return;
+  const fest = istNiederlassungLollar();
+  feld.dataset.fest = fest ? "ja" : "";
+  feld.readOnly = fest;
+  feld.value = fest ? SPESEN_EMAIL_LOLLAR : (config.arbeitgeberEmail || "");
+  feld.style.background = fest ? "#f3efe8" : "";
+  const hinweis = document.getElementById("cfgArbeitgeberEmailHinweis");
+  if (hinweis) {
+    hinweis.style.display = fest ? "" : "none";
+    hinweis.textContent = fest
+      ? "Für die Niederlassung Lollar fest hinterlegt – Ihr Spesennachweis geht per E-Mail direkt an Frau Gritsch."
+      : "";
+  }
+}
+
+/* Dateiname des Spesennachweises - fuer PDF UND CSV, auf allen Wegen
+   (Speichern, Drucken/Uebergeben, Abheften, E-Mail). Mirko am 06.10.2026:
+   "in datei namen einfach den Spesen Monat z.B. (august 2026) von
+   Mitarbeiter" - damit jede Datei beim Empfaenger zugeordnet werden kann.
+   Vorher: "Spesennachweis_August_2026.pdf", ohne Namen. Zeichen, die in
+   Dateinamen verboten sind, fallen aus dem Namen heraus. */
+function spesenDateiname(monthName, endung, fassung) {
+  const name = (config.name || "").trim().replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ");
+  /* Korrektur VORNE im Dateinamen (06.10.2026). Mirko: Die PDF selbst
+     "muss original bleiben" - markiert wird im Dateinamen. "KORREKTUR – "
+     vorne: steht in jedem Ordner ueber den "Spesennachweis …"-Dateien (K
+     vor S) und faellt sofort auf, schon als Mail-Anhang. Dieselbe Zaehlung
+     wie im Betreff: 1 = "KORREKTUR – ", 2 = "KORREKTUR 2 – " ... */
+  const korr = (typeof fassung === "number" && fassung >= 1)
+    ? (fassung === 1 ? "KORREKTUR – " : "KORREKTUR " + fassung + " – ") : "";
+  return korr + "Spesennachweis " + monthName + " " + config.jahr + (name ? " von " + name : "") + "." + endung;
+}
+
+/* ===================== Ablagedaten in der PDF (06.10.2026) =====================
+   Fuer das Ablage-Werkzeug von Frau Gritsch (ablage.html): Jede Spesen-PDF
+   traegt Name, Monat, Jahr, Fassung und die Monatssummen UNSICHTBAR in
+   sich. Die PDF selbst ist ein Bild des Vordrucks - ohne diese Daten
+   koennte kein Programm die Zahlen lesen (Texterkennung kommt bei Geld
+   nicht in Frage).
+
+   Die Summen sind GENAU die Zeile der Jahresuebersicht im Tool
+   (computeYearSummary: Arbeitstage, Pauschale, Urlaub, Krank, Frei,
+   Sonderurlaub, Elternzeit) - keine zweite Rechnung, die abweichen kann.
+
+   Abgelegt als eigener Eintrag /HallSpesen im Katalog der PDF (Base64 aus
+   UTF-8-JSON), geschrieben ueber das putCatalog-Ereignis von jsPDF - so
+   machen es auch dessen eigene Erweiterungen. PDF-Programme ignorieren
+   unbekannte Eintraege. Dazu die normalen Dokumenteigenschaften (Titel,
+   Autor = Mitarbeiter), die Windows im Explorer anzeigt.
+   Der Name wird vereinheitlicht (NFC): Safari legt Umlaute sonst zerlegt
+   ab, gemessen am 06.10.2026 ("Jörg Müller"). */
+function spesenDaten(jahr, monat, fassung) {
+  const { entries, total, workdays } = computeMonth(jahr, monat);
+  const z = { urlaub: 0, krank: 0, frei: 0, sonderurlaub: 0, elternzeit: 0 };
+  entries.forEach((e) => { if (z[e.status] !== undefined) z[e.status]++; });
+  return {
+    art: "hall-spesennachweis", v: 1,
+    name: (config.name || "").trim().normalize("NFC"),
+    niederlassung: (config.niederlassung || "").trim(),
+    mitarbeitertyp: config.mitarbeitertyp || "",
+    jahr: Number(jahr), monat: Number(monat),
+    arbeitstage: workdays, pauschale: Math.round(total * 100) / 100,
+    urlaub: z.urlaub, krank: z.krank, frei: z.frei, sonderurlaub: z.sonderurlaub, elternzeit: z.elternzeit,
+    fassung: (typeof fassung === "number") ? fassung : null,
+    erstellt: new Date().toISOString(),
+  };
+}
+function spesenDatenEinbetten(pdf, daten, monthName) {
+  try {
+    pdf.setProperties({
+      title: "Spesennachweis " + monthName + " " + daten.jahr,
+      subject: "Spesennachweis",
+      author: daten.name,
+      creator: "Hall Spesen-Rechner",
+    });
+  } catch (e) { /* Eigenschaften sind Beiwerk - nie daran scheitern */ }
+  try {
+    const bytes = new TextEncoder().encode(JSON.stringify(daten));
+    let s = "";
+    bytes.forEach((b) => { s += String.fromCharCode(b); });
+    const b64 = btoa(s);
+    pdf.internal.events.subscribe("putCatalog", function () {
+      pdf.internal.write("/HallSpesen (" + b64 + ")");
+    });
+  } catch (e) { console.warn("Ablagedaten nicht eingebettet:", e); }
+}
+
+/* ===================== Was wurde gesendet? (06.10.2026) =====================
+   Mirko: "wenn eine korrigierte form kommt ... am besten dann auch rein
+   schreiben in die mail automatisch was geaendert worden ist."
+   Beim Senden wird festgehalten, was im Nachweis stand - Zeile fuer Zeile
+   GENAU wie in der CSV (buildCsvData: dieselben Spalten, dieselben
+   Beschriftungen wie auf dem Vordruck). Bei einer Korrektur werden alte
+   und neue Zeilen verglichen. Monate, die vor dem 06.10.2026 gesendet
+   wurden, haben keinen Vergleichsstand - dort steht das dann auch so in
+   der Mail, statt einer erfundenen Liste. */
+function spesenGesendetKey(jahr, monat) { return `spesen_gesendet_${jahr}-${pad(monat)}`; }
+function spesenSchnappschuss(monat) {
+  const { header, rows } = buildCsvData();
+  const { total } = computeMonth(config.jahr, monat);
+  return { header, rows, summe: Math.round(total * 100) / 100, zeit: new Date().toISOString() };
+}
+function euroDE(x) { return (Number(x) || 0).toFixed(2).replace(".", ",") + " €"; }
+function spesenAenderungen(alt, neu) {
+  const iDatumNeu = neu.header.indexOf(t("colDatum"));
+  const iDatumAlt = alt.header.indexOf(t("colDatum"));
+  const altNach = new Map(alt.rows.map((r) => [r[iDatumAlt], r]));
+  const zeilen = [];
+  neu.rows.forEach((r) => {
+    const datum = r[iDatumNeu];
+    const a = altNach.get(datum);
+    if (!a) return;
+    const teile = [];
+    let statusWechsel = false;
+    neu.header.forEach((h, j) => {
+      if (j === iDatumNeu || h === t("colTag")) return;
+      const ja = alt.header.indexOf(h);
+      const vorher = ja > -1 ? String(a[ja] ?? "") : "";
+      const jetzt = String(r[j] ?? "");
+      if (vorher !== jetzt) {
+        teile.push({ h, text: h + " " + (vorher || "–") + " → " + (jetzt || "–") });
+        if (h === t("colStatus")) statusWechsel = true;
+      }
+    });
+    /* Wechselt der Status (z. B. Arbeitstag -> Urlaub), folgen die leeren
+       Zeiten daraus - dann nur Status und Pauschale nennen, sonst wird die
+       Zeile unlesbar lang (gemessen am 06.10.2026: fuenf Angaben fuer eine
+       einzige Aenderung). */
+    const gezeigt = statusWechsel ? teile.filter((x) => x.h === t("colStatus") || x.h === t("colPauschale")) : teile;
+    if (gezeigt.length) zeilen.push(r[0] + " " + datum + ": " + gezeigt.map((x) => x.text).join(", "));
+  });
+  return { zeilen, summeAlt: alt.summe, summeNeu: neu.summe, gleich: zeilen.length === 0 && alt.summe === neu.summe };
+}
+function aenderungenText(v) {
+  if (!v.istKorrektur) return "";
+  if (!v.alt) {
+    return "Was geändert wurde, lässt sich nicht automatisch angeben – die vorherige Fassung wurde vor dem 06.10.2026 gesendet.\n\n";
+  }
+  const a = v.aend;
+  const wann = formatTimestampDE(v.alt.zeit);
+  if (a.gleich) return "Gegenüber der Fassung vom " + wann + " hat sich an den Tageswerten nichts geändert.\n\n";
+  const MAX = 10;
+  const liste = a.zeilen.slice(0, MAX).map((z) => "• " + z).join("\n")
+    + (a.zeilen.length > MAX ? "\n… und " + (a.zeilen.length - MAX) + " weitere Tage (siehe PDF)" : "");
+  return "Geändert gegenüber der Fassung vom " + wann + ":\n" + liste + "\n"
+    + (a.summeAlt !== a.summeNeu ? "Summe: " + euroDE(a.summeAlt) + " → " + euroDE(a.summeNeu) + "\n" : "")
+    + "\n";
+}
+
 /* ===================== Per E-Mail weiterleiten ===================== */
 async function sendPerEmail() {
   if (!stundenLimitOk()) return;
-  if (!config.arbeitgeberEmail) {
+  /* Ohne Namen keine Mail (06.10.2026): Betreff und Dateiname tragen den
+     Namen, sonst kann der Empfaenger den Nachweis niemandem zuordnen. */
+  const mitarbeiter = (config.name || "").trim();
+  if (!mitarbeiter) {
+    alert("Bitte zuerst in den Stammdaten Ihren Namen eintragen – sonst kann der Spesennachweis beim Empfänger niemandem zugeordnet werden.");
+    zeigeTab("spesen");
+    zeigeSpesenUnteransicht("stammdaten", "cfgName");
+    return;
+  }
+  const empfaenger = spesenEmpfaenger();
+  if (!empfaenger) {
     alert('Bitte zuerst in den Einstellungen die E-Mail-Adresse des Arbeitgebers/der Niederlassung eintragen.');
     zeigeTab("spesen");
     zeigeSpesenUnteransicht("stammdaten", "cfgArbeitgeberEmail");
@@ -13861,58 +14065,224 @@ async function sendPerEmail() {
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
   const monthName = MONTH_NAMES[monat - 1];
 
-  // Jeder Monat soll normalerweise nur einmal versendet werden. Wurde er schon
-  // gesendet, kommt eine Warn-Rueckfrage; ein bewusstes erneutes Senden gilt als
-  // Korrektur und wird im Betreff (und im Text) entsprechend gekennzeichnet.
+  /* ---- Neuer Ablauf seit 06.10.2026 ----------------------------------
+     Mirko: "bevor die email dann wirklich abgeschickt wird ein
+     ruecksetzfenster von 7-8 sekunden einbauen ... vorm richtigen
+     versenden eventuell auch nochmal den monat erzwungen oeffnen und
+     mitarbeiter muss drueber schauen ob alles da ist und korrekt ist ...
+     um unnoetige emails zu meiden."
+
+       1. vorbereiten   - die PDF wird EINMAL erzeugt
+       2. pruefen       - genau diese PDF wird gezeigt, dazu Summe,
+                          Unterschrift, bei Korrektur die Aenderungen;
+                          ohne Haken "geprueft" geht es nicht weiter
+       3. 8 Sekunden    - Countdown mit "Rueckgaengig"
+       4. ausfuehren    - DIESELBE PDF speichern, Monat sperren, Mail-Entwurf
+
+     Bis Schritt 4 wird NICHTS gespeichert, gesperrt oder gezaehlt - wer
+     abbricht oder "Rueckgaengig" drueckt, steht genau da wie vorher.
+
+     ⚠ Abgeschickt wird die Mail nicht von hier, sondern im Mail-Programm
+     (mailto: kann keine Anhaenge setzen und nichts selbst versenden). Der
+     Countdown verhindert den Fehlstart: falscher Monat, Sperre,
+     Korrekturzaehler.
+
+     Wurde der Monat schon gesendet, gilt die neue Fassung als Korrektur.
+     Die fruehere confirm()-Rueckfrage ist in Schritt 2 aufgegangen - dort
+     steht jetzt zusaetzlich, WAS sich geaendert hat. */
   const sentCount = getMonthSentCount(config.jahr, monat);
   const istKorrektur = sentCount >= 1;
-  if (istKorrektur) {
-    const prevTs = localStorage.getItem(monthSubmittedKey(config.jahr, monat));
-    const wannStr = prevTs ? ` am ${formatTimestampDE(prevTs)}` : "";
-    if (!confirm(
-      `Dieser Monat wurde bereits${wannStr} per E-Mail eingereicht.\n\n` +
-      `Möchten Sie ihn wirklich erneut senden?\n` +
-      `Die neue Version gilt als Korrektur und ersetzt die vorherige.`
-    )) return;
-  }
-
-  const wer = config.name ? " - " + config.name : "";
-  const korrekturBetreff = istKorrektur ? (sentCount === 1 ? " (Korrektur)" : ` (Korrektur ${sentCount})`) : "";
-  const subject = `Spesennachweis ${monthName} ${config.jahr}${wer}${korrekturBetreff}`;
-  const body =
-    `Hallo,\n\nanbei mein Spesennachweis für ${monthName} ${config.jahr}.\n\n` +
-    (istKorrektur
-      ? `Hinweis: Dies ist eine korrigierte Fassung – sie ersetzt meinen zuvor gesendeten Nachweis für diesen Monat.\n\n`
-      : ``) +
-    `Hinweis: Bitte die soeben heruntergeladene PDF-Datei noch an diese E-Mail anhängen ` +
-    `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
-    `Viele Grüße\n${config.name || ""}`;
 
   /* Mail nur mit eingefuegter Unterschrift (korrektur0310, Mirko 03.10.2026).
-     Eine verschickte PDF kann niemand mehr von Hand unterschreiben - bis
-     dahin genuegte ein "OK" auf die Erinnerung. DRUCKEN bleibt bewusst ohne
-     Unterschrift moeglich (Mirko, 01.10.2026): der Ausdruck wird von Hand
-     unterschrieben. */
-  if (korrektur0310()) {
-    if (!localStorage.getItem("spesen_signature")) {
-      alert("Per E-Mail geht der Nachweis nur mit eingefügter Unterschrift – eine verschickte PDF kann niemand mehr von Hand unterschreiben.\n\n" +
-            "Bitte zuerst beim Feld „Unterschrift“ über 📷 Ihre Unterschrift einfügen.\n\n" +
-            "Drucken geht weiterhin auch ohne – dann den Ausdruck von Hand unterschreiben.");
-      return;
-    }
-  } else if (!unterschriftHinweisOk()) return;
+     Eine verschickte PDF kann niemand mehr von Hand unterschreiben.
+     DRUCKEN bleibt bewusst ohne Unterschrift moeglich (Mirko, 01.10.2026).
+     Fuer alle anderen stand hier unterschriftHinweisOk() (confirm) - die
+     Erinnerung steht seit 06.10.2026 sichtbar in der Pruefansicht. */
+  if (korrektur0310() && !localStorage.getItem("spesen_signature")) {
+    alert("Per E-Mail geht der Nachweis nur mit eingefügter Unterschrift – eine verschickte PDF kann niemand mehr von Hand unterschreiben.\n\n" +
+          "Bitte zuerst beim Feld „Unterschrift“ über 📷 Ihre Unterschrift einfügen.\n\n" +
+          "Drucken geht weiterhin auch ohne – dann den Ausdruck von Hand unterschreiben.");
+    return;
+  }
+
+  sendeFensterText("⏳ Ihr Nachweis wird vorbereitet …", "Einen Moment – die PDF wird erzeugt.");
   // Das jetzt entstehende Dokument ist das eingereichte - auch bei Korrektur
   __sigZeitJetzt = true;
-  let filename;
-  try { filename = await downloadPDF(true); } finally { __sigZeitJetzt = false; }
-  submitMonth(config.jahr, monat); // Monat gilt ab Versand als eingereicht und wird gesperrt
-  bumpMonthSentCount(config.jahr, monat); // zaehlt jeden Versand (fuer Korrektur-Erkennung; bleibt beim Wieder-Oeffnen erhalten)
+  let r;
+  try { r = await buildPdf({ fassung: sentCount }); } finally { __sigZeitJetzt = false; }
+  if (!r) { closeModal(); return; }
+
+  const neu = spesenSchnappschuss(monat);
+  let alt = null;
+  try { alt = JSON.parse(localStorage.getItem(spesenGesendetKey(config.jahr, monat)) || "null"); } catch (e) { alt = null; }
+  __sendeVorgang = {
+    r, monat, monthName, sentCount, istKorrektur, empfaenger, mitarbeiter, neu, alt,
+    aend: (istKorrektur && alt) ? spesenAenderungen(alt, neu) : null,
+    daten: spesenDaten(config.jahr, monat, sentCount),
+    unterschrift: !!localStorage.getItem("spesen_signature"),
+    vorherGesendet: localStorage.getItem(monthSubmittedKey(config.jahr, monat)),
+  };
+  sendePruefungZeigen();
+}
+
+/* ---- Die Stufen 2 bis 4 des Sende-Ablaufs (06.10.2026) ---- */
+let __sendeVorgang = null;
+let __sendeUhr = null;
+const SENDE_SEKUNDEN = 8;   // Mirko: "7-8 sekunden"
+
+function sendeBetreff(v) {
+  const korr = v.istKorrektur ? (v.sentCount === 1 ? " (Korrektur)" : ` (Korrektur ${v.sentCount})`) : "";
+  // Betreff mit "Mitarbeiter: Name" (Mirko, 06.10.2026) - vorher nur " - Name"
+  return `Spesennachweis ${v.monthName} ${config.jahr} – Mitarbeiter: ${v.mitarbeiter}${korr}`;
+}
+function sendeFensterText(titel, text, knopf) {
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2>${titel}</h2>
+        <p>${text}</p>
+        ${knopf ? `<div class="modal-close-row"><button class="primary" onclick="closeModal()">${knopf}</button></div>` : ``}
+      </div>
+    </div>`;
+}
+function sendeVorgangVerwerfen() {
+  const v = __sendeVorgang;
+  __sendeVorgang = null;
+  if (__sendeUhr) { clearInterval(__sendeUhr); __sendeUhr = null; }
+  return v;
+}
+
+/* Stufe 2: Pruefansicht. Genau die PDF, die gleich gespeichert wird. */
+function sendePruefungZeigen() {
+  const v = __sendeVorgang;
+  if (!v) return;
+  const e = escapeHtml;
+  const d = v.daten;
+  const wannVorher = v.alt ? formatTimestampDE(v.alt.zeit)
+                   : (v.vorherGesendet ? formatTimestampDE(v.vorherGesendet) : "");
+  let korrBox = "";
+  if (v.istKorrektur) {
+    let inhalt;
+    if (!v.alt) {
+      inhalt = `Was sich gegenüber der gesendeten Fassung geändert hat, lässt sich hier nicht anzeigen – sie wurde vor dem 06.10.2026 gesendet.`;
+    } else if (v.aend.gleich) {
+      inhalt = `<b>An den Tageswerten hat sich nichts geändert.</b> Erneut senden ist nur nötig, wenn etwas anderes fehlte – zum Beispiel die Unterschrift.`;
+    } else {
+      const MAX = 10;
+      inhalt = `Geändert:<ul style="margin:.3rem 0 .2rem 1.1rem;padding:0;">`
+        + v.aend.zeilen.slice(0, MAX).map((z) => `<li>${e(z)}</li>`).join("")
+        + (v.aend.zeilen.length > MAX ? `<li>… und ${v.aend.zeilen.length - MAX} weitere Tage</li>` : ``)
+        + `</ul>`
+        + (v.aend.summeAlt !== v.aend.summeNeu ? `Summe: ${euroDE(v.aend.summeAlt)} → <b>${euroDE(v.aend.summeNeu)}</b>` : ``);
+    }
+    korrBox = `<div class="abgabe-hinweis" style="margin:.5rem 0;">
+        🔁 <b>Korrektur</b> – dieser Monat wurde ${wannVorher ? "am " + e(wannVorher) + " " : ""}schon gesendet.
+        Diese Fassung ersetzt die vorherige.<br>${inhalt}
+      </div>`;
+  }
+  const gleich = v.istKorrektur && v.alt && v.aend && v.aend.gleich;
+  /* AUFBAU: oben ein Bereich, der scrollt (Angaben, Summe, Korrektur, der
+     Nachweis als Bild) - unten eine FESTE Leiste mit Haken und Knoepfen.
+     Die Leiste ist immer sichtbar, egal wie lang der Inhalt ist: Am Handy
+     lagen Haken und "Senden" in der ersten Fassung unterhalb des Randes,
+     erreichbar nur durch Wischen ueber eine eingebettete PDF hinweg
+     (gemessen 06.10.2026, 393 px). */
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box" id="sendePruefung"
+           style="max-width:920px;width:94vw;height:90vh;display:flex;flex-direction:column;padding:12px;overflow:hidden;">
+        <div id="sendeInhalt" style="flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;">
+          <h2 style="margin:0 0 .4rem;font-size:1.1rem;">📧 Vor dem Senden: bitte prüfen</h2>
+          <p class="small" style="margin:0 0 .5rem;line-height:1.45;">
+            An: <b>${e(v.empfaenger)}</b><br>
+            Betreff: ${e(sendeBetreff(v))}<br>
+            Datei: ${e(v.r.filename)}
+          </p>
+          <div class="hinweis-box" style="margin:0 0 .4rem;">
+            <b>${e(v.monthName)} ${config.jahr}</b> · ${d.arbeitstage} ${d.arbeitstage === 1 ? "Tag" : "Tage"} mit Pauschale · <b>${euroDE(d.pauschale)}</b>${d.urlaub ? ` · ${d.urlaub} Urlaub` : ``}${d.krank ? ` · ${d.krank} krank` : ``}<br>
+            ✍️ Unterschrift: ${v.unterschrift ? "eingefügt ✓" : "<b>nicht eingefügt</b> – eine verschickte PDF kann niemand mehr von Hand unterschreiben"}
+          </div>
+          ${korrBox}
+          <p class="small" style="margin:.5rem 0 .3rem;">So geht der Nachweis raus – bitte jeden Tag ansehen (am Handy mit zwei Fingern vergrößern):</p>
+          <img id="sendeBild" src="${v.r.bild}" alt="Spesennachweis ${e(v.monthName)} ${config.jahr}"
+               style="display:block;width:100%;height:auto;border:1px solid #ccc;border-radius:6px;background:#fff;">
+        </div>
+        <div id="sendeFuss" style="flex:none;border-top:1px solid #e3d6c6;padding-top:.6rem;margin-top:.5rem;background:#fff;">
+          <!-- Kaestchen: allgemeine Feld-Regeln (Hoehe/Polster) gezielt
+               aufheben, sonst sitzt es versetzt unter dem Text. "Senden"
+               sieht gesperrt AUS, solange es gesperrt IST (blass) - sonst
+               tippt man auf einen orangen Knopf und nichts passiert. -->
+          <label style="display:flex;gap:.6rem;align-items:center;margin:0 0 .5rem;font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="sendeGeprueft"
+                   style="width:22px;height:22px;min-height:0;padding:0;margin:0;flex:none;accent-color:var(--accent);"
+                   onchange="const k = document.getElementById('sendeKnopf'); k.disabled = !this.checked; k.style.opacity = this.checked ? '' : '.4';">
+            <span>Ich habe den Nachweis geprüft – alle Tage sind eingetragen und richtig.</span>
+          </label>
+          <div class="modal-close-row" style="gap:.5rem;flex-wrap:wrap;margin-top:0;">
+            <button class="ghost" id="sendeAbbruch" onclick="sendeVorgangVerwerfen(); closeModal();">Abbrechen – noch ändern</button>
+            <button class="primary" id="sendeKnopf" disabled style="opacity:.4;" onclick="sendeCountdownStarten()">${gleich ? "Trotzdem erneut senden" : "📧 Senden"}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* Stufe 3: 8 Sekunden mit "Rueckgaengig". Ein offenes Fenster haelt auch
+   das automatische Update an (guterMoment() prueft .modal-overlay). */
+function sendeCountdownStarten() {
+  const v = __sendeVorgang;
+  if (!v) return;
+  let rest = SENDE_SEKUNDEN;
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box" id="sendeCountdown" style="text-align:center;">
+        <h2>📧 Gleich geht es los</h2>
+        <p>In <b id="sendeRest" style="font-size:1.6rem;">${rest}</b> Sekunden wird die PDF gespeichert,
+           Ihr E-Mail-Programm geöffnet und ${escapeHtml(v.monthName)} als eingereicht gesperrt.</p>
+        <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden;margin:.6rem 0 1rem;">
+          <div id="sendeBalken" style="height:100%;width:100%;background:var(--accent);transition:width 1s linear;"></div>
+        </div>
+        <button class="primary" id="sendeRueck" style="width:100%;font-size:1.1rem;padding:14px;" onclick="sendeRueckgaengig()">↩️ Rückgängig – noch nicht senden</button>
+      </div>
+    </div>`;
+  __sendeUhr = setInterval(() => {
+    rest--;
+    const z = document.getElementById("sendeRest"); if (z) z.textContent = rest;
+    const b = document.getElementById("sendeBalken"); if (b) b.style.width = (rest / SENDE_SEKUNDEN * 100) + "%";
+    if (rest <= 0) { clearInterval(__sendeUhr); __sendeUhr = null; sendeAusfuehren(); }
+  }, 1000);
+}
+function sendeRueckgaengig() {
+  sendeVorgangVerwerfen();
+  sendeFensterText("↩️ Nicht gesendet",
+    "Es wurde nichts gespeichert, nichts gesendet und nichts gesperrt. Sie können den Monat in Ruhe ergänzen.", "OK");
+}
+
+/* Stufe 4: ausfuehren - mit DERSELBEN PDF, die geprueft wurde. */
+function sendeAusfuehren() {
+  const v = sendeVorgangVerwerfen();
+  if (!v) return;
+  closeModal();
+  v.r.pdf.save(v.r.filename);
+  // Festhalten, was gesendet wurde - Grundlage fuer die Aenderungsliste einer spaeteren Korrektur
+  try { localStorage.setItem(spesenGesendetKey(config.jahr, v.monat), JSON.stringify(v.neu)); } catch (e) {}
+  submitMonth(config.jahr, v.monat); // Monat gilt ab Versand als eingereicht und wird gesperrt
+  bumpMonthSentCount(config.jahr, v.monat); // zaehlt jeden Versand (fuer Korrektur-Erkennung; bleibt beim Wieder-Oeffnen erhalten)
+  const body =
+    `Hallo,\n\nanbei mein ${v.istKorrektur ? "korrigierter " : ""}Spesennachweis für ${v.monthName} ${config.jahr}.\n\n` +
+    (v.istKorrektur
+      ? `Hinweis: Dies ist eine korrigierte Fassung – sie ersetzt meinen zuvor gesendeten Nachweis für diesen Monat.\n\n`
+      : ``) +
+    aenderungenText(v) +
+    `Hinweis: Bitte die soeben heruntergeladene PDF-Datei noch an diese E-Mail anhängen ` +
+    `(Browser können Anhänge aus Sicherheitsgründen nicht automatisch hinzufügen).\n\n` +
+    `Viele Grüße\n${v.mitarbeiter}`;
   alert(
-    `PDF "${filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen.` +
-    (istKorrektur ? `\n\nHinweis: Der Betreff ist als Korrektur gekennzeichnet.` : ``) +
+    `PDF "${v.r.filename}" wurde heruntergeladen. Gleich öffnet sich eine vorausgefüllte E-Mail - dort bitte die PDF aus dem Downloads-Ordner anhängen.` +
+    (v.istKorrektur ? `\n\nHinweis: Der Betreff ist als Korrektur gekennzeichnet.` : ``) +
     `\n\nDer Monat wurde als eingereicht markiert und gesperrt (über "🔓 Wieder öffnen" bei Bedarf änderbar).`
   );
-  window.location.href = `mailto:${config.arbeitgeberEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = `mailto:${v.empfaenger}?subject=${encodeURIComponent(sendeBetreff(v))}&body=${encodeURIComponent(body)}`;
 }
 
 /* ===================== Zeit-Dreh-Rad (ersetzt <input type=time>) =====================
