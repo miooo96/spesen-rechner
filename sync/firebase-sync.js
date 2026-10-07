@@ -71,8 +71,14 @@
     "spesen_sync_aus",      // Geraete-Not-Aus, gehoert nicht in die Cloud
   ]);
   // Interne Hilfsschluessel dieses Moduls (nie synchronisieren)
+  /* Ergaenzt 07.10.2026: Firebase legt selbst Merker im Browserspeicher ab
+     ("firestore_zombie_firestore/[DEFAULT]/…"). Der Abgleich versuchte, auch
+     diese hochzuladen - das scheitert an den Schraegstrichen (gefunden im
+     Zwei-Geraete-Test mit dem Emulator, sync-pruefen.js). Schluessel mit "/"
+     kann Firestore grundsaetzlich nicht als Dokument anlegen. */
   const istIntern = (k) =>
-    k.startsWith("__sync") || k.includes("__shadow_") || k === "emailForSignIn";
+    k.startsWith("__sync") || k.includes("__shadow_") || k === "emailForSignIn"
+    || k.startsWith("firestore_") || k.includes("/");
 
   const syncFaehig = (k) =>
     typeof k === "string" && !AUSGESCHLOSSEN.has(k) && !istIntern(k);
@@ -103,6 +109,51 @@
   let anwendenLaeuft = false;            // Echo-Sperre: Remote wird gerade angewendet
   let reloadTimer = null;
 
+  // ---- PDF-Sync (Version 2) -------------------------------------------
+  // Die im Tool abgelegten PDFs (IndexedDB "spesen-pdf-archiv") wandern als
+  // Base64 in die Unter-Sammlung users/{uid}/pdfs/{id}. Dieselbe Gatung wie
+  // der state-Sync (nur Mirko, nur angemeldet). Siehe firestore.rules.
+  const PDF_TOOBIG_KEY = "__sync_pdf_toobig"; // { id: byteGroesse } – zu gross fuer ein Firestore-Dok
+  const cloudPdfIds = new Set();              // IDs, die aktuell in der Cloud liegen (aus dem Snapshot)
+  let anwendenPdfLaeuft = false;              // Echo-Sperre: ein Download wird gerade lokal abgelegt
+  let pdfPeriodischLaeuft = false;            // Intervall-Wächter nur einmal starten
+
+  const pdfToobigLesen = () => {
+    try { return JSON.parse(localStorage.getItem(PDF_TOOBIG_KEY) || "{}") || {}; } catch { return {}; }
+  };
+  const pdfToobigMerken = (id, size) => {
+    try { const m = pdfToobigLesen(); m[id] = size; _setItem.call(localStorage, PDF_TOOBIG_KEY, JSON.stringify(m)); } catch {}
+  };
+  const pdfToobigLoeschen = (id) => {
+    try { const m = pdfToobigLesen(); if (m[id] != null) { delete m[id]; _setItem.call(localStorage, PDF_TOOBIG_KEY, JSON.stringify(m)); } } catch {}
+  };
+
+  // Blob -> Base64 (ohne "data:...;base64,"-Praefix). Null bei Fehler.
+  function blobZuBase64(blob) {
+    return new Promise((res) => {
+      try {
+        const r = new FileReader();
+        r.onload = () => {
+          const s = String(r.result || "");
+          const i = s.indexOf(",");
+          res(i >= 0 ? s.slice(i + 1) : "");
+        };
+        r.onerror = () => { console.warn("[Sync] Blob->Base64 fehlgeschlagen"); res(null); };
+        r.readAsDataURL(blob);
+      } catch (e) { console.warn("[Sync] Blob->Base64 fehlgeschlagen:", e.message); res(null); }
+    });
+  }
+
+  // Base64 -> Blob (application/pdf). Null bei Fehler.
+  function base64ZuBlob(b64) {
+    try {
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: "application/pdf" });
+    } catch (e) { console.warn("[Sync] Base64->Blob fehlgeschlagen:", e.message); return null; }
+  }
+
   Promise.all([
     import(`${SDK}/firebase-app.js`),
     import(`${SDK}/firebase-auth.js`),
@@ -121,6 +172,20 @@
     });
     // Modul-weit gebrauchte Firestore-Funktionen merken
     FS = fsMod;
+
+    /* PRUEFUMGEBUNG (07.10.2026): NUR auf diesem Rechner (localhost) und NUR
+       mit ?sync-test in der Adresse -> lokale Firebase-Emulatoren statt
+       echter Cloud. So laesst sich der Abgleich mit zwei Browsern pruefen,
+       ohne Mirkos Konto und ohne echte Daten (sync-test/ im Spesen-Tool-
+       Ordner). Auf hall-spesen-rechner.de wirkungslos: dort ist der
+       Hostname nie localhost. */
+    const lokal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    if (lokal && (params.has("sync-test") || sessionStorage.getItem("__sync_test") === "ja")) {
+      sessionStorage.setItem("__sync_test", "ja");
+      authMod.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+      fsMod.connectFirestoreEmulator(db, "127.0.0.1", 8080);
+      console.info("[Sync] PRUEFUMGEBUNG: Firebase-Emulatoren auf diesem Rechner");
+    }
 
     // --- Magic-Link: Rueckkehr vom Login-Link abfangen ---------------
     if (authMod.isSignInWithEmailLink(auth, window.location.href)) {
@@ -157,6 +222,12 @@
         // beim ersten Login auf einem Geraet mit bestehenden Daten alles
         // nach oben, und ein leeres zweites Geraet bekommt es danach.
         ersteVollsicht().then(erstPushAllesRauf);
+
+        // --- Dasselbe fuer die abgelegten PDFs (Version 2) ---
+        pdfPatchAnbringen();                           // neue PDFs prompt hochladen
+        pdfAnhoeren();                                 // Cloud -> Geraet (Live)
+        pdfErstVollsicht().then(pdfErstPushRauf);      // erst holen, dann fehlende hochladen
+        pdfPeriodischStarten();                        // Sicherheitsnetz, falls der Patch mal nicht greift
       }
     });
 
@@ -364,4 +435,180 @@
     if (!confirm("Von der Synchronisierung abmelden? Ihre Daten bleiben lokal auf diesem Geraet erhalten.")) return;
     try { await AUTH.signOut(auth); location.reload(); } catch (e) { alert(e.message); }
   }
+
+  // =====================================================================
+  //  PDF-Ablage synchronisieren (Version 2)
+  // =====================================================================
+
+  // Monkey-Patch von window.pdfDbAblegen: nach erfolgreichem lokalem Ablegen
+  // (Rueckgabe true) die PDF zusaetzlich in die Cloud schieben. Verhalten und
+  // Rueckgabewert des Originals bleiben unveraendert; der Upload laeuft daneben.
+  // index.html ist ein KLASSISCHES Script -> die Funktionsdeklaration
+  // pdfDbAblegen ist eine window-Property, der Patch greift also auch fuer die
+  // bare-identifier-Aufrufe aus index.html (im Test verifiziert).
+  function pdfPatchAnbringen() {
+    if (window.__spesenPdfGepatcht) return;
+    const orig = window.pdfDbAblegen;
+    if (typeof orig !== "function") return; // index.html noch nicht so weit -> spaeter erneut
+    window.pdfDbAblegen = async function (id, blob) {
+      const ok = await orig.call(this, id, blob);
+      try {
+        // Nicht hochladen, wenn gerade ein DOWNLOAD lokal abgelegt wird (Echo-Schleife),
+        // oder wenn noch kein Nutzer angemeldet ist.
+        if (ok === true && uid && db && !anwendenPdfLaeuft) pdfHochladen(id);
+      } catch (e) { /* Upload darf das lokale Ablegen nie stoeren */ }
+      return ok;
+    };
+    window.__spesenPdfGepatcht = true;
+  }
+
+  // Eine lokal abgelegte PDF in die Cloud schreiben.
+  async function pdfHochladen(id) {
+    if (!uid || !db || !FS) return;
+    if (typeof window.pdfDbHolen !== "function") return;
+    try {
+      const blob = await window.pdfDbHolen(id);
+      if (!blob) return;
+      const b64 = await blobZuBase64(blob);
+      if (!b64) return;
+      if (b64.length > MAX_WERT) {
+        console.warn("[Sync] PDF zu gross fuer Firestore, uebersprungen:", id, b64.length);
+        pdfToobigMerken(id, blob.size);
+        return;
+      }
+      pdfToobigLoeschen(id); // war evtl. frueher zu gross, jetzt passt es
+      const ref = FS.doc(db, "users", uid, "pdfs", id);
+      await FS.setDoc(ref, {
+        b64,
+        size: blob.size,
+        updatedAt: FS.serverTimestamp(),
+        device: geraet,
+      });
+      cloudPdfIds.add(id);
+    } catch (e) {
+      console.warn("[Sync] PDF-Upload wartet/fehlgeschlagen:", id, e.message);
+    }
+  }
+
+  // Live auf die Cloud-PDFs hoeren und fehlende/abweichende herunterladen.
+  function pdfAnhoeren() {
+    if (!uid || !FS) return;
+    const coll = FS.collection(db, "users", uid, "pdfs");
+    FS.onSnapshot(coll, (snap) => {
+      // Cloud-Id-Menge frisch aufbauen (dient dem Erst-Upload als Echo-Schutz)
+      cloudPdfIds.clear();
+      snap.forEach((d) => cloudPdfIds.add(d.id));
+      let etwasGeholt = false;
+      const arbeiten = [];
+      snap.docChanges().forEach((ch) => {
+        if (ch.type === "removed") return; // Loeschungen konservativ ignorieren
+        arbeiten.push(pdfHerunterladen(ch.doc.id, ch.doc.data()).then((g) => { if (g) etwasGeholt = true; }));
+      });
+      Promise.all(arbeiten).then(() => { if (etwasGeholt) ordnerAuffrischen(); });
+    }, (e) => console.warn("[Sync] PDF-Listener-Fehler:", e.message));
+  }
+
+  // Eine Cloud-PDF lokal ablegen, WENN sie fehlt oder eine andere Groesse hat.
+  // Liefert true, wenn wirklich etwas geschrieben wurde.
+  async function pdfHerunterladen(id, data) {
+    if (!data || !data.b64) return false;
+    if (typeof window.pdfDbHolen !== "function" || typeof window.pdfDbAblegen !== "function") return false;
+    try {
+      const vorhanden = await window.pdfDbHolen(id);
+      if (vorhanden && typeof data.size === "number" && vorhanden.size === data.size) return false; // schon da
+      const blob = base64ZuBlob(data.b64);
+      if (!blob) return false;
+      // Lokal ablegen OHNE erneuten Upload (Echo-Sperre)
+      anwendenPdfLaeuft = true;
+      try { await window.pdfDbAblegen(id, blob); }
+      finally { anwendenPdfLaeuft = false; }
+      cloudPdfIds.add(id);
+      return true;
+    } catch (e) {
+      console.warn("[Sync] PDF-Download fehlgeschlagen:", id, e.message);
+      return false;
+    }
+  }
+
+  // Beim Login einmal alle Cloud-PDFs holen und die Id-Menge aufbauen.
+  async function pdfErstVollsicht() {
+    if (!uid || !FS) return;
+    try {
+      const coll = FS.collection(db, "users", uid, "pdfs");
+      const snap = await FS.getDocs(coll);
+      cloudPdfIds.clear();
+      let etwasGeholt = false;
+      const arbeiten = [];
+      snap.forEach((d) => {
+        cloudPdfIds.add(d.id);
+        arbeiten.push(pdfHerunterladen(d.id, d.data()).then((g) => { if (g) etwasGeholt = true; }));
+      });
+      await Promise.all(arbeiten);
+      if (etwasGeholt) ordnerAuffrischen();
+    } catch (e) {
+      console.warn("[Sync] PDF-Erstabgleich:", e.message);
+    }
+  }
+
+  // Beim Login alle lokalen PDFs hochladen, die in der Cloud fehlen.
+  async function pdfErstPushRauf() {
+    if (!uid) return;
+    if (typeof window.pdfDbSchluessel !== "function") return;
+    try {
+      const ids = await window.pdfDbSchluessel();
+      for (const id of ids) {
+        if (cloudPdfIds.has(id)) continue; // schon in der Cloud (oder gerade geholt)
+        await pdfHochladen(id);
+      }
+    } catch (e) {
+      console.warn("[Sync] PDF-Erstupload:", e.message);
+    }
+  }
+
+  // Sicherheitsnetz: falls der Monkey-Patch einmal nicht greift (andere
+  // Lade-Reihenfolge o.ae.), in Ruhe periodisch lokale PDFs abgleichen.
+  function pdfPeriodischStarten() {
+    if (pdfPeriodischLaeuft) return;
+    pdfPeriodischLaeuft = true;
+    setInterval(() => {
+      if (!uid) return;
+      // Patch nachziehen, falls index.html pdfDbAblegen spaeter definiert hat
+      if (!window.__spesenPdfGepatcht) pdfPatchAnbringen();
+      pdfErstPushRauf();
+    }, 60000);
+  }
+
+  // Sichtbare Ordner-Ansichten in index.html neu rendern (Guards, falls die
+  // Funktionen fehlen). Deckt die vier PDF-Ordner (Zeit/Urlaub/Jahr/Inventur) ab.
+  function ordnerAuffrischen() {
+    try {
+      if (typeof window.ordnerAlleAuffrischen === "function") window.ordnerAlleAuffrischen();
+    } catch (e) { /* nie fatal */ }
+  }
+
+  // Echter Wipe: ALLE Cloud-Dokumente dieses Kontos (pdfs + state) loeschen und
+  // den lokalen Sync-Merker leeren. Wird von index.htmls testResetAlles() VOR
+  // dem lokalen Loeschen aufgerufen, damit ein Reset nicht sofort wieder aus der
+  // Cloud nachgeladen wird. Ohne Anmeldung passiert nichts.
+  window.spesenSyncCloudLeeren = async function () {
+    if (!uid || !db || !FS) return; // nicht angemeldet -> nichts tun
+    try {
+      for (const sammlung of ["pdfs", "state"]) {
+        try {
+          const coll = FS.collection(db, "users", uid, sammlung);
+          const snap = await FS.getDocs(coll);
+          const weg = [];
+          snap.forEach((d) => weg.push(FS.deleteDoc(FS.doc(db, "users", uid, sammlung, d.id))));
+          await Promise.all(weg);
+        } catch (e) { console.warn("[Sync] Cloud-Leeren (" + sammlung + "):", e.message); }
+      }
+      cloudPdfIds.clear();
+      // Lokale Sync-Merker leeren, damit nach dem Reset nichts "schon gesehen" ist
+      _removeItem.call(localStorage, META_KEY);
+      _removeItem.call(localStorage, "__sync_uid");
+      _removeItem.call(localStorage, PDF_TOOBIG_KEY);
+    } catch (e) {
+      console.warn("[Sync] Cloud-Leeren fehlgeschlagen:", e.message);
+    }
+  };
 })();

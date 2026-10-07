@@ -5910,6 +5910,14 @@ async function testResetAlles() {
     + "• ALLE abgelegten PDFs in den Ordnern (Spesen, Abrechnung, Inventur, Zeit, Urlaub, Jahr)\n\n"
     + "Es wird KEINE Sicherungsdatei erzeugt. Das lässt sich nicht rückgängig machen.")) return;
 
+  // 0. ZUERST die Cloud dieses Kontos leeren (falls der Geraete-Sync aktiv ist).
+  //    Sonst laedt der Sync State + PDFs nach dem lokalen Loeschen sofort wieder
+  //    herunter - ein Reset waere dann kein echter Wipe. Fehler hier nicht fatal.
+  if (typeof window.spesenSyncCloudLeeren === "function") {
+    try { await window.spesenSyncCloudLeeren(); }
+    catch (e) { console.warn("Test-Reset: Cloud-Leeren fehlgeschlagen:", e); }
+  }
+
   // 1. localStorage leeren - dieselbe Regel wie resetAll(), nur ohne Backup.
   const weg = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -10236,6 +10244,23 @@ async function ordnerToggle(key) {
   el.style.display = "block";
   el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
+/* Frischt alle GERADE SICHTBAREN PDF-Ordner neu auf (Zeit/Urlaub/Jahr/Inventur).
+   Wird vom Geraete-Sync aufgerufen, nachdem eine PDF aus der Cloud nachgeladen
+   wurde - damit ein offener Ordner die neue Datei sofort zeigt. Guards: tut
+   nichts, wenn gerade kein Ordner offen ist. */
+window.ordnerAlleAuffrischen = async function () {
+  try {
+    for (const key in ORDNER) {
+      const def = ORDNER[key];
+      if (!def) continue;
+      const el = document.getElementById(def.containerId);
+      if (el && el.style.display !== "none") {
+        await ordnerZeigen(def.containerId, def.praefix, def.titelFn, def.farbVar);
+      }
+    }
+  } catch (e) { /* Auffrischen darf nie etwas kaputt machen */ }
+};
 
 /* Puls auf dem Ziel-Knopf: kurz in der Ordnerfarbe aufleuchten. Die Klasse wird
    davor entfernt und per Reflow neu angestossen, damit sie auch beim zweiten Mal
