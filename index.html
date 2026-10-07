@@ -3805,7 +3805,14 @@
         <input type="file" id="backupFileInput" accept=".json" style="display:none;" onchange="importBackupFile(this)">
       </div>
     </div>
-    <p class="hinweis-text">💡 Da alle Daten nur in diesem Browser gespeichert werden, gehen sie beim Löschen des Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern" wird alles als Datei gesichert: Einstellungen, alle Monate, Arbeitszeiten, Urlaub, Fahrzeug-Inventur, Abrechnung, Kopfdaten und alle Unterschriften - regelmäßig empfehlenswert, z.B. einmal im Monat. (Nicht dabei: „Neue Ware zählen" - das ist jede Woche neu und kein Nachweis.) Über „Backup wiederherstellen" lässt sich diese Datei später wieder einlesen, auch auf einem anderen Gerät/Browser.</p>
+    <!-- 07.10.2026, Mirko: "entferne die bereiche wo das noch steht mit
+         inventur, ware zaehlen etc." - Kollegen lasen hier die Namen der
+         gesperrten Bereiche. Die Teile in den Spans sind ab Werk versteckt
+         und werden nur eingeblendet, wo der Bereich erlaubt ist
+         (aktualisiereInventurSichtbarkeit: .nur-zeit-text = zeigtZeit(),
+         .nur-sonder-text = wie der Inventur-Reiter). Versteckt AB WERK, damit
+         auch bei einem Skriptfehler kein Kollege die Namen liest. -->
+    <p class="hinweis-text">💡 Da alle Daten nur in diesem Browser gespeichert werden, gehen sie beim Löschen des Browser-Verlaufs oder bei einem Gerätewechsel sonst unwiderruflich verloren. Mit „Backup speichern" wird alles als Datei gesichert: Einstellungen, alle Monate,<span class="nur-zeit-text" style="display:none"> Arbeitszeiten,</span> Urlaub<span class="nur-sonder-text" style="display:none">, Fahrzeug-Inventur, Abrechnung, Kopfdaten</span> und alle Unterschriften - regelmäßig empfehlenswert, z.B. einmal im Monat.<span class="nur-sonder-text" style="display:none"> (Nicht dabei: „Neue Ware zählen" - das ist jede Woche neu und kein Nachweis.)</span> Über „Backup wiederherstellen" lässt sich diese Datei später wieder einlesen, auch auf einem anderen Gerät/Browser.</p>
   </div>
 
   <p style="font-size:0.8rem; color:#666;">
@@ -4488,7 +4495,7 @@
   <h2 style="margin-top:0;">🌴 Urlaubskalender</h2>
 
   <p class="hinweis-text">
-    💡 Dieser Kalender arbeitet mit <b>denselben Daten wie Ihre Abrechnung</b>.
+    💡 Dieser Kalender arbeitet mit <b>denselben Daten wie Ihr Spesennachweis</b>.
     Was Sie hier eintragen, steht sofort auch im Monatsformular und in der
     Jahresübersicht – und umgekehrt. Sie müssen Urlaub also nur einmal erfassen.
   </p>
@@ -4914,6 +4921,10 @@ function aktualisiereInventurSichtbarkeit() {
   umschalten("inventur",   invSichtbar);
   umschalten("ware",       sonderSichtbar);
   umschalten("abrechnung", sonderSichtbar);
+  /* Texte, die die Bereiche beim Namen nennen (07.10.2026, Mirko:
+     "entferne die bereiche wo das noch steht") - nur, wo sie erlaubt sind. */
+  document.querySelectorAll(".nur-sonder-text").forEach((el) => { el.style.display = sonderSichtbar ? "" : "none"; });
+  document.querySelectorAll(".nur-zeit-text").forEach((el) => { el.style.display = zeigtZeit() ? "" : "none"; });
 
   /* Das Tour-Feld in den Stammdaten traegt Tour-Nr. UND Fzg.-Fixbestand.
      Beide stehen auf dem INVENTURBLATT (invFixbestandZeigen() schreibt
@@ -14973,7 +14984,10 @@ function bandSetzen(tab) {
   } catch (e) {}
 
   let merk = "";
-  try { if (config.tour) merk = '<div class="bb-merk">Tour ' + config.tour + "</div>"; } catch (e) {}
+  /* Tour-Nr. gehoert zur Inventur (07.10.2026): nur zeigen, wo die Inventur
+     erlaubt ist. Kollegen, die die Tour zwischen 22.09. und 05.10. eingetragen
+     hatten, sahen sie sonst weiter oben im Band. */
+  try { if (config.tour && tabErlaubt("inventur")) merk = '<div class="bb-merk">Tour ' + config.tour + "</div>"; } catch (e) {}
 
   const zahlen = bandZahlen(tab);
   band.innerHTML =

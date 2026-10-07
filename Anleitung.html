@@ -312,8 +312,11 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
 <div class="step">
   <p>Über die Kachel/den Tab <b>🌴 Urlaub</b> öffnet sich ein Jahreskalender mit Urlaubskonto.</p>
 
-  <div class="hinweis"><b>Anders als die Arbeitszeit</b> arbeitet der Urlaubskalender mit
-    <b>denselben Daten wie die Abrechnung</b>. Was hier eingetragen wird, steht sofort auch im
+  <!-- 07.10.2026: "Anders als die Arbeitszeit" und "wie die Abrechnung"
+       entfernt - Kollegen haben beide Bereiche nicht (Mirko: "entferne die
+       bereiche wo das noch steht"). Gemeint war immer der Spesennachweis. -->
+  <div class="hinweis">Der Urlaubskalender arbeitet mit
+    <b>denselben Daten wie Ihr Spesennachweis</b>. Was hier eingetragen wird, steht sofort auch im
     Monatsformular und in der Jahresübersicht (Schritt 8) – und umgekehrt. Urlaub muss also nur
     einmal erfasst werden, egal an welcher Stelle.</div>
 
@@ -365,12 +368,22 @@ Alles läuft im Browser, nichts muss installiert werden.</p>
   <p><b>Android (Chrome):</b> Beim Öffnen der Adresse meldet sich der Browser meist von selbst mit
      <b>„App installieren"</b>. Falls nicht: Menü (drei Punkte) → „Zum Startbildschirm hinzufügen".</p>
 
-  <div class="hinweis"><b>Nichts geht verloren, nichts wird doppelt.</b> Die App ist dieselbe Seite –
-    Ihre Abrechnung, Arbeitszeiten und Urlaubstage sind darin dieselben wie im Browser. Es entsteht
-    <b>kein zweiter Datenbestand</b>. Sie können also frei wechseln.</div>
+  <!-- 07.10.2026 BERICHTIGT. Hier stand: "Die App ist dieselbe Seite - Ihre
+       Abrechnung, Arbeitszeiten und Urlaubstage sind darin dieselben wie im
+       Browser. Es entsteht kein zweiter Datenbestand." Das war FALSCH - App
+       und Browser speichern getrennt (von Mirko am 19./20.09.2026 gemessen,
+       im Installationsfenster von index.html seit dem 20.09. richtig).
+       Ausserdem nannte der Satz Arbeitszeit und Abrechnung, die Kollegen
+       nicht haben. Der Schnellzugriff "Arbeitszeit" ist seit 07.10.2026 aus
+       dem Manifest entfernt. -->
+  <div class="hinweis"><b>App und Browser speichern getrennt.</b> Die App ist zwar dieselbe Seite –
+    ihre Daten sind es nicht. Was Sie im Browser eintragen, erscheint nicht in der App, und umgekehrt.
+    <b>Bleiben Sie bei einem Weg</b>, sonst ist Ihr Monat an beiden Stellen nur halb ausgefüllt.
+    Wechseln geht trotzdem: mit „📦 Backup als Datei speichern“ sichern und über
+    „📂 Backup wiederherstellen“ wieder einlesen.</div>
 
-  <div class="hinweis">Halten Sie das Symbol gedrückt, springen Sie direkt zu <b>Arbeitszeit</b> oder
-    <b>Urlaub</b>, ohne erst zu suchen.</div>
+  <div class="hinweis">Halten Sie das Symbol gedrückt, springen Sie direkt zum <b>Urlaubskalender</b>,
+    ohne erst zu suchen.</div>
 </div>
 
 <h2>Extra: 📱 Die Tages-Ansicht auf dem Handy</h2>
