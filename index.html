@@ -63,7 +63,13 @@
      zusaetzlich, damit die App auf dem Spesenblatt startet. -->
 <link rel="manifest" href="app/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- black-translucent (10.10.2026, Mirko am iPhone: Zurueck-Knopf oben links in der
+     installierten App unter der Statusleiste, nicht tippbar). Mit "default" reichte die
+     Seite in der App bis unter die Statusleiste, meldete aber 0 px Abstand - rieb.css
+     haelt oben var(--oben) = env(safe-area-inset-top) frei. Mit black-translucent meldet
+     das iPhone die echte Hoehe. Weisse Uhrzeit passt: der Kopf ist in Hell und Dunkel
+     dunkel. Im Browser ohne Wirkung (App = Browser bleibt). -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Der Name unter dem App-Symbol. Achtung: Das iPhone schreibt ihn beim
      "Zum Home-Bildschirm hinzufuegen" FEST - ein spaeteres Update aendert
      ihn nie wieder. Wer die App vorher hinzugefuegt hat, muss das Symbol
