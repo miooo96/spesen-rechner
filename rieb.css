@@ -903,6 +903,25 @@ button.primary:hover{background:#1F2530}
    (zeitMonatBlattHtml: #EEF0F4). Der Spesennachweis (#formular) bleibt
    bewusst unberuehrt - Entscheidung 6. */
 .az-jahr-tab th{background:#EEF0F4}
+/* PDF-Vorschau des Spesennachweises (10.10.2026): Rahmen wie die Boegen der
+   neuen Oberflaeche. NUR der Rahmen - das Dokument selbst bleibt (Mirko: "das
+   dokument nicht verändern"). Eigene Klasse .pdfv: die Inventur-Vorschau
+   (ebenfalls .pdf-preview-box) bleibt, wie sie ist. */
+.pdfv{padding:18px 18px 14px;border-radius:26px}
+.pdfv .ic{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}   /* wie #rieb .ic - das Fenster liegt ausserhalb von #rieb */
+.pdfv .pdfv-kopf{flex-wrap:nowrap;align-items:flex-start;margin-bottom:12px}
+.pdfv .pdfv-ueber{font-size:12.5px;color:#5F6878;font-weight:560;margin-bottom:2px}
+.pdfv .pdfv-kopf h2{font-size:22px;font-weight:640;letter-spacing:-.025em;margin:0;color:#0E1116}
+.pdfv .pdfv-kopf h2::after{display:none}
+.pdfv .pdfv-zu{width:42px;height:42px;flex:none;border-radius:50%;display:grid;place-items:center;padding:0;background:#fff;border:0;box-shadow:inset 0 0 0 1px #DDE2E8,0 4px 12px rgba(14,17,22,.08);color:#0E1116}
+.pdfv .pdfv-zu svg{width:18px;height:18px}
+.pdfv .pdfv-knoepfe{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pdfv .pdfv-knoepfe button{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-size:15px;font-weight:620;padding:0 12px}
+.pdfv .pdfv-knoepfe button:not(.primary){background:#fff;border:0;box-shadow:inset 0 0 0 1px #DDE2E8;color:#0E1116}
+.pdfv .pdfv-knoepfe svg{width:18px;height:18px;flex:none}
+.pdfv .pdfv-hinweis{display:flex;gap:10px;align-items:flex-start;background:#EAF6FD;border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:13.5px;line-height:1.45;color:#0E1116}
+.pdfv .pdfv-hinweis svg{width:18px;height:18px;flex:none;margin-top:1px;color:#0369A1}
+.pdfv .pdf-preview-frame{border:0;border-radius:14px;box-shadow:inset 0 0 0 1px #DDE2E8}
 input:focus,select:focus{box-shadow:0 0 0 3px rgba(56,189,248,.25);border-color:#0E1116}
 
 /* ======================================================================

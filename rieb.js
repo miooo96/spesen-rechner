@@ -81,6 +81,8 @@ const I = {
   raus: '<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 8l4 4-4 4M19 12H9"/>',
 };
 const ic = (n) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${I[n] || ""}</svg>`;
+/* Fuer Fenster der alten Fassung im neuen Aussehen (PDF-Vorschau, 10.10.2026) */
+window.riebIc = ic;
 /* Das Zeichen "R + Schwung-S" (Mirko 08.10.2026: App-Symbol Fassung 3, "rs
    soll dort auch hin" - Startseite und Einstieg). Gleicher Aufbau wie die
    App-Symbole (Neues Design/symbole-bauen.js), hier ohne Kachel: Raster
@@ -760,10 +762,9 @@ function renderMehr() {
    "ja passt". Diese Oberflaeche spricht NUR mit window.riebSync; ohne
    Anmeldung laedt firebase-sync.js nichts von Google. */
 const DATENSCHUTZ_FASSUNG = "2026-10-09";
-/* Serverstandort der Firestore-Datenbank - laut sync/EINBAU.md sollte
-   "europe-west3 (Frankfurt)" gewaehlt werden; NICHT bestaetigt. Erst
-   eintragen, wenn Mirko in der Firebase-Konsole nachgesehen hat. Leer = der
-   Satz nennt keinen Ort (nichts behaupten, was nicht belegt ist). */
+/* Serverstandort der Firestore-Datenbank: BLEIBT LEER - der Satz nennt keinen
+   Ort. Mirko 10.10.2026: "ne wir geben kein serverstandort preis". Nicht
+   wieder nachfragen. */
 const SERVERSTANDORT = "";
 const syncZ = () => (window.riebSync ? window.riebSync.zustand() : null);
 const syncAn = () => { const s = syncZ(); return !!(s && s.angemeldet); };

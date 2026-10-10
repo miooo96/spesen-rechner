@@ -13744,22 +13744,28 @@ async function previewPDF() {
   __pdfPreview = r;
   __pdfPreviewUrl = r.pdf.output("bloburl");
   const root = document.getElementById("modalRoot");
+  /* Seit 10.10.2026 im Aussehen der neuen Oberflaeche (Kopf wie die Boegen,
+     runder Schliessen-Knopf, Symbole statt Emojis, Hinweis als Karte).
+     Mirko: "ja aber das dokument nicht verändern" - buildPdf() und damit der
+     Spesennachweis bleiben unberuehrt; nur dieser Rahmen ist neu. Klassen
+     und Klickziele (pdf-preview-*, closePdfPreview/printFromPreview) bleiben,
+     die Pruefungen greifen darauf zu. Eigene Klasse .pdfv, damit die
+     Inventur-Vorschau (auch .pdf-preview-box) unberuehrt bleibt. */
+  const sym = (n) => (typeof window.riebIc === "function" ? window.riebIc(n) : "");   // Symbole aus rieb.js
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closePdfPreview()">
-      <div class="modal-box pdf-preview-box">
-        <div class="pdf-preview-head">
-          <h2>👁️ PDF-Vorschau</h2>
-          <div class="pdf-preview-actions">
-            <button class="primary" onclick="printFromPreview()">🖨️ Drucken</button>
-            <button class="primary" onclick="savePdfFromPreview()">💾 Speichern</button>
-            <button onclick="closePdfPreview()">Schließen</button>
-          </div>
+      <div class="modal-box pdf-preview-box pdfv">
+        <div class="pdf-preview-head pdfv-kopf">
+          <div><div class="pdfv-ueber">Spesennachweis</div><h2>PDF-Vorschau</h2></div>
+          <button class="pdfv-zu" onclick="closePdfPreview()" aria-label="Schließen">${sym("x")}</button>
         </div>
-        <div style="background:#E0F2FE; border:0; border-radius:14px; padding:9px 14px; margin-bottom:10px; font-size:0.85rem; color:var(--brand-dark);">
-          ✍️ <b>Nicht vergessen:</b> ${zeigtDigitaleAbgabe()
+        <div class="pdf-preview-actions pdfv-knoepfe">
+          <button class="primary" onclick="printFromPreview()">${sym("drucker")}<span>Drucken</span></button>
+          <button onclick="savePdfFromPreview()">${sym("laden")}<span>Speichern</span></button>
+        </div>
+        <div class="pdfv-hinweis">${sym("info")}<span><b>Nicht vergessen:</b> ${zeigtDigitaleAbgabe()
             ? "Die handschriftliche Unterschrift (Foto/Scan) muss eingefügt sein – andernfalls den Ausdruck von Hand unterschreiben."
-            : "Den Ausdruck von Hand unterschreiben."}
-        </div>
+            : "Den Ausdruck von Hand unterschreiben."}</span></div>
         <iframe class="pdf-preview-frame" src="${__pdfPreviewUrl}"></iframe>
       </div>
     </div>`;
