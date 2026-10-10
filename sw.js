@@ -44,10 +44,10 @@ const SHELL = [
   "./",
   "./index.html",
   "./Anleitung.html",
-  "./hall-logo.png",
-  "./hall-logo-original.png",
-  "./hall-nachtbild.jpg",
-  "./hall-nachtbild-neon.png",
+  /* Die Hall-Bilder (Logo, Nachtbild) sind seit 10.10.2026 nicht mehr dabei -
+     die neue Oberflaeche zeigt sie nirgends (Mirko: ja). Die Dateien liegen
+     noch fuer die alte, verdeckte Oberflaeche; die alte Seite geht ganz vom
+     Netz, wenn alle umgezogen sind. */
   "./app/",
   "./app/index.html",
   "./app/manifest.json",
@@ -62,6 +62,10 @@ const SHELL = [
   "./vendor/html2canvas.min.js",
   "./vendor/jspdf.umd.min.js",
   "./vendor/qrcode.min.js",
+  // Neue Oberflaeche "Rieb Spesen" (08.10.2026) - ohne sie startet die App offline nackt
+  "./rieb.css",
+  "./rieb.js",
+  "./schrift/Geist-Variable.woff2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -97,6 +101,25 @@ self.addEventListener("fetch", (event) => {
   // version.txt: ausschliesslich Netz, damit das Auto-Update ehrlich bleibt
   if (url.pathname.endsWith("version.txt")) {
     event.respondWith(fetch(req).catch(() => new Response("", { status: 504 })));
+    return;
+  }
+
+  /* Die neue Oberflaeche (rieb.js, rieb.css - 08.10.2026) gehoert zur
+     Seite und aendert sich mit jeder Veroeffentlichung. "Cache zuerst"
+     wuerde eine ALTE rieb.js zu einer NEUEN index.html liefern - dieselbe
+     Falle wie am 05.09.2026 (drei Veroeffentlichungen liefen ins Leere).
+     Deshalb Netz zuerst, Cache als Rueckfall - ohne den Umweg auf
+     index.html, der fuer eine Skriptdatei falsch waere. */
+  if (/\/rieb\.(js|css)$/.test(url.pathname)) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const kopie = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(req, kopie)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(req).then((treffer) => treffer || new Response("", { status: 504 })))
+    );
     return;
   }
 

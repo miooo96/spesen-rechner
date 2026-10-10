@@ -43,24 +43,52 @@
     return;
   }
 
-  // ---- Aktivierung: nur fuer Mirko ------------------------------------
-  // Gleiche Erkennung wie istMirko() im Tool: config.name == "Mirko Rieb".
-  // Kollegen haben ihren eigenen Namen -> sie sehen NICHTS (kein Anmelde-
-  // Knopf, kein Firebase). Vorteil gegenueber dem alten ?sync=an: das hier
-  // funktioniert in JEDER Oberflaeche – auch in der installierten Home-App,
-  // die keine Adresszeile hat. Not-Aus bleibt ueber ?sync=aus moeglich.
+  // ---- Aktivierung: fuer ALLE, freiwillig (09.10.2026) -----------------
+  // Bis 09.10.2026 nur fuer Mirko (Name "Mirko Rieb"). Mirko am 09.10.:
+  // "wir haben doch die synch funktion ... das mit einbauen?" und "ne brauche
+  // kein okey mehr ist mein eigenes tool jetzt" - Entscheidung 42: freiwillig,
+  // jeder legt sein Konto selbst an (E-Mail + Passwort).
+  //
+  // Wer NICHT angemeldet ist, bekommt von Firebase NICHTS: kein Laden der
+  // Google-Bausteine, keine Anfrage an Google ("Ohne Anmeldung bleibt alles
+  // nur auf diesem Geraet" muss wahr sein). Geladen wird erst, wenn
+  //   - auf diesem Geraet schon einmal angemeldet wurde (Merker __sync_uid,
+  //     setzt onAuthStateChanged - auch Mirkos bisherige Geraete haben ihn), oder
+  //   - jemand unter "Mehr" -> "Geraete abgleichen" auf Anmelden tippt.
+  // Die Oberflaeche dazu baut rieb.js; sie spricht nur mit window.riebSync.
+  // Not-Aus bleibt ueber ?sync=aus moeglich.
   const params = new URLSearchParams(location.search);
   if (params.get("sync") === "aus") localStorage.setItem("spesen_sync_aus", "ja");
   if (params.get("sync") === "an") localStorage.removeItem("spesen_sync_aus");
-  const toolConfig = (() => {
-    try { return JSON.parse(localStorage.getItem("spesen_config") || "{}"); }
-    catch (e) { return {}; }
-  })();
-  const istMirko = (toolConfig.name || "").trim().toLowerCase() === "mirko rieb";
-  if (localStorage.getItem("spesen_sync_aus") === "ja" || !istMirko) {
-    console.info("[Sync] Nicht aktiv (nur fuer Mirko; oder ?sync=aus gesetzt).");
+  if (localStorage.getItem("spesen_sync_aus") === "ja") {
+    console.info("[Sync] Nicht aktiv (?sync=aus gesetzt).");
     return;
   }
+
+  // ---- Schnittstelle fuer die Oberflaeche (rieb.js) ---------------------
+  const zustand = { bereit: false, laedt: false, angemeldet: false, email: "", letzterAbgleich: 0, fehler: "" };
+  const zuhoerer = [];
+  const melden = () => zuhoerer.forEach((f) => { try { f({ ...zustand }); } catch (e) { /* nie fatal */ } });
+  let meldeTimer = null;
+  const abgleichGemerkt = () => {
+    zustand.letzterAbgleich = Date.now();
+    clearTimeout(meldeTimer); meldeTimer = setTimeout(melden, 400);   // nicht bei jedem Schluessel neu zeichnen
+  };
+  /* Firebase-Fehler in Worte, die ein Kollege versteht */
+  const MELDUNG = {
+    "auth/invalid-credential": "E-Mail oder Passwort stimmt nicht.",
+    "auth/wrong-password": "E-Mail oder Passwort stimmt nicht.",
+    "auth/user-not-found": "Für diese E-Mail gibt es noch kein Konto – bitte „Neues Konto“.",
+    "auth/email-already-in-use": "Für diese E-Mail gibt es schon ein Konto – bitte „Anmelden“.",
+    "auth/weak-password": "Das Passwort braucht mindestens 6 Zeichen.",
+    "auth/invalid-email": "Die E-Mail-Adresse ist nicht gültig.",
+    "auth/missing-password": "Bitte ein Passwort eingeben.",
+    "auth/missing-email": "Bitte eine E-Mail-Adresse eingeben.",
+    "auth/network-request-failed": "Keine Internetverbindung – bitte später noch einmal.",
+    "auth/too-many-requests": "Zu viele Versuche – bitte in ein paar Minuten noch einmal.",
+    "auth/requires-recent-login": "Bitte zur Sicherheit das Passwort noch einmal eingeben.",
+  };
+  const fehlerText = (e) => MELDUNG[e && e.code] || ("Das hat nicht geklappt" + (e && e.code ? " (" + e.code + ")." : "."));
 
   const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
 
@@ -69,6 +97,12 @@
     "kfz-kaefig-v1",        // "Neue Ware zaehlen" – jede Woche neu, kein Nachweis
     "hall-letzter-bereich", // nur "welcher Bereich war offen"
     "spesen_sync_aus",      // Geraete-Not-Aus, gehoert nicht in die Cloud
+    /* Design Hell/Dunkel gilt JE GERAET (08.10.2026, Mirko: "beides
+       individuell auswählbar ... und das selbe dann für die pc version
+       auch"; unter "Mehr" steht "Gilt für dieses Gerät"). Ohne diesen
+       Eintrag haette ein Wechsel am Handy den PC nach 4 s neu geladen und
+       mit umgestellt. */
+    "rieb_design",
   ]);
   // Interne Hilfsschluessel dieses Moduls (nie synchronisieren)
   /* Ergaenzt 07.10.2026: Firebase legt selbst Merker im Browserspeicher ab
@@ -112,7 +146,7 @@
   // ---- PDF-Sync (Version 2) -------------------------------------------
   // Die im Tool abgelegten PDFs (IndexedDB "spesen-pdf-archiv") wandern als
   // Base64 in die Unter-Sammlung users/{uid}/pdfs/{id}. Dieselbe Gatung wie
-  // der state-Sync (nur Mirko, nur angemeldet). Siehe firestore.rules.
+  // der state-Sync (nur angemeldet, seit 09.10.2026 fuer alle). Siehe firestore.rules.
   const PDF_TOOBIG_KEY = "__sync_pdf_toobig"; // { id: byteGroesse } – zu gross fuer ein Firestore-Dok
   const cloudPdfIds = new Set();              // IDs, die aktuell in der Cloud liegen (aus dem Snapshot)
   let anwendenPdfLaeuft = false;              // Echo-Sperre: ein Download wird gerade lokal abgelegt
@@ -154,13 +188,26 @@
     } catch (e) { console.warn("[Sync] Base64->Blob fehlgeschlagen:", e.message); return null; }
   }
 
-  Promise.all([
-    import(`${SDK}/firebase-app.js`),
-    import(`${SDK}/firebase-auth.js`),
-    import(`${SDK}/firebase-firestore.js`),
-  ]).then(([appMod, authMod, fsMod]) => {
-    starten(appMod, authMod, fsMod).catch((e) => console.error("[Sync] Start fehlgeschlagen:", e));
-  }).catch((e) => console.error("[Sync] Firebase-SDK konnte nicht geladen werden:", e));
+  /* Firebase erst laden, wenn es gebraucht wird (siehe "Aktivierung") - einmal */
+  let ladeVersprechen = null;
+  function bereitMachen() {
+    if (ladeVersprechen) return ladeVersprechen;
+    zustand.laedt = true; zustand.fehler = ""; melden();
+    ladeVersprechen = Promise.all([
+      import(`${SDK}/firebase-app.js`),
+      import(`${SDK}/firebase-auth.js`),
+      import(`${SDK}/firebase-firestore.js`),
+    ]).then(([appMod, authMod, fsMod]) => starten(appMod, authMod, fsMod))
+      .then(() => { zustand.bereit = true; zustand.laedt = false; melden(); })
+      .catch((e) => {
+        console.error("[Sync] Firebase konnte nicht geladen werden:", e);
+        zustand.laedt = false; zustand.fehler = "Keine Verbindung zum Abgleich – bitte später noch einmal.";
+        ladeVersprechen = null; melden();
+        throw e;
+      });
+    return ladeVersprechen;
+  }
+  if (localStorage.getItem("__sync_uid")) bereitMachen().catch(() => {});
 
   async function starten(appMod, authMod, fsMod) {
     const app = appMod.initializeApp(cfg);
@@ -202,9 +249,14 @@
     }
 
     AUTH = authMod;
+    auth.languageCode = "de";   // Mails von Firebase (Passwort vergessen) auf Deutsch
     authMod.onAuthStateChanged(auth, (user) => {
       uid = user ? user.uid : null;
-      badgeZeichnen(user ? user.email : null);
+      zustand.angemeldet = !!user; zustand.email = user ? user.email || "" : "";
+      melden();
+      /* Nicht (mehr) angemeldet: Merker weg - beim naechsten Start wird
+         Firebase dann gar nicht erst geladen */
+      if (!user) _removeItem.call(localStorage, "__sync_uid");
       if (user) {
         localStorage.removeItem("emailForSignIn");
         // Konto gewechselt (oder erstmalig)? Dann den Sync-Merker leeren,
@@ -230,8 +282,8 @@
         pdfPeriodischStarten();                        // Sicherheitsnetz, falls der Patch mal nicht greift
       }
     });
-
-    loginOberflaeche();
+    /* Die schwebende Marke "☁︎ Sync" (loginOberflaeche, bis 09.10.2026) ist
+       weg - angemeldet wird unter "Mehr" -> "Geraete abgleichen" (rieb.js). */
   }
 
   let FS, AUTH;
@@ -285,6 +337,7 @@
         updatedAt: FS.serverTimestamp(),
         device: geraet,
       });
+      abgleichGemerkt();
     } catch (e) {
       // Offline landet der Schreibvorgang im Firestore-Puffer und geht spaeter raus.
       console.warn("[Sync] Push wartet/fehlgeschlagen:", key, e.message);
@@ -308,6 +361,7 @@
       const coll = FS.collection(db, "users", uid, "state");
       const snap = await FS.getDocs(coll);
       snap.forEach((d) => anwenden(d.id, d.data()));
+      abgleichGemerkt();
     } catch (e) {
       console.warn("[Sync] Erstabgleich:", e.message);
     }
@@ -353,6 +407,7 @@
     _setItem.call(localStorage, key, data.value);
     anwendenLaeuft = false;
     metaSetzen(key, remoteTs);
+    abgleichGemerkt();
 
     // Ansicht auffrischen – aber nicht, waehrend gerade getippt wird.
     reloadPlanen();
@@ -369,72 +424,96 @@
     while (treffer.length > 5) _removeItem.call(localStorage, treffer.shift());
   }
 
-  // Weiches Neuladen: erst wenn der Nutzer ein paar Sekunden nichts tippt.
+  /* Weiches Neuladen nach einem Abgleich von einem anderen Geraet.
+     Bis 09.10.2026 wartete es nur auf Eingabefelder - ein offener Tag-Bogen,
+     das Dreh-Rad oder die Einrichtung wurden mitten in der Eingabe neu
+     geladen (Eingabe weg). Jetzt dieselben Regeln wie guterMoment() der
+     Update-Pruefung in index.html (Entscheidung 31). Danach zurueck in
+     denselben Bereich, ohne Einstieg (rieb.js liest "rieb_nach_abgleich"). */
+  function guterMoment() {
+    if (document.querySelector(".modal-overlay")) return false;
+    const ebene = document.getElementById("ebene");
+    if (ebene && !ebene.hidden) return false;
+    if (document.querySelector(".time-wheel-overlay, #einrichtung:not([hidden]), #brief")) return false;
+    const a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
+    return true;
+  }
   function reloadPlanen() {
     clearTimeout(reloadTimer);
     reloadTimer = setTimeout(() => {
-      const aktiv = document.activeElement;
-      const tippt = aktiv && (aktiv.tagName === "INPUT" || aktiv.tagName === "TEXTAREA" || aktiv.tagName === "SELECT");
-      if (tippt) { reloadPlanen(); return; } // noch beschaeftigt -> spaeter
+      if (!guterMoment()) { reloadPlanen(); return; } // noch beschaeftigt -> spaeter
+      try { sessionStorage.setItem("rieb_nach_abgleich", (typeof window.riebBereich === "function" && window.riebBereich()) || "start"); } catch (e) { /* egal */ }
       location.reload();
     }, 4000);
   }
 
-  // ---- Kleine Login-Oberflaeche ---------------------------------------
-  function loginOberflaeche() {
-    // Schwebende Statusmarke unten rechts
-    if (document.getElementById("syncBadge")) return;
-    const b = document.createElement("div");
-    b.id = "syncBadge";
-    b.style.cssText =
-      "position:fixed;right:10px;bottom:10px;z-index:99999;font:13px/1.3 system-ui,sans-serif;" +
-      "background:#123;color:#fff;padding:8px 12px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;opacity:.92";
-    b.textContent = "☁︎ Sync";
-    b.onclick = () => (uid ? abmeldenFrage() : anmeldenFrage());
-    document.body.appendChild(b);
+  // ---- Anmelden, Konto, Abmelden - die Oberflaeche dazu ist in rieb.js --
+  // (bis 09.10.2026: schwebende Marke "☁︎ Sync" + Browser-Abfragen; der alte
+  // Block steht in Sicherungen/firebase-sync-alter-login-block.txt)
+  async function anmelden(email, pw) {
+    try { await bereitMachen(); } catch (e) { return { ok: false, meldung: zustand.fehler }; }
+    try { await AUTH.signInWithEmailAndPassword(auth, String(email || "").trim(), pw || ""); return { ok: true }; }
+    catch (e) { return { ok: false, meldung: fehlerText(e) }; }
   }
-
-  function badgeZeichnen(email) {
-    const b = document.getElementById("syncBadge");
-    if (!b) return;
-    if (email) { b.textContent = "☁︎ " + email + " ✓"; b.style.background = "#0a5"; }
-    else { b.textContent = "☁︎ Anmelden"; b.style.background = "#123"; }
-  }
-
-  // Anmeldung per E-Mail + Passwort. Kein Mailversand -> kein Tageslimit.
-  // Erstanlage: Gibt es noch kein Konto mit diesem Passwort, wird nach
-  // Rueckfrage eines angelegt (createUser schickt KEINE Mail).
-  async function anmeldenFrage() {
-    const email = window.prompt("E-Mail:", "mirkorieb@t-online.de");
-    if (!email) return;
-    const pw = window.prompt("Passwort (mindestens 6 Zeichen):");
-    if (!pw) return;
+  /* Neues Konto. "fassung" = welcher Datenschutzhinweis bestaetigt wurde -
+     Zeitpunkt + Fassung liegen im Konto (users/{uid}/konto/einwilligung),
+     damit sich die Einwilligung belegen laesst. */
+  async function registrieren(email, pw, fassung) {
+    if (!fassung) return { ok: false, meldung: "Bitte den Datenschutzhinweis bestätigen." };
+    try { await bereitMachen(); } catch (e) { return { ok: false, meldung: zustand.fehler }; }
     try {
-      await AUTH.signInWithEmailAndPassword(auth, email.trim(), pw);
-      return; // onAuthStateChanged uebernimmt den Rest
-    } catch (e) {
-      // "invalid-credential"/"user-not-found" = Konto/Passwort passt nicht.
-      const evtlNeu = ["auth/invalid-credential", "auth/user-not-found", "auth/wrong-password"].includes(e.code);
-      if (!evtlNeu) { alert("Anmeldung fehlgeschlagen: " + e.message); return; }
-      if (!confirm("Kein passendes Konto gefunden.\n\nFalls Sie zum ersten Mal ein Passwort vergeben: jetzt ein Konto mit diesem Passwort anlegen?")) return;
+      const cred = await AUTH.createUserWithEmailAndPassword(auth, String(email || "").trim(), pw || "");
       try {
-        await AUTH.createUserWithEmailAndPassword(auth, email.trim(), pw);
-      } catch (e2) {
-        if (e2.code === "auth/email-already-in-use") {
-          alert("Für diese E-Mail gibt es schon ein Konto – aber noch OHNE Passwort (von der früheren Mail-Anmeldung).\n\nBitte dieses Konto einmal in der Firebase-Konsole löschen:\nAuthentication → Users → den Eintrag mirkorieb@t-online.de löschen.\nDanach hier mit E-Mail + Passwort erneut anmelden – dann wird es neu angelegt.\n\n(Ihre Daten bleiben erhalten, sie liegen auf diesem Gerät und werden nach dem Anmelden wieder hochgeladen.)");
-        } else if (e2.code === "auth/weak-password") {
-          alert("Das Passwort ist zu kurz – bitte mindestens 6 Zeichen.");
-        } else {
-          alert("Konnte kein Konto anlegen: " + e2.message);
-        }
-      }
+        await FS.setDoc(FS.doc(db, "users", cred.user.uid, "konto", "einwilligung"),
+          { fassung, clientTime: Date.now(), zeit: FS.serverTimestamp() });
+      } catch (e) { console.warn("[Sync] Einwilligung nicht abgelegt:", e.message); }
+      return { ok: true };
+    } catch (e) { return { ok: false, meldung: fehlerText(e) }; }
+  }
+  async function passwortVergessen(email) {
+    if (!String(email || "").trim()) return { ok: false, meldung: "Bitte zuerst oben Ihre E-Mail eintragen." };
+    try { await bereitMachen(); } catch (e) { return { ok: false, meldung: zustand.fehler }; }
+    try { await AUTH.sendPasswordResetEmail(auth, String(email).trim()); return { ok: true }; }
+    catch (e) {
+      // Nicht verraten, ob es zu einer Adresse ein Konto gibt
+      if (e.code === "auth/user-not-found") return { ok: true };
+      return { ok: false, meldung: fehlerText(e) };
     }
   }
-
-  async function abmeldenFrage() {
-    if (!confirm("Von der Synchronisierung abmelden? Ihre Daten bleiben lokal auf diesem Geraet erhalten.")) return;
-    try { await AUTH.signOut(auth); location.reload(); } catch (e) { alert(e.message); }
+  async function abmelden({ neuLaden = true } = {}) {
+    try {
+      if (auth && AUTH) await AUTH.signOut(auth);
+      _removeItem.call(localStorage, "__sync_uid");
+      _removeItem.call(localStorage, META_KEY);
+      if (neuLaden) location.reload();
+      return { ok: true };
+    } catch (e) { return { ok: false, meldung: fehlerText(e) }; }
   }
+  /* Konto loeschen: Passwort noch einmal (Firebase verlangt eine frische
+     Anmeldung), dann alle Cloud-Daten des Kontos und das Konto selbst.
+     Auf DIESEM Geraet bleibt alles. */
+  async function kontoLoeschen(pw) {
+    const user = auth && auth.currentUser;
+    if (!user) return { ok: false, meldung: "Nicht angemeldet." };
+    try { await AUTH.reauthenticateWithCredential(user, AUTH.EmailAuthProvider.credential(user.email, pw || "")); }
+    catch (e) { return { ok: false, meldung: fehlerText(e) }; }
+    try {
+      pushWarteschlange.forEach((t) => clearTimeout(t)); pushWarteschlange.clear();
+      await window.spesenSyncCloudLeeren();                     // state + pdfs
+      try { await FS.deleteDoc(FS.doc(db, "users", user.uid, "konto", "einwilligung")); } catch (e) { /* weiter */ }
+      await AUTH.deleteUser(user);
+      _removeItem.call(localStorage, "__sync_uid");
+      location.reload();
+      return { ok: true };
+    } catch (e) { return { ok: false, meldung: fehlerText(e) }; }
+  }
+  window.riebSync = {
+    zustand: () => ({ ...zustand }),
+    beiAenderung: (f) => { if (typeof f === "function") zuhoerer.push(f); },
+    anmelden, registrieren, passwortVergessen, abmelden, kontoLoeschen,
+  };
+  window.dispatchEvent(new Event("rieb-sync-bereit"));
 
   // =====================================================================
   //  PDF-Ablage synchronisieren (Version 2)

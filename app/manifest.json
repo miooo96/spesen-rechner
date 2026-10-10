@@ -1,7 +1,7 @@
 {
-  "name": "Hall Tabakwaren",
-  "short_name": "Hall Tabakwaren",
-  "description": "Spesenabrechnung und Urlaubskalender für Hall Tabakwaren. Alle Daten bleiben lokal auf dem Gerät.",
+  "name": "Rieb Spesen",
+  "short_name": "Rieb Spesen",
+  "description": "Spesennachweis und Urlaubskalender. Alle Daten bleiben lokal auf dem Gerät.",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
@@ -9,8 +9,8 @@
     "client_mode": "focus-existing"
   },
   "orientation": "portrait",
-  "background_color": "#f0e7d8",
-  "theme_color": "#de7008",
+  "background_color": "#0A0C10",
+  "theme_color": "#0A0C10",
   "lang": "de",
   "dir": "ltr",
   "categories": [

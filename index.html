@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Hall Tabakwaren</title>
+<title>Rieb Spesen</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- Symbole
      =======
@@ -36,7 +36,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
 <link rel="icon" type="image/png" sizes="180x180" href="icons/favicon-180.png">
-<meta name="theme-color" content="#de7008">
+<meta name="theme-color" content="#0A0C10">
 
 <!-- Manifest
      ========
@@ -69,7 +69,7 @@
      ihn nie wieder. Wer die App vorher hinzugefuegt hat, muss das Symbol
      einmal entfernen und neu hinzufuegen. Android zieht den Namen selbst
      nach (WebAPK-Update, dauert einige Tage). -->
-<meta name="apple-mobile-web-app-title" content="Hall Tabakwaren">
+<meta name="apple-mobile-web-app-title" content="Rieb Spesen">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   /* Montserrat lokal eingebunden (vendor/fonts/), damit die App auch
@@ -3026,6 +3026,11 @@
   .formular-locked #formular .sig-clear-btn {
     display: none !important;
   }
+  /* Kollegen geben nur noch ausgedruckt ab (07.10.2026): E-Mail-Knopf und
+     das Feld "E-Mail Arbeitgeber" gibt es fuer sie nicht. Die Klasse am body setzt aktualisiereAbgabeSichtbarkeit().
+     !important, weil "body.mehr-offen .toolbar .handy-mehr" am Handy
+     sonst wieder einblendet. */
+  body.nur-ausdruck .nur-digitale-abgabe { display: none !important; }
 
   /* Plausibilitaets-Warnhinweise */
   .warn-icon { color: #c0392b; cursor: help; margin-left: 3px; font-size: 0.85em; }
@@ -3053,6 +3058,9 @@
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/qrcode.min.js"></script>
+<!-- Die neue Oberflaeche "Rieb Spesen" (08.10.2026) - eigene Dateien, alle
+     Regeln im Rahmen #rieb. Begruendung in rieb.css / rieb.js oben. -->
+<link rel="stylesheet" href="rieb.css">
 </head>
 <body>
 
@@ -3327,8 +3335,10 @@
          digitale Unterschrift gesetzt ist" - sonst bekaeme Susanne
          Mails von Fahrern statt Papier.
          Geschaltet in der Werkzeugleisten-Logik, Suchwort
-         invMailKnopf. -->
-    <button type="button" class="ghost" id="invMailKnopf" onclick="invPerEmail()" data-i18n="invPdfMail">📧 An Niederlassung senden</button>
+         invMailKnopf.
+         ⛔ 08.10.2026 ENTFERNT - E-Mail-Versand ganz raus, auch fuer Mirko
+         ("das wird nicht geduldet"), siehe EMAIL_VERSAND_AKTIV. -->
+
     <button type="button" class="ghost" onclick="invNeueInventur()" data-i18n="invNeu">🗑️ Neue Inventur</button>
     <!-- Nur noch der Ordner-Toggle (zum Nachsehen). Das Ablegen ist am
          01.10.2026 nach UNTEN an den Zettel gewandert ("🚚 Inventur
@@ -3412,8 +3422,8 @@
          Nur auf Klick, NIE automatisch - Mirkos Regel "zum aktuellen Stand
          geht es nicht automatisch an Susanne ihre E-Mail, erst wenn ich es
          sage". Verschickt die Gesamtabrechnung (Inventur + Verkaufsbericht),
-         dieselbe Datei wie beim Abschliessen. -->
-    <button type="button" id="abrMailKnopf" onclick="abrPerEmail()">📧 An Niederlassung senden</button>
+         dieselbe Datei wie beim Abschliessen.
+         ⛔ 08.10.2026 ENTFERNT - E-Mail-Versand ganz raus (EMAIL_VERSAND_AKTIV). -->
     <!-- ✅ Abrechnung abschliessen ist am 02.10.2026 nach UNTEN unter das
          Blatt gewandert (Zeile .abr-abschluss-zeile hinter #abrBlatt) -
          dieselbe Stelle wie "🚚 Inventur abschliessen" unter dem Inventurblatt.
@@ -3471,7 +3481,8 @@
     <button class="primary" onclick="previewPDF()" data-i18n="btnPdfView">👁️ PDF ansehen</button>
     <button onclick="downloadPDF()" data-i18n="btnPdf">💾 PDF speichern</button>
     <button onclick="printSpesen()" data-i18n="btnPrint">🖨️ Drucken</button>
-    <button class="handy-mehr" onclick="sendPerEmail()" data-i18n="btnEmail">📧 Per E-Mail an Arbeitgeber weiterleiten</button>
+    <!-- "📧 Per E-Mail an Arbeitgeber weiterleiten" am 08.10.2026 ENTFERNT -
+         E-Mail-Versand ganz raus, auch fuer Mirko (EMAIL_VERSAND_AKTIV). -->
     <button class="handy-mehr" onclick="openCsvMenu()" data-i18n="btnCsv">📄 CSV (für Steuer)</button>
     <!-- Am 21.09.2026 aus "Mehr" hierher gezogen (Mirko): "monat
          abschließen zb ist ja eig nur für spesen gedacht … deshalb
@@ -3484,6 +3495,9 @@
          danach im Archiv nachsehen.
          Gilt fuer ALLE: Beide Funktionen gibt es laengst und sind nicht
          gesperrt, sie ziehen nur um. -->
+    <!-- Seit 08.10.2026 wieder FUER ALLE (Mirko: "Spesen monat abschließen
+         damit er gespeichert wird"). Kollegen: ohne Unterschrift-Pruefung,
+         Wieder oeffnen ohne PIN. -->
     <button onclick="submitCurrentMonth();" data-i18n="btnLockMonth">🔒 Spesenmonat abschließen</button>
     <button class="handy-mehr ordner-knopf" id="spesenArchivKnopf" style="--ordner-farbe:var(--ordner-spesen);" onclick="toggleArchivPanel();" data-i18n="btnArchiv">📁 Abgeschlossene Spesen</button>
   </div>
@@ -3535,7 +3549,7 @@
       </div>
       <div>
         <label>Niederlassung</label>
-        <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular(); arbeitgeberEmailFeldAktualisieren();">
+        <input id="cfgNiederlassung" oninput="saveConfig(); renderFormular();">
       </div>
       <!-- Tour-Nr. und Fixbestand: gehoeren zu Inventur und Abrechnung,
            beide Werte stehen auf dem INVENTURBLATT. Seit dem 22.09.2026
@@ -3568,12 +3582,15 @@
            hier eingetragen hatten, ihn behalten. Geschrieben wird er
            nicht mehr.
            ================================================================ -->
-      <div>
+      <!-- Nur Mirko und Chef-Link (07.10.2026): Kollegen geben nur noch
+           ausgedruckt ab. Die feste Lollar-Adresse (06.10.2026) ist wieder
+           raus - Mirko: "wird ja nur künftig via ausdruck abgegeben". -->
+      <!-- Ohne E-Mail-Versand (08.10.2026) ohne Zweck - ausgeblendet, nicht
+           geloescht: initSettingsUI()/saveConfig() lesen und schreiben das
+           Feld weiterhin, ein fehlendes Element wuerde dort brechen. -->
+      <div class="nur-digitale-abgabe" style="display:none">
         <label>E-Mail Arbeitgeber/Niederlassung (für "Weiterleiten")</label>
-        <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@hall-tabakwaren.de" oninput="saveConfig();">
-        <!-- Seit 06.10.2026: bei Niederlassung Lollar fest auf Frau Gritsch,
-             siehe spesenEmpfaenger(). Gefuellt von arbeitgeberEmailFeldAktualisieren(). -->
-        <p class="hinweis-text" id="cfgArbeitgeberEmailHinweis" style="display:none; margin:0.35rem 0 0;"></p>
+        <input id="cfgArbeitgeberEmail" type="email" placeholder="buero@firma.de" oninput="saveConfig();">
       </div>
       <div>
         <label>Ihre eigene E-Mail (für "CSV an mich selbst")</label>
@@ -4437,7 +4454,7 @@
       <label>Regulärer Arbeitstag (Std.) <span style="font-weight:normal; color:#666;">– reine Arbeitszeit, ohne Pause</span>
         <input id="azSoll" type="number" step="0.25" min="0" value="8" oninput="azSaveCfg()">
         <span style="display:block; font-weight:normal; font-size:0.8rem; color:#666; margin-top:0.25rem;">
-          Bei Hall: <b>8 Std.</b> Arbeit. Mit den 30 Minuten Pause sind das
+          Üblich: <b>8 Std.</b> Arbeit. Mit den 30 Minuten Pause sind das
           8:30 Anwesenheit – <b>hier gehören die 8 hinein, nicht die 8,5.</b>
         </span>
       </label>
@@ -4636,7 +4653,7 @@
      Bibliotheken im Repo liegen statt auf cdnjs, meldet sich beim Oeffnen
      wirklich nichts mehr nach draussen (siehe Kommentar im <head>). -->
 <footer class="no-print">
-  Spesen-Rechner <span id="footerVersion"></span> &middot; läuft komplett lokal in Ihrem Browser, keine Daten verlassen Ihr Gerät &middot; Built for Hall Tabakwaren by Mirko Rieb
+  Rieb Spesen <span id="footerVersion"></span> &middot; läuft komplett lokal in Ihrem Browser, keine Daten verlassen Ihr Gerät &middot; Entwickelt von Mirko Rieb
   <!-- ⚠ DIESER SATZ IST KEINE GESTALTUNG, SONDERN EINE GESCHAEFTLICHE
        AUSSAGE. Am 14.09.2026 von Mirko beschlossen, am 21.09.2026
        gebaut. Begruendung damals: Was dauerhaft gratis war, laesst sich
@@ -4666,7 +4683,7 @@
 
 <script>
 /* ===================== Konfiguration & Speicher ===================== */
-const APP_VERSION = "2.9";
+const APP_VERSION = "1.0";   // Anzeige in der Fusszeile - seit 08.10.2026 "Rieb Spesen 1.0" (Aenderungshistorie neu begonnen)
 
 /* ===== Zeit-Tab nur fuer Mirko sichtbar =====
    Kein Login-System vorhanden - jede/r Kollege/in nutzt die Seite im
@@ -4709,9 +4726,17 @@ function istMirko() {
    einem Kollegengeraet ein).
 
    ⚠ Wie istMirko() KEIN Zugriffsschutz: Wer den Link hat, sieht die
-   Bereiche. Mirko weiss das (03.10.2026). */
+   Bereiche. Mirko weiss das (03.10.2026).
+
+   ⛔ SEIT 08.10.2026 ABGESCHALTET. Mirko: "chef link wird gelöscht.
+   vorerst also deaktiviert." ?chef schaltet nichts mehr ein, ein schon
+   gespeicherter Merker wirkt nicht mehr - wer den Link hat, sieht die
+   ganz normale Kollegen-Fassung. Der Merker bleibt im Speicher stehen
+   (nichts geloescht). WIEDER EINSCHALTEN: CHEF_LINK_AKTIV = true. */
+const CHEF_LINK_AKTIV = false;
 const CHEF_SCHLUESSEL = "spesen_chef_ansicht";
 (function chefLinkMerken() {
+  if (!CHEF_LINK_AKTIV) return;
   try {
     const p = new URLSearchParams(location.search);
     if (!p.has("chef")) return;
@@ -4720,6 +4745,7 @@ const CHEF_SCHLUESSEL = "spesen_chef_ansicht";
   } catch (e) { /* ohne Speicher keine Chef-Fassung - dann eben die normale */ }
 })();
 function istChefAnsicht() {
+  if (!CHEF_LINK_AKTIV) return false;   // seit 08.10.2026 abgeschaltet, siehe oben
   try { return localStorage.getItem(CHEF_SCHLUESSEL) === "ja"; }
   catch (e) { return false; }
 }
@@ -4832,7 +4858,38 @@ function korrektur0310() { return KORREKTUREN_0310_FUER_ALLE || zeigtNeuerungen(
    Niederlassung geklaert hat - unabhaengig vom Go der Chefs und
    unabhaengig von den Neuerungen des 20.09. Dieselbe Begruendung wie
    bei zeigtNeuerungen() direkt darueber. */
-function zeigtInventurMail() { return istMirko() || istChefAnsicht(); }
+/* ⛔ E-MAIL-VERSAND GANZ RAUS - fuer ALLE, auch Mirko (08.10.2026).
+   Mirko: "funktion via email senden kann ganz raus das wird nicht
+   geduldet." Betrifft die drei Versandwege an Arbeitgeber/Niederlassung:
+   sendPerEmail() (Spesennachweis), invPerEmail() (Inventurblatt),
+   abrPerEmail() (Abrechnung). Ihre Knoepfe sind aus dem Markup entfernt,
+   die Funktionen kehren sofort zurueck - auch wenn sie jemand ueber einen
+   Umweg aufruft. Hebt Entscheidung 7c (Mirko behaelt den E-Mail-Knopf) auf.
+   "CSV an mich selbst" und "Feedback" sind NICHT erfasst und bleiben -
+   Mirko auf Nachfrage: "feedback via email bleibt, csv an eigene email
+   bleibt auch". */
+const EMAIL_VERSAND_AKTIV = false;
+function zeigtInventurMail() { return EMAIL_VERSAND_AKTIV && (istMirko() || istChefAnsicht()); }
+
+/* ---- Abgabe der Kollegen: nur noch Ausdruck (07.10.2026) -----------
+   Mirko: Kollegen geben den Spesennachweis nur noch AUSGEDRUCKT und VON
+   HAND UNTERSCHRIEBEN ab ("wird ja nur künftig via ausdruck abgegeben").
+   Fuer Kollegen faellt damit weg:
+     · der E-Mail-Versand samt Pruefansicht und Feld "E-Mail Arbeitgeber"
+     · die digitale Unterschrift (Foto/Scan) - Mitarbeiter UND NLL
+     · die PIN beim Wieder-Oeffnen eines abgeschlossenen Monats
+   Mirko behaelt alles wie bisher (der Chef-Link ist seit 08.10.2026 aus).
+
+   ⚠ GEAENDERT am 08.10.2026: Die Monatssperre gilt fuer Kollegen WIEDER.
+   Am 07.10. hiess es noch "keine Monatssperre"; am 08.10. hat Mirko das
+   Abschliessen zurueckgeholt - beim Speichern (nicht beim Drucken) und ueber den
+   Knopf, PDF in den Ordner, Wieder oeffnen ohne PIN
+   (kollegeMonatAbschliessen, reopenMonth).
+
+   Gespeichertes bleibt im Speicher und im Backup (Unterschrift-Fotos,
+   alte Eingereicht-Merker) - es wird nur nicht mehr angezeigt, gedruckt
+   oder ausgewertet. Nichts geht verloren. */
+function zeigtDigitaleAbgabe() { return istMirko() || istChefAnsicht(); }
 
 /* ---- Wer sieht die Arbeitszeit? ------------------------------------
    Mirko UND die Namen aus ZEIT_EXTRA_NAMEN (seit 23.09.2026: Sven
@@ -4862,7 +4919,16 @@ function aktualisiereZeitSichtbarkeit() {
     el.style.display = sichtbar ? "" : "none";
   });
   aktualisiereInventurSichtbarkeit();
+  aktualisiereAbgabeSichtbarkeit();
   aktualisiereKachelGridLayout();
+}
+
+/* Kollegen: nur Ausdruck (07.10.2026) - blendet alles mit der Klasse
+   .nur-digitale-abgabe aus (CSS-Regel "body.nur-ausdruck"). Haengt am
+   Namen wie istMirko(), deshalb von aktualisiereZeitSichtbarkeit() aus
+   aufgerufen, die bei jeder Namensaenderung laeuft. */
+function aktualisiereAbgabeSichtbarkeit() {
+  document.body.classList.toggle("nur-ausdruck", !zeigtDigitaleAbgabe());
 }
 
 /* ===================== Fahrzeug-Inventur: wieder NUR MIRKO =====================
@@ -4920,7 +4986,7 @@ function aktualisiereInventurSichtbarkeit() {
   };
   umschalten("inventur",   invSichtbar);
   umschalten("ware",       sonderSichtbar);
-  umschalten("abrechnung", sonderSichtbar);
+  umschalten("abrechnung", false);   // seit 07.10.2026 fuer niemanden, siehe tabErlaubt()
   /* Texte, die die Bereiche beim Namen nennen (07.10.2026, Mirko:
      "entferne die bereiche wo das noch steht") - nur, wo sie erlaubt sind. */
   document.querySelectorAll(".nur-sonder-text").forEach((el) => { el.style.display = sonderSichtbar ? "" : "none"; });
@@ -4948,7 +5014,8 @@ function aktualisiereInventurSichtbarkeit() {
      Abrechnung fuer ihn verboten sind. */
   const verboten = [];
   if (!invSichtbar)    verboten.push("inventurPanel");
-  if (!sonderSichtbar) verboten.push("wareneingangPanel", "abrechnungPanel");
+  if (!sonderSichtbar) verboten.push("wareneingangPanel");
+  verboten.push("abrechnungPanel");   // seit 07.10.2026 fuer niemanden
   const offenUndVerboten = verboten.some((id) => {
     const p = document.getElementById(id);
     return p && getComputedStyle(p).display !== "none";
@@ -5003,7 +5070,7 @@ let STATUS_LABELS = STATUS_LABELS_DE;
 
 const I18N = {
   de: {
-    pageTitle: "Hall Tabakwaren", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
+    pageTitle: "Rieb Spesen", h1Title: "Spesen-Rechner – Pauschalspesen für Dienstreisen",
     splashSubtitle: "Spesen-Rechner", splashContinue: "Weiter →",
     splashGreetingKnown: "Hallo, {name}!", splashGreetingUnknown: "Willkommen!",
     /* SCHRITT 3, 25.09.2026: ueberall dieselben drei Woerter.
@@ -5073,7 +5140,7 @@ const I18N = {
     unlockBtn: "🔓 Wieder öffnen", lockBtn: "🔒 Spesenmonat abschließen",
   },
   en: {
-    pageTitle: "Hall Tabakwaren", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
+    pageTitle: "Rieb Spesen", h1Title: "Expense Calculator – Flat-rate allowances for business trips",
     splashSubtitle: "Expense Calculator", splashContinue: "Continue →",
     splashGreetingKnown: "Hello, {name}!", splashGreetingUnknown: "Welcome!",
     btnPdf: "💾 Save PDF", btnPdfView: "👁️ View PDF", btnPrint: "🖨️ Print", btnEmail: "📧 Forward to employer by email",
@@ -5542,12 +5609,7 @@ function saveConfig() {
      Kollegen ihren Betrag behalten. Wuerde hier val("cfgFixbestand")
      stehenbleiben, wuerfe es beim ersten Speichern einen Fehler: das
      Element gibt es nicht mehr. */
-  /* Steht das Feld auf der festen Lollar-Adresse (06.10.2026), NICHT
-     zurueckschreiben - sonst ueberschriebe Frau Gritschs Adresse die selbst
-     eingetragene, und wer die Niederlassung spaeter wechselt, haette seine
-     eigene Adresse verloren. */
-  const agFeld = document.getElementById("cfgArbeitgeberEmail");
-  if (!agFeld || agFeld.dataset.fest !== "ja") config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
+  config.arbeitgeberEmail = val("cfgArbeitgeberEmail");
   config.eigeneEmail = val("cfgEigeneEmail");
   config.jahr = parseInt(val("cfgJahr")) || DEFAULT_CONFIG.jahr;
   config.startMonat = parseInt(val("cfgStartMonat"));
@@ -5702,7 +5764,14 @@ function bereichZuruecksetzen(id) {
      ZWEI verschiedene Gruende, warum keine Datei entsteht (siehe
      ruecksetzBereiche()). Ein gemeinsamer Satz wuerde einen davon
      falsch darstellen. */
+  /* Abgeschlossene Monate bleiben UNBERUEHRT (09.10.2026, Teil C): Bis dahin
+     loeschte "Spesen"/"Urlaub" die Tageseintraege ALLER Monate - auch der
+     abgeschlossenen, samt Festschreibung (__fest). Deren PDF liegt aber
+     schon im Ordner. Seit Kollegen abschliessen (Entscheidung 22) haette das
+     jeden getroffen. Abgeschlossen = gesperrt: zum Aendern "Wieder oeffnen". */
+  const schontGesperrte = !!(b.tagFelder || b.praefixe);
   if (!confirm("„" + b.name + "\" zurücksetzen?\n\n"
+    + (schontGesperrte ? "Abgeschlossene Monate bleiben unverändert – zum Ändern dort zuerst „Wieder öffnen“.\n\n" : "")
     + (b.hinweis
         || "Vorher wird automatisch eine Sicherungsdatei in Ihren Download-Ordner gelegt."))) return;
 
@@ -5722,14 +5791,17 @@ function bereichZuruecksetzen(id) {
     const weg = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k.startsWith(p)) weg.push(k);
+      /* "bezahlt_JJJJ-MM" eines abgeschlossenen Monats bleibt stehen */
+      if (k.startsWith(p) && !(p === "bezahlt_" && tagGesperrt(k.slice(8) + "-01"))) weg.push(k);
     }
     weg.forEach((k) => localStorage.removeItem(k));
   });
 
-  /* Einzelne Felder je Tag - hier liegen Spesen und Urlaub nebeneinander. */
+  /* Einzelne Felder je Tag - hier liegen Spesen und Urlaub nebeneinander.
+     Tage abgeschlossener Monate bleiben unberuehrt (siehe oben). */
   if (b.tagFelder) {
     Object.keys(overrides).forEach((iso) => {
+      if (tagGesperrt(iso)) return;
       b.tagFelder.forEach((f) => { delete overrides[iso][f]; });
       if (Object.keys(overrides[iso]).length === 0) delete overrides[iso];
     });
@@ -5817,7 +5889,7 @@ function openRuecksetzenModal() {
      seit dem 20.09. loescht das Zuruecksetzen wirklich alles. */
   const einzeln = zeigtNeuerungen() ? `
         <h3 style="margin:1rem 0 0.3rem; font-size:0.95rem;">Einzelnen Bereich zurücksetzen</h3>
-        ${ruecksetzBereiche().filter((b) => b.id !== "zeit" || zeigtZeit()).map((b) =>
+        ${ruecksetzBereiche().filter((b) => (b.id !== "zeit" || zeigtZeit()) && b.id !== "abrechnung").map((b) =>
     `<div style="display:flex; align-items:center; gap:0.6rem; padding:9px 0; border-bottom:1px solid #eee;">
        <span style="flex:1; font-weight:600; color:var(--brand-dark);">${b.name}</span>
        <button class="ghost" style="flex:none; font-size:0.8rem; padding:5px 14px;"
@@ -6019,8 +6091,9 @@ function stammLine(label, value, last) {
 /* ===================== Zeiten automatisch variieren =====================
    Erzeugt pro Wochentag leicht unterschiedliche Zeiten - immer deterministisch
    aus dem Datum (gleiches Datum => gleiche Zeiten, aendern sich nicht bei jedem
-   Neu-Rendern), aber jeder Tag anders. Angezeigte Tagesstunden liegen strikt
-   ueber 8,5 und nie ueber 10 (gelegentlich bis 10).
+   Neu-Rendern), aber jeder Tag anders. Seit 09.10.2026: Mo-Mi 9:15-10:00,
+   Do-Fr 8:35-9:10 Arbeitszeit nach Pause (siehe variedTimes) - nie unter
+   8:30, nie ueber genau 10:00.
    Auf Wunsch (28.08.2026) landen Abfahrt/Ankunft dabei immer auf glatten
    5-Minuten-Marken (viertel vor/nach, halb, zehn vor usw.), nie auf krummen
    Minutenzahlen wie :07 oder :23. */
@@ -6044,21 +6117,89 @@ function roundHoursDisplay(hours) {
 function formatHoursDisplay(hours) {
   return roundHoursDisplay(hours).toFixed(2).replace(".", ",");
 }
+/* NEU 09.10.2026 - Mirko: "die zeiten soll man ebenfalls mit einer ankreuz
+   funktion durcheinander gestalten, sodass es immer mehr als 8:05 minuten
+   ist aber nie mehr als genau 10 std, dann auch montag dienstags mittwochs
+   ist immer bisschen mehr donnestags freitags etwas kürzer, aber drauf
+   achten das abzüglich pause trotzdem über 8,1std ist. am besten mindestens
+   8:30 nie drunter."
+   Arbeitszeit NACH 30 Min Pause, in 5-Minuten-Schritten gewuerfelt:
+     Mo, Di, Mi   9:15 - 10:00   (nie mehr als genau 10:00 - "bis 10 oder
+                                   genau 10 ist okey", hours > 10 sperrt)
+     Do, Fr       8:35 -  9:10   (nie unter 8:30)
+   Abfahrt +/- 5 Minuten um die eigene Standardzeit. Weil Abfahrt UND Dauer
+   auf glatten 5 Minuten liegen, ist auch die Ankunft glatt - kein
+   nachtraegliches Kappen/Anheben mehr noetig (vorher: 8,55-9,70 Std, nur
+   Freitag kuerzer).
+   Deterministisch wie bisher: gleiches Datum + gleiche Standardzeit =>
+   gleiche Zeiten. Abgeschlossene Monate sind festgeschrieben (__fest) und
+   aendern sich durch diese Regel NICHT; offene Monate bekommen neue Zeiten. */
+const VARIIEREN_LANG = [555, 600];    // Mo-Mi: 9:15-10:00 Arbeitszeit (Minuten)
+const VARIIEREN_KURZ = [515, 550];    // Do-Fr: 8:35-9:10
+/* JEDER TAG ANDERS (Mirko 09.10.2026: "jeder tag anders durch die funktion -
+   entweder kann man wählen alle gleich, oder unterschiedlich jeden tag").
+   Bis dahin wurde jeder Tag einzeln gewuerfelt - zwei Tage konnten gleich
+   ausfallen (gemessen: Do 08.10. und Fr 09.10. beide 06:00-15:05).
+   Jetzt wird der GANZE MONAT auf einmal verteilt, OHNE Zuruecklegen: jedes
+   Zeitpaar (Abfahrt -5/0/+5 Min x Arbeitszeit in 5-Min-Schritten) hoechstens
+   einmal. Mo-Mi haben 30 Paare fuer hoechstens 15 Tage, Do-Fr 24 fuer
+   hoechstens 10 - es reicht immer. Gemerkt je Monat + Standardzeit +
+   Bundesland (Feiertage zaehlen nicht mit); deterministisch. */
+/* Mirko 09.10.2026 dazu: "nur in einem monat nicht das jahr über darf sich
+   monat für monat widerholen ... ich mein nur wöchentlich unterschiedliche
+   tage". Also: innerhalb eines Monats und jeder WOCHE verschieden; von Monat
+   zu Monat duerfen sich Zeiten wiederholen.
+   ⚠ Wochen ueber den Monatswechsel (z. B. Mo 30.11. / Di 01.12.): Der neue
+   Monat bekommt die Zeitpaare der Werktage DERSELBEN Woche aus dem Vormonat
+   als "tabu" mit. Die Kette endet von selbst an einem Monat, der am Sa/So/Mo
+   beginnt (dessen erste Woche hat keinen Werktag im Vormonat). */
+const variiertMonate = {};
+function variiertPlan(monat, start) {
+  const key = monat + "|" + start + "|" + config.bundesland;
+  if (!variiertMonate[key]) variiertMonate[key] = variiereMonat(monat, start);
+  return variiertMonate[key];
+}
+function variiereMonat(monat, start) {
+  const [j, m] = monat.split("-").map(Number);
+  const rnd = mulberry32(hashStr(monat + "|" + start));
+  const base = roundToClean(timeToMinutes(start));
+  const map = feiertage(j, config.bundesland);
+  const paare = (sp) => { const r = []; for (let n = sp[0]; n <= sp[1]; n += 5) for (const o of [-5, 0, 5]) r.push([base + o, n]); return r; };
+  const topf = { lang: paare(VARIIEREN_LANG), kurz: paare(VARIIEREN_KURZ) };
+  const schluessel = ([dep, netto]) => minToTime(dep) + "-" + minToTime(dep + netto + 30);
+  /* Werktage derselben Woche im Vormonat - ihre Zeitpaare sind hier tabu */
+  const tabu = new Set();
+  const wdErster = (new Date(j, m - 1, 1).getDay() + 6) % 7;            // Mo=0 ... So=6
+  if (wdErster >= 1 && wdErster <= 4) {                                  // Di-Fr: Woche begann im Vormonat
+    const vor = m === 1 ? (j - 1) + "-12" : j + "-" + pad(m - 1);
+    const vplan = variiertPlan(vor, start);
+    for (let k = 1; k <= wdErster; k++) { const p = vplan[fmtISO(new Date(j, m - 1, 1 - k))]; if (p) tabu.add(p.abfahrt + "-" + p.ankunft); }
+  }
+  const tage = {};
+  const letzter = new Date(j, m, 0).getDate();
+  for (let t = 1; t <= letzter; t++) {
+    const d = new Date(j, m - 1, t), wd = (d.getDay() + 6) % 7, iso = fmtISO(d);
+    if (wd > 4 || map[iso]) continue;
+    const art = wd <= 2 ? "lang" : "kurz";
+    if (!topf[art].length) topf[art] = paare(art === "lang" ? VARIIEREN_LANG : VARIIEREN_KURZ);   // nur zur Sicherheit
+    const frei = topf[art].filter((p) => !tabu.has(schluessel(p)));
+    const wahl = frei[Math.floor(rnd() * frei.length)];
+    topf[art].splice(topf[art].indexOf(wahl), 1);
+    const [dep, netto] = wahl;
+    tage[iso] = { abfahrt: minToTime(dep), ankunft: minToTime(dep + netto + 30) };   // 30 Min Pause immer
+  }
+  return tage;
+}
 function variedTimes(iso, startDefault, isMonteur, wd){
-  const rnd = mulberry32(hashStr(iso + "|" + (startDefault || "06:00")));
-  let H;
-  if (wd === 4)            H = 8.55 + rnd()*0.75;   // Freitag: tendenziell kuerzer (8,55-9,30)
-  else if (rnd() < 0.14)   H = 9.70 + rnd()*0.30;   // ~14% der Tage nahe an 10
-  else                     H = 8.70 + rnd()*1.00;   // sonst 8,70-9,70
-  if (H > 10) H = 10; if (H <= 8.5) H = 8.55;
-  const base = timeToMinutes(startDefault || "06:00");
-  let dep = base + Math.round(rnd()*12 - 6);                 // Abfahrt +/- 6 Minuten
-  let arr = dep + (H + 0.5) * 60;                            // 30 Min Pause immer eingerechnet (Fahrer & Monteur)
-  dep = roundToClean(dep); arr = roundToClean(arr);          // auf glatte 5-Minuten-Marken runden
-  let disp = (arr - dep) / 60 - 0.5;                         // angezeigte Stunden (nach Pausenabzug)
-  if (disp > 10)   arr -= Math.ceil((disp - 10) * 60 / 5) * 5;   // in 5-Min-Schritten kappen, bleibt glatt
-  if (disp <= 8.5) arr += Math.ceil((8.6 - disp) * 60 / 5) * 5;  // in 5-Min-Schritten anheben, bleibt glatt
-  return { abfahrt: minToTime(dep), ankunft: minToTime(arr) };
+  const start = startDefault || "06:00", monat = String(iso).slice(0, 7);
+  const plan = variiertPlan(monat, start);
+  if (plan[iso]) return plan[iso];
+  /* Nur falls ein Tag nicht im Monatsplan steht (sollte nicht vorkommen):
+     einzeln, in derselben Spanne */
+  const rnd = mulberry32(hashStr(iso + "|" + start));
+  const [von, bis] = wd <= 2 ? VARIIEREN_LANG : VARIIEREN_KURZ;
+  const netto = von + Math.floor(rnd() * ((bis - von) / 5 + 1)) * 5, dep = roundToClean(timeToMinutes(start));
+  return { abfahrt: minToTime(dep), ankunft: minToTime(dep + netto + 30) };
 }
 function minutesToTime(m) {
   const h = Math.floor(m / 60) % 24, mm = m % 60;
@@ -6191,28 +6332,24 @@ function computeDay(date, holidaysMap) {
      Monats vorausfuellen will, hat dafuer einen eigenen Knopf - siehe
      restDesMonatsFuellen().
 
-     ⚠⚠ NUR FUER MIRKO - Stand 20.09.2026. Mirko an diesem Tag: "die
+     ✅ SEIT 07.10.2026 FUER ALLE - Tag fuer Tag auch bei den Kollegen.
+     Mirko: "ja auch bei kollegen". Dazu bekommen alle den Knopf "Rest des
+     Monats mitfuellen" (vorausHinweisAktualisieren), damit ein ganzer
+     Monat weiter auf einmal geht: "kollegen sollen aber auch die
+     moeglichkeit haben ein monat auf einmal zu erstellen".
+
+     DER HEUTIGE TAG ZAEHLT AB TAGESBEGINN (Mirko, 07.10.2026: "ja ich
+     nehme deinen vorschlag an"). Wer vor Feierabend druckt, hat den Tag
+     schon auf dem Blatt - sonst fehlte am letzten Arbeitstag des Monats
+     eine Zeile. Die Heute-Karte der Startseite zeigt den laufenden Tag
+     nur als ANZEIGE, rechnet aber nicht anders.
+
+     Bis 07.10.2026 galt das nur fuer Mirko (Regel vom 20.09.2026, "die
      aktuellen Nutzer sollen naemlich keine Aenderung wahrnehmen zum
-     jetzigen Zeitpunkt."
-
-     Diese Reparatur ist die EINZIGE der fuenf, die ein Kollege sofort
-     sehen wuerde: Wer am 20. sein Blatt oeffnet, saehe statt 22 Tagen /
-     308 € nur noch 14 Tage / 196 € - acht Zeilen weniger. Alle uebrigen
-     Reparaturen (vollstaendiges Backup, Urlaubsbilanz je Jahr,
-     Jahreswechsel, Sicherung vor dem Zuruecksetzen) sind im Alltag
-     unsichtbar und gelten deshalb weiter fuer alle.
-
-     Abgewogen und von Mirko entschieden: Kollegen behalten das Blatt
-     unveraendert und damit auch die Luecke - wer mitten im Monat
-     einreicht oder krank wird und es nicht nachtraegt, fordert weiter
-     14 € je nicht gefahrenem Tag. Das ist bewusst in Kauf genommen,
-     bis der Chef die Aenderungen gesehen hat.
-
-     ⛔ Wer diese Bedingung entfernt, aendert das Spesenblatt JEDES
-     Kollegen - ohne dass es jemandem auffaellt, bis die Niederlassung
-     nachfragt. vorausfuellen-test.sh prueft beide Faelle. */
+     jetzigen Zeitpunkt"), die Kollegen hatten den ganzen Monat im Voraus.
+     vorausfuellen-test.sh prueft das. */
   const zukunft = iso > fmtISO(new Date());
-  const vorgabeGilt = !zukunft || !zeigtNeuerungen();
+  const vorgabeGilt = !zukunft;
 
   let zeitAuto = false;   // Kennzeichnung auf dem Nachweis, siehe zeitAutoMarke()
   if (config.zeitenVariieren && wd < 5 && !hasStartOv && !hasEndOv && !isHoliday && vorgabeGilt) {
@@ -6281,7 +6418,7 @@ function computeDayInnendienst(iso, wd, ov, isHoliday) {
      automatische Vorgabe laeuft dem Kalender nicht voraus, eine ausdrueckliche
      Eingabe gilt immer. An Wochenenden gilt der Standard nie automatisch. */
   const zukunft = iso > fmtISO(new Date());
-  const vorgabeGilt = !zukunft || !zeigtNeuerungen();
+  const vorgabeGilt = !zukunft;   // seit 07.10.2026 fuer alle, siehe computeDay
   const nlVon = hasVonOv ? ov.nlVon : ((wd >= 5 || !vorgabeGilt) ? "" : (config.nlVon || ""));
   const nlBis = hasBisOv ? ov.nlBis : ((wd >= 5 || !vorgabeGilt) ? "" : (config.nlBis || ""));
 
@@ -6429,7 +6566,6 @@ function initSettingsUI() {
      dann tragen, wenn der Kopfdaten-Dialog in dieser Sitzung nie aufging. */
   invFixbestandZeigen();
   document.getElementById("cfgArbeitgeberEmail").value = config.arbeitgeberEmail || "";
-  arbeitgeberEmailFeldAktualisieren();   // Lollar: feste Adresse, siehe spesenEmpfaenger()
   document.getElementById("cfgEigeneEmail").value = config.eigeneEmail || "";
   document.getElementById("cfgJahr").value = config.jahr;
   document.getElementById("cfgPauschale8").value = pauschaleSatz8();
@@ -6438,7 +6574,7 @@ function initSettingsUI() {
   ["cfgPauschale8", "cfgPauschale24"].forEach((id) => {
     const el = document.getElementById(id);
     el.disabled = korrektur0310();
-    el.title = korrektur0310() ? "Vorgabe von Hall – nicht änderbar" : "";
+    el.title = korrektur0310() ? "Feste Vorgabe – nicht änderbar" : "";
   });
   document.getElementById("cfgOrte").value = config.orteDefault;
   document.getElementById("cfgOrteMonteur").value = config.orteDefaultMonteur || "";
@@ -6562,12 +6698,20 @@ function markiereTab(tab) {
 function tabErlaubt(tab) {
   const fahrer = config.mitarbeitertyp === "fahrer";
   if (tab === "zeit") return zeigtZeit();
-  if (tab === "inventur" || tab === "ware" || tab === "abrechnung") return zeigtSonderbereiche() && fahrer;
+  /* Abrechnung: seit 07.10.2026 fuer NIEMANDEN mehr, auch nicht fuer Mirko.
+     Mirko: "nur inventur und neue ware zählen kann hier bleiben für mich
+     rest kann weg als abrechnung kann weg um genau zu sein". Code und
+     gespeicherte Abrechnungen bleiben (Backup), der Bereich ist zu. */
+  if (tab === "abrechnung") return false;
+  if (tab === "inventur" || tab === "ware") return zeigtSonderbereiche() && fahrer;
   return true;
 }
 
 function zeigeTab(tab) {
   if (!tabErlaubt(tab)) { zeigeKachelStartseite(); return; }
+  /* Neue Oberflaeche (rieb.js, 08.10.2026): Spesen, Urlaub, Jahr, Mehr und
+     Anleitung zeigt sie selbst - die alte stellt sich darunter mit um. */
+  if (typeof window.riebUebernimmt === "function" && window.riebUebernimmt(tab)) return;
   // Kachel-Startseite verlassen, sobald eine Funktion gewaehlt wird
   // (Entscheidung 26.08.2026) - mainTabs/Werkzeugleiste werden erst HIER
   // wieder eingeblendet, nicht schon auf der Kachel-Seite.
@@ -6804,24 +6948,16 @@ function heuteAktualisieren() {
   const chips = [];
   if (ist > 0) chips.push('<span class="heute-chip">Istbestand ' + invFmt(ist) + " €</span>");
   if (ware > 0) chips.push('<span class="heute-chip">Ware ' + ware.toLocaleString("de-DE") + " Stangen</span>");
-  /* Der Sollbestand kommt aus der Abrechnung, nicht mehr aus einem
-     getippten Feld im Inventurspeicher (Mirko, 05.09.2026). */
-  const abr = abrStandLesen();
-  // Seit 03.10.2026 dieselbe Regel wie das Inventurblatt (abrHatEingaben):
-  // nur vorbelegt (z. B. nur der Vortrag nach einem Abschluss) zaehlt nicht.
-  if (ist > 0) chips.push(abrHatEingaben()
-    ? '<span class="heute-chip fertig">Sollbestand ' + invFmt(abr.soll) + ' €</span>'
-    : '<span class="heute-chip offen">Sollbestand fehlt – Abrechnung ausfüllen</span>');
+  /* Der Chip "Sollbestand" kam aus der Abrechnung - die ist seit dem
+     07.10.2026 entfernt, der Sollbestand bleibt leer (invSollAusAbrechnung). */
   document.getElementById("heuteChips").innerHTML = chips.join("");
-  heuteWochenlauf(ist, ware, abr);
+  heuteWochenlauf(ist, ware);
 
   // Zahlen auf den Kacheln
   heuteKachelZahl("inventur", ist > 0 ? invFmt(ist) + " €" : "");
-  /* Der alte Text "Gerüst – noch nicht in Betrieb" stammte vom Tag des
-     Einbaus und stimmte seit dem 05.09.2026 nicht mehr. */
-  heuteKachelZahl("abrechnung", abr.endbestand ? invFmt(abr.endbestand) + " €" : "");
 }
-/* Der Wochenlauf: Inventur -> Ware -> Abrechnung -> Abschliessen.
+/* Der Wochenlauf: Inventur -> Ware (bis 07.10.2026 weiter ueber
+   Abrechnung -> Abschliessen, siehe heuteWochenlauf).
 
    Reine ANZEIGE. Es wird nichts abgefragt, nichts erzwungen, nichts
    gerechnet - alle Werte kommen aus denselben Quellen wie die Chips
@@ -6857,14 +6993,11 @@ const FUEHRUNGEN = {
   inventur: [
     { titel: "Wozu dieses Blatt",
       text: "Hier wird gezählt, was am Ende der Woche noch auf dem Fahrzeug " +
-            "liegt. Der Wert geht als Inventur Ist in die Abrechnung und " +
-            "bildet zusammen mit der neuen Ladung den Endbestand, mit dem " +
-            "Sie losfahren." },
+            "liegt. Die App rechnet daraus den Istbestand." },
 
     { titel: "Vorher: Kopfdaten",
-      text: "Fahrer, Tour und Datum gelten für Inventurblatt und " +
-            "Verkaufsbericht gemeinsam. Einmal eintragen genügt — beide " +
-            "Zettel tragen dann dasselbe.",
+      text: "Fahrer, Tour und Datum stehen oben auf dem Inventurblatt. " +
+            "Einmal eintragen genügt.",
       stand: () => {
         kopfLaden();
         const t = (kopfState.tour || "").trim(), d = (kopfState.datum || "").trim();
@@ -6891,29 +7024,14 @@ const FUEHRUNGEN = {
             "Warengruppen: Dort steht der Betrag direkt, nicht Menge × KVP. " +
             "Sie ist deshalb nicht Teil der durchlaufenden Zeilenfolge." },
 
-    { titel: "Der Sollbestand kommt von allein",
-      text: "Er wird nicht getippt. Die App übernimmt den in der Abrechnung " +
-            "berechneten Inventur Soll — so können die beiden Zettel nicht " +
-            "auseinanderlaufen. Steht dort noch nichts, bleibt das Feld leer.",
-      stand: () => {
-        const soll = invSollAusAbrechnung();
-        return soll === null
-          ? "Noch keine Abrechnung — Sollbestand und Differenz bleiben leer."
-          : "Sollbestand aus der Abrechnung: " + invFmt(soll) + " €";
-      } },
-
-    { titel: "Differenz lesen",
-      text: "Gerechnet wird <b>Ist minus Soll</b>. Ein <b>Minus</b> heißt: " +
-            "es fehlt Ware. Ein <b>Plus</b> heißt: es ist zu viel da. Auf " +
-            "beiden Zetteln bedeutet ein Minus dasselbe.",
-      stand: () => {
-        const soll = invSollAusAbrechnung();
-        if (soll === null) return "Noch nicht berechenbar.";
-        const d = heuteIstbestand(invState) - soll;
-        return d === 0 ? "Stimmt genau überein."
-             : d > 0   ? "Aktuell " + invFmt(d) + " € zu viel auf dem Fahrzeug."
-                       : "Aktuell fehlen " + invFmt(Math.abs(d)) + " €.";
-      } },
+    /* Seit 07.10.2026: Die Abrechnung ist entfernt, der Sollbestand kommt
+       nicht mehr von allein (Mirko: "nur ist bestand wird berechnet
+       sollbestand bleibt leer"). Der Schritt "Differenz lesen" ist damit
+       entfallen - es gibt keine Differenz mehr am Bildschirm. */
+    { titel: "Sollbestand und Differenz",
+      text: "Die App rechnet nur den <b>Istbestand</b>. Sollbestand und " +
+            "Differenz bleiben auf dem Blatt leer – sie werden auf dem " +
+            "Ausdruck von Hand eingetragen." },
 
     { titel: "Fertig",
       text: "Über „Fertig → Blatt ansehen“ wechseln Sie auf das Blatt, wie " +
@@ -6969,14 +7087,9 @@ const FUEHRUNGEN = {
         return d === 0 ? "Stimmt genau überein: " + ist + " Stangen."
              : d > 0   ? d + " Stangen mehr im Käfig als auf dem Schein."
                        : Math.abs(d) + " Stangen fehlen gegenüber dem Schein.";
-      } },
-
-    { titel: "Danach",
-      text: "Gezählt wird in Stangen, abgerechnet in Euro: In die " +
-            "Abrechnung kommt als Ladeliste der Betrag <b>„Gesamt“ vom " +
-            "Lieferschein</b>, den Sie dort eintragen. Zusammen mit dem " +
-            "Inventur Ist ergibt er den Endbestand — und der ist der " +
-            "Startbestand der nächsten Woche." }
+      } }
+    /* Der Schritt "Danach" (Ladeliste in die Abrechnung) ist am 07.10.2026
+       mit der Abrechnung entfallen. */
   ]
 };
 
@@ -7051,42 +7164,23 @@ function abrSelbstAusgefuellt() {
     String(f[k] == null ? "" : f[k]).trim() !== "");
 }
 
-function heuteWochenlauf(ist, ware, abr) {
+function heuteWochenlauf(ist, ware) {
   const lauf = document.getElementById("heuteLauf");
   const startZeile = document.getElementById("heuteStart");
   if (!lauf || !startZeile) return;
 
-  /* Womit die Woche begonnen hat - der Endbestand der Vorwoche, den der
-     Abschluss uebernommen hat. Steht sonst nur im Abrechnungsblatt und ist
-     montags frueh genau die Zahl, die man wissen will. */
-  const vortrag = invZahl((abrState.felder || {}).abrEndbestandVortrag);
-  if (vortrag) {
-    startZeile.style.display = "";
-    startZeile.innerHTML = "Startbestand aus der Vorwoche: <b>" +
-                           invFmt(vortrag) + " €</b>";
-  } else {
-    startZeile.style.display = "none";
-  }
+  /* Seit 07.10.2026 nur noch Inventur und Ware. Abrechnung und
+     "Abschliessen" (abrAbschliessen) sind mit der Abrechnung entfallen,
+     ebenso die Zeile "Startbestand aus der Vorwoche" - sie las den Vortrag
+     aus dem Abrechnungsblatt. Neu beginnen geht in den Bereichen selbst
+     ("🗑️ Neue Inventur", "🗑️ Neue Zählung"). */
+  startZeile.style.display = "none";
 
   const schritte = [
     { tab: "inventur",   name: "Inventur",
       fertig: ist > 0,   wert: ist > 0 ? invFmt(ist) + " €" : "" },
     { tab: "ware",       name: "Ware geladen",
-      fertig: ware > 0,  wert: ware > 0 ? ware.toLocaleString("de-DE") + " Stangen" : "" },
-    { tab: "abrechnung", name: "Abrechnung",
-      /* NICHT abr.endbestand pruefen! Der Endbestand IST leitet sich aus
-         der Inventur ab (Inventur Ist + Ladeliste) und steht deshalb schon,
-         bevor jemand die Abrechnung geoeffnet hat. Gemessen am 06.09.2026:
-         nach reinem Zaehlen meldete der Lauf "Abrechnung fertig". Ein
-         Kollege haette einen Haken gesehen fuer etwas, das er nie gemacht
-         hat - die schlechteste Sorte Anzeige.
-
-         Beleg ist stattdessen eine ECHTE Eingabe im Abrechnungsblatt. Die
-         drei automatisch vorbelegten Felder zaehlen dafuer nicht: Vertreter
-         und Datum setzt abrVorbelegen(), den Vortrag der letzte Abschluss. */
-      fertig: abrSelbstAusgefuellt(),
-      wert: abr.endbestand ? invFmt(abr.endbestand) + " €" : "" },
-    { tab: "abrechnung", name: "Abschließen", fertig: false, wert: "" }
+      fertig: ware > 0,  wert: ware > 0 ? ware.toLocaleString("de-DE") + " Stangen" : "" }
   ];
 
   /* Der erste noch offene Schritt ist der, an dem man steht. Sind alle drei
@@ -7460,6 +7554,8 @@ function zeigeKachelStartseite() {
   // hier keine Funktion aktiv ist. Muss hier explizit mit ausgeblendet
   // werden, exakt wie die PDF-Knopfgruppe (dieselbe Funktion regelt beides).
   zeigeSpesenKopfUndPdf(false);
+  // Neue Oberflaeche: ihre Startseite (rieb.js, 08.10.2026)
+  if (typeof window.riebStart === "function") window.riebStart();
 }
 
 /* Klick-Handler des "← Zurück zur Auswahl"-Buttons in #mainTabs. Eigener
@@ -7598,6 +7694,10 @@ function rollenwahlSetzen(wert) {
 
 function maybeShowSetupWizard() {
   if (localStorage.getItem("spesen_config") !== null) return;
+  /* Neue Oberflaeche (rieb.js, 08.10.2026): ihre Einrichtung im neuen Look.
+     Beim allerersten Laden ist rieb.js noch nicht da - dann oeffnet sich
+     hier kurz der alte Assistent, und rieb.js tauscht ihn beim Start aus. */
+  if (typeof window.riebEinrichtung === "function" && window.riebEinrichtung()) return;
   wizardStep = 1;
   const root = document.getElementById("modalRoot");
   root.innerHTML = `
@@ -7632,6 +7732,32 @@ function maybeShowSetupWizard() {
           <label>Bundesland (für automatische Feiertage)</label>
           <select id="wizBundesland"></select>
         </div>
+        <!-- Schritt 5 "Ihre üblichen Zeiten", neu am 07.10.2026 (Mirko:
+             "okey machen wir"), fuer ALLE - Kollegen, Mirko, Chef-Link.
+             Ueberspringbar ("Später eintragen").
+
+             ⚠ Die Felder starten LEER, nicht mit Beispielzeiten. Wer hier
+             nur durchklickt, haette sonst Standardzeiten, die er nie
+             eingetragen hat - und damit 14 € je Werktag auf dem Blatt.
+             Geschrieben werden dieselben Felder wie bei "⏰ Zeiten für alle
+             Tage" (szFelder): Fahrer abfahrt/ankunftDefault, Monteur
+             Aussendienst arbeitsbeginn/arbeitsendeDefault, Innendienst
+             nlVon/nlBis. -->
+        <div class="wizard-step" data-step="5">
+          <label>Ihre üblichen Zeiten</label>
+          <p class="wizard-text" style="margin-top:0;">
+            Einmal eintragen – sie gelten dann automatisch für jeden Werktag.
+            Abweichende Tage ändern Sie später direkt in der Liste.
+          </p>
+          <div class="grid">
+            <label><span id="wizZeitVonLabel">Abfahrt WP</span>
+              <input id="wizZeitVon" type="time"></label>
+            <label><span id="wizZeitBisLabel">Ankunft WP</span>
+              <input id="wizZeitBis" type="time"></label>
+          </div>
+          <button type="button" id="wizZeitSpaeter" class="ghost" style="width:100%; margin-top:0.6rem;"
+                  onclick="wizardZeitenSpaeter()">Später eintragen</button>
+        </div>
         <!-- Schritt 5, neu am 20.09.2026. Mirko: "manche haben 30, manche
              28 - deshalb muss man seinen Anspruch selbst eintragen
              koennen." Das Feld gab es zwar im Urlaubsbereich, aber der
@@ -7647,11 +7773,11 @@ function maybeShowSetupWizard() {
              pauschale 0 - wer zwei Wochen nicht eintraegt und dann
              "Zeiten fuer alle Tage" benutzt, hat 10 Arbeitstage a 14 €
              auf dem Zettel, an denen er im Urlaub war. -->
-        <div class="wizard-step" data-step="5">
+        <div class="wizard-step" data-step="6">
           <label>Urlaubstage pro Jahr</label>
           <input id="wizUrlaubsanspruch" type="number" step="0.5" min="0" value="30">
           <p class="wizard-text" style="margin-top:0.6rem;">
-            Bei Hall haben manche 30, manche 28 – tragen Sie ein, was für Sie gilt.
+            Manche haben 30, manche 28 – tragen Sie ein, was für Sie gilt.
             Änderbar bleibt es jederzeit unter „🌴 Urlaub“.
           </p>
         </div>
@@ -7663,7 +7789,7 @@ function maybeShowSetupWizard() {
              "Zeiten fuer alle Tage" benutzt, hat 10 Tage a 14 € auf dem
              Zettel an die Niederlassung, an denen er im Urlaub war.
              Deshalb jetzt eine echte Frage mit Datumsfeldern. -->
-        <div class="wizard-step" data-step="6">
+        <div class="wizard-step" data-step="7">
           <label>Hatten Sie dieses Jahr schon Urlaub?</label>
           <div style="display:flex; gap:0.5rem; margin:0.5rem 0 0.2rem;">
             <button type="button" id="wizUrlaubNein" class="primary" style="flex:1;"
@@ -7699,6 +7825,7 @@ function maybeShowSetupWizard() {
           <span class="dot" data-dot="4"></span>
           <span class="dot" data-dot="5"></span>
           <span class="dot" data-dot="6"></span>
+          <span class="dot" data-dot="7"></span>
         </div>
         <div class="wizard-buttons">
           <button id="wizBack" onclick="wizardBack()" style="visibility:hidden;">Zurück</button>
@@ -7711,16 +7838,17 @@ function maybeShowSetupWizard() {
     Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === "HE" ? "selected" : ""}>${v}</option>`).join("");
 }
 
-/* 6 seit dem 20.09.2026: Schritt 5 fragt den Urlaubsanspruch ab (vorher
-   lief jeder mit 30 los, auch die Kollegen mit 28), Schritt 6 fragt nach
-   bereits genommenem Urlaub. */
-const WIZARD_STEPS = 6;
+/* 7 seit dem 07.10.2026: Schritt 5 fragt die ueblichen Zeiten ab (neu,
+   fuer alle), Schritt 6 den Urlaubsanspruch (vorher lief jeder mit 30 los,
+   auch die Kollegen mit 28), Schritt 7 bereits genommenen Urlaub.
+   Bis 07.10.2026 waren es 6 - die Urlaubsschritte hiessen 5 und 6. */
+const WIZARD_STEPS = 7;
 
 /* ---- Wie weit laeuft der Assistent? ------------------------------
-   Schritt 5 (Urlaubsanspruch) und Schritt 6 (schon genommener Urlaub)
-   sind Neuerungen vom 20.09.2026 und vorerst nur fuer Mirko. Ein Kollege
-   ist nach Schritt 4 fertig - genau wie in der Fassung, die er heute
-   kennt.
+   Schritt 6 (Urlaubsanspruch) und Schritt 7 (schon genommener Urlaub)
+   sind Neuerungen vom 20.09.2026 und vorerst nur fuer Mirko und den
+   Chef-Link. Ein Kollege ist nach Schritt 5 ("Ihre üblichen Zeiten", seit
+   07.10.2026 fuer alle) fertig.
 
    Gelesen wird der Name AUS DEM FELD, nicht aus config: Waehrend der
    Assistent laeuft, ist noch nichts gespeichert - wizardNext() schreibt
@@ -7730,7 +7858,26 @@ const WIZARD_STEPS = 6;
    Kollegen verlieren dadurch nichts: Anspruch und Uebertrag stehen im
    Urlaubsbereich als Eingabefelder (urlaubAnspruch / urlaubUebertrag),
    Vorgabe 30 und 0 wie bisher. */
-const WIZARD_STEPS_KOLLEGE = 4;
+const WIZARD_STEPS_KOLLEGE = 5;
+const WIZARD_SCHRITT_ZEITEN = 5;
+
+/* Schritt 5: Beschriftung nach der Rolle aus Schritt 3 - dieselben Worte
+   wie bei "⏰ Zeiten für alle Tage" (openStandardZeitenModal). */
+function wizardZeitenBeschriften() {
+  const innen = document.getElementById("wizTyp").value === "monteur-innen";
+  document.getElementById("wizZeitVonLabel").textContent = innen ? "Anwesenheit NL Beginn" : "Abfahrt WP";
+  document.getElementById("wizZeitBisLabel").textContent = innen ? "Anwesenheit NL Ende" : "Ankunft WP";
+}
+
+/* "Später eintragen": Felder leeren und weiter (beim Kollegen = fertig). */
+function wizardZeitenSpaeter() {
+  document.getElementById("wizZeitVon").value = "";
+  document.getElementById("wizZeitBis").value = "";
+  wizardNext();
+}
+
+/* (Das Schreiben der Zeiten aus Schritt 5 steht seit 08.10.2026 in
+   einrichtungSpeichern() - EIN Weg fuer alten und neuen Assistenten.) */
 function wizardLetzterSchritt() {
   const feld = document.getElementById("wizName");
   const name = (feld ? feld.value : "").trim().toLowerCase();
@@ -7767,20 +7914,66 @@ function wizardZeitraumHinzu() {
   wo.appendChild(zeile);
 }
 
-/* Traegt den im Assistenten genannten Zeitraum als Urlaub ein - ueber
-   dieselbe Schleife wie applyAbsenceRange(), damit es nicht zwei Wege
-   gibt, die auseinanderlaufen koennen. Gibt eine Meldung zurueck oder
-   null, wenn nichts einzutragen war. */
-function wizardUrlaubUebernehmen() {
+/* Die Zeitraeume aus Schritt 7 des alten Assistenten - leer, wenn "Nein". */
+function wizardUrlaubZeilen() {
   const felder = document.getElementById("wizUrlaubFelder");
-  if (!felder || felder.style.display === "none") return null;
-
-  const zeilen = Array.from(document.querySelectorAll("#wizUrlaubZeitraeume .wiz-zeitraum"))
+  if (!felder || felder.style.display === "none") return [];
+  return Array.from(document.querySelectorAll("#wizUrlaubZeitraeume .wiz-zeitraum"))
     .map((z) => ({
       von: z.querySelector("[data-wiz-von]").value,
       bis: z.querySelector("[data-wiz-bis]").value,
-    }))
-    .filter((z) => z.von && z.bis);
+    }));
+}
+
+/* ---- Abschluss der Ersteinrichtung - EIN Speicherweg (08.10.2026) ----
+   Benutzt vom alten Assistenten (wizardNext) UND von der neuen
+   Einrichtung (rieb.js). Vorher stand das alles in wizardNext() und las
+   die Felder des alten Fensters selbst - eine zweite Einrichtung haette
+   die Logik kopieren muessen, und zwei Kopien laufen auseinander.
+
+   w = { name, strasse, ort, niederlassung, typ, bundesland,
+         zeitVon, zeitBis,          Schritt 5 (07.10.2026), beide oder keine
+         anspruch,                  Urlaubstage (20.09.2026)
+         urlaub: [{von, bis}] }     schon genommener Urlaub (20.09.2026)
+   Gibt die Meldung zum eingetragenen Urlaub zurueck oder null. */
+function einrichtungSpeichern(w) {
+  config.name = String(w.name || "").trim();
+  config.strasse = String(w.strasse || "").trim();
+  config.ort = String(w.ort || "").trim();
+  config.niederlassung = String(w.niederlassung || "").trim();
+  config.mitarbeitertyp = w.typ || "fahrer";
+  // Neue Nutzer haben die Rolle hier gewaehlt -> Pflicht-Rollenwahl nicht doppelt zeigen.
+  localStorage.setItem("rolle_bestaetigt_3typen", new Date().toISOString());
+  config.bundesland = w.bundesland || config.bundesland;
+  /* Die ueblichen Zeiten in dieselben Felder wie "⏰ Zeiten für alle Tage"
+     (szFelder). Leer = nichts setzen. */
+  if (w.zeitVon && w.zeitBis) {
+    if (config.mitarbeitertyp === "monteur-innen") { config.nlVon = w.zeitVon; config.nlBis = w.zeitBis; }
+    else if (config.mitarbeitertyp !== "fahrer") { config.arbeitsbeginnDefault = w.zeitVon; config.arbeitsendeDefault = w.zeitBis; }
+    else { config.abfahrtDefault = w.zeitVon; config.ankunftDefault = w.zeitBis; }
+  }
+  /* Urlaubsanspruch (seit 20.09.2026). Wird als Grundwert UND als
+     Eintrag fuer das laufende Jahr gesetzt - sonst stuende er zwar in
+     der Konfiguration, die Jahresbilanz zoege ihn aber erst heran,
+     wenn man den Urlaubsbereich einmal geoeffnet hat. */
+  const anspruch = parseFloat(w.anspruch);
+  if (!isNaN(anspruch) && anspruch >= 0) {
+    config.urlaubsanspruch = anspruch;
+    config.urlaubJahre = config.urlaubJahre || {};
+    config.urlaubJahre[String(new Date().getFullYear())] = { anspruch: anspruch, uebertrag: 0 };
+  }
+  localStorage.setItem("spesen_config", JSON.stringify(config));
+  /* Schon genommener Urlaub - NACH dem Speichern der Konfiguration, weil
+     feiertage() das Bundesland daraus braucht. */
+  return urlaubZeitraeumeEintragen(w.urlaub || []);
+}
+
+/* Traegt die genannten Zeitraeume als Urlaub ein - ueber dieselbe
+   Schleife wie applyAbsenceRange(), damit es nicht zwei Wege gibt, die
+   auseinanderlaufen koennen. Gibt eine Meldung zurueck oder null, wenn
+   nichts einzutragen war. */
+function urlaubZeitraeumeEintragen(roh) {
+  const zeilen = (roh || []).filter((z) => z && z.von && z.bis);
   if (!zeilen.length) return null;
 
   /* Erst ALLE pruefen, dann eintragen. Sonst waere bei einem Tippfehler
@@ -7821,32 +8014,34 @@ function wizardShowStep(n) {
   });
   document.getElementById("wizBack").style.visibility = n === 1 ? "hidden" : "visible";
   document.getElementById("wizNext").textContent = n === letzter ? "Fertig" : "Weiter";
+  if (n === WIZARD_SCHRITT_ZEITEN) wizardZeitenBeschriften();
 }
 
 function wizardNext() {
-  if (wizardStep === wizardLetzterSchritt()) {
-    config.name = document.getElementById("wizName").value.trim();
-    config.strasse = document.getElementById("wizStrasse").value.trim();
-    config.ort = document.getElementById("wizOrt").value.trim();
-    config.niederlassung = document.getElementById("wizNiederlassung").value.trim();
-    config.mitarbeitertyp = document.getElementById("wizTyp").value;
-    // Neue Nutzer haben die Rolle hier gewaehlt -> Pflicht-Rollenwahl nicht doppelt zeigen.
-    localStorage.setItem("rolle_bestaetigt_3typen", new Date().toISOString());
-    config.bundesland = document.getElementById("wizBundesland").value;
-    /* Urlaubsanspruch (seit 20.09.2026). Wird als Grundwert UND als
-       Eintrag fuer das laufende Jahr gesetzt - sonst stuende er zwar in
-       der Konfiguration, die Jahresbilanz zoege ihn aber erst heran,
-       wenn man den Urlaubsbereich einmal geoeffnet hat. */
-    const anspruch = parseFloat(document.getElementById("wizUrlaubsanspruch").value);
-    if (!isNaN(anspruch) && anspruch >= 0) {
-      config.urlaubsanspruch = anspruch;
-      config.urlaubJahre = config.urlaubJahre || {};
-      config.urlaubJahre[String(new Date().getFullYear())] = { anspruch: anspruch, uebertrag: 0 };
+  /* Schritt 5: entweder beide Zeiten oder keine ("Später eintragen").
+     Eine einzelne Zeit ergaebe keinen Arbeitstag und kein Geld - der
+     Nutzer haette aber den Eindruck, es sei eingerichtet. */
+  if (wizardStep === WIZARD_SCHRITT_ZEITEN) {
+    const von = document.getElementById("wizZeitVon").value;
+    const bis = document.getElementById("wizZeitBis").value;
+    if (!!von !== !!bis) {
+      alert("Bitte beide Zeiten eintragen – oder „Später eintragen“ wählen.");
+      return;
     }
-    localStorage.setItem("spesen_config", JSON.stringify(config));
-    /* Schon genommener Urlaub aus Schritt 6 - NACH dem Speichern der
-       Konfiguration, weil feiertage() das Bundesland daraus braucht. */
-    const urlaubsMeldung = wizardUrlaubUebernehmen();
+  }
+  if (wizardStep === wizardLetzterSchritt()) {
+    const urlaubsMeldung = einrichtungSpeichern({
+      name: document.getElementById("wizName").value,
+      strasse: document.getElementById("wizStrasse").value,
+      ort: document.getElementById("wizOrt").value,
+      niederlassung: document.getElementById("wizNiederlassung").value,
+      typ: document.getElementById("wizTyp").value,
+      bundesland: document.getElementById("wizBundesland").value,
+      zeitVon: document.getElementById("wizZeitVon").value,
+      zeitBis: document.getElementById("wizZeitBis").value,
+      anspruch: document.getElementById("wizUrlaubsanspruch").value,
+      urlaub: wizardUrlaubZeilen(),
+    });
     closeModal();
     initSettingsUI();
     updateMitarbeitertypUI();
@@ -7933,7 +8128,7 @@ function buildPauschaleBarChart(rows) {
 function renderJahresuebersicht() {
   document.getElementById("jahresuebersichtTitel").textContent = `${t("yearTitle")} ${config.jahr}`;
   const { rows, totals } = computeYearSummary();
-  const th = (label) => `<th style="border:1px solid #333; padding:6px 10px; background:#FDE9DC; text-align:left;">${label}</th>`;
+  const th = (label) => `<th style="border:1px solid #333; padding:6px 10px; background:#EEF0F4; text-align:left;">${label}</th>`;   // 08.10.2026: neutral statt Hall-Orange
   const td = (val, alignRight) => `<td style="border:1px solid #333; padding:6px 10px;${alignRight ? " text-align:right;" : ""}">${val}</td>`;
   const bodyRows = rows.map(r => `
     <tr>
@@ -8137,9 +8332,13 @@ function invKvpVorratAusBlatt() {
   if (neu) invKvpVorratSichern([...vorrat]);
 }
 
+/* ⛔ SEIT 07.10.2026 IMMER null. Die Abrechnung ist entfernt, und Mirko hat
+   entschieden: "nur ist bestand wird berechnet sollbestand bleibt leer".
+   Sollbestand und Differenz bleiben damit auf dem Blatt leer und werden
+   auf dem Ausdruck von Hand eingetragen (invRechne: soll === null).
+   Vorher kam der Soll aus abrBerechne().soll (Mirko, 05.09.2026). */
 function invSollAusAbrechnung() {
-  const stand = abrStandLesen();
-  return abrHatEingaben() ? stand.soll : null;
+  return null;
 }
 
 const invKapazitaet = (g) => g.spalten.length * g.zeilen;
@@ -9078,7 +9277,7 @@ function unterschriftErinnern(farbVar, sigKey) {
      falsch. Mirko: "unterschreibt man nicht digital dann nicht, dann
      benoetigt man ja fuer die handschriftliche unterschrift platz." Die
      Erinnerung gilt also nur noch OHNE Foto-Unterschrift. */
-  if (korrektur0310() && sigKey && localStorage.getItem(sigKey)) return;
+  if (korrektur0310() && sigKey && spesenUnterschriftDigital(sigKey) && localStorage.getItem(sigKey)) return;
   ordnerHinweis("Bitte Unterschrift nach dem Ausdruck nicht vergessen.",
                 farbVar || "--ordner-inventur");
 }
@@ -9336,6 +9535,7 @@ async function invDrucken() {
    die Datei noch anzuhängen ist. Adresse kommt aus den Stammdaten
    (config.arbeitgeberEmail), es wird keine zweite gepflegt. */
 async function invPerEmail() {
+  if (!EMAIL_VERSAND_AKTIV) return;   // E-Mail-Versand ganz raus (08.10.2026)
   if (!config.arbeitgeberEmail) {
     alert("Bitte zuerst in den Stammdaten die E-Mail-Adresse der Niederlassung eintragen.");
     zeigeTab("spesen");
@@ -11010,7 +11210,7 @@ async function abrBuildPdf() {
    darf dabei nie die Zahlen der laufenden Woche verlieren. */
 function wareBlattHtml(kae, kopfFelder) {
   const zeilen = (kae && kae.zeilen) || {};
-  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 9px; background:#FDE9DC; text-align:${r ? "right" : "left"};">${l}</th>`;
+  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 9px; background:#EEF0F4; text-align:${r ? "right" : "left"};">${l}</th>`;   // 08.10.2026: neutral
   const td = (v, r, extra) => `<td style="border:1px solid #333; padding:6px 9px;${r ? " text-align:right;" : ""}${extra || ""}">${v}</td>`;
 
   let gesamt = 0;
@@ -11144,6 +11344,7 @@ async function abrBuildBeidePdf() {
    (gesamtabrechnungPdf: Inventur quer + Verkaufsbericht hoch, Fusszeile
    "Erstellt"). Mail nur mit Unterschrift - siehe sendPerEmail(). */
 async function abrPerEmail() {
+  if (!EMAIL_VERSAND_AKTIV) return;   // E-Mail-Versand ganz raus (08.10.2026)
   if (!config.arbeitgeberEmail) {
     alert("Bitte zuerst in den Stammdaten die E-Mail-Adresse der Niederlassung eintragen.");
     zeigeTab("spesen");
@@ -11314,10 +11515,10 @@ function pdfUebergabeSpeichern() {
    Das hier ist ein Dokument zum Abheften. Inventurblatt und
    Verkaufsbericht fuehren aus demselben Grund keine.
 
-   Die zwei Farben sind die Hausfarben aus dem Kopf dieser Datei
-   (--accent #de7008, --brand-dark #612a00). Sie stehen hier als feste
-   Werte, weil das Blatt ausserhalb des Sichtfelds aufgebaut und
-   abfotografiert wird - dort soll nichts von der Vererbung abhaengen. */
+   Die zwei Farben stehen hier als feste Werte, weil das Blatt ausserhalb
+   des Sichtfelds aufgebaut und abfotografiert wird - dort soll nichts von
+   der Vererbung abhaengen. Seit 08.10.2026 neutral (Linie #0284C7, Titel
+   #0E1116, "Rieb Spesen") statt Hall-Orange/-Braun. */
 function druckKopfHtml(titel, felder) {
   const zeile = felder
     .filter((f) => f[1])
@@ -11325,10 +11526,10 @@ function druckKopfHtml(titel, felder) {
       + `<span style="color:#666;">${f[0]}:</span> <b>${f[1]}</b></span>`)
     .join("");
   return `
-    <div style="border-bottom:3px solid #de7008; padding-bottom:10px; margin-bottom:18px;">
+    <div style="border-bottom:3px solid #0284C7; padding-bottom:10px; margin-bottom:18px;">
       <div style="display:flex; align-items:baseline; justify-content:space-between; gap:24px;">
-        <div style="font-size:21px; font-weight:700; color:#612a00;">${titel}</div>
-        <div style="font-size:12px; color:#888; white-space:nowrap;">Hall Tabakwaren &middot; Spesen-Rechner</div>
+        <div style="font-size:21px; font-weight:700; color:#0E1116;">${titel}</div>
+        <div style="font-size:12px; color:#888; white-space:nowrap;">Rieb Spesen</div>
       </div>
       ${zeile ? `<div style="margin-top:9px; font-size:13px; color:#222;">${zeile}</div>` : ``}
     </div>`;
@@ -11496,7 +11697,7 @@ function zeitMonatBlattHtml() {
   const tage = AZ.tage.filter((e) => azMonatsKey(e.start) === key);
   if (!tage.length) return null;
 
-  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 9px; background:#FDE9DC; text-align:${r ? "right" : "left"};">${l}</th>`;
+  const th = (l, r) => `<th style="border:1px solid #333; padding:6px 9px; background:#EEF0F4; text-align:${r ? "right" : "left"};">${l}</th>`;   // 08.10.2026: neutral
   const td = (v, r, extra) => `<td style="border:1px solid #333; padding:6px 9px;${r ? " text-align:right;" : ""}${extra || ""}">${v}</td>`;
 
   const zeilen = tage.map((e) => {
@@ -11874,10 +12075,15 @@ function rebuildMonthPicker() {
    Gefunden bei der Pruefung fuer die Chef-Praesentation. Jetzt prueft der
    Code selbst, das CSS ist nur noch die Optik. */
 function tagGesperrt(iso) {
+  /* Gilt fuer ALLE. Am 07.10.2026 kurz fuer Kollegen abgeschaltet, am
+     08.10.2026 zurueck: Kollegen schliessen wieder ab (beim Speichern,
+     Drucken und ueber den Knopf), oeffnen aber OHNE PIN wieder - siehe
+     kollegeMonatAbschliessen() und reopenMonth(). */
   return !!localStorage.getItem("spesen_submitted_" + String(iso).slice(0, 7));
 }
 function sperrHinweis() {
-  ordnerHinweis("🔒 Dieser Monat ist eingereicht und gesperrt – zum Ändern oben auf „Wieder öffnen“ tippen.");
+  // "gesperrt" muss im Text bleiben - monatWiederOeffnen() erkennt den Streifen daran.
+  ordnerHinweis("🔒 Dieser Monat ist abgeschlossen und gesperrt – zum Ändern oben auf „Wieder öffnen“ tippen.");
 }
 /* Fuer Zeitraeume (Abwesenheiten am Stueck, Urlaubskalender): Tage in einem
    eingereichten Monat bleiben unangetastet, der Rest wird eingetragen - und
@@ -11967,6 +12173,37 @@ function monthSentCountKey(jahr, monat) { return `spesen_sentcount_${jahr}-${pad
 function getMonthSentCount(jahr, monat) { return parseInt(localStorage.getItem(monthSentCountKey(jahr, monat)) || "0", 10) || 0; }
 function bumpMonthSentCount(jahr, monat) { localStorage.setItem(monthSentCountKey(jahr, monat), String(getMonthSentCount(jahr, monat) + 1)); }
 
+/* ---- Kollegen: Abschliessen beim Speichern (08.10.2026) ----
+   Mirko: "spesen werden abgeschlossen im ordner hinterlegt, monat für
+   monat, und wenn man speichert und auf den pc die pdf erhält geht monat
+   auch automatisch als abgeschlossen. zurücksetzen ist möglich jederzeit."
+   Auf Rueckfrage: der Knopf "Spesenmonat abschliessen" bleibt ("damit er
+   gespeichert wird"), abgeschlossen heisst gesperrt, Wieder oeffnen ohne
+   PIN ("genau wie dein vorschlag").
+
+   ⛔ DRUCKEN SCHLIESST NICHT AB. Erst "auch drucken", dann - nach dem
+   Hinweis, dass Drucken mitten im Monat sperren wuerde - "gut dann lass
+   das weg mit drucken wird abgeschlossen" (08.10.2026).
+
+   Aufgerufen NACH dem Speichern, mit genau der PDF, die der Kollege
+   bekommen hat - dieselbe Datei liegt dann im Ordner.
+   War der Monat schon abgeschlossen, bleibt der Zeitpunkt stehen; die PDF
+   im Ordner wird nur aufgefrischt (gleicher Inhalt, der Monat ist ja zu).
+
+   ⚠ NUR KOLLEGEN. Bei Mirko schliesst Speichern NICHT ab -
+   sein Ablauf (Abschluss nur mit Unterschrift, Wieder oeffnen mit PIN)
+   bleibt, bis er etwas anderes sagt. */
+async function kollegeMonatAbschliessen(r, monat) {
+  if (zeigtDigitaleAbgabe() || !r || !r.pdf) return;
+  if (!isMonthSubmitted(config.jahr, monat)) submitMonth(config.jahr, monat);
+  try { await pdfDbAblegen("spesen-" + config.jahr + "-" + monat, r.pdf.output("blob")); }
+  catch (e) { console.error("Spesen-PDF-Ablage (IndexedDB) fehlgeschlagen:", e); }
+  ordnerPuls("spesenArchivKnopf", "--ordner-spesen");
+}
+function gewaehlterMonat() {
+  return parseInt(document.getElementById("monthPicker").value) || config.startMonat;
+}
+
 async function submitCurrentMonth() {
   if (!stundenLimitOk()) return;
   const monat = parseInt(document.getElementById("monthPicker").value) || config.startMonat;
@@ -11982,17 +12219,24 @@ async function submitCurrentMonth() {
      erzwungen.
 
      ⚠ NUR "spesen_signature" (Unterschrift Mitarbeiter), NICHT
-     "spesen_signature_nll" - die gehoert dem Niederlassungsleiter. */
-  const freigabe = await abschlussPruefen({
-    titel: "Spesenmonat abschließen",
-    datumPflicht: false,
-    sigKey: "spesen_signature",
-    sigName: "Die Unterschrift des Mitarbeiters",
-    sigFeldId: "sigFile-spesen_signature",
-  });
-  if (!freigabe) return;
+     "spesen_signature_nll" - die gehoert dem Niederlassungsleiter.
 
-  if (!confirm(`Diesen Spesenmonat abschließen und die fertige PDF abheften?\n\nDie Datei „${spesenDateiname(monthName, "pdf")}" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\nEin erneutes Öffnen ist nur mit PIN möglich.`)) return;
+     KOLLEGEN (seit 07.10.2026 ohne digitale Unterschrift): keine
+     Unterschrift-Pruefung - sie unterschreiben den Ausdruck von Hand. */
+  const kollege = !zeigtDigitaleAbgabe();
+  if (!kollege) {
+    const freigabe = await abschlussPruefen({
+      titel: "Spesenmonat abschließen",
+      datumPflicht: false,
+      sigKey: "spesen_signature",
+      sigName: "Die Unterschrift des Mitarbeiters",
+      sigFeldId: "sigFile-spesen_signature",
+    });
+    if (!freigabe) return;
+  }
+
+  if (!confirm(`Diesen Spesenmonat abschließen und die fertige PDF abheften?\n\nDie Datei „${spesenDateiname(monthName, "pdf")}" wird gespeichert (für Ihre Steuer-/Jahresablage), danach wird der Monat gesperrt.\n\n` +
+      (kollege ? `Zum Ändern genügt später ein Tipp auf „Wieder öffnen“.` : `Ein erneutes Öffnen ist nur mit PIN möglich.`))) return;
   submitMonth(config.jahr, monat);
   // Fertige Monatsdatei automatisch abheften: erzeugt und speichert die PDF,
   // damit rückwirkend jeder abgeschlossene Monat als Datei für die Steuer vorliegt.
@@ -12002,17 +12246,13 @@ async function submitCurrentMonth() {
       r.pdf.save(r.filename);
       /* Zusätzlich IM TOOL ablegen (IndexedDB), damit der Monat im Ordner
          "Abgeschlossene Monate" als eingefrorene PDF mit einem Klick aufgeht
-         (Mirko, 30.09.2026). Vorerst nur für Mirko (zeigtNeuerungen), bis das
-         Go der Chefs vorliegt - Kollegen bekommen wie bisher nur die Datei im
-         Download-Ordner. */
-      if (zeigtNeuerungen()) {
-        try { await pdfDbAblegen("spesen-" + config.jahr + "-" + monat, r.pdf.output("blob")); }
-        catch (e) { console.error("Spesen-PDF-Ablage (IndexedDB) fehlgeschlagen:", e); }
-        /* Farblogik/Puls (Mirko, 01.10.2026): der Spesen-Ordner-Knopf pulst
-           kurz in seiner Farbe. Nur hier im zeigtNeuerungen-Zweig - nur dort
-           wurde auch abgelegt. */
-        ordnerPuls("spesenArchivKnopf", "--ordner-spesen");
-      }
+         (Mirko, 30.09.2026). Seit 08.10.2026 FUER ALLE - Mirko: "spesen
+         werden abgeschlossen im ordner hinterlegt, monat für monat". */
+      try { await pdfDbAblegen("spesen-" + config.jahr + "-" + monat, r.pdf.output("blob")); }
+      catch (e) { console.error("Spesen-PDF-Ablage (IndexedDB) fehlgeschlagen:", e); }
+      /* Farblogik/Puls (Mirko, 01.10.2026): der Spesen-Ordner-Knopf pulst
+         kurz in seiner Farbe. */
+      ordnerPuls("spesenArchivKnopf", "--ordner-spesen");
     }
   } catch (e) {
     console.error("PDF-Ablage beim Monatsabschluss fehlgeschlagen:", e);
@@ -12032,6 +12272,11 @@ async function submitCurrentMonth() {
 const VORGEGEBENE_PIN = "1903";
 
 function reopenMonth(jahr, monat) {
+  /* Kollegen (08.10.2026): OHNE PIN, ein Tipp genuegt. Mirko auf den
+     Vorschlag "mit einem Tipp auf Wieder öffnen ist er sofort wieder frei,
+     ohne PIN": "genau wie dein vorschlag" ("zurücksetzen ist möglich
+     jederzeit"). Mirko selbst behaelt die PIN. */
+  if (!zeigtDigitaleAbgabe()) { monatWiederOeffnen(jahr, monat); return; }
   // Wieder-Oeffnen nur mit PIN. So laesst sich ein abgeschlossener Monat
   // nicht mehr mit einem Klick aendern.
   const hasPin = true; // feste PIN vorgegeben (VORGEGEBENE_PIN)
@@ -12068,6 +12313,14 @@ async function submitReopenPin(jahr, monat, isSetup) {
     document.getElementById("reopenPinInput").focus();
     return;
   }
+  closeModal();
+  monatWiederOeffnen(jahr, monat);
+}
+
+/* Der eigentliche Schritt "wieder oeffnen" - nach der PIN (Mirko) oder
+   direkt (Kollegen, seit 08.10.2026). Die PDF im Ordner bleibt liegen, bis
+   der Monat neu abgeschlossen wird; dann ersetzt die neue sie. */
+function monatWiederOeffnen(jahr, monat) {
   localStorage.removeItem(monthSubmittedKey(jahr, monat));
   monatFestschreibungLoesen(jahr, monat);   // Vorgaben gelten wieder wie vor dem Einreichen
   /* Ein noch stehender Hinweis "🔒 Dieser Monat ist eingereicht und gesperrt"
@@ -12146,20 +12399,26 @@ function renderArchivPanel() {
   `;
 
   if (months.length === 0) {
-    html += `<p class="hinweis-text">Noch keine Spesen abgeschlossen. Über „🔒 Spesenmonat abschließen" in der
-      Werkzeugleiste oder automatisch nach „📧 Per E-Mail weiterleiten" erscheinen fertige Monate hier.</p>`;
+    html += zeigtDigitaleAbgabe()
+      ? `<p class="hinweis-text">Noch keine Spesen abgeschlossen. Über „🔒 Spesenmonat abschließen" in der
+      Werkzeugleiste oder automatisch nach „📧 Per E-Mail weiterleiten" erscheinen fertige Monate hier.</p>`
+      /* Kollegen (08.10.2026): Speichern und der Knopf schliessen ab (Drucken nicht), keine Mail */
+      : `<p class="hinweis-text">Noch keine Spesen abgeschlossen. Sobald Sie einen Monat über „💾 PDF speichern“
+      oder „🔒 Spesenmonat abschließen“ fertigstellen, liegt er hier – Monat für Monat.</p>`;
   } else {
+    /* Seit 08.10.2026 legen auch Kollegen die fertige PDF im Tool ab - der
+       Knopf "PDF ansehen / drucken" gilt damit fuer alle. Kollegen behalten
+       zusaetzlich "Ansehen" (Monat im Blatt oeffnen): Monate, die sie VOR
+       dem 08.10. abgeschlossen haben, haben keine PDF im Tool. */
     html += months.map((m) => `
       <div class="archiv-row">
         <div>
           <b>${MONTH_NAMES[m.monat - 1]} ${m.jahr}</b>
-          <div class="archiv-meta">eingereicht am ${formatTimestampDE(m.ts)} &middot; ${m.total.toFixed(2).replace(".", ",")} €</div>
+          <div class="archiv-meta">${zeigtDigitaleAbgabe() ? "eingereicht" : "abgeschlossen"} am ${formatTimestampDE(m.ts)} &middot; ${m.total.toFixed(2).replace(".", ",")} €</div>
         </div>
         <div class="archiv-actions">
-          ${zeigtNeuerungen()
-            ? `<button class="ghost" onclick="pdfAblageOeffnen('spesen-${m.jahr}-${m.monat}', 'Spesen ${MONTH_NAMES[m.monat - 1]} ${m.jahr}')" title="Den fertigen, gespeicherten Beleg ansehen oder drucken">📄 PDF ansehen / drucken</button>`
-            : `<button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, false)" title="Diesen Monat im Formular anzeigen">👁️ Ansehen</button>
-               <button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, true)" title="Diesen Monat anzeigen und als PDF herunterladen">📄 PDF</button>`}
+          <button class="ghost" onclick="pdfAblageOeffnen('spesen-${m.jahr}-${m.monat}', 'Spesen ${MONTH_NAMES[m.monat - 1]} ${m.jahr}')" title="Den fertigen, gespeicherten Beleg ansehen oder drucken">📄 PDF ansehen / drucken</button>
+          ${zeigtDigitaleAbgabe() ? "" : `<button class="ghost" onclick="openArchivedMonth(${m.jahr}, ${m.monat}, false)" title="Diesen Monat im Blatt anzeigen">👁️ Ansehen</button>`}
         </div>
       </div>
     `).join("");
@@ -12583,9 +12842,14 @@ function renderFormular() {
   document.body.classList.toggle("formular-locked", !!submittedAt);
   // 10-Std.-Sperre fuer den Browser-Druck (Strg+P), siehe #druckSperre10h
   document.body.classList.toggle("druck-gesperrt-10h", korrektur0310() && tageUeber10().length > 0);
+  /* Kollegen (08.10.2026): "Abgeschlossen" statt "Eingereicht", und wo die
+     PDF jetzt liegt - Wieder oeffnen geht bei ihnen ohne PIN. */
+  const lockText = zeigtDigitaleAbgabe()
+    ? t("monthLockedBanner").replace("{ts}", formatTimestampDE(submittedAt || ""))
+    : "Abgeschlossen am " + formatTimestampDE(submittedAt || "") + " – die PDF liegt im Ordner „Abgeschlossene Spesen“.";
   const lockBanner = submittedAt ? `
     <div class="no-print month-locked-banner">
-      <span>🔒 ${t("monthLockedBanner").replace("{ts}", formatTimestampDE(submittedAt))}</span>
+      <span>🔒 ${lockText}</span>
       <button onclick="reopenMonth(${config.jahr}, ${monat})">${t("unlockBtn")}</button>
     </div>` : "";
 
@@ -12740,9 +13004,10 @@ function renderFormular() {
         <td colspan="4" rowspan="2" class="signature-cell">
           <div class="small sig-label">Unterschrift<br>Mitarbeiter :</div>
           <div class="sig-box"><img id="sigImg-spesen_signature" class="sig-img" alt="" style="display:none"></div>
+          ${zeigtDigitaleAbgabe() ? `
           <input type="file" id="sigFile-spesen_signature" class="no-print" accept="image/*" style="display:none" onchange="handleSignatureUpload(this,'spesen_signature')">
           <button class="no-print sig-upload-btn" onclick="document.getElementById('sigFile-spesen_signature').click()" title="Foto/Scan der handschriftlichen Unterschrift hochladen">📷 Foto/Scan</button>
-          <button class="no-print sig-clear-btn" onclick="clearSignature('spesen_signature')" title="Unterschrift entfernen">✕</button>
+          <button class="no-print sig-clear-btn" onclick="clearSignature('spesen_signature')" title="Unterschrift entfernen">✕</button>` : ""}
           <div class="small" id="sigTs-spesen_signature" style="color:#888;"></div>
         </td>
         <td colspan="3">über Gehaltsabrechnung bezahlt</td>
@@ -12787,6 +13052,8 @@ function renderFormular() {
   setupSignatureFields();
   zeitraumHinweisAktualisieren();
   vorausHinweisAktualisieren();
+  // Neue Oberflaeche (rieb.js) nach jeder Aenderung mitziehen - 08.10.2026
+  if (typeof window.riebNachRender === "function") window.riebNachRender();
 }
 
 /* Zeigt an, wenn der gewaehlte Monat NICHT der laufende ist - mit einem
@@ -12879,7 +13146,7 @@ function restDesMonatsFuellen() {
   if (!confirm("Die restlichen " + tage.length + " Arbeitstage dieses Monats mit "
     + vonZeit + " – " + bisZeit + " ausfüllen?\n\n"
     + "Diese Tage waren noch nicht. Wenn sich etwas ändert – Krankheit, kurzfristiger "
-    + "Urlaub –, ändern Sie den Tag und schicken eine Korrektur nach.\n\n"
+    + "Urlaub –, ändern Sie den Tag und geben eine korrigierte Fassung ab.\n\n"
     + "Rückgängig geht jederzeit mit einem Klick.")) return;
 
   tage.forEach((iso) => {
@@ -12914,15 +13181,9 @@ function vorausHinweisAktualisieren() {
   const el = document.getElementById("vorausHinweis");
   if (!el) return;
 
-  /* Neuerung vom 20.09.2026 - vorerst nur fuer Mirko (zeigtNeuerungen).
-     ⚠ Die dazugehoerige REPARATUR gilt weiter fuer alle: Die
-     Standardzeiten hoeren bei heute auf, auch beim Kollegen. Der hat
-     damit keinen Knopf, um den Rest des Monats auf einmal zu fuellen -
-     er traegt kuenftige Tage wie bisher einzeln ein. Das ist die
-     Absicht: lieber Handarbeit als 14 € je Tag fuer eine Tour, die
-     niemand gefahren ist. */
-  if (!zeigtNeuerungen()) { el.style.display = "none"; return; }
-
+  /* Neuerung vom 20.09.2026, seit 07.10.2026 FUER ALLE - zusammen mit
+     "Tag fuer Tag" (computeDay: vorgabeGilt). Mirko: "kollegen sollen aber
+     auch die moeglichkeit haben ein monat auf einmal zu erstellen". */
   const offen = vorausTage();
   const gefuellt = vorausGefuellte();
 
@@ -13073,7 +13334,9 @@ function renderHandyBlatt(entries, submittedAt, startLabel, endLabel, lockBanner
     { key: "spesen_signature", label: "Unterschrift Mitarbeiter" },
     { key: "spesen_signature_nll", label: "Unterschrift Niederlassungsleiter" },
   ];
-  const sigHtml = `
+  /* Kollegen (07.10.2026): keine digitale Unterschrift - der Ausdruck wird
+     von Hand unterschrieben, die Karten-Gruppe entfaellt ganz. */
+  const sigHtml = !zeigtDigitaleAbgabe() ? "" : `
     <div class="tk-sig-gruppe">
       ${sigFelder.map((s) => `
         <div class="tageskarte tk-sig">
@@ -13183,9 +13446,10 @@ window.addEventListener("afterprint", () => {
 
 function renderSignatureTimestamp(key) {
   if (key === "inventur_signature") invSigZeitZeigen(false);
-  const ts = (key === "spesen_signature_nll" && !nllSelbstEinfuegbar())
+  const ts = ((key === "spesen_signature_nll" && !nllSelbstEinfuegbar()) || !spesenUnterschriftDigital(key))
     ? null : localStorage.getItem(key + "_ts");
-  const text = (key === "spesen_signature" && korrektur0310())
+  const text = !spesenUnterschriftDigital(key) ? ""
+    : (key === "spesen_signature" && korrektur0310())
     ? sigZeitText(false)
     : (ts ? `unterschrieben am ${formatTimestampDE(ts)}` : "");
   // Vordruck UND App-Kartenansicht (#handyBlatt) gemeinsam setzen.
@@ -13212,10 +13476,18 @@ function renderSignatureTimestamp(key) {
    gespeicherte NLL-Unterschrift bleibt im Speicher (nichts geht verloren,
    Backup unveraendert), wird aber nicht mehr angezeigt und nicht gedruckt.
    Haengt am Freigabe-Schalter korrektur0310(). */
-function nllSelbstEinfuegbar() { return !korrektur0310(); }
+function nllSelbstEinfuegbar() { return !korrektur0310() && zeigtDigitaleAbgabe(); }
+
+/* Kollegen: keine digitale Unterschrift mehr (07.10.2026) - weder die
+   eigene noch die des NLL. Ein frueher gespeichertes Foto bleibt im
+   Speicher, erscheint aber weder am Bildschirm noch im Ausdruck: Das Blatt
+   wird von Hand unterschrieben. */
+function spesenUnterschriftDigital(key) {
+  return zeigtDigitaleAbgabe() || (key !== "spesen_signature" && key !== "spesen_signature_nll");
+}
 
 function loadSignatureImageInto(imgId, key) {
-  const saved = (key === "spesen_signature_nll" && !nllSelbstEinfuegbar())
+  const saved = ((key === "spesen_signature_nll" && !nllSelbstEinfuegbar()) || !spesenUnterschriftDigital(key))
     ? null : localStorage.getItem(key);
   [imgId, imgId + "-handy"].forEach((id) => {
     const img = document.getElementById(id);
@@ -13282,6 +13554,8 @@ function setupSignatureFields() {
 // Erinnerung vor dem Erstellen des offiziellen Nachweises: der Ausdruck braucht
 // eine echte, handschriftliche Unterschrift des Mitarbeiters. Rueckgabe false = Abbruch.
 function unterschriftHinweisOk() {
+  // Kollegen (07.10.2026): kein Foto/Scan mehr - die Frage danach entfaellt.
+  if (!zeigtDigitaleAbgabe()) return true;
   return confirm(
     "✍️ Bitte prüfen:\n\n" +
     "Ist die handschriftliche Unterschrift (Foto/Scan) im Nachweis eingefügt?\n" +
@@ -13327,7 +13601,7 @@ function stundenLimitOk() {
         Folgende${drueber.length > 1 ? " Tage liegen" : "r Tag liegt"} darüber:</p>
         <ul style="font-size:0.92rem; color:#c0392b; margin:0 0 0.5rem 1.1rem;">${liste}</ul>
         <p style="font-size:0.92rem; color:#444;">Bitte die Uhrzeiten so anpassen, dass der Tag
-        <b>unter 10 Stunden</b> bleibt. Erst danach lässt sich der Nachweis speichern, drucken oder versenden.</p>
+        <b>höchstens 10 Stunden</b> hat. Erst danach lässt sich der Nachweis speichern oder drucken.</p>
         <div class="modal-close-row">
           <button class="primary" onclick="closeModal()">Verstanden</button>
         </div>
@@ -13432,9 +13706,12 @@ async function buildPdf(opts) {
 // Direkt speichern (wie bisher) - auch von E-Mail-Versand/Abschluss genutzt.
 async function downloadPDF(internal) {
   if (!internal && !unterschriftHinweisOk()) return;
+  const monat = gewaehlterMonat();
   const r = await buildPdf();
   if (!r) return;
   r.pdf.save(r.filename);
+  // Kollegen: Speichern schliesst den Monat ab (08.10.2026) - nicht bei internen Aufrufen
+  if (!internal) await kollegeMonatAbschliessen(r, monat);
   return r.filename;
 }
 
@@ -13457,8 +13734,10 @@ async function previewPDF() {
             <button onclick="closePdfPreview()">Schließen</button>
           </div>
         </div>
-        <div style="background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; padding:7px 12px; margin-bottom:8px; font-size:0.85rem; color:var(--brand-dark);">
-          ✍️ <b>Nicht vergessen:</b> Die handschriftliche Unterschrift (Foto/Scan) muss eingefügt sein – andernfalls den Ausdruck von Hand unterschreiben.
+        <div style="background:#E0F2FE; border:0; border-radius:14px; padding:9px 14px; margin-bottom:10px; font-size:0.85rem; color:var(--brand-dark);">
+          ✍️ <b>Nicht vergessen:</b> ${zeigtDigitaleAbgabe()
+            ? "Die handschriftliche Unterschrift (Foto/Scan) muss eingefügt sein – andernfalls den Ausdruck von Hand unterschreiben."
+            : "Den Ausdruck von Hand unterschreiben."}
         </div>
         <iframe class="pdf-preview-frame" src="${__pdfPreviewUrl}"></iframe>
       </div>
@@ -13469,6 +13748,7 @@ function savePdfFromPreview() {
   if (!__pdfPreview) return;
   if (!unterschriftHinweisOk()) return;
   __pdfPreview.pdf.save(__pdfPreview.filename);
+  kollegeMonatAbschliessen(__pdfPreview, gewaehlterMonat());   // Kollegen, 08.10.2026
 }
 
 // Druckt das PDF aus dem SICHTBAREN, bereits geladenen Vorschau-iframe. Das
@@ -13504,6 +13784,11 @@ function printFromPreview() {
     "kommt das Blatt in voller Größe an, ohne Adresszeile und ohne " +
     "abgeschnittene Ränder.");
   unterschriftErinnern("--ordner-spesen", "spesen_signature");
+  /* ⛔ Drucken schliesst NICHT ab. Am 08.10.2026 kurz eingebaut ("auch
+     drucken"), am selben Tag zurueckgenommen, nachdem Mirko die Folge
+     gesehen hat (wer mitten im Monat druckt, haette den Monat gesperrt):
+     "gut dann lass das weg mit drucken wird abgeschlossen".
+     Abgeschlossen wird nur ueber "PDF speichern" und den Knopf. */
 }
 
 function closePdfPreview() {
@@ -13626,7 +13911,7 @@ function openCsvMenu() {
           <button onclick="closeModal(); csvPrint();">🖨️ CSV drucken</button>
           <button onclick="csvEmailSelf();">📧 CSV an mich selbst senden</button>
         </div>
-        <div style="font-size:0.83rem; color:#666; background:#FDE9DC; border:1px solid var(--accent); border-radius:8px; padding:8px 12px; line-height:1.4;">
+        <div style="font-size:0.83rem; color:#4F5968; background:#E0F2FE; border:0; border-radius:14px; padding:9px 14px; line-height:1.4;">
           📧 Der Versand geht <b>ausschließlich an Ihre eigene, hinterlegte Adresse</b>${self ? ` (<b>${self}</b>)` : " – diese ist noch nicht eingetragen"}.
           So bleibt die CSV bei Ihnen und geht nie an den Arbeitgeber.
         </div>
@@ -13645,7 +13930,7 @@ function openQrModal() {
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box" style="text-align:center;">
         <h2>📱 QR-Code</h2>
-        <p style="font-size:0.9rem; color:#444;">Einfach mit dem Handy scannen, um den Spesen-Rechner direkt zu öffnen - z.B. praktisch zum Aushängen am Schwarzen Brett.</p>
+        <p style="font-size:0.9rem; color:#444;">Einfach mit dem Handy scannen, um Rieb Spesen direkt zu öffnen - z.B. praktisch zum Aushängen am Schwarzen Brett.</p>
         <div id="qrCodeCanvas"></div>
         <div class="qr-url">${url}</div>
         <div class="modal-close-row">
@@ -13665,105 +13950,24 @@ function closeModal() {
 }
 
 /* ===================== Changelog Modal ===================== */
-/* Die Eintraege 1.7 bis 1.9 wurden am 13.08.2026 nachgetragen. Sie waren
-   nie geschrieben worden, obwohl die Fussleiste laengst "1.9" anzeigte -
-   wer also in die Aenderungshistorie sah, fand den Stand vom 20. Juli.
-   Rekonstruiert aus der Versionsgeschichte des Repos, nicht aus dem
-   Gedaechtnis: jeder Punkt laesst sich einem Commit zuordnen. */
+/* NEU BEGONNEN am 08.10.2026 mit "Rieb Spesen". Mirko auf die Frage, ob
+   die alten Eintraege (Hall-Logo, "bei Hall Tabakwaren") ausgeblendet und
+   mit Rieb Spesen neu begonnen werden soll: "ja rieb spesen".
+   Die alten Eintraege 1.0 bis 2.9 (18.07. - 01.09.2026) stehen in der
+   Versionsgeschichte des Repos (Stand a61cecd), nicht mehr hier.
+
+   ⚠ BEIM VEROEFFENTLICHEN: Datum eintragen und die Punkte gegen das
+   pruefen, was wirklich live geht. */
 const CHANGELOG = [
-  { version: "2.9", date: "01.09.2026", changes: [
-    "⏱️ Stunden werden jetzt auf Viertelstunden aufgerundet angezeigt (z.B. 9,5 oder 9,75 statt 9,33) – die 10-Std.-Grenze und die Pauschale-Schwelle rechnen weiterhin exakt",
-    "📅 Samstag lässt sich jetzt auch direkt in der Tabelle für eine einzelne Woche dazuschalten, nicht mehr nur global in den Stammdaten",
-  ]},
-  { version: "2.8", date: "31.08.2026", changes: [
-    "🕐 „Zeiten automatisch variieren“ landet jetzt immer auf glatten 5-Minuten-Marken (viertel vor/nach, halb, zehn vor) statt auf krummen Minutenzahlen",
-  ]},
-  { version: "2.7", date: "28.08.2026", changes: [
-    "📋 Spesen startet jetzt direkt mit den Stammdaten – kein Extra-Klick auf „Spesen bearbeiten“ mehr nötig",
-    "❓ Anleitung und 📱 Als App einrichten sind jetzt vollwertige Hauptkategorien",
-    "☰ Neue Hauptkategorie „Mehr“ bündelt Feedback, QR-Code, Monat abschließen, Archiv, Sprache und Zurücksetzen",
-    "📊 „Jahr“ heißt jetzt „Jahresübersicht“ und läuft auf dem Handy nicht mehr über den Bildschirmrand",
-    "🧹 Werkzeugleiste zeigt nur noch die Buttons, die zum jeweiligen Bereich passen",
-    "🐞 „Schließen“ in der PDF-Vorschau war auf schmalen Bildschirmen abgeschnitten – behoben",
-  ]},
-  { version: "2.6", date: "26.08.2026", changes: [
-    "🎨 App-Icons: weißer Kasten um das Hall-Logo entfernt – Logo jetzt freigestellt auf der Creme-Fläche",
-  ]},
-  { version: "2.5", date: "26.08.2026", changes: [
-    "🧭 Neue Kachel-Startseite: Spesen · Urlaub · Jahr zum Antippen, direkt nach dem Start",
-    "🧹 Werkzeugleiste aufgeräumt – Nebenfunktionen jetzt diskret im „⋮“-Menü",
-    "👋 Der Startbildschirm begrüßt Sie jetzt mit Namen und blendet sich von selbst aus",
-    "← Von jedem Bereich mit einem Klick zurück zur Kachel-Auswahl",
-    "✏️ „Einstellungen“ heißt jetzt „Spesen bearbeiten“",
-  ]},
-  { version: "2.4", date: "24.08.2026", changes: [
-    "🎨 Neuer Startbildschirm beim Öffnen der App – mit Logo und aktuellem Monat",
-    "🎨 Farben und Schrift an den echten Auftritt von halltabakwaren.de angeglichen",
-    "Der PDF-Export sieht dabei genau so aus wie bisher – bewusst unverändert",
-  ]},
-  { version: "2.3", date: "14.08.2026", changes: [
-    "📱 Android behoben: Auf dem Startbildschirm erschien nur ein graues Feld statt des Hall-Logos",
-    "📱 Android bekommt jetzt auch das eigene App-Fenster ohne Browserleiste – und damit die Kartenansicht mit einer Karte je Tag, die es dort bisher nie gab",
-    "📱 Das „App installieren“-Fenster von Chrome erscheint jetzt tatsächlich, wie in der Anleitung beschrieben",
-    "Das App-Symbol wurde so angepasst, dass Android beim runden Zuschneiden nichts mehr abschneidet",
-  ]},
-  { version: "2.1", date: "14.08.2026", changes: [
-    "⏰ Neuer Knopf „Zeiten für alle Tage“ direkt in der Werkzeugleiste: Abfahrt WP und Ankunft WP einmal setzen, sie gelten für jeden Werktag – ohne den Umweg über die Einstellungen",
-    "🌴 Behoben: In der App klebten unter dem Urlaubskalender noch die Tageskarten des Spesenblatts",
-    "Die App heißt auf dem Startbildschirm jetzt „Hall Tabakwaren“ statt „Hall“",
-  ]},
-  { version: "2.0", date: "13.08.2026", changes: [
-    "🌴 Urlaubskalender: Jahreskalender mit eigenem Urlaubsanspruch, Resttagen und Eintragen über Zeiträume – Feiertage und Wochenenden bleiben verschont",
-    "📱 Als App installierbar (iPhone und Android): eigenes Symbol, eigenes Fenster, funktioniert ohne Empfang",
-    "📱 In der App auf dem Handy: eine Karte je Tag statt der breiten Tabelle – für die Abgabe bleibt der Vordruck unverändert",
-    "Werkzeugleiste auf dem Handy aufgeräumt: vier Knöpfe, der Rest hinter „⋯ Mehr“",
-    "Das Monatsfeld steht beim Öffnen auf dem laufenden Monat statt auf Januar",
-    "Immer nur eine Ansicht offen – das Spesenblatt bleibt bei den Einstellungen sichtbar",
-    "PDF-, Druck- und QR-Funktion laufen ohne fremde Server: kein Ausfall mehr bei schlechtem Empfang oder gesperrter Verbindung",
-  ]},
-  { version: "1.9", date: "03.08.2026", changes: [
-    "CSV-Export für die Steuer für alle sichtbar (speichern, drucken oder an sich selbst senden)",
-    "Drucken liefert jetzt die fertige 1-Seiten-Fassung – nie wieder zwei Seiten oder abgeschnittene Ränder",
-  ]},
-  { version: "1.8", date: "31.07.2026", changes: [
-    "Unterschrift per Foto oder Scan der echten, handschriftlichen Unterschrift statt Zeichnen mit der Maus",
-    "30-Minuten-Pause für Fahrer und Monteure; Anwesenheit NL für beide ankreuzbar",
-    "Zeiten beim automatischen Ausfüllen leicht variieren statt immer gleiche Uhrzeiten",
-    "Hinweis auf die Original-Unterschrift vor Speichern, Drucken und E-Mail",
-    "Auto-Update prüft nur noch beim Öffnen statt alle fünf Minuten",
-  ]},
-  { version: "1.7", date: "22.07.2026", changes: [
-    "Spesenblatt-PDF 1:1 an die Original-Vorlage angeglichen (Kopfzeile, Spalten, Fußzeile)",
-    "PDF-Vorschau: erst ansehen, dann speichern oder drucken",
-    "Tage über 10 Std. werden blockiert – Speichern, Drucken und Mailen erst nach Korrektur",
-    "Samstag als eigene Tages-Zeile wählbar",
-    "Abgeschlossene Spesen mit eingebauter Datensicherung; Wiederöffnen nur per PIN",
-    "Video-Anleitung für Kollegen",
-  ]},
-  { version: "1.6", date: "20.07.2026", changes: [
-    "Mehrsprachigkeit (Deutsch/Englisch)",
-    "Einrichtungsassistent beim ersten Öffnen",
-    "Monat abschließen/sperren nach Einreichung",
-    "Zeitstempel bei der Unterschrift",
-    "Plausibilitätsprüfungen (unplausible Zeiten, leere Tage)",
-    "CSV-Export, QR-Code, Änderungshistorie, Balkendiagramm in der Jahresübersicht",
-  ]},
-  { version: "1.5", date: "19.07.2026", changes: [
-    "Mehrere getrennte Abwesenheits-Zeiträume mit Übersichtsliste",
-    "Samstag als Anwesenheitstag in der Niederlassung wählbar",
-    "Moderneres Design (Werkzeugleiste, Einstellungs-Karten)",
-    "Tastatur-Bedienung für das Zeit-Dreh-Rad",
-  ]},
-  { version: "1.4", date: "19.07.2026", changes: [
-    "Uhrzeit-Dreh-Rad (wie bei einer iPhone-Uhr) statt Texteingabe",
-    "Jahresübersicht, Datensicherung (Backup/Wiederherstellen)",
-    "Abwesenheiten am Stück eintragen",
-    "Mobile Bedienbarkeit verbessert",
-  ]},
-  { version: "1.0", date: "18.07.2026", changes: [
-    "Erste Web-Version für alle Fahrer und Monteure bei Hall Tabakwaren",
-    "Automatische Berechnung von Stunden, Pauschale und Feiertagen",
-    "Digitale Unterschrift, PDF-Export",
+  { version: "1.0", date: "10.10.2026", changes: [
+    "✨ Neuer Name: Rieb Spesen – mit neuem Aussehen",
+    "🌓 Hell oder Dunkel – beim ersten Start wählbar, später unter „Mehr“",
+    "🔄 Geräte abgleichen (freiwillig): PC, Handy, App und Browser auf demselben Stand – unter „Mehr“",
+    "🎬 Neue Anleitung mit Video – für PC und Handy",
+    "🖨️ Abgabe: ausdrucken und von Hand unterschreiben",
+    "📅 Die Tage füllen sich Tag für Tag – „Rest des Monats mitfüllen“ füllt den ganzen Monat auf Wunsch auf einmal",
+    "📁 „PDF speichern“ schließt den Monat ab: Die PDF liegt im Ordner „Abgeschlossene Spesen“, „Wieder öffnen“ geht jederzeit",
+    "⏰ Die Einrichtung fragt jetzt Ihre üblichen Zeiten ab",
   ]},
 ];
 
@@ -13896,7 +14100,7 @@ function openChangelogModal() {
 
 /* ===================== Feedback an den Entwickler ===================== */
 function sendFeedback() {
-  const subject = "Feedback Spesen-Rechner";
+  const subject = "Feedback Rieb Spesen";
   const body =
     "Hallo,\n\nich habe einen Verbesserungsvorschlag / eine Anmerkung zum Spesen-Rechner:\n\n" +
     "[Hier eintragen]\n\n" +
@@ -13904,45 +14108,15 @@ function sendFeedback() {
   window.location.href = `mailto:mirkorieb@t-online.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-/* ===================== Empfaenger der Spesen-Mail (06.10.2026) =====================
-   Mirko am 06.10.2026: "beim spesen zettel, bei email direkt an die firma
-   eine email adresse hinterlegen an die es direkt gehen soll ...
-   susanne.gritsch@halltabakwaren.de" - auf Rueckfrage: "nur fuer Lollar
-   aber immer der name vom nutzer das es auch richtig zugeordnet wird."
+/* ===================== Empfaenger der Spesen-Mail =====================
+   Die selbst eingetragene Adresse aus den Stammdaten.
 
-   NUR NIEDERLASSUNG LOLLAR. Hall hat elf Niederlassungen und die Zentrale;
-   ein Kollege aus einer anderen Niederlassung behaelt sein eigenes Feld.
-   Erkannt wird Lollar am Stammdatenfeld "Niederlassung" - ohne Ruecksicht
-   auf Gross-/Kleinschreibung und auch mit Zusatz ("NL Lollar").
-
-   NUR DIE SPESEN-MAIL (sendPerEmail). Inventur- und Abrechnungs-Mail
-   (invPerEmail, abrPerEmail - nur Mirko) lesen weiter config.arbeitgeberEmail.
-   Die selbst eingetragene Adresse bleibt dafuer in config stehen, sie wird
-   nur nicht mehr angezeigt, solange "Lollar" eingetragen ist. */
-const SPESEN_EMAIL_LOLLAR = "susanne.gritsch@halltabakwaren.de";
-function istNiederlassungLollar() {
-  return (config.niederlassung || "").trim().toLowerCase().indexOf("lollar") > -1;
-}
+   ⛔ Die feste Lollar-Adresse vom 06.10.2026 (Frau Gritsch) ist am
+   07.10.2026 wieder entfernt worden, zusammen mit der Ablage-Seite.
+   Mirko: "wird ja nur künftig via ausdruck abgegeben". Die Mail gibt es
+   nur noch fuer Mirko und den Chef-Link (zeigtDigitaleAbgabe). */
 function spesenEmpfaenger() {
-  return istNiederlassungLollar() ? SPESEN_EMAIL_LOLLAR : (config.arbeitgeberEmail || "").trim();
-}
-/* Das Stammdatenfeld zeigt bei Lollar die feste Adresse, gesperrt, mit
-   Hinweis darunter. saveConfig() schreibt ein gesperrtes Feld nicht zurueck. */
-function arbeitgeberEmailFeldAktualisieren() {
-  const feld = document.getElementById("cfgArbeitgeberEmail");
-  if (!feld) return;
-  const fest = istNiederlassungLollar();
-  feld.dataset.fest = fest ? "ja" : "";
-  feld.readOnly = fest;
-  feld.value = fest ? SPESEN_EMAIL_LOLLAR : (config.arbeitgeberEmail || "");
-  feld.style.background = fest ? "#f3efe8" : "";
-  const hinweis = document.getElementById("cfgArbeitgeberEmailHinweis");
-  if (hinweis) {
-    hinweis.style.display = fest ? "" : "none";
-    hinweis.textContent = fest
-      ? "Für die Niederlassung Lollar fest hinterlegt – Ihr Spesennachweis geht per E-Mail direkt an Frau Gritsch."
-      : "";
-  }
+  return (config.arbeitgeberEmail || "").trim();
 }
 
 /* Dateiname des Spesennachweises - fuer PDF UND CSV, auf allen Wegen
@@ -14081,6 +14255,9 @@ function aenderungenText(v) {
 
 /* ===================== Per E-Mail weiterleiten ===================== */
 async function sendPerEmail() {
+  if (!EMAIL_VERSAND_AKTIV) return;   // E-Mail-Versand ganz raus (08.10.2026)
+  // Kollegen geben nur noch ausgedruckt ab (07.10.2026) - auch ueber Umwege nicht
+  if (!zeigtDigitaleAbgabe()) return;
   if (!stundenLimitOk()) return;
   /* Ohne Namen keine Mail (06.10.2026): Betreff und Dateiname tragen den
      Namen, sonst kann der Empfaenger den Nachweis niemandem zuordnen. */
@@ -14850,6 +15027,10 @@ function zeigeWerkzeugleisteGruppe2(tab) {
    weiterhin mit fokusFeldId nutzen, um gezielt ein Stammdaten-Feld zu
    fokussieren - er hat aber keinen Einfluss mehr darauf, was sichtbar ist. */
 function zeigeSpesenUnteransicht(ansicht, fokusFeldId) {
+  /* Neue Oberflaeche (rieb.js, 08.10.2026): Wer hierher geschickt wird,
+     weil Name oder Adresse fehlen (sendPerEmail, CSV an mich), bekommt den
+     Stammdaten-Bogen - die alte Ansicht laege unter der neuen. */
+  if (ansicht === "stammdaten" && typeof window.riebStammdaten === "function" && window.riebStammdaten()) return;
   // Verteidigung unabhaengig davon, ob Task 7 (tab-abhaengige Sichtbarkeit
   // der toolbarKontextGruppe) schon gelandet ist: "Spesen bearbeiten" ist
   // HEUTE noch von jedem Tab aus klickbar, nicht nur vom Spesen-Tab. Ohne
@@ -15832,7 +16013,7 @@ function urlaubZaehlerFuer(jahr, holidaysMap) {
    Dieselbe Rechnung wie die Bilanz im Urlaubsbereich:
        Anspruch + Uebertrag - genommene Urlaubstage */
 function urlaubRestFuer(jahr) {
-  const gilt = urlaubAnspruchFuer(jahr);
+  const gilt = urlaubGilt(jahr);   // seit 09.10.2026 mit automatischem Uebertrag
   const zaehler = urlaubZaehlerFuer(jahr);
   return (gilt.anspruch + gilt.uebertrag) - zaehler.urlaub;
 }
@@ -15918,6 +16099,31 @@ function urlaubUebertragAus(vorjahr) {
        neuen Jahr bei 0 an und nicht mit einem Minus. */
     rest: Math.max(0, stand - genommen),
   };
+}
+
+/* Automatischer Uebertrag fuer ein Jahr - SEIT 09.10.2026 FUER ALLE.
+   Mirko: "dann müssen kolegen auch die automatische übermitteling mit
+   resturlaub aus vorjahr" (bis dahin nur Mirko, zeigtNeuerungen()).
+   Nur solange fuer das Jahr nichts von Hand eingetragen ist - eine
+   bewusste Eingabe schlaegt die Automatik. null = nichts zu uebertragen. */
+function urlaubUebertragAuto(jahr) {
+  if ((config.urlaubJahre || {})[String(jahr)]) return null;
+  return urlaubUebertragAus(jahr - 1);
+}
+/* Was gilt fuer ein Jahr - Anspruch und Uebertrag.
+   EINE Rechnung fuer alte Ansicht, Druck und neue Oberflaeche (rieb.js).
+
+   ⚠ Der automatische Uebertrag ZAEHLT NICHT von selbst - er ist ein
+   VORSCHLAG (g.auto), bis der Mensch ihn bestaetigt oder korrigiert
+   (= eigener Eintrag fuer das Jahr). Mirko 09.10.2026 auf die Frage, ob das
+   Werkzeug im Januar nachfragen soll: "ja genau es soll nachfragen".
+   Grund: Die Automatik kennt nur, was eingetragen ist. Wer das Werkzeug
+   erst ab Juli nutzt, bekaeme sonst den Urlaub Jan-Jun als "Rest" geschenkt.
+   Gefragt wird in rieb.js (resturlaubFragen / oeffneResturlaub). */
+function urlaubGilt(jahr) {
+  const g = urlaubAnspruchFuer(jahr);
+  g.auto = urlaubUebertragAuto(jahr);   // Vorschlag - zaehlt erst nach Bestaetigung
+  return g;
 }
 
 function urlaubSaveAnspruch() {
@@ -16070,17 +16276,16 @@ function urlaubRender() {
      hat, behaelt sie; eine Automatik darf eine bewusste Eingabe nicht
      ueberschreiben. */
   const eigenerEintrag = !!(config.urlaubJahre || {})[String(jahr)];
-  /* zeigtNeuerungen(): Das automatische Mitwandern des Resturlaubs ist
-     eine Neuerung vom 20.09.2026 und vorerst nur fuer Mirko. Kollegen
-     tragen den Uebertrag wie bisher selbst ein - das Feld steht ja da.
+  /* Das automatische Mitwandern des Resturlaubs (Neuerung vom 20.09.2026)
+     gilt seit 09.10.2026 FUER ALLE - bis dahin nur Mirko (zeigtNeuerungen).
+     Siehe urlaubUebertragAuto().
      ⚠ Die REPARATUR darunter gilt weiter fuer alle: Anspruch und
      Uebertrag werden je Jahr gemerkt (config.urlaubJahre). Vorher stand
      in jedem Jahr dieselbe Zahl, und ein abgeschlossenes Jahr aenderte
      sich rueckwirkend, sobald man fuer das neue etwas eintrug. */
-  const uebertragVor = (eigenerEintrag || !zeigtNeuerungen())
-    ? null
-    : urlaubUebertragAus(jahr - 1);
-  if (uebertragVor) gilt.uebertrag = uebertragVor.rest;
+  const uebertragVor = eigenerEintrag ? null : urlaubUebertragAuto(jahr);
+  /* Seit 09.10.2026 nur VORSCHLAG - zaehlt erst nach Bestaetigung (urlaubGilt).
+     Die Bilanz hier ist die des Urlaubsdrucks: nur Bestaetigtes. */
 
   document.getElementById("urlaubAnspruch").value = gilt.anspruch;
   document.getElementById("urlaubUebertrag").value = gilt.uebertrag;
@@ -16092,11 +16297,11 @@ function urlaubRender() {
   if (uebertragVor && uebertragVor.rest > 0) {
     hinweis.style.display = "block";
     hinweis.className = "uebertrag-hinweis";
-    hinweis.innerHTML = "🎁 <b>" + String(uebertragVor.rest).replace(".", ",")
-      + " Tage automatisch aus " + uebertragVor.jahr + " übernommen.</b> Dort standen Ihnen "
-      + String(uebertragVor.stand).replace(".", ",") + " Tage zu, genommen haben Sie "
+    hinweis.innerHTML = "🎁 <b>Vorschlag: " + String(uebertragVor.rest).replace(".", ",")
+      + " Tage aus " + uebertragVor.jahr + ".</b> Dort standen Ihnen "
+      + String(uebertragVor.stand).replace(".", ",") + " Tage zu, eingetragen sind "
       + String(uebertragVor.genommen).replace(".", ",")
-      + " – der Rest wandert mit. Sie können die Zahl überschreiben.";
+      + ". Die Zahl zählt, sobald Sie sie bestätigen.";
   } else {
     hinweis.style.display = "none";
   }
@@ -16301,6 +16506,13 @@ oeffneAusAnker();
   /* Darf jetzt neu geladen werden, ohne jemandem ins Handwerk zu pfuschen? */
   function guterMoment() {
     if (document.querySelector(".modal-overlay")) return false;
+    /* Neue Oberflaeche (Rieb Spesen, Mirko 09.10.2026 "ja darfst du"): Ein
+       offener Bogen (#ebene) speichert erst bei "Speichern", das Dreh-Rad
+       und die Einrichtung ebenso - ein Neuladen mitten hinein verlor die
+       Eingabe (gemessen: Neues Design/diagnose-update-bogen.sh). */
+    const ebene = document.getElementById("ebene");
+    if (ebene && !ebene.hidden) return false;
+    if (document.querySelector(".time-wheel-overlay, #einrichtung:not([hidden])")) return false;
     const a = document.activeElement;
     if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
     return true;
@@ -16435,6 +16647,9 @@ oeffneAusAnker();
   }).catch(function () { /* Browser kennt das nicht - egal */ });
 })();
 </script>
+<!-- Neue Oberflaeche "Rieb Spesen" - NACH dem Hauptskript, damit sie auf
+     dessen Funktionen und Daten aufsetzt. -->
+<script src="rieb.js"></script>
 <!-- Geraete-Synchronisierung (optional). Laeuft nur, wenn sync/firebase-config.js
      mit echten Werten vorhanden ist – sonst passiert hier nichts. -->
 <script type="module" src="sync/firebase-sync.js"></script>
