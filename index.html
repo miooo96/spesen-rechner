@@ -4699,8 +4699,18 @@ const APP_VERSION = "1.0";   // Anzeige in der Fusszeile - seit 08.10.2026 "Rieb
    wer exakt denselben Namen eintraegt, sieht den Tab ebenfalls (siehe
    Design-Spec, Punkt 8). */
 const MIRKO_NAME = "Mirko Rieb";
+/* STRENGER seit 10.10.2026 (Mirko: "wie koennte man das strenger loesen - mirko
+   rieb hat alles, andere nur zensierte version", Weg A): Name UND auf DIESEM
+   Geraet mit Mirkos Konto angemeldet. Den Merker "__sync_mirko" setzt
+   sync/firebase-sync.js, wenn Firebase Mirkos Konto meldet, und loescht ihn beim
+   Abmelden. "__sync…" geht nie in die Cloud (istIntern). Nur der Name reicht
+   nicht mehr - wer "Mirko Rieb" eintippt, sieht die Kollegen-Fassung. Gilt ohne
+   Internet weiter (Merker liegt auf dem Geraet). Gegen gezieltes Basteln im
+   Programmcode schuetzt es nicht - die Daten liegen ohnehin je Geraet. */
+const MIRKO_KONTO = "mirkorieb@t-online.de";
 function istMirko() {
-  return (config.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase();
+  if ((config.name || "").trim().toLowerCase() !== MIRKO_NAME.toLowerCase()) return false;
+  try { return localStorage.getItem("__sync_mirko") === MIRKO_KONTO; } catch (e) { return false; }
 }
 
 /* ---- Die Chef-Fassung (03.10.2026) ---------------------------------

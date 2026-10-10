@@ -257,6 +257,15 @@
       /* Nicht (mehr) angemeldet: Merker weg - beim naechsten Start wird
          Firebase dann gar nicht erst geladen */
       if (!user) _removeItem.call(localStorage, "__sync_uid");
+      /* Mirkos Ansicht (10.10.2026, Weg A): nur mit Name UND Mirkos Konto -
+         siehe istMirko() in index.html. Merker je Geraet ("__sync…" geht nie
+         in die Cloud). Aendert er sich (an-/abgemeldet), einmal neu laden,
+         damit Startseite und Bereiche passen. */
+      const MIRKO_KONTO = "mirkorieb@t-online.de";
+      const mirkoVorher = localStorage.getItem("__sync_mirko");
+      const mirkoJetzt = user && String(user.email || "").toLowerCase() === MIRKO_KONTO ? MIRKO_KONTO : null;
+      if (mirkoJetzt) _setItem.call(localStorage, "__sync_mirko", mirkoJetzt); else _removeItem.call(localStorage, "__sync_mirko");
+      if ((mirkoVorher || null) !== mirkoJetzt) reloadPlanen();
       if (user) {
         localStorage.removeItem("emailForSignIn");
         // Konto gewechselt (oder erstmalig)? Dann den Sync-Merker leeren,
