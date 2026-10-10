@@ -563,6 +563,18 @@ html:not(.rieb-bereit) #splashScreen{display:none}
   #rieb .brief-punkte li{padding:10px 12px;gap:10px}
   #rieb .brief-gruss{margin:10px 0 14px!important}
 }
+/* Umzugs-Code (10.10.2026, Entwurf "umzugscode-entwurf" freigegeben): EINE Zeile
+   unter "Jetzt umziehen" - der Brief muss am Handy ohne Scrollen passen (ohne
+   die Zeile 727 von 812 px). Der Hinweis erscheint erst nach dem Kopieren. */
+#rieb .brief-app{margin:12px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;color:var(--tinte2)}
+#rieb .brief-app .knopf-klein{flex:none}
+#rieb .brief-blatt .brief-app-hinweis{margin:10px 0 0;padding:10px 12px;border-radius:14px;background:var(--t0);font-size:13.5px;line-height:1.45;color:var(--tinte2)}
+#rieb .brief-app-hinweis b{color:var(--tinte);font-weight:640}
+/* Erster Start: "Schon Rieb Spesen benutzt?" - die Einrichtung ist immer dunkel */
+#rieb .er-schon{margin:18px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:#A0A8B4}
+#rieb .er-schon button{font-size:14px;font-weight:620;color:#7DD3FC;padding:6px 0}
+/* "Mit Konto anmelden" aus der Einrichtung: Fenster UEBER der Einrichtung (1090) */
+#rieb.ebene-oben .ebene{z-index:1095}
 ::view-transition-group(*){animation-duration:.66s;animation-timing-function:var(--feder)}
 ::view-transition-old(flaeche),::view-transition-new(flaeche){height:100%;width:100%}
 ::view-transition-old(flaeche){animation-duration:.3s}

@@ -728,6 +728,7 @@ function renderMehr() {
   document.getElementById("s-mehr").innerHTML = kopf("mehr", "Mehr", { unter: "Sicherung, Werkzeuge und Hilfe", kompakt: true }) + `
   <div class="blatt"><div class="blatt-innen einspaltig"><div class="haupt auftauchen">
     ${abgleichGruppe(z)}
+    ${amZiel() ? "" : umzugGruppe(z)}
     <div class="gruppe"><div class="gruppe-titel">Darstellung</div><div class="liste">
       <div class="zeile design-zeile"><span class="z-ic">${ic("farbe")}</span><span class="z-text">Design<small>Gilt für dieses Gerät</small></span>
         <span class="design-wahl" role="group" aria-label="Design">${[["hell", "Hell"], ["dunkel", "Dunkel"]].map(([d, t]) => `<button data-design="${d}" class="${(designGewaehlt() || "hell") === d ? "an" : ""}" aria-pressed="${(designGewaehlt() || "hell") === d}">${t}</button>`).join("")}</span></div>
@@ -833,6 +834,41 @@ async function abgleichLos() {
   schliesseEbene();
   toast(neu ? "Konto angelegt – Ihre Geräte gleichen sich jetzt ab" : "Angemeldet – Ihre Geräte gleichen sich jetzt ab");
   if (aktuell === "mehr") renderMehr();
+  erAnmeldenFertig();
+}
+/* Erster Start: "Mit Konto anmelden" (Mirkos Idee 09.10.2026 "Schon ein Konto?
+   Anmelden", im Entwurf 10.10. freigegeben). Das Fenster laege sonst UNTER der
+   Einrichtung (Ebene 1000 < 1090 - wie das Zeit-Dreh-Rad am 27.09.) - darum
+   #rieb.ebene-oben, solange es offen ist. */
+function erAnmelden() {
+  /* Der Knopf steht immer da: window.riebSync entsteht erst nach dem Nachladen
+     der Firebase-Einstellungen - also oft NACH dem ersten Bild der Einrichtung
+     (abgleich-pruefen 5b, 10.10.2026). Erst beim Tippen pruefen. */
+  if (!window.riebSync) { alert("Anmelden ist auf diesem Gerät gerade nicht möglich.\n\nRichten Sie Rieb Spesen bitte ohne Konto ein – anmelden können Sie sich später unter „Mehr“ → „Geräte abgleichen“."); return; }
+  document.getElementById("rieb").classList.add("ebene-oben");
+  oeffneAbgleich("anmelden");
+}
+/* Nach dem Anmelden mitten in der Einrichtung: warten, bis die Eintraege aus
+   dem Konto da sind (Einstellung mit Namen), das gewaehlte Design merken (es
+   gilt je Geraet und kommt nicht aus dem Konto) und neu laden - dann ist die
+   Einrichtung vorbei. Ohne Eintraege im Konto: Einrichtung geht weiter. */
+function erAnmeldenFertig() {
+  const ein = document.getElementById("einrichtung");
+  if (!ein || ein.hidden) return;
+  const start = Date.now();
+  const warte = setInterval(() => {
+    let name = "";
+    try { name = ((JSON.parse(localStorage.getItem("spesen_config") || "null") || {}).name || "").trim(); } catch (e) { name = ""; }
+    if (name) {
+      clearInterval(warte);
+      if (!designGewaehlt()) localStorage.setItem(DESIGN_KEY, ER.design === "dunkel" ? "dunkel" : "hell");
+      sessionStorage.setItem("rieb_konto_ok", "1");
+      location.reload();
+    } else if (Date.now() - start > 20000) {
+      clearInterval(warte);
+      toast("In diesem Konto sind noch keine Einträge – bitte richten Sie Rieb Spesen ein.");
+    }
+  }, 500);
 }
 async function abgleichVergessen() {
   if (!window.riebSync) return;
@@ -1762,6 +1798,7 @@ function oeffneEbene(html) {
 }
 function schliesseEbene() {
   const e = document.getElementById("ebene"); if (!e || e.hidden) return;
+  const r = document.getElementById("rieb"); if (r) r.classList.remove("ebene-oben");   // erAnmelden (10.10.2026)
   e.classList.remove("offen"); setTimeout(() => { e.hidden = true; }, 420);
 }
 const bogenKopf = (ueber, titel) => `<div class="bogen-kopf"><div><div class="ueber">${ueber}</div><h3>${titel}</h3></div><button class="rund hell" data-zu aria-label="Schließen">${ic("x")}</button></div>`;
@@ -2208,6 +2245,9 @@ function aktion(a, t) {
     case "verlauf": return openChangelogModal();
     case "zuruecksetzen": return zuruecksetzenMitAbgleich();   // angemeldet: vorher abmelden (09.10.2026)
     /* Geraete abgleichen (09.10.2026) */
+    case "umzug-code": return umzugCodeKopieren(null, () => toast("Umzugs-Code kopiert – jetzt " + zielName() + " öffnen, als App hinzufügen und beim ersten Start „Daten einfügen“ tippen."));
+    case "umzug-einfuegen": return umzugEinfuegen();
+    case "er-anmelden": return erAnmelden();
     case "abgleich-anmelden": return oeffneAbgleich("anmelden");
     case "abgleich-modus": return oeffneAbgleich(t.dataset.amodus);
     case "abgleich-los": return abgleichLos();
@@ -2447,7 +2487,8 @@ function erZeigen(richtung) {
   const S = {
     design: () => `<h2>${erNurDesign ? "Neu: Hell oder Dunkel." : "Willkommen."}<br>Wie soll es aussehen?</h2><p class="er-text">Sie können das jederzeit unter „Mehr“ ändern.</p>
       <div class="er-design">${[["hell", "Hell", "Weiße Flächen, dunkler Kopf"], ["dunkel", "Dunkel", "Alles dunkel – wie diese Seite"]].map(([d, t, u]) =>
-        `<button class="er-dkarte ${ER.design === d ? "an" : ""}" data-edesign="${d}" aria-pressed="${ER.design === d}">${designBild(d)}<b>${t}</b><small>${u}</small></button>`).join("")}</div>`,
+        `<button class="er-dkarte ${ER.design === d ? "an" : ""}" data-edesign="${d}" aria-pressed="${ER.design === d}">${designBild(d)}<b>${t}</b><small>${u}</small></button>`).join("")}</div>
+      ${erNurDesign ? "" : `<div class="er-schon"><span>Schon Rieb Spesen benutzt?</span><button type="button" data-aktion="umzug-einfuegen">Daten einfügen</button><button type="button" data-aktion="er-anmelden">Mit Konto anmelden</button></div>`}`,
     name: () => `<h2>Wie heißen Sie?</h2><p class="er-text">Ihr Name steht später auf Ihrem Spesennachweis.</p>${erFeld("eName", "Vor- und Nachname", ER.name, "Max Mustermann")}`,
     adresse: () => `<h2>Wo wohnen Sie?</h2><p class="er-text">Für die Kopfzeile des Nachweises – und Ihre Niederlassung.</p>${erFeld("eStrasse", "Straße und Hausnummer", ER.strasse, "Musterstraße 1")}${erFeld("eOrt", "Ort", ER.ort, "Musterstadt")}${erFeld("eNl", "Niederlassung", ER.nl, "z. B. Lollar")}`,
     rolle: () => `<h2>Als was arbeiten Sie?</h2><p class="er-text">Davon hängt ab, welche Zeiten der Nachweis zeigt.</p>${Object.entries(ROLLEN).map(([k, [t, u]]) => `<button class="er-rolle ${ER.rolle === k ? "an" : ""}" data-erolle="${k}"><span class="r-ic">${ic(ROLLEN_IC[k])}</span><span><b>${t}</b><small>${u}</small></span></button>`).join("")}`,
@@ -2706,6 +2747,14 @@ async function umziehen() {
   if (umzugLaeuft) return true; umzugLaeuft = true;
   try { return await umziehenJetzt(); } finally { umzugLaeuft = false; }
 }
+/* Alle Eintraege dieses Geraets als ein Paket - fuer "Jetzt umziehen" UND fuer
+   den Umzugs-Code (10.10.2026), damit beide Wege genau dieselben Daten tragen. */
+async function umzugPaket() {
+  const daten = {};
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); daten[k] = localStorage.getItem(k); }
+  daten[BRIEF_KEY] = "umgezogen";                  // an der neuen Adresse kein Brief mehr
+  try { return await packen(JSON.stringify({ v: 1, von: location.origin, zeit: Date.now(), daten })); } catch (e) { return ""; }
+}
 async function umziehenJetzt() {
   if (!(await zielBereit())) {
     alert(navigator.onLine === false
@@ -2713,11 +2762,7 @@ async function umziehenJetzt() {
       : "Die neue Adresse " + zielName() + " ist noch nicht bereit.\n\nSie können jetzt normal weiterarbeiten – an Ihren Einträgen ändert sich nichts. Beim nächsten Öffnen kommt der Umzug wieder.");
     return false;
   }
-  const daten = {};
-  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); daten[k] = localStorage.getItem(k); }
-  daten[BRIEF_KEY] = "umgezogen";                  // an der neuen Adresse kein Brief mehr
-  let paket = "";
-  try { paket = await packen(JSON.stringify({ v: 1, von: location.origin, zeit: Date.now(), daten })); } catch (e) { paket = ""; }
+  const paket = await umzugPaket();
   if (!paket || paket.length > 1500000) {
     alert("Der Umzug mit einem Klick geht auf diesem Gerät leider nicht.\n\nSo geht es trotzdem: unter „Mehr“ → „Backup als Datei speichern“, dann " + zielName() + " öffnen und dort „Backup wiederherstellen“.");
     return false;
@@ -2731,7 +2776,14 @@ async function umziehenJetzt() {
 function umzugAnkunft() {
   const m = /^#umzug=(.+)$/.exec(location.hash || ""); if (!m) return false;
   history.replaceState(null, "", location.pathname + location.search);   // Daten sofort aus Adresszeile und Verlauf
-  auspacken(m[1]).then((text) => {
+  umzugUebernehmen(m[1]);
+  return true;
+}
+/* Ein Paket uebernehmen und neu laden - fuer die Ankunft per Adresse UND fuer
+   "Daten einfuegen" mit dem Umzugs-Code. Dieselbe Rueckfrage, wenn das Geraet
+   hier schon eigene Spesendaten hat; dieselbe Meldung danach. */
+function umzugUebernehmen(paket) {
+  return auspacken(paket).then((text) => {
     const daten = (JSON.parse(text) || {}).daten || {};
     if (!daten.spesen_config) throw new Error("ohne Einstellungen");
     let dortName = "";
@@ -2745,13 +2797,69 @@ function umzugAnkunft() {
     alert("Der Umzug hat nicht geklappt – an der alten Adresse ist nichts verloren.\n\nBitte dort unter „Mehr“ → „Backup als Datei speichern“ und hier „Backup wiederherstellen“.");
     location.reload();
   });
-  return true;
+}
+
+/* ---------------- Umzugs-Code (10.10.2026) ----------------
+   Anlass: Mirkos iPhone-Test am 10.10.2026. Nach "Jetzt umziehen" waren die
+   Daten unter der neuen Adresse in SAFARI, die danach installierte App war
+   leer - das iPhone gibt jeder App vom Home-Bildschirm einen eigenen Speicher.
+   Darum (Mirko: Weg A, Entwurf freigegeben "ok"): In der alten App "Umzugs-Code
+   kopieren" (Brief, und unter der alten Adresse auch unter "Mehr"), in der
+   neuen App beim ersten Start "Daten einfuegen". Der Code ist dasselbe Paket
+   wie bei "Jetzt umziehen" und geht nur ueber die Zwischenablage des Geraets -
+   kein Internet, kein Konto, nichts verlaesst das Handy. */
+const UMZUG_CODE = "RIEB-SPESEN-UMZUG:";
+let umzugCodeVorrat = "";
+/* Vorab packen (beim Anzeigen von Brief bzw. "Mehr"): Das iPhone erlaubt das
+   Kopieren nur unmittelbar im Tipp - ein vorher gepacktes Paket geht ohne
+   Warten in die Zwischenablage. */
+async function umzugCodeVorbereiten() {
+  const p = await umzugPaket();
+  umzugCodeVorrat = p && p.length <= 1500000 ? UMZUG_CODE + p : "";
+}
+function textKopierenAlt(text) {
+  const t = document.createElement("textarea");
+  t.value = text; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0";
+  document.body.appendChild(t); t.focus(); t.select(); t.setSelectionRange(0, text.length);
+  let gut = false; try { gut = document.execCommand("copy"); } catch (e) { gut = false; }
+  t.remove(); return gut;
+}
+function textKopieren(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).catch(() => { if (!textKopierenAlt(text)) throw new Error("kopieren"); });
+  return textKopierenAlt(text) ? Promise.resolve() : Promise.reject(new Error("kopieren"));
+}
+function umzugCodeKopieren(knopf, danach) {
+  const geklappt = () => { if (knopf) knopf.textContent = "Kopiert ✓"; if (danach) danach(); };
+  const nicht = () => alert("Der Umzugs-Code ließ sich nicht kopieren.\n\nSo geht es trotzdem: unter „Mehr“ → „Backup als Datei speichern“, dann in der neuen App „Backup wiederherstellen“.");
+  if (umzugCodeVorrat) { textKopieren(umzugCodeVorrat).then(geklappt, nicht); return; }
+  umzugCodeVorbereiten().then(() => (umzugCodeVorrat ? textKopieren(umzugCodeVorrat) : Promise.reject())).then(geklappt, nicht);
+}
+/* Neue App, erster Start: "Schon Rieb Spesen benutzt? Daten einfuegen" */
+async function umzugEinfuegen() {
+  let text = null;
+  try { text = await navigator.clipboard.readText(); } catch (e) { text = null; }
+  if (text === null || !String(text).trim()) text = prompt("Umzugs-Code hier einfügen (lange tippen → „Einfügen“):", "");
+  if (text === null) return;
+  text = String(text).trim();
+  if (!text.startsWith(UMZUG_CODE)) {
+    alert("In der Zwischenablage ist kein Umzugs-Code.\n\nBitte in der bisherigen App auf „Umzugs-Code kopieren“ tippen (im Brief oder unter „Mehr“) und dann hier noch einmal „Daten einfügen“.");
+    return;
+  }
+  umzugUebernehmen(text.slice(UMZUG_CODE.length));
+}
+/* Unter der alten Adresse: Gruppe unter "Mehr" (nach "Geraete abgleichen") */
+function umzugGruppe(z) {
+  umzugCodeVorbereiten();
+  return `<div class="gruppe"><div class="gruppe-titel">Umzug auf ${esc(zielName())}</div><div class="liste">
+    ${z("umzug-code", "datei", "Umzugs-Code kopieren", "Für die App auf dem Handy – in der neuen App beim ersten Start „Daten einfügen“")}
+  </div></div>`;
 }
 /* Nach Einstieg bzw. Design-Wahl: Brief - und nach einem Umzug die Bestaetigung */
 function nachDemEinstieg() {
   briefZeigen();
   resturlaubFragen();   // 09.10.2026: neues Urlaubsjahr - Rest bestaetigen lassen (wartet, bis der Brief zu ist)
   if (sessionStorage.getItem("rieb_umzug_ok")) { sessionStorage.removeItem("rieb_umzug_ok"); toast("Umzug abgeschlossen – Ihre Einträge sind da"); }
+  if (sessionStorage.getItem("rieb_konto_ok")) { sessionStorage.removeItem("rieb_konto_ok"); toast("Angemeldet – Ihre Einträge sind da"); }
 }
 
 function briefZeigen() {
@@ -2777,17 +2885,24 @@ function briefZeigen() {
       <ul class="brief-punkte">
         ${punkt("stift", "Selbst drucken, von Hand unterschreiben", "Drucken Sie Ihren Spesennachweis selbst aus und unterschreiben Sie ihn handschriftlich.")}
         ${punkt("farbe", "Neues Design, gewohnte Funktionen", "Das Werkzeug hat ein neues Aussehen bekommen – die Funktionen bleiben dieselben.")}
-        ${punkt("haus", "Neue Adresse", alt ? `Das Werkzeug zieht um auf ${adresse}. Ein Klick genügt – Ihre bisherigen Einträge kommen mit.`
+        ${punkt("haus", "Neue Adresse", alt ? `Das Werkzeug zieht um auf ${adresse}. Ein Klick genügt – Ihre bisherigen Einträge kommen mit. Mit der App auf dem Handy: siehe unten.`
                                             : `Das Werkzeug ist umgezogen auf ${adresse}.`)}
       </ul>
       <p class="brief-gruss">Bei Fragen sprechen Sie mich gern an.<b>Mirko Rieb</b></p>
-      ${alt ? `<button class="haupt-knopf" id="briefUmzug" type="button" data-umzug>Jetzt umziehen</button>`
+      ${alt ? `<button class="haupt-knopf" id="briefUmzug" type="button" data-umzug>Jetzt umziehen</button>
+        <div class="brief-app"><span>App auf dem Handy?</span><button class="knopf-klein" id="briefCode" type="button">Umzugs-Code kopieren</button></div>
+        <p class="brief-app-hinweis" id="briefCodeHinweis" hidden>Jetzt <b>${esc(zielName())}</b> öffnen, „Zum Home-Bildschirm“ – und in der neuen App beim ersten Start <b>„Daten einfügen“</b> tippen.</p>`
             : `<button class="haupt-knopf" id="briefOk" type="button">Verstanden</button>`}
     </div>`;
   document.getElementById("rieb").appendChild(b);
   const zu = () => { b.classList.add("weg"); setTimeout(() => b.remove(), 420); };
   if (alt) {
     b.querySelectorAll("[data-umzug]").forEach((el) => el.addEventListener("click", async (ev) => { ev.preventDefault(); if (!(await umziehen())) zu(); }));
+    umzugCodeVorbereiten();
+    document.getElementById("briefCode").addEventListener("click", (ev) => umzugCodeKopieren(ev.currentTarget, () => {
+      const h = document.getElementById("briefCodeHinweis"); h.hidden = false;
+      h.scrollIntoView({ block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }));
   } else {
     document.getElementById("briefOk").addEventListener("click", () => { localStorage.setItem(BRIEF_KEY, new Date().toISOString()); zu(); });
   }
