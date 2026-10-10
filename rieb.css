@@ -86,6 +86,8 @@ html:not(.rieb-bereit) #splashScreen{display:none}
 #rieb .gruss-zeile{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:28px 4px 22px}
 #rieb .gruss{font-size:33px;line-height:1.06;letter-spacing:-.04em;font-weight:560;margin:0}
 #rieb .gruss .leise{color:var(--n-text3)}
+/* Spruch des Tages unter dem Gruss (10.10.2026) - eine ruhige Zeile */
+#rieb .gruss-spruch{margin:-10px 4px 22px;font-size:15px;line-height:1.4;font-weight:500;color:var(--n-text2);max-width:36em;text-wrap:pretty}
 #rieb .uhr{text-align:right;flex:none}
 #rieb .uhr-zeit{display:flex;align-items:flex-start;justify-content:flex-end;font-size:42px;font-weight:260;letter-spacing:-.02em;line-height:.9;
   font-variant-numeric:tabular-nums;color:#E6F6FF;text-shadow:0 0 22px rgba(56,189,248,.5),0 0 2px rgba(125,211,252,.4)}
@@ -635,6 +637,7 @@ html[data-vt="einstieg"]::view-transition-group(*){animation-duration:.95s}
 #rieb .marke .zeichen{width:34px;height:34px}
 #rieb .gruss-zeile{margin:50px 4px 38px}
 #rieb .gruss{font-size:60px}
+#rieb .gruss-spruch{margin:-22px 4px 38px;font-size:17px}
 #rieb .uhr-zeit{font-size:84px}
 #rieb .uhr-s{font-size:22px;margin-top:6px;min-width:28px}
 #rieb .uhr-datum{font-size:14px;margin-top:12px}

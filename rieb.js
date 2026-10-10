@@ -369,10 +369,11 @@ function renderStart(opt = {}) {
       <div class="marke">${zeichen('id="kopfZeichen"')}<span class="wortmarke" id="kopfWort">Rieb Spesen</span></div>
     </header>
     <div class="gruss-zeile">
-      <h1 class="gruss"><span class="leise" id="riebGruss">${tageszeitGruss()},</span>${vorname ? "<br>" + esc(vorname) : ""}</h1>
+      <h1 class="gruss"><span class="leise" id="riebGruss">${tagesGruss()},</span>${vorname ? "<br>" + esc(vorname) : ""}</h1>
       <div class="uhr" aria-label="Uhrzeit"><div class="uhr-zeit"><span id="uhrH">--</span><span class="dp">:</span><span id="uhrM">--</span><span class="uhr-s" id="uhrS">--</span></div>
         <div class="uhr-datum">${WT[h.getDay()]} ${h.getDate()}. ${MON_K[h.getMonth()]} · KW ${kw(h)}</div></div>
     </div>
+    <p class="gruss-spruch" id="riebSpruch" data-tag="${heuteIso()}">${esc(tagesSpruchMit(h).text)}</p>
     <div class="bento">
       <button class="kachel k-spesen" data-ziel="spesen" data-heute="1">
         <span class="k-grund"></span>
@@ -1743,13 +1744,248 @@ function inAlteOberflaeche(tab) {
   zeigeTabAlt(tab);
 }
 
+/* ---------------- Gruss und Spruch des Tages (10.10.2026) ----------------
+   Mirko: "der gruß guten morgen, guten mittag, ect, kannst du da individueller
+   sein? gruß an den mitarbeiter, plus kurzer lustiger spruch oder ein
+   motivationsspruch" - "ein spruch pro tag und gerne kreativ sein und neue
+   dazu ausdenken, dass nicht immer nur dieselben kommen" - "gruß ebenfalls
+   wechseln" - "moin meister kann auch dazu, zu jeder tageszeit". Sprueche aus
+   den eigenen Daten: "auch dort ja". Freigegebene Liste:
+   "Startseite – Gruß und Sprüche (Entwurf).md" im Vault.
+   - Ein Spruch pro Tag, den ganzen Tag gleich. Jeder Mitarbeiter hat je Topf
+     eine EIGENE Reihenfolge (gemischt mit seinem Namen als Saat); innerhalb
+     eines Topfes kommt ein Spruch erst wieder, wenn alle durch sind.
+   - Vorrang: krank > frei/Urlaub > Feiertag > Wochenende > Abgabe (Werktag
+     1-3) > morgen Urlaub > letzter Werktag > Montag/Freitag > eigene Zahlen
+     (jeder 5. Tag) > Jahreszeit (jeder 4. Tag) > allgemein.
+   - Laeuft komplett auf dem Geraet, nichts geht an fremde Dienste.
+   - Bewusst draussen: Rauchen/Tabak, Hall, Alkohol, Politik, Religion. */
+const GRUSS = {
+  frueh: ["Guten Morgen", "Früh dran heute", "Schon wach"],
+  morgen: ["Guten Morgen", "Moin", "Einen schönen guten Morgen", "Morgen", "Hallo und guten Morgen", "Servus"],
+  mittag: ["Mahlzeit", "Guten Mittag", "Hallo", "Moin"],
+  nachmittag: ["Guten Tag", "Schönen Nachmittag", "Hallo", "Servus"],
+  abend: ["Guten Abend", "Schönen Feierabend", "Hallo", "N'Abend"],
+  spaet: ["Guten Abend", "Noch fleißig", "Späte Runde"],
+};
+const GRUSS_IMMER = "Moin Meister";   // zu jeder Tageszeit (Mirko)
+const SPRUCH = {
+  krank: ["Gute Besserung – die Spesen laufen nicht weg.", "Heute zählt nur eins: gesund werden.", "Erholen Sie sich gut. Der Rest kann warten.",
+    "Tee, Decke, Ruhe – das ist heute der Plan.", "Gute Besserung – lassen Sie sich Zeit.", "Heute ist Pause angesagt. Ohne schlechtes Gewissen.",
+    "Auskurieren geht vor. Alles andere später.", "Schnell wieder gesund werden – das ist der einzige Auftrag heute."],
+  frei: ["Schönen Urlaub – heute zählt nur die Erholung.", "Frei! Was machen Sie eigentlich hier?", "Heute dürfen die Spesen Pause machen. Sie auch.",
+    "Genießen Sie den Tag – Sie haben ihn sich verdient.", "Kein Wecker, kein Stress – so soll es sein.", "Freier Tag. Das Werkzeug passt solange auf.",
+    "Abschalten erlaubt. Ausdrücklich.", "Heute ist Ihr Tag. Machen Sie was Schönes draus.", "Urlaubsmodus an. Arbeit ist morgen auch noch da.",
+    "Erholung ist auch eine Leistung. Viel Erfolg dabei."],
+  morgenUrlaub: ["Morgen beginnt Ihr Urlaub – nur noch heute!", "Letzter Tag vor dem Urlaub. Endspurt!", "Noch einmal schlafen, dann ist Urlaub.",
+    "Heute alles erledigen, morgen alles vergessen.", "Der Urlaub wartet schon vor der Tür.", "Nur noch ein Tag – dann gehört die Zeit Ihnen."],
+  abgabeOffen: ["Heute ist der {werktag}. Werktag – Ihr Nachweis für {monat} wartet.", "{monat} ist vorbei. Zeit zum Drucken und Unterschreiben.",
+    "Abgabe bis zum 3. Werktag – heute ist der {werktag}.", "Kurz drucken, unterschreiben, abgeben – dann ist {monat} erledigt.",
+    "Der Nachweis für {monat} will raus. Zwei Minuten, versprochen.", "Erinnerung: {monat} abschließen. Ihr Geld freut sich.",
+    "{monat} fertig machen, dann hat der Kopf wieder Platz.", "Ihr {monat}-Nachweis ist fast fertig. Nur noch abschließen."],
+  abgabeErledigt: ["{monat} ist abgegeben. Sauber!", "Nachweis für {monat} erledigt – vorbildlich.", "{monat}: abgehakt. Weiter geht's.",
+    "Pünktlich abgegeben. Daran könnten sich andere ein Beispiel nehmen.", "{monat} erledigt. Jetzt kann der neue Monat kommen.",
+    "Abgabe geschafft. Das fühlt sich gut an, oder?"],
+  monatsende: ["Letzter Arbeitstag im Monat – bald wird abgeschlossen.", "Der Monat ist fast geschafft. Gut gemacht.",
+    "Monatsende! Noch einmal kurz alle Tage prüfen.", "Heute den Monat sauber zu Ende bringen.",
+    "Letzter Tag im Monat. Der nächste Nachweis wartet schon.", "Monat geschafft. Morgen gibt es einen neuen."],
+  zahlenTage: ["Schon {tage} Spesentage diesen Monat. Weiter so!", "{tage} Spesentage bisher – da kommt was zusammen.",
+    "Ihr Monat läuft: {tage} Spesentage und es geht weiter."],
+  zahlenRest: ["Noch {rest} Urlaubstage für {jahr}. Schon verplant?", "{rest} Urlaubstage übrig. Gut geplant ist halb erholt.",
+    "Noch {rest} Tage Urlaub – das Jahr ist noch nicht vorbei."],
+  montag: ["Montag: Der Kaffee muss heute doppelt arbeiten.", "Neue Woche, neues Glück.", "Montag ist auch nur ein Tag. Ein langer, aber ein Tag.",
+    "Die Woche gehört Ihnen. Fangen Sie gut an.", "Montag – der Tag, an dem alle Pläne noch funktionieren.", "Frisch in die Woche. Oder wenigstens wach.",
+    "Montags ist alles möglich. Sogar gute Laune.", "Start in die Woche. Der Rest ergibt sich.", "Ein guter Montag ist ein halber Freitag. Fast.",
+    "Neue Woche, leerer Kalender, volle Energie. Hoffentlich.", "Montag: Kurz durchatmen, dann los.", "Die Woche ist jung. Sie auch.",
+    "Wer montags lächelt, hat den Rest der Woche im Griff.", "Montag? Kein Problem. Das schaffen Sie.", "Auf in die Woche – einer muss sie ja machen."],
+  freitag: ["Freitag! Das Wochenende winkt schon von Weitem.", "Endspurt – das Wochenende ist in Sichtweite.",
+    "Freitag: Der schönste Tag, um Dinge auf Montag zu verschieben.", "Noch einmal Gas geben, dann ist Wochenende.", "Freitag – die Woche hat sich gelohnt.",
+    "Fast geschafft. Das Wochenende hat schon Hunger.", "Freitag ist der Montag, der sich gemacht hat.", "Heute noch, dann gehört die Zeit Ihnen.",
+    "Wochenende in Sicht. Kurs halten!", "Freitag: Gute Laune ist heute Pflicht.", "Die Woche ist im Kasten. Fast.", "Freitag: Die Woche lächelt schon.",
+    "Letzte Etappe der Woche. Gute Fahrt!", "Schönes Wochenende schon mal vorab!", "Freitag. Der Tag mit dem besten Ausblick."],
+  wochenende: ["Wochenende! Die Spesen ruhen. Sie hoffentlich auch.", "Heute ist frei. Das Werkzeug macht auch Pause.", "Schönes Wochenende – genießen Sie es.",
+    "Samstag, Sonntag, Sofa. Klingt nach einem Plan.", "Kurz reinschauen ist erlaubt. Länger bleiben nicht.", "Wochenende ist zum Auftanken da.",
+    "Heute zählt keine Arbeitszeit. Nur die gute Zeit.", "Erholen Sie sich – Montag kommt von ganz allein.", "Freie Tage sind die besten Tage.",
+    "Wochenende. Das Wort allein ist schon schön."],
+  feiertag: ["Feiertag – genießen Sie ihn.", "Heute wird nicht gearbeitet. Ausdrücklich erlaubt.", "Ein freier Tag mitten in der Woche – was für ein Geschenk.",
+    "Feiertag! Die Spesen feiern mit.", "Heute ist frei. Machen Sie das Beste draus.", "Schönen Feiertag – bis morgen!"],
+  dezember: ["Bald ist das Jahr geschafft. Gut gemacht.", "Dezember – ein bisschen Ruhe tut gut.", "Das Jahr biegt auf die Zielgerade ein.",
+    "Plätzchen sind im Dezember ein Grundnahrungsmittel.", "Schöne Dezembertage!", "Noch ein paar Tage, dann ist das Jahr rund.",
+    "Dezember: Zeit, das Jahr sauber abzuschließen.", "Ein gutes Jahr geht zu Ende. Ein neues kommt."],
+  januar: ["Neues Jahr, neue Spesen, neue Chancen.", "Frohes neues Jahr! Auf ein gutes.", "Das Jahr ist noch frisch – genau wie die Vorsätze.",
+    "Januar: Alles auf Anfang.", "Ein neues Jahr voller Arbeitstage. Und hoffentlich voller guter.", "Neues Jahr, neues Urlaubskonto. Schon geplant?"],
+  winter: ["Glatte Straßen, kühler Kopf – fahren Sie vorsichtig.", "Draußen kalt, drinnen warm. Gute Fahrt!", "Winter: Lieber zwei Minuten später als einmal zu schnell.",
+    "Scheiben frei, Kopf frei, los geht's.", "Kalt draußen? Die gute Laune hält warm.", "Bei Glätte gilt: ankommen ist wichtiger als schnell sein.",
+    "Wintertag. Warm anziehen und sicher ankommen.", "Heute schon Eis gekratzt? Respekt."],
+  fruehling: ["Der Frühling kommt – die Laune auch.", "Mehr Licht, mehr Energie. Endlich.", "Frühling: Fenster auf, durchatmen, los.",
+    "Die Tage werden länger. Die Feierabende gefühlt auch.", "Alles blüht. Sie hoffentlich auch.", "Frühling: Die Laune wächst mit."],
+  sommer: ["Heiß heute? Genug trinken nicht vergessen!", "Sommer: Wasserflasche einpacken, gute Laune auch.", "Sonne draußen, Sonne drinnen.",
+    "Bei Hitze gilt: trinken, trinken, trinken.", "Sommerzeit ist Urlaubszeit. Schon geplant?", "Heute ist ein guter Tag für ein Eis nach Feierabend.",
+    "Sommer, Sonne, Spesen.", "Klimaanlage an, Laune hoch.", "Lange Tage, laue Abende – genießen Sie sie.", "Bei Hitze ruhig ein Gang zurück. Ankommen zählt."],
+  herbst: ["Der Herbst ist da – gemütlich wird's.", "Herbst: Bunte Blätter, klare Köpfe.", "Es wird früher dunkel. Licht an, Augen auf.",
+    "Herbstwetter? Gute Laune hat kein Wetter.", "Die Tage werden kürzer. Die To-do-Liste hoffentlich auch.", "Nebel am Morgen? Langsam fahren, sicher ankommen."],
+  unterwegs: ["Gute Fahrt heute – kommen Sie heil an.", "Ankommen ist wichtiger als schnell sein.", "Wer gelassen fährt, kommt entspannt an.",
+    "Die Straße gehört heute Ihnen. Teilweise.", "Tank voll, Kopf klar, los geht's.", "Jeder Kilometer zählt – auch für die Spesen.", "Gute Fahrt und freie Straßen!",
+    "Stau ist nur eine längere Pause mit Aussicht.", "Navi an, Musik an, gute Laune an.", "Unterwegs zu Hause – heute wieder.",
+    "Pausen machen ist auch Arbeit. Wichtige sogar.", "Heute wird gefahren, morgen gerechnet. Oder umgekehrt.", "Sicher hin, sicher zurück. Mehr braucht es nicht.",
+    "Die beste Abkürzung ist die, die man kennt.", "Wer unterwegs lächelt, hat mehr vom Tag.", "Rückspiegel checken, Laune checken, losfahren.", "Gute Strecke heute!",
+    "Unterwegs gilt: lieber eine Pause zu viel als eine zu wenig.", "Freie Fahrt wünscht das Werkzeug.", "Viele Kilometer, viele Geschichten. Schöne Tour heute.",
+    "Rote Ampeln sind die Kaffeepausen der Straße.", "Wer viel unterwegs ist, kennt die besten Bäcker.", "Der Tag ist eine Strecke. Schritt für Schritt.",
+    "Fahren Sie vorsichtig – die anderen tun es nicht immer.", "Heute schon die schönste Strecke gefunden?"],
+  allgemein: [
+    /* Motivation */
+    "Wer früh startet, hat mehr vom Feierabend.", "Kleine Schritte, große Wirkung.", "Heute ist ein guter Tag für einen guten Tag.",
+    "Gute Arbeit spricht für sich. Heute wieder.", "Ein Tag nach dem anderen. Heute ist dran.", "Ordnung im Nachweis, Ruhe im Kopf.",
+    "Läuft. Und wenn nicht, dann gleich.", "Machen ist wie wollen, nur krasser.", "Wer anfängt, ist schon halb fertig.", "Jeder Tag ist eine neue Chance. Heute auch.",
+    "Erst die Arbeit, dann der Feierabend. Gute Reihenfolge.", "Sie schaffen das. Wie immer.", "Konzentriert anfangen, entspannt aufhören.",
+    "Gut geplant ist halb geschafft.", "Was heute erledigt ist, stört morgen nicht.", "Die beste Zeit zum Anfangen ist jetzt.",
+    "Ein Lächeln kostet nichts und bringt viel.", "Heute wird ein guter Tag. Das ist beschlossen.", "Ruhe bewahren, Kurs halten.",
+    "Nicht perfekt, aber erledigt – auch eine Leistung.", "Der Tag hat 24 Stunden. Ein paar davon gehören Ihnen.", "Wer dranbleibt, kommt an.",
+    "Heute schon etwas geschafft? Dann ist der Tag schon gut.", "Schritt für Schritt geht's auch bergauf.", "Mit guter Laune geht alles leichter. Fast alles.",
+    "Fleiß zahlt sich aus. Manchmal sogar in Spesen.", "Machen Sie heute etwas, worauf Sie morgen stolz sind.", "Auf sich selbst kann man sich verlassen.",
+    "Wer Spaß an der Arbeit hat, arbeitet nicht. So heißt es.", "Ein klarer Kopf ist das beste Werkzeug.", "Gut gemacht ist besser als gut gemeint.",
+    "Ein gutes Team macht jeden Tag leichter.", "Danke für Ihren Einsatz. Ehrlich.", "Heute ist Ihr Tag. Zumindest ein Teil davon.",
+    "Durchatmen. Weitermachen. Feierabend genießen.", "Wer Ziele hat, findet Wege.", "Jede Strecke beginnt mit dem ersten Meter.", "Was zählt, ist das Ankommen.",
+    "Gelassenheit ist eine Superkraft.", "Erfolg ist die Summe kleiner Tage. Wie heute.",
+    /* zum Schmunzeln */
+    "Kaffee ist kein Getränk. Kaffee ist ein Arbeitsmittel.", "Die Spesen rechnen sich von selbst. Den Rest erledigen Sie.",
+    "Plan für heute: alles schaffen. Plan B: das Wichtigste.", "Multitasking heißt: drei Dinge gleichzeitig vergessen.", "Wer Ordnung hält, ist nur zu faul zum Suchen.",
+    "Das Leben ist zu kurz für schlechten Kaffee.", "Heute schon jemanden angelächelt? Der Spiegel zählt auch.",
+    "Gute Laune ist ansteckend. Heute bitte großzügig verteilen.", "Ein aufgeräumter Schreibtisch ist ein Zeichen für einen vollen Schrank.",
+    "Wer Zeit sparen will, trägt seine Zeiten einmal ein. Erledigt.", "Optimismus: Ein Brötchen mitnehmen, falls es länger dauert.",
+    "Der frühe Vogel fängt den Wurm. Der ausgeschlafene den guten Parkplatz.", "Heute wird nicht gemeckert. Höchstens ein bisschen.",
+    "Pünktlichkeit ist die Höflichkeit der Spesen.", "Wer viel arbeitet, darf auch viel Kuchen essen. Das ist Gesetz. Fast.",
+    "Der Papierkram erledigt sich nicht von selbst. Hier schon.", "Ich bin nicht faul, ich bin im Energiesparmodus.",
+    "Der Tag beginnt mit einem Lächeln. Oder mit Kaffee. Beides geht.", "Schreibtisch, Lenkrad oder Werkbank – Hauptsache, die Laune stimmt.",
+    "Feierabend ist auch nur ein anderes Wort für Ziel.", "Arbeit ist das, was zwischen zwei Kaffees passiert.", "Heute schon gelacht? Hier, das zählt auch.",
+    "Man kann nicht alles haben. Wo sollte man es auch hinstellen?", "Wer lächelt, statt zu toben, ist immer der Stärkere.", "Keine Panik. Erst mal einen Kaffee.",
+    "Der Montag hat angerufen. Er kommt nächste Woche wieder.", "Abwarten und Tee trinken. Oder Kaffee. Hauptsache abwarten.", "Gute Nachricht: Der Tag ist noch jung.",
+    "Heute ist ein guter Tag, um gute Laune zu haben. Gestern auch schon.", "Wer Witze über Spesen macht, hat sie meistens schon abgegeben.",
+    "Ein voller Bauch arbeitet gern. Erst Frühstück, dann Welt retten.", "Mittagspause ist die wichtigste Besprechung des Tages.",
+    "Heute bleibt alles im grünen Bereich. Ehrenwort.", "Wenn das Leben Ihnen Zitronen gibt: Limo draus machen und weiter.",
+    "Wer immer pünktlich ist, hat irgendwann viel Zeit zum Warten.", "Ordnung ist das halbe Leben. Die andere Hälfte ist Feierabend.",
+    "Der Kalender sagt Werktag. Die Laune sagt: egal, gut drauf.", "Heute läuft's wie geschmiert. Hoffentlich.", "Glück ist, wenn der Nachweis auf Anhieb stimmt.",
+    "Wer zuletzt lacht, hat den Witz erst später verstanden. Auch gut."],
+};
+/* Gemischte Reihenfolge je Mitarbeiter und Topf: Saat aus Name + Topf,
+   mulberry32, Fisher-Yates. Stabil, solange der Name gleich bleibt. */
+function spruchSaat(text) { let h = 2166136261; for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function spruchReihe(n, saat) {
+  let a = saat || 1; const zufall = () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const r = [...Array(n).keys()];
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(zufall() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
+}
+/* Element Nr. "zaehler" aus einem Topf - fuer diesen Mitarbeiter gemischt
+   (feste Reihenfolge je Name und Topf).
+   Der Zaehler rueckt nach jedem Durchlauf um EINEN Platz weiter
+   (zaehler + Durchlauf-Nr.). Ohne das haengt alles am Wochentag, sobald die
+   Topfgroesse durch 7 teilbar ist - gemessen 10.10.2026: Gruss-Topf 7 ->
+   Montag immer "Morgen", Mittwoch immer "Moin Meister"; Spruch-Topf fuer
+   unterwegs 105 -> an den allgemeinen Tagen (Di-Do) nur 45 von 105 je sichtbar.
+   So: jeder Eintrag kommt dran, derselbe fruehestens nach Topfgroesse - 1 Tagen. */
+function ausTopf(liste, topf, zaehler) {
+  const name = (config.name || "").trim().toLowerCase(), n = liste.length;
+  const c = zaehler + Math.floor(zaehler / n), pos = ((c % n) + n) % n;
+  return liste[spruchReihe(n, spruchSaat(name + "|" + topf))[pos]];
+}
+/* Tage seit 1.1.1970 nach ORTSZEIT - der Tag wechselt um Mitternacht des Geraets */
+const tagNummer = (d) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+/* Wie viele Tage bis einschliesslich Tag n fielen auf diese Wochentage
+   (0 = So … 6 = Sa)? Zaehler fuer Toepfe, die nur an bestimmten Wochentagen
+   drankommen: Jeder dieser Tage ist der naechste Platz im Topf. Mit dem
+   Kalendertag als Zaehler blieben Plaetze dauerhaft ungenutzt (gemessen
+   10.10.2026: 24 von 105 Spruechen in drei Jahren nie). 1.1.1970 = Do (4). */
+function wtZaehler(n, wochentage) {
+  const voll = Math.floor((n + 1) / 7) * wochentage.length;
+  let rest = 0; for (let m = Math.floor((n + 1) / 7) * 7; m <= n; m++) if (wochentage.includes((m + 4) % 7)) rest++;
+  return voll + rest;
+}
+/* Die allgemeinen Tage nach Kalender: Di-Do, kein Zahlen-Tag (jeder 5.), kein
+   Jahreszeit-Tag (jeder 4., Rest 1). Zaehlt nur DIESE Tage - sonst trafen die
+   Zahlen-Tage in jedem Durchlauf dieselben Plaetze (Durchlauf 245 Tage, durch
+   5 teilbar) und 25 Sprueche kamen nie (gemessen 10.10.2026). Muster wiederholt
+   sich alle 140 Tage (7 * 5 * 4). */
+const diDo = (m) => [2, 3, 4].includes((m + 4) % 7);
+const istAllgemeinTag = (m) => diDo(m) && m % 5 !== 0 && m % 4 !== 1;
+/* Jahreszeit-Tage: jeder 4. (Rest 1) - und die Zahlen-Tage (jeder 5.), wenn
+   die eigenen Zahlen nichts hergeben (Monatsanfang). Eigener Zaehler, damit
+   zwei solche Tage nie denselben Platz bekommen (gemessen 10.10.2026: Do/Di
+   mit fuenf Tagen Abstand, derselbe Spruch). */
+const istJahreszeitTag = (m) => diDo(m) && (m % 4 === 1 || m % 5 === 0);
+const je140 = {};
+function kalenderZaehler(n, art, gilt) {
+  if (je140[art] === undefined) { je140[art] = 0; for (let m = 0; m < 140; m++) if (gilt(m)) je140[art]++; }
+  const block = Math.floor((n + 1) / 140);
+  let rest = 0; for (let m = block * 140; m <= n; m++) if (gilt(m)) rest++;
+  return block * je140[art] + rest;
+}
+function tagesGruss(d = new Date()) {
+  const s = d.getHours();
+  const slot = s < 5 ? "frueh" : s < 11 ? "morgen" : s < 14 ? "mittag" : s < 18 ? "nachmittag" : s < 22 ? "abend" : "spaet";
+  let liste = GRUSS[slot].concat(GRUSS_IMMER);
+  /* "Schoenen Feierabend" nur an einem Arbeitstag */
+  if (slot === "abend") { const w = tagInfo(d, feiertage(d.getFullYear(), config.bundesland)); if (w.art === "ruhe" || w.art === "status") liste = liste.filter((g) => g !== "Schönen Feierabend"); }
+  return ausTopf(liste, "gruss-" + slot, tagNummer(d));
+}
+/* Der Spruch des Tages und aus welchem Topf er kommt */
+function tagesSpruchMit(d = new Date()) {
+  const J = d.getFullYear(), M = d.getMonth() + 1, n = tagNummer(d), wd = d.getDay();
+  const map = feiertage(J, config.bundesland), heute = tagInfo(d, map);
+  const morgen = new Date(J, M - 1, d.getDate() + 1);
+  const vorM = M === 1 ? 12 : M - 1, vorJ = M === 1 ? J - 1 : J;
+  const info = monatInfo(J, M);
+  const tagNr = info.arbeit.findIndex((t) => t.iso === isoVon(d)) + 1;              // Werktag Nr. dieses Datums (monatInfo zaehlt ab dem echten Heute)
+  const werte = { monat: MON[vorM - 1], werktag: String(tagNr), tage: String(info.spesentage), rest: "", jahr: String(J) };
+  const nimm = (topf, zaehler = n) => ({ topf, text: ausTopf(SPRUCH[topf], topf, zaehler).replace(/\{(\w+)\}/g, (_, k) => werte[k] || "") });
+  if (heute.art === "status" && heute.status === "krank") return nimm("krank");
+  if (heute.art === "status") return nimm("frei");                                   // Urlaub, Sonderurlaub, Elternzeit, Frei
+  if (heute.art === "ruhe" && heute.fei) return nimm("feiertag");
+  if (wd === 0 || wd === 6) return nimm("wochenende", wtZaehler(n, [0, 6]));
+  /* Werktag 1-3: Abgabe des Vormonats - nur, wenn es dort Spesentage gab
+     (sonst bekaeme ein neuer Kollege im ersten Monat eine Erinnerung) */
+  if (tagNr >= 1 && tagNr <= 3) {
+    let vorTage = 0; try { vorTage = computeMonth(vorJ, vorM).workdays || 0; } catch (e) { vorTage = 0; }
+    if (vorTage > 0) return nimm(localStorage.getItem(monthSubmittedKey(vorJ, vorM)) ? "abgabeErledigt" : "abgabeOffen");
+  }
+  if (((overrides[isoVon(morgen)] || {}).status) === "urlaub") return nimm("morgenUrlaub");
+  if (tagNr && tagNr === info.arbeit.length) return nimm("monatsende");
+  const woche = Math.floor((n + 3) / 7);                                              // Wochen-Zaehler (Montag bis Sonntag)
+  if (wd === 1) return nimm("montag", woche);
+  if (wd === 5) return nimm("freitag", woche);
+  /* jeder 5. Tag: die eigenen Zahlen - Resturlaub nur ab September */
+  if (n % 5 === 0) {
+    const rest = urlaubRestFuer(J);
+    if (M >= 9 && rest > 0 && n % 10 === 0) { werte.rest = String(rest).replace(".", ","); return nimm("zahlenRest", Math.floor(n / 10)); }
+    if (info.spesentage >= 3) return nimm("zahlenTage", Math.floor(n / 5));
+  }
+  /* jeder 4. Tag - und ein Zahlen-Tag ohne passende Zahlen: Jahreszeit bzw.
+     Dezember/Januar */
+  if (n % 4 === 1 || n % 5 === 0) {
+    if (M === 12 && n % 8 === 1) return nimm("dezember", Math.floor(n / 8));
+    if (M === 1 && n % 8 === 1) return nimm("januar", Math.floor(n / 8));
+    return nimm(M <= 2 || M === 12 ? "winter" : M <= 5 ? "fruehling" : M <= 8 ? "sommer" : "herbst", kalenderZaehler(n, "jz", istJahreszeitTag));
+  }
+  /* allgemein - Fahrer und Monteur Aussendienst dazu die fuer unterwegs.
+     Zaehler: nur die allgemeinen Tage nach Kalender */
+  const unterwegs = ["fahrer", "monteur-aussen"].includes(config.mitarbeitertyp);
+  const zaehler = kalenderZaehler(n, "allg", istAllgemeinTag);
+  if (unterwegs) { SPRUCH.allgemeinUnterwegs = SPRUCH.allgemeinUnterwegs || SPRUCH.allgemein.concat(SPRUCH.unterwegs); return nimm("allgemeinUnterwegs", zaehler); }
+  return nimm("allgemein", zaehler);
+}
+/* Fuer die Pruefung: Gruss und Spruch fuer ein beliebiges Datum/Uhrzeit */
+window.riebSpruchToepfe = SPRUCH;
+window.riebGrussSpruch = (zeit) => { const d = zeit ? new Date(zeit) : new Date(); const s = tagesSpruchMit(d); return { gruss: tagesGruss(d), spruch: s.text, topf: s.topf }; };
+
 /* ---------------- Live: Uhr und laufender Tag ---------------- */
 let letzterZustand = null;
 function uhrStellen() {
   const d = new Date();
   const H = document.getElementById("uhrH"); if (!H) return;
   H.textContent = zwei(d.getHours()); document.getElementById("uhrM").textContent = zwei(d.getMinutes()); document.getElementById("uhrS").textContent = zwei(d.getSeconds());
-  const g = document.getElementById("riebGruss"); if (g) g.textContent = tageszeitGruss() + ",";
+  const g = document.getElementById("riebGruss"); if (g) g.textContent = tagesGruss(d) + ",";
+  /* Neuer Tag, waehrend die Seite offen ist (ueber Mitternacht): neuer Spruch */
+  const sp = document.getElementById("riebSpruch"); if (sp && sp.dataset.tag !== isoVon(d)) { sp.textContent = tagesSpruchMit(d).text; sp.dataset.tag = isoVon(d); }
 }
 function takt() {
   if (!aktuell) return;
