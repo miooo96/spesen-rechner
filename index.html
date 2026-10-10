@@ -16075,9 +16075,15 @@ function urlaubAnspruchFuer(jahr) {
   if (eigen && typeof eigen.anspruch === "number") {
     return { anspruch: eigen.anspruch, uebertrag: eigen.uebertrag || 0 };
   }
+  /* Der alte Grundwert-Uebertrag gilt NUR, solange das Werkzeug das Vorjahr
+     nicht kennt (Altbestand von vor dem 20.09.2026). Kennt es das Vorjahr,
+     zaehlt allein der Rest daraus - als Vorschlag, bis er bestaetigt ist.
+     Bis 10.10.2026 zaehlte der alte Uebertrag dort ein zweites Mal: 4 Tage fuer
+     2026 eingetragen -> 2027 "übrig von 34" statt 30 (doppelt-pruefen.sh).
+     Mirko: "nirgendswo doppelte zahlen" - Korrektur: "ja korrigieren". */
   return {
     anspruch: config.urlaubsanspruch ?? 30,
-    uebertrag: config.urlaubUebertrag ?? 0,
+    uebertrag: urlaubUebertragAus(jahr - 1) === null ? (config.urlaubUebertrag ?? 0) : 0,
   };
 }
 
@@ -16157,10 +16163,11 @@ function urlaubSaveAnspruch() {
      dann gilt "so viel Urlaub habe ich ueblich" auch fuer kuenftige
      Jahre, die noch nicht gesetzt sind. Ein Eintrag fuer ein
      vergangenes Jahr aendert den Grundwert NICHT: sonst faerbte eine
-     Korrektur von 2025 auf alles ab. */
+     Korrektur von 2025 auf alles ab.
+     Der UEBERTRAG wandert seit 10.10.2026 NICHT mehr in den Grundwert - er
+     gehoert nur zu seinem Jahr, sonst zaehlte er im Folgejahr noch einmal. */
   if (jahr === new Date().getFullYear()) {
     config.urlaubsanspruch = anspruch;
-    config.urlaubUebertrag = uebertrag;
   }
   localStorage.setItem("spesen_config", JSON.stringify(config));
   urlaubRender();
