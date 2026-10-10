@@ -2714,6 +2714,10 @@ function briefFaellig() { return !zeigtNeuerungen() && !localStorage.getItem(BRI
    sonst gibt es dort keinen Brief und keinen Knopf.
    Fuer Pruefungen laesst sich das Ziel ueber window.RIEB_UMZUG_ZIEL setzen. */
 const UMZUG_ZIEL = window.RIEB_UMZUG_ZIEL || "https://rieb-spesen.de/";
+/* Mirko 10.10.2026: "ende oktober noch anfang november muss die neue seite
+   genutzt werden - datum in brief schreiben, ja". Steht im Brief der alten
+   Adresse; danach wird hall-spesen-rechner.de abgeschaltet (Entscheidung 51). */
+const UMZUG_FRIST = "31.10.2026";
 function amZiel() { try { return location.origin === new URL(UMZUG_ZIEL, location.href).origin; } catch (e) { return false; } }
 const zielName = () => { try { return new URL(UMZUG_ZIEL, location.href).hostname; } catch (e) { return "rieb-spesen.de"; } };
 function b64url(bytes) { let s = ""; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
@@ -2885,7 +2889,7 @@ function briefZeigen() {
       <ul class="brief-punkte">
         ${punkt("stift", "Selbst drucken, von Hand unterschreiben", "Drucken Sie Ihren Spesennachweis selbst aus und unterschreiben Sie ihn handschriftlich.")}
         ${punkt("farbe", "Neues Design, gewohnte Funktionen", "Das Werkzeug hat ein neues Aussehen bekommen – die Funktionen bleiben dieselben.")}
-        ${punkt("haus", "Neue Adresse", alt ? `Das Werkzeug zieht um auf ${adresse}. Ein Klick genügt – Ihre bisherigen Einträge kommen mit. Mit der App auf dem Handy: siehe unten.`
+        ${punkt("haus", alt ? `Umzug bis ${UMZUG_FRIST}` : "Neue Adresse", alt ? `Das Werkzeug zieht um auf ${adresse}, die alte Adresse wird danach abgeschaltet. Ein Klick genügt – Ihre bisherigen Einträge kommen mit.`
                                             : `Das Werkzeug ist umgezogen auf ${adresse}.`)}
       </ul>
       <p class="brief-gruss">Bei Fragen sprechen Sie mich gern an.<b>Mirko Rieb</b></p>
