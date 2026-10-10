@@ -293,6 +293,8 @@ function geruestBauen() {
     const t = ev.target.closest("button"); if (!t) return;
     if (t.dataset.erolle) { ER.rolle = t.dataset.erolle; document.querySelectorAll("#einrichtung [data-erolle]").forEach((b) => b.classList.toggle("an", b === t)); }
     if (t.dataset.edesign) { ER.design = t.dataset.edesign; document.querySelectorAll("#einrichtung [data-edesign]").forEach((b) => b.classList.toggle("an", b === t)); }
+    if (t.dataset.eherkunft) { ER.herkunft = t.dataset.eherkunft; erZeigen(); }
+    if (t.dataset.evorjahr) { erLesen(); ER.vorjahr = t.dataset.evorjahr; erZeigen(); }
     if (t.dataset.eurlaub) { erLesen(); ER.hatteUrlaub = t.dataset.eurlaub === "ja"; if (ER.hatteUrlaub && !ER.urlaub.length) ER.urlaub.push({ von: "", bis: "" }); erZeigen(); }
     if (t.hasAttribute("data-ezeitraum")) { erLesen(); ER.urlaub.push({ von: "", bis: "" }); erZeigen(); }
   });
@@ -1908,6 +1910,14 @@ function oeffneZeiten() {
   oeffneEbene(`
     ${bogenKopf("Einmal eintragen – gilt für jeden Werktag", "Zeiten für alle Tage")}
     <div class="zeiten">${zeitfeld("zAb", startLabel() + " (Standard)", std.ab)}${zeitfeld("zAn", endLabel() + " (Standard)", std.an)}</div>
+    ${/* Seit 10.10.2026 direkt unter den Zeiten - wie in der alten Fassung (Mirko:
+         "wieso kann ich ... nicht auch die funktion an jeden tag unterschiedlich
+         ankreuzen? die gibts da garnicht"). Dieselbe Einstellung wie unter
+         Einstellungen -> Arbeitstag (cfgZeitenVariieren). */ ""}
+    <div class="schalter-liste" style="margin-top:12px">
+      <label class="schalter"><span><b>Jeden Tag gleich</b><small>Jeder Werktag mit Ihren Zeiten für alle Tage</small></span><input type="radio" name="zVar" id="zVarGleich" ${config.zeitenVariieren ? "" : "checked"}></label>
+      <label class="schalter"><span><b>Jeden Tag anders</b><small>Kein Tag wie der andere: Mo–Mi 9:15–10:00, Do–Fr 8:35–9:10 Arbeitszeit – nie unter 8:30, nie über 10 Std</small></span><input type="radio" name="zVar" id="zVariieren" ${config.zeitenVariieren ? "checked" : ""}></label>
+    </div>
     <div class="messer"><div class="messer-zeile"><span class="messer-std" id="zStd"></span><span class="messer-betrag" id="zBetrag"></span></div>
       <div class="messer-satz">Die Zeiten stehen dann automatisch auf jedem Werktag des Monats – Tag für Tag bis heute. Einzelne Tage lassen sich danach weiterhin abweichend ändern; die werden hier nicht überschrieben.</div></div>
     <button class="haupt-knopf" data-aktion="zeiten-ok">Übernehmen</button>
@@ -2221,6 +2231,10 @@ function aktion(a, t) {
     case "zeiten-ok": {
       const ab = wertVon("zAb"), an = wertVon("zAn");
       if (!ab || !an) { toast("Bitte beide Zeiten setzen"); return; }
+      /* "Jeden Tag gleich / anders" aus diesem Bogen - szUebernehmen() speichert
+         ueber saveConfig(), das cfgZeitenVariieren liest */
+      const zv = document.getElementById("zVariieren"), cv = document.getElementById("cfgZeitenVariieren");
+      if (zv && cv) cv.checked = zv.checked;
       szUebernehmen(ab, an); schliesseEbene(); toast("Zeiten für alle Tage übernommen"); return;
     }
     case "zeiten-leeren": szLeeren(); schliesseEbene(); return;
@@ -2365,6 +2379,10 @@ function designUmschalten(d) {
 let toastZeit;
 function toast(text) {
   const el = document.getElementById("toast"); if (!el) return;
+  /* In der Einrichtung UEBER dem Knopf statt darauf (Mirko 10.10.2026:
+     "hinweis über dem knopf nicht drauf") - CSS #toast.ueber-knopf */
+  const er = document.getElementById("einrichtung");
+  el.classList.toggle("ueber-knopf", !!er && !er.hidden);
   el.textContent = text; el.classList.add("zeigen");
   clearTimeout(toastZeit); toastZeit = setTimeout(() => el.classList.remove("zeigen"), 2400);
 }
@@ -2438,9 +2456,20 @@ anhaengen("renderSignatureTimestamp", (key) => { if (key === "inventur_signature
 /* ---------------- Ersteinrichtung ----------------
    Im Look des Entwurfs, mit den Schritten der Live-Fassung:
      alle         zuerst das Design: Hell oder Dunkel (Mirko 08.10.2026)
-     Kollegen     Name · Adresse + NL · Rolle · Bundesland · Zeiten (5)
-     Mirko        + Urlaubstage + schon genommener Urlaub (wie bisher,
-                  wizardLetzterSchritt: Name "Mirko Rieb")
+                  · Daten uebertragen oder neu starten (10.10.2026)
+                  · Name · Adresse + NL · Rolle · Bundesland · Zeiten
+                  · Urlaubstage im Jahr · Urlaub aus dem Vorjahr · schon
+                  genommener Urlaub
+   Die drei Urlaubsfragen bekommen seit 10.10.2026 ALLE (Entscheidung 53).
+   Mirko: "urlaub haben doch eh alle mitarbeiter" - "es soll abgefragt werden
+   wie viele urlaubstage im jahr haben sie? und die naechste abfrage dann,
+   haben sie noch urlaubstage aus dem vorjahr mitgenommen? wenn ja wie viele,
+   die werden dann beruecksichtigt" - "als drittes dann die abfrage hatten sie
+   dieses jahr schon urlaub lassen". Bis dahin nur Mirko und Chef-Link; die
+   Kollegen bekamen stillschweigend 30 Tage.
+   Urlaubstage OHNE Vorgabe und Pflicht - Mirko: "keine vorgabe muss von jedem
+   mitarbeiter eingetragen werden (selbst)". Ebenso die Vorjahres-Frage: erst
+   Nein oder Ja tippen, dann geht es weiter.
    Gespeichert wird ueber einrichtungSpeichern() in index.html - derselbe
    Weg wie beim alten Assistenten.
    Die Zeiten-Felder starten LEER (Mirko 07.10.2026 nicht widersprochen):
@@ -2452,9 +2481,10 @@ let erNurDesign = false;
 const ER = {};
 function erZuruecksetzen() {
   Object.assign(ER, { design: designGewaehlt() || "", name: "", strasse: "", ort: "", nl: "", rolle: "fahrer", land: "HE", ab: "", an: "",
-                      anspruch: "30", hatteUrlaub: false, urlaub: [] });
+                      herkunft: "", anspruch: "", vorjahr: "", vorjahrTage: "", hatteUrlaub: false, urlaub: [] });
 }
-function erMitUrlaub() { return (ER.name || "").trim().toLowerCase() === MIRKO_NAME.toLowerCase() || istChefAnsicht(); }
+/* Zahl aus einem Feld - auch mit Komma ("27,5"). NaN, wenn leer. */
+function erZahl(w) { const s = String(w == null ? "" : w).trim().replace(",", "."); return s === "" ? NaN : Number(s); }
 /* Kleine Vorschau fuer die Design-Wahl: Kopf mit Zahl und Balken, darunter
    drei Zeilen - hell auf weissem Blatt oder dunkel auf Glas. */
 function designBild(d) {
@@ -2463,10 +2493,7 @@ function designBild(d) {
 }
 function erSchrittListe() {
   if (erNurDesign) return ["design"];
-  const s = ["design", "name", "adresse", "rolle", "land", "zeiten"];
-  if (erMitUrlaub()) s.push("anspruch", "urlaub");
-  s.push("fertig");
-  return s;
+  return ["design", "herkunft", "name", "adresse", "rolle", "land", "zeiten", "anspruch", "vorjahr", "urlaub", "fertig"];
 }
 function erFeld(id, label, wert, ph, typ = "text") {
   return `<label class="er-feld"><span>${label}</span><input id="${id}" type="${typ}" value="${esc(wert)}" placeholder="${esc(ph)}" autocomplete="off"></label>`;
@@ -2480,7 +2507,11 @@ function erZeigen(richtung) {
   leiste.innerHTML = erNurDesign ? "" : Array.from({ length: schritte }, (_, n) => `<i class="${n <= erSchritt ? "an" : ""}"></i>`).join("");
   document.getElementById("erZurueck").style.visibility = erSchritt > 0 && art !== "fertig" ? "visible" : "hidden";
   spaeter.hidden = art !== "zeiten";
-  knopf.textContent = erNurDesign ? "Übernehmen" : art === "fertig" ? "Los geht’s" : liste[erSchritt + 1] === "fertig" ? "Fertig" : "Weiter";
+  /* "Daten uebertragen" gewaehlt: der Knopf unten wird zu "Daten einfuegen" -
+     an der gewohnten Stelle, immer sichtbar (ein zweiter Knopf im Inhalt lag
+     am Handy halb unter dem Fuss) */
+  const einfuegen = art === "herkunft" && ER.herkunft === "alt";
+  knopf.textContent = erNurDesign ? "Übernehmen" : einfuegen ? "Daten einfügen" : art === "fertig" ? "Los geht’s" : liste[erSchritt + 1] === "fertig" ? "Fertig" : "Weiter";
   const innenD = ER.rolle === "monteur-innen";
   const land = Object.entries(BUNDESLAENDER).map(([k, v]) => `<option value="${k}" ${k === ER.land ? "selected" : ""}>${v}</option>`).join("");
   const vor = (ER.name || "").trim().split(/\s+/)[0];
@@ -2488,13 +2519,33 @@ function erZeigen(richtung) {
     design: () => `<h2>${erNurDesign ? "Neu: Hell oder Dunkel." : "Willkommen."}<br>Wie soll es aussehen?</h2><p class="er-text">Sie können das jederzeit unter „Mehr“ ändern.</p>
       <div class="er-design">${[["hell", "Hell", "Weiße Flächen, dunkler Kopf"], ["dunkel", "Dunkel", "Alles dunkel – wie diese Seite"]].map(([d, t, u]) =>
         `<button class="er-dkarte ${ER.design === d ? "an" : ""}" data-edesign="${d}" aria-pressed="${ER.design === d}">${designBild(d)}<b>${t}</b><small>${u}</small></button>`).join("")}</div>
-      ${erNurDesign ? "" : `<div class="er-schon"><span>Schon Rieb Spesen benutzt?</span><button type="button" data-aktion="umzug-einfuegen">Daten einfügen</button><button type="button" data-aktion="er-anmelden">Mit Konto anmelden</button></div>`}`,
+`,
+    /* Seit 10.10.2026 eine eigene Frage statt der kleinen Zeile "Schon Rieb
+       Spesen benutzt? Daten einfuegen · Mit Konto anmelden" unter der
+       Design-Wahl. Mirko: "da muss eine abfrage kommen? wollen sie ihre daten
+       aus der alten fassung mit uebertragen oder neu starten? ... wichtig ist
+       nur das der nutzer auch weis was er machen muss". "Daten uebertragen"
+       zeigt die drei Handgriffe, der Knopf unten heisst dann "Daten
+       einfuegen" - wer es gerade nicht kann, tippt "Neu starten". Der
+       Einleitungssatz faellt dann weg, damit alles ohne Scrollen passt. */
+    herkunft: () => `<h2>Wollen Sie Ihre Daten aus der alten Fassung übertragen oder neu starten?</h2>${ER.herkunft === "alt" ? "" : `<p class="er-text">Wer Rieb Spesen schon benutzt hat, nimmt seine Einträge mit – nichts muss neu eingetragen werden.</p>`}
+      <button class="er-rolle ${ER.herkunft === "alt" ? "an" : ""}" data-eherkunft="alt"><span class="r-ic">${ic("laden")}</span><span><b>Daten übertragen</b><small>Ich habe Rieb Spesen schon benutzt</small></span></button>
+      <button class="er-rolle ${ER.herkunft === "neu" ? "an" : ""}" data-eherkunft="neu"><span class="r-ic">${ic("plus")}</span><span><b>Neu starten</b><small>Ich benutze Rieb Spesen zum ersten Mal</small></span></button>
+      ${ER.herkunft === "alt" ? `<ol class="er-anleitung">
+        <li><b>Alte Fassung öffnen</b><span>So wie bisher – über Ihr App-Symbol oder Ihr Lesezeichen</span></li>
+        <li><b>Dort „Umzugs-Code kopieren“ tippen</b><span>Steht im Brief „Wichtig für Ihre Spesen“ und unter „Mehr“</span></li>
+        <li><b>Hierher zurück und unten „Daten einfügen“ tippen</b><span>Danach sind alle Ihre Einträge da</span></li>
+      </ol>
+      <div class="er-schon"><span>Sie nutzen „Geräte abgleichen“ mit einem Konto?</span><button type="button" data-aktion="er-anmelden">Mit Konto anmelden</button></div>` : ""}`,
     name: () => `<h2>Wie heißen Sie?</h2><p class="er-text">Ihr Name steht später auf Ihrem Spesennachweis.</p>${erFeld("eName", "Vor- und Nachname", ER.name, "Max Mustermann")}`,
     adresse: () => `<h2>Wo wohnen Sie?</h2><p class="er-text">Für die Kopfzeile des Nachweises – und Ihre Niederlassung.</p>${erFeld("eStrasse", "Straße und Hausnummer", ER.strasse, "Musterstraße 1")}${erFeld("eOrt", "Ort", ER.ort, "Musterstadt")}${erFeld("eNl", "Niederlassung", ER.nl, "z. B. Lollar")}`,
     rolle: () => `<h2>Als was arbeiten Sie?</h2><p class="er-text">Davon hängt ab, welche Zeiten der Nachweis zeigt.</p>${Object.entries(ROLLEN).map(([k, [t, u]]) => `<button class="er-rolle ${ER.rolle === k ? "an" : ""}" data-erolle="${k}"><span class="r-ic">${ic(ROLLEN_IC[k])}</span><span><b>${t}</b><small>${u}</small></span></button>`).join("")}`,
     land: () => `<h2>In welchem Bundesland?</h2><p class="er-text">Damit die Feiertage automatisch richtig stehen.</p><label class="er-feld"><span>Bundesland</span><select id="eLand">${land}</select></label>`,
     zeiten: () => `<h2>Ihre üblichen Zeiten</h2><p class="er-text">Einmal eintragen – sie gelten dann automatisch für jeden Werktag. Abweichende Tage ändern Sie später mit einem Tipp.</p><div class="er-zeiten">${erFeld("eAb", innenD ? "Anwesenheit NL Beginn" : "Abfahrt WP", ER.ab, "", "time")}${erFeld("eAn", innenD ? "Anwesenheit NL Ende" : "Ankunft WP", ER.an, "", "time")}</div>`,
-    anspruch: () => `<h2>Wie viele Urlaubstage haben Sie?</h2><p class="er-text">Manche haben 30, manche 28 – tragen Sie ein, was für Sie gilt. Änderbar bleibt es jederzeit unter „Urlaub“.</p>${erFeld("eAnspruch", "Urlaubstage pro Jahr", ER.anspruch, "30", "number")}`,
+    anspruch: () => `<h2>Wie viele Urlaubstage im Jahr haben Sie?</h2><p class="er-text">Manche haben 30, manche 28 – tragen Sie ein, was für Sie gilt. Änderbar bleibt es jederzeit unter „Urlaub“.</p>${erFeld("eAnspruch", "Urlaubstage pro Jahr", ER.anspruch, "", "number")}`,
+    vorjahr: () => `<h2>Haben Sie noch Urlaubstage aus dem Vorjahr mitgenommen?</h2><p class="er-text">Die Tage aus ${new Date().getFullYear() - 1} werden zu Ihren Urlaubstagen ${new Date().getFullYear()} dazugerechnet.</p>
+      <div class="er-wahl"><button class="er-rolle ${ER.vorjahr === "nein" ? "an" : ""}" data-evorjahr="nein"><span><b>Nein</b></span></button><button class="er-rolle ${ER.vorjahr === "ja" ? "an" : ""}" data-evorjahr="ja"><span><b>Ja</b></span></button></div>
+      ${ER.vorjahr === "ja" ? `<div style="margin-top:12px">${erFeld("eVorjahr", "Wie viele Tage?", ER.vorjahrTage, "", "number")}</div>` : ""}`,
     urlaub: () => `<h2>Hatten Sie dieses Jahr schon Urlaub?</h2><p class="er-text">An Urlaubstagen entsteht keine Pauschale. Fehlt der Urlaub, wird der Nachweis zu hoch.</p>
       <div class="er-wahl"><button class="er-rolle ${!ER.hatteUrlaub ? "an" : ""}" data-eurlaub="nein"><span><b>Nein</b></span></button><button class="er-rolle ${ER.hatteUrlaub ? "an" : ""}" data-eurlaub="ja"><span><b>Ja</b></span></button></div>
       ${ER.hatteUrlaub ? ER.urlaub.map((z, i) => `<div class="er-zeiten" style="margin-top:12px">${erFeld("eUv" + i, "Von" + (i ? " (" + (i + 1) + ")" : ""), z.von, "", "date")}${erFeld("eUb" + i, "Bis" + (i ? " (" + (i + 1) + ")" : ""), z.bis, "", "date")}</div>`).join("")
@@ -2514,6 +2565,7 @@ function erLesen() {
   if (art === "land") ER.land = v("eLand");
   if (art === "zeiten") { ER.ab = v("eAb") || ""; ER.an = v("eAn") || ""; }
   if (art === "anspruch") ER.anspruch = v("eAnspruch");
+  if (art === "vorjahr" && v("eVorjahr") !== null) ER.vorjahrTage = v("eVorjahr");
   if (art === "urlaub") ER.urlaub = ER.urlaub.map((z, i) => ({ von: v("eUv" + i) || "", bis: v("eUb" + i) || "" }));
 }
 function erWeiter(spaeter) {
@@ -2528,12 +2580,26 @@ function erWeiter(spaeter) {
     if (spaeter) { ER.ab = ""; ER.an = ""; }
     else if (!!ER.ab !== !!ER.an) { toast("Bitte beide Zeiten eintragen – oder „Später eintragen“"); return; }
   }
+  if (art === "herkunft" && ER.herkunft === "alt") { umzugEinfuegen(); return; }   // Knopf heisst dann "Daten einfuegen"
+  if (art === "herkunft" && ER.herkunft !== "neu") { toast("Bitte „Daten übertragen“ oder „Neu starten“ wählen"); return; }
+  /* Urlaubstage: Pflicht, keine Vorgabe (Mirko 10.10.2026) */
+  if (art === "anspruch" && !(erZahl(ER.anspruch) > 0)) { toast("Bitte tragen Sie ein, wie viele Urlaubstage Sie im Jahr haben"); return; }
+  if (art === "vorjahr") {
+    if (!ER.vorjahr) { toast("Bitte „Nein“ oder „Ja“ wählen"); return; }
+    if (ER.vorjahr === "ja" && !(erZahl(ER.vorjahrTage) > 0)) { toast("Bitte eintragen, wie viele Tage Sie mitgenommen haben"); return; }
+  }
+  /* Schon genommener Urlaub: "Ja" ohne Datum ging bis 10.10.2026 still
+     verloren - und ein einzelner Tag (nur Von) ebenso, weil
+     urlaubZeitraeumeEintragen() Von UND Bis verlangt. Jetzt: Von reicht
+     fuer einen Tag (wie bei "Abwesenheit eintragen"), ohne Von kein Weiter. */
+  if (art === "urlaub" && ER.hatteUrlaub && !ER.urlaub.some((z) => z.von)) { toast("Bitte das Von-Datum eintragen – oder „Nein“ wählen"); return; }
   if (art !== "fertig") { erSchritt++; erZeigen("vor"); return; }
   /* Fertig: speichern ueber denselben Weg wie der alte Assistent */
   const meldung = einrichtungSpeichern({
     name: ER.name, strasse: ER.strasse, ort: ER.ort, niederlassung: ER.nl, typ: ER.rolle, bundesland: ER.land,
-    zeitVon: ER.ab, zeitBis: ER.an, anspruch: ER.anspruch,
-    urlaub: erMitUrlaub() && ER.hatteUrlaub ? ER.urlaub : [],
+    zeitVon: ER.ab, zeitBis: ER.an, anspruch: erZahl(ER.anspruch),
+    uebertrag: ER.vorjahr === "ja" ? erZahl(ER.vorjahrTage) : 0,
+    urlaub: ER.hatteUrlaub ? ER.urlaub.filter((z) => z.von).map((z) => ({ von: z.von, bis: z.bis || z.von })) : [],
   });
   if (typeof closeModal === "function") closeModal();
   initSettingsUI(); updateMitarbeitertypUI(); renderFormular(); aktualisiereZeitSichtbarkeit();

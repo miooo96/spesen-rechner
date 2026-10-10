@@ -7972,11 +7972,16 @@ function einrichtungSpeichern(w) {
      Eintrag fuer das laufende Jahr gesetzt - sonst stuende er zwar in
      der Konfiguration, die Jahresbilanz zoege ihn aber erst heran,
      wenn man den Urlaubsbereich einmal geoeffnet hat. */
+  /* Uebertrag aus dem Vorjahr (seit 10.10.2026, Einrichtung fuer alle):
+     NUR im Eintrag des laufenden Jahres, NICHT als Grundwert
+     (config.urlaubUebertrag) - der gilt fuer Jahre ohne eigenen Eintrag,
+     dort wuerde derselbe Uebertrag ein zweites Mal mitgezaehlt. */
   const anspruch = parseFloat(w.anspruch);
+  const uebertrag = parseFloat(w.uebertrag);
   if (!isNaN(anspruch) && anspruch >= 0) {
     config.urlaubsanspruch = anspruch;
     config.urlaubJahre = config.urlaubJahre || {};
-    config.urlaubJahre[String(new Date().getFullYear())] = { anspruch: anspruch, uebertrag: 0 };
+    config.urlaubJahre[String(new Date().getFullYear())] = { anspruch: anspruch, uebertrag: uebertrag > 0 ? uebertrag : 0 };
   }
   localStorage.setItem("spesen_config", JSON.stringify(config));
   /* Schon genommener Urlaub - NACH dem Speichern der Konfiguration, weil

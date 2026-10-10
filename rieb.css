@@ -450,7 +450,18 @@ html:not(.rieb-bereit) #splashScreen{display:none}
 #rieb #toast{position:fixed;left:50%;bottom:calc(var(--unten) + 26px);transform:translate(-50%,24px);opacity:0;z-index:80;background:rgba(14,17,22,.94);color:#fff;
   padding:12px 18px;border-radius:999px;font-size:13.5px;font-weight:560;box-shadow:0 12px 32px rgba(0,0,0,.35);transition:transform .45s var(--sanft),opacity .3s;pointer-events:none;white-space:nowrap}
 #rieb #toast.zeigen{transform:translate(-50%,0);opacity:1}
-#rieb .einrichtung{position:fixed;inset:0;z-index:65;background:var(--n1);color:var(--n-text);display:flex;flex-direction:column;overflow:hidden}
+/* In der Einrichtung (10.10.2026): Hinweis UEBER dem Knopf, nicht darauf - Mirko:
+   "hinweis über dem knopf nicht drauf". Der Fuss: Knopf 52px, darunter
+   var(--unten)+22px -> Hinweis 12px darueber. Lange Texte brechen um, statt
+   breiter als der Knopf zu werden. */
+#rieb #toast.ueber-knopf{bottom:calc(var(--unten) + 22px + 52px + 12px);white-space:normal;text-align:center;width:max-content;max-width:min(576px,calc(100% - 44px));border-radius:18px}
+#rieb .einrichtung{position:fixed;inset:0;z-index:65;background:var(--n1);color:var(--n-text);display:flex;flex-direction:column;overflow:hidden;overflow:clip}
+/* overflow:clip (10.10.2026): Der Lichtschein ::before ragt 20 % ueber jeden
+   Rand (inset:-20%). Mit overflow:hidden blieb das Fenster VERSCHIEBBAR - jedes
+   scrollIntoView (Tastatur am iPhone, Fokus) konnte es um bis zu 20 % schieben,
+   Ueberschrift oben abgeschnitten (gemessen: 256/180 px bei 1280x900). clip
+   schneidet genauso ab, ist aber kein Scroll-Behaelter. Aeltere Geraete ohne
+   clip behalten hidden. */
 #rieb .einrichtung[hidden]{display:none}
 #rieb .einrichtung::before{content:"";position:absolute;inset:-20%;pointer-events:none;
   background:radial-gradient(40% 32% at 85% 5%, rgba(56,189,248,.22), transparent 70%),radial-gradient(40% 35% at 5% 95%, rgba(99,102,241,.16), transparent 70%)}
@@ -573,7 +584,13 @@ html:not(.rieb-bereit) #splashScreen{display:none}
 /* Erster Start: "Schon Rieb Spesen benutzt?" - die Einrichtung ist immer dunkel */
 #rieb .er-schon{margin:18px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:#A0A8B4}
 #rieb .er-schon button{font-size:14px;font-weight:620;color:#7DD3FC;padding:6px 0}
-/* "Mit Konto anmelden" aus der Einrichtung: Fenster UEBER der Einrichtung (1090) */
+/* Seit 10.10.2026: eigener Schritt "Daten übertragen oder neu starten" - nach
+   "Daten übertragen" drei nummerierte Handgriffe, darunter "Daten einfügen" */
+#rieb .er-anleitung{list-style:none;counter-reset:era;margin:20px 0 16px;padding:0;display:flex;flex-direction:column;gap:12px}
+#rieb .er-anleitung li{counter-increment:era;display:grid;grid-template-columns:28px 1fr;column-gap:12px;align-items:start}
+#rieb .er-anleitung li::before{content:counter(era);grid-row:span 2;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:660;color:#0B0D12;background:var(--eis-satt)}
+#rieb .er-anleitung b{font-size:15px;font-weight:620;color:var(--n-text);line-height:1.35;padding-top:4px}
+#rieb .er-anleitung span{font-size:13px;color:var(--n-text2);line-height:1.45}/* "Mit Konto anmelden" aus der Einrichtung: Fenster UEBER der Einrichtung (1090) */
 #rieb.ebene-oben .ebene{z-index:1095}
 ::view-transition-group(*){animation-duration:.66s;animation-timing-function:var(--feder)}
 ::view-transition-old(flaeche),::view-transition-new(flaeche){height:100%;width:100%}
