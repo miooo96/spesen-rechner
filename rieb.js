@@ -2490,7 +2490,7 @@ function aktion(a, t) {
     case "backup": return exportBackupVoll();
     case "wiederherstellen": { const f = document.getElementById("backupFileInput"); if (f) f.click(); return; }
     case "feedback": return sendFeedback();
-    case "qr": return openQrModal();
+    case "qr": return oeffneQr();
     case "sprache": { setLang(config.lang === "en" ? "de" : "en"); return renderMehr(); }
     case "verlauf": return openChangelogModal();
     case "zuruecksetzen": return zuruecksetzenMitAbgleich();   // angemeldet: vorher abmelden (09.10.2026)
@@ -3022,6 +3022,22 @@ const UMZUG_ZIEL = window.RIEB_UMZUG_ZIEL || "https://rieb-spesen.de/";
 const UMZUG_FRIST = "31.10.2026";
 function amZiel() { try { return location.origin === new URL(UMZUG_ZIEL, location.href).origin; } catch (e) { return false; } }
 const zielName = () => { try { return new URL(UMZUG_ZIEL, location.href).hostname; } catch (e) { return "rieb-spesen.de"; } };
+
+/* QR-Code unter "Mehr" (10.10.2026) - im neuen Aussehen statt des alten
+   Fensters (Emoji, Code in Hall-Braun #370F06). Zeigt IMMER auf die neue
+   Adresse: Das alte Fenster nahm die Adresse, unter der man gerade war - wer
+   ihn unter hall-spesen-rechner.de oeffnete und am Schwarzen Brett aushing,
+   haette ab dem 01.11.2026 (alte Adresse vom Netz) ins Leere verwiesen. */
+function oeffneQr() {
+  const ziel = new URL(UMZUG_ZIEL, location.href).href, name = zielName();
+  oeffneEbene(`${bogenKopf("Zum Weitergeben an Kollegen", "QR-Code")}
+    <div class="qr-feld" id="qrFeld" role="img" aria-label="QR-Code für ${esc(name)}" data-ziel="${esc(ziel)}"></div>
+    <div class="qr-adresse">${esc(name)}</div>
+    <p class="klein-text" style="text-align:center">Mit der Handy-Kamera scannen – Rieb Spesen öffnet sich direkt. Gut zum Aushängen am Schwarzen Brett.</p>`);
+  try {
+    new QRCode(document.getElementById("qrFeld"), { text: ziel, width: 220, height: 220, colorDark: "#0E1116", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) { document.getElementById("qrFeld").textContent = name; }
+}
 function b64url(bytes) { let s = ""; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
 function aus64url(t) { const s = atob(t.replace(/-/g, "+").replace(/_/g, "/")); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }

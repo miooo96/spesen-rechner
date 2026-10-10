@@ -586,6 +586,11 @@ html:not(.rieb-bereit) #splashScreen{display:none}
 /* Erster Start: "Schon Rieb Spesen benutzt?" - die Einrichtung ist immer dunkel */
 #rieb .er-schon{margin:18px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px;color:#A0A8B4}
 #rieb .er-schon button{font-size:14px;font-weight:620;color:#7DD3FC;padding:6px 0}
+/* QR-Code unter "Mehr" (10.10.2026): weisses Feld - auch im dunklen Design
+   scannbar (dunkler Code auf hellem Grund) */
+#rieb .qr-feld{display:grid;place-items:center;width:max-content;margin:18px auto 10px;padding:16px;background:#fff;border-radius:20px;box-shadow:inset 0 0 0 1px rgba(14,17,22,.08)}
+#rieb .qr-feld img,#rieb .qr-feld canvas{display:block;width:220px;height:220px}
+#rieb .qr-adresse{text-align:center;font-size:17px;font-weight:640;letter-spacing:-.01em;margin:2px 0 8px}
 /* Seit 10.10.2026: eigener Schritt "Daten übertragen oder neu starten" - nach
    "Daten übertragen" drei nummerierte Handgriffe, darunter "Daten einfügen" */
 #rieb .er-anleitung{list-style:none;counter-reset:era;margin:20px 0 16px;padding:0;display:flex;flex-direction:column;gap:12px}
